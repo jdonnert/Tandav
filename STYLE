@@ -1,0 +1,10 @@
+This is the Style Guide :
+
+* IF the code is broader than 79 characters, you are doing it wrong.
+* WE indent like the Linux kernel - Linus is right.
+* VARIABLES are initialised when declared. Index vars are the obvious exception.
+* GLOBAL variables have long meaningful names. 
+* LOCAL variables may be short to ease reading.
+* MACROS are capitalised and ugly.
+* Comments are // on the side, /**/ on the line.
+* return; is not a function.

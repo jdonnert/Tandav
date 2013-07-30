@@ -14,7 +14,7 @@ void Read_Parameter_File(char *filename)
 
 		Assert(fd != NULL, "Parameter file not found %s \n", filename);
 			
-		printf("\nReading Parameter file: %s \n", filename);
+		printf("\nReading Parameter file '%s' \n", filename);
 			
 		while (fgets(buf, CHARBUFSIZE, fd)) {
 
@@ -41,9 +41,10 @@ void Read_Parameter_File(char *filename)
 			if (j<0) // don't know this one
 				continue;
 				
-			printf(" %20s     %s\n", buf1, buf2);
+			printf(" %20s  %s\n", buf1, buf2);
 
 			switch (ParDef[j].type) {
+
 			case FLOAT:
 				
 				*((double *)ParDef[j].addr) = atof(buf2);
@@ -59,6 +60,8 @@ void Read_Parameter_File(char *filename)
 				*((int *)ParDef[j].addr) = atoi(buf2);
 				
 				break;
+			default:
+				Assert(0, "Code Error in ParDef struct: %s", ParDef[j].tag);
 			}
 		}
 		
@@ -69,14 +72,22 @@ void Read_Parameter_File(char *filename)
 		for (i = 0; i < NTags; i++) // are we missing one ?
             Assert(tagDone[i],"Value for tag '%s' missing in parameter"
 					" file '%s'.\n",ParDef[i].tag, filename );
+
+	/* check parameters */
+	Assert(Param.NumOutputFiles > 0, "NumOutputFiles has to be > 0");
+	Assert(Param.NumIOTasks > 0, "NumIOTasks has to be > 0");
+	Assert(Param.NumOutputFiles <= Sim.NTask, 
+			"NTask (=%d) can't be smaller than NumOutputFiles (=%d)", 
+			Sim.NTask,  Param.NumOutputFiles);
+	Assert(Param.NumIOTasks <= Sim.NTask, 
+			"NTask (=%d) can't be smaller than No_IOTasks (=%d)", 
+			Sim.NTask,  Param.NumOutputFiles);
+	Assert(Param.NumIOTasks <= Param.NumOutputFiles, 
+			"NumIOTasks (=%d) can't be smaller than NumOutputFiles (=%d)", 
+			Param.NumIOTasks,  Param.NumOutputFiles);
 	}
 
-	/* routine checks */
-	Assert(Param.No_Output_Files <= Task.NTask, 
-			"NTask (%d) can't be smaller than No_IOTasks (%d)", 
-			Task.NTask,  Param.No_Output_Files);
-	Assert(Param.Boxsize > 0, "Boxsize (%d) has to be > 0", Param.Boxsize);
-
+	MPI_Barrier(MPI_COMM_WORLD);
 
 	MPI_Bcast(&Param, sizeof(Param), MPI_BYTE, 0, MPI_COMM_WORLD);
 
@@ -103,6 +114,8 @@ void Write_Parameter_File(char *filename)
 	}
 
 	MPI_Barrier(MPI_COMM_WORLD);
+
+	MPI_Finalize();
 
 	exit(EXIT_SUCCESS);
 

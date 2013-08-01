@@ -1,6 +1,17 @@
 1. Main infrastructure
-2. Time integration
+	x macros, globals etc
+	- memory management
+	- profiling infrastucture
+2. I/O
+	x Parameter File
+	x Reading
+	- Writing
+	- restart files
 3. Cosmology + Units
-4. Tree + MPI
-5. I/O
+4. Time integration
+	- Kepler test problem
+5. Peano Hilbert Order
+6. Parallel Tree
+7. Domain Decomposition
+	- Adaptive Top Node Tree
 ----------------------

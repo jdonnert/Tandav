@@ -41,13 +41,13 @@ void Free_info(const char* file, const char* func, const int line,
  * Expands P so that space for nPart[type] is at offset[type]
  * Contracts P so that the last nPart[type] particles are removed */
 void Reallocate_P_Info(const char *func, const char *file, int line, 
-		int dNpart[NO_PART_TYPES], int offset_out[NO_PART_TYPES])
+		int dNpart[NPARTYPE], int offset_out[NPARTYPE])
 {
-	size_t offset[NO_PART_TYPES] = { 0 };
-	ptrdiff_t new_npart[NO_PART_TYPES] = { 0 };
+	size_t offset[NPARTYPE] = { 0 };
+	ptrdiff_t new_npart[NPARTYPE] = { 0 };
 	size_t new_npartTotal = 0;
 	
-	for (int type = 0; type < NO_PART_TYPES; type++) { // calc offset
+	for (int type = 0; type < NPARTYPE; type++) { // calc offset
 
 		new_npart[type] = Task.Npart[type] + dNpart[type];
 		
@@ -67,7 +67,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		offset[type] -= max(0, dNpart[type]); // correct for dNpart > 0 
 	}
 
-	for (int type = 0; type < NO_PART_TYPES; type++) { // move left
+	for (int type = 0; type < NPARTYPE; type++) { // move left
 
 		size_t src = offset[type] - dNpart[type]; 
 		size_t dest = offset[type];
@@ -80,7 +80,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 	size_t nBytes = sizeof(*P) * new_npartTotal;
 	P = Realloc(P, nBytes);
 
-	for (int type = 0; type < NO_PART_TYPES-1; type++) { // move right
+	for (int type = 0; type < NPARTYPE-1; type++) { // move right
 
 		size_t src = offset[type];
 		size_t dest = offset[type] + dNpart[type];
@@ -92,11 +92,11 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 
 	Task.NpartTotal = new_npartTotal;
 	
-	for (int type = 0; type < NO_PART_TYPES; type++) // book keeping
+	for (int type = 0; type < NPARTYPE; type++) // book keeping
 		Task.Npart[type] = new_npart[type];
 
 	if (offset_out != NULL) // return ptrs to freed space
-		memcpy(offset_out, offset, NO_PART_TYPES);
+		memcpy(offset_out, offset, NPARTYPE);
 		
 	return ;
 }

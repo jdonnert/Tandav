@@ -115,7 +115,7 @@ static void read_file(char *filename, const bool swapEndian,
 
 	const int groupMaster = 0;  
 	
-	int nPartRead[NO_PART_TYPES] = { 0 }, nTotRead = 0;
+	int nPartRead[NPARTYPE] = { 0 }, nTotRead = 0;
 
 	if (groupRank == groupMaster) { // get nPart for this file
 
@@ -127,7 +127,7 @@ static void read_file(char *filename, const bool swapEndian,
 		safe_fread(nPartRead, sizeof(*nPartRead), 6, fp, swapEndian);
 		SKIP_FORTRAN_RECORD;
 		
-		for (i=0; i<NO_PART_TYPES; i++)
+		for (i=0; i<NPARTYPE; i++)
 			nTotRead += nPartRead[i];
 		
 		printf("\nReading file '%s' on Task %i - %i \n"
@@ -141,20 +141,20 @@ static void read_file(char *filename, const bool swapEndian,
             	nTotRead); fflush(stdout);
 	}
 
-	MPI_Bcast(nPartRead, NO_PART_TYPES, MPI_INT, 0, mpi_comm_read);
+	MPI_Bcast(nPartRead, NPARTYPE, MPI_INT, 0, mpi_comm_read);
 	
-	int nPartGet[NO_PART_TYPES] = { 0 }; // find npart per CPU and type
+	int nPartGet[NPARTYPE] = { 0 }; // find npart per CPU and type
 		
-	for (i = 0; i < NO_PART_TYPES; i++) 
+	for (i = 0; i < NPARTYPE; i++) 
 		for (j = groupRank; j < nPartRead[i]; j += groupSize) 
 			nPartGet[i]++;
 
 	int nPartGetTotal = 0; 
 	
-	for (j = 0; j < NO_PART_TYPES; j++) 
+	for (j = 0; j < NPARTYPE; j++) 
 		nPartGetTotal += nPartGet[j];
 	
-	int offsets[NO_PART_TYPES] = { 0 }; 
+	int offsets[NPARTYPE] = { 0 }; 
 
 	Reallocate_P(nPartGet, offsets); // return offsets, update Task.Npart
 
@@ -253,7 +253,7 @@ static void empty_comm_buffer(void *DataBuf, const int iBlock, const int *nPart,
 
 		case VAR_P:
 
-			for (int type = 0; type < NO_PART_TYPES; type++) {
+			for (int type = 0; type < NPARTYPE; type++) {
 				
 				size_t iMin = offsets[type];
 				size_t iMax = iMin + nPart[type];
@@ -308,7 +308,7 @@ static void read_header_data(FILE *fp, const bool swapEndian)
 	safe_fread(&head.FlagMetals, sizeof(head.FlagMetals), 1, fp,swap);
 	safe_fread(head.NallHighWord, sizeof(*head.NallHighWord), 6, fp,swap);
 
-	for (int i= Sim.NpartTotal =0; i<NO_PART_TYPES; i++) {
+	for (int i= Sim.NpartTotal =0; i<NPARTYPE; i++) {
 		Sim.Mpart[i] = head.Massarr[i];
 
 		Sim.Npart[i] = (uint64_t)head.Nall[i];
@@ -321,9 +321,9 @@ static void read_header_data(FILE *fp, const bool swapEndian)
 	Assert(Sim.Boxsize >= 0, "Boxsize in header not > 0, but %g ", Sim.Boxsize);
 #endif	
 
-	rprintf("Particle Numbers (Masses) in Snapshot Header:	\n"
-		"   Gas   %11d (%1.5f), DM   %11d (%1.5f), Disk %11d (%1.5f)\n"
-		"   Bulge %11d (%1.5f), Star %11d (%1.5f), Bndy %11d (%1.5f)\n",
+	printf("Particle Numbers (Masses) in Snapshot Header:	\n"
+		"   Gas   %llu (%1.5f), DM   %llu (%1.5f), Disk %llu (%1.5f)\n"
+		"   Bulge %llu (%1.5f), Star %llu (%1.5f), Bndy %llu (%1.5f)\n",
 		Sim.Npart[0], Sim.Mpart[0], Sim.Npart[1], Sim.Mpart[1], 
 		Sim.Npart[2], Sim.Mpart[2], Sim.Npart[3], Sim.Mpart[3], 
 		Sim.Npart[4], Sim.Mpart[4], Sim.Npart[5], Sim.Mpart[5]);

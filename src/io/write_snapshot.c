@@ -52,14 +52,14 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 {
 	const int groupMaster = 0;  
 
-	int nPartFile[NO_PART_TYPES] = { 0 }; // npart in file by type
+	int nPartFile[NPARTYPE] = { 0 }; // npart in file by type
 	
-	MPI_Reduce(Task.Npart, nPartFile, NO_PART_TYPES, MPI_INT, MPI_SUM, 
+	MPI_Reduce(Task.Npart, nPartFile, NPARTYPE, MPI_INT, MPI_SUM, 
 			groupMaster, mpi_comm_write);
 
 	int nPartTotalFile = 0; // total number of particles in file
 	
-	for (int i = 0; i < NO_PART_TYPES; i++) 
+	for (int i = 0; i < NPARTYPE; i++) 
 			nPartTotalFile += nPartFile[i];
 	
 	FILE *fp = NULL;
@@ -252,7 +252,7 @@ static inline unsigned int npart_in_block(const int i, const int *nPart)
 {
 	unsigned int result = 0;
 	
-	for (int j = 0; j < NO_PART_TYPES; j++)
+	for (int j = 0; j < NPARTYPE; j++)
 		result += nPart[j] * ((1 << j & Block[i].PartBitMask) >> j);
 
 	return result;

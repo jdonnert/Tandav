@@ -60,7 +60,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 	int nPartTotalFile = 0; // total number of particles in file
 	
 	for (int i = 0; i < NO_PART_TYPES; i++) 
-			nPartTotalFile += npartFile[i];
+			nPartTotalFile += nPartFile[i];
 	
 	FILE *fp = NULL;
 		
@@ -114,7 +114,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 				char * restrict writeBuf = dataBuf + swap * halfBufSize;
 				char * restrict commBuf = dataBuf + (1 - swap) * halfBufSize;
 		
-				MPI_IRecv(commBuf,xferSizes[task+1], MPI_BYTE, task, MPI_ANY_TAG,
+				MPI_Irecv(commBuf,xferSizes[task+1], MPI_BYTE, task, MPI_ANY_TAG,
 						mpi_comm_write, &request); // assume xfersize=0 is valid
 
 				fwrite(writeBuf, xferSizes[task], 1, fp);
@@ -122,14 +122,12 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 				swap = 1 - swap; // swap memory areas 
 
 				MPI_Wait(&request, &status);
-
-				Assert(status == MPI_SUCCESS, "IRecv failed %d", status);
 			}
 
 			WRITE_FORTRAN_RECORD(blocksize)
 
 		} else   // slaves just post a blocking send
-			MPI_Send(dataBuf, nBytesSend, MPI_BYTES, groupMaster, groupRank, 
+			MPI_Send(dataBuf, nBytesSend, MPI_BYTE, groupMaster, groupRank, 
 					mpi_comm_write);
 	}
 
@@ -178,7 +176,7 @@ void write_gadget_header(const int *npart, FILE *fp)
 		
 	WRITE_FORTRAN_RECORD(blocksize)
 
-	fwrite(&head, Blocksize, 1, fp);
+	fwrite(&head, blocksize, 1, fp);
 	
 	WRITE_FORTRAN_RECORD(blocksize)
 
@@ -224,7 +222,7 @@ static void write_block_header(const char *name, uint32_t blocksize, FILE *fp)
 
 	blocksize += 8; // add 2*4 byte of FORTRAN header to data size
 
-	char fmt2Head[fmt2Size] = { "" };
+	char fmt2Head[fmt2Size];
 
 	strncpy(&fmt2Head[0], name, 4);
 	strncpy(&fmt2Head[4], (char *)&blocksize, 4);

@@ -20,7 +20,7 @@ void *Realloc_info(const char* file, const char* func, const int line,
 	Assert_Info(func, file, line, result != NULL || new_size==0,
 			"Reallocation failed: %zu bytes \n" ,new_size);
 
-	return (result);
+	return result;
 }
 
 void Free_info(const char* file, const char* func, const int line, 
@@ -28,7 +28,6 @@ void Free_info(const char* file, const char* func, const int line,
 {
     if (ptr != NULL)        
     	free(ptr);
-
 	else
 		printf("WARNING Task %d. You tried to free a NULL pointer "
 				"in file %s, function %s(), line %d\n", 

@@ -1,12 +1,6 @@
 #include "globals.h"
 #include "proto.h"
 
-struct Local_Task_Properties Task;
-struct Global_Simulation_Properties Sim;
-struct Parameters_From_File Param; 
-struct Time_Integration_Infos Time;   
-struct Particle_Data *P; 
-
 static void preamble(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
@@ -17,7 +11,7 @@ int main(int argc, char *argv[])
 
 	Init();
 
-	Read_Snapshot(Param.Input_File);
+	Read_Snapshot(Param.InputFile);
 
 	Setup();
 
@@ -31,12 +25,19 @@ int main(int argc, char *argv[])
 
 		Drift();
 
-		if (Time.Current == Time.NextSnap)
+		//if (Time.Current == Time.NextSnap)
 			Write_Snapshot();
 		
+		if (Time.Running == Time.Limit) {
+
+			Write_Restart_File();
+			
+			break;
+		}
+
 		if (Time.Current == Time.End)
 			break;
-		
+
 		Drift();
 
 		Update(AFTER_DRIFT);
@@ -44,7 +45,6 @@ int main(int argc, char *argv[])
 		Kick_Second_Halfstep();
 		
 		Update(AFTER_SECOND_KICK);
-
 	}
 
 	rprintf("Simulation Ends ... \n");
@@ -67,7 +67,7 @@ static void preamble(int argc, char *argv[])
     }
 
 	if (!Task.Rank) {
-		printf("# This is Widget #\n\n");
+		printf("# Tandav #\n\n");
 
 		printf("Using %d MPI tasks, %d OpenMP threads \n\n", 
 				Sim.NTask, Sim.NThreads);
@@ -82,9 +82,9 @@ static void preamble(int argc, char *argv[])
 	strncpy(Param.File, argv[1], CHARBUFSIZE);
 	
 	if (argc > 2)
-		Param.Start_Flag = atoi(argv[2]);
+		Param.StartFlag = atoi(argv[2]);
 
-	if (Param.Start_Flag == 10) 
+	if (Param.StartFlag == 10) 
 		Write_Parameter_File(Param.File); // dead end
 
 	MPI_Barrier(MPI_COMM_WORLD);

@@ -2,11 +2,16 @@
  * dump them here */
 
 #define Assert(...) Assert_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
+#define Reallocate_P(...) Reallocate_P_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
 
-#define rprintf if (!Task.Rank) printf
+#define rprintf(...) if (!Task.Rank) printf(__VA_ARGS__)
 
-#define malloc(x) malloc_info(x, __func__, __FILE__, __LINE__)
-#define realloc(x,y) realloc_info(x, y, __func__, __FILE__, __LINE__)
+#define Malloc(x) Malloc_info( __func__, __FILE__, __LINE__, x)
+#define Realloc(x,y) Realloc_info(__func__, __FILE__, __LINE__, x, y)
+#define Free(x) Free_info(__func__, __FILE__, __LINE__, x)
+
+#define min(a,b) ((a)<(b)?(a):(b)) // this not always work: c = max(a++, b)
+#define max(a,b) ((a)>(b)?(a):(b))
 
 #define len3(a) sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]) // these are slow ! 
 #define len2(a) sqrt(a[0]*a[0] + a[1]*a[1])

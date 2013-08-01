@@ -25,7 +25,7 @@
 #include "unit.h" 				// unit functions
 
 /* CODE PARAMETERS */
-#define CHARBUFSIZE 256 	// Maximum No. of char in every string
+#define CHARBUFSIZE 256 		// Maximum No. of chars in every string
 #define NO_PART_TYPES 6 		// No of particle types
 
 /* VARIABLES */
@@ -45,24 +45,18 @@ extern struct Global_Simulation_Properties {
 	uint64_t NpartTotal;		// total global number of particles
 	uint64_t Npart[NO_PART_TYPES]; // global number of particles
 	float Mpart[NO_PART_TYPES]; // Global Masses 
-	float Boxsize;				
+	float Boxsize;	
 } Sim;
 
 extern struct Parameters_From_File {
-	int Start_Flag;				// invokation mode
-	char File[CHARBUFSIZE]; 	// parameter file
-	char Input_File[CHARBUFSIZE];
-	char Output_File_Base[CHARBUFSIZE];
-	int No_Output_Files;		// written in parallel
+	int StartFlag;				// invokation mode
+	char File[CHARBUFSIZE]; 	// parameter file name
+	char InputFile[CHARBUFSIZE];
+	char OutputFileBase[CHARBUFSIZE];
+	int NumIOTasks;				// written in parallel
+	int MaxMemSize;				// Memory Ceiling in 1024^2 Bytes
+	int NumOutputFiles;			// Number of output files
 } Param;
-
-extern struct Unit_Constants_In_Cgs {
-	Length;
-	Mass;
-	Velocity;
-	Time;
-	Energy;
-} Unit;
 
 extern struct Time_Integration_Infos {
 	float Begin;				// Start time of simulation
@@ -71,14 +65,15 @@ extern struct Time_Integration_Infos {
 	float Base;					// Smallest step (Begin-End) / 2^63
 	float NextSnap;				// Time of next snapshot to write
 	bool Fullstep;				// Indicates if current step is fullstep
-	size_t Nsteps;				// Number of steps walked so far
+	int Nsteps;					// Number of steps walked so far
 	int SnapCounter;			// Keep track of Snapshots written
+	float Running;				// Run time of this task
+	float Limit;				// Time Limit
 } Time;
 
 extern struct Particle_Data {
 	float Pos[3];
 	float Vel[3];
-	uint64_t ID;
+	uint32_t ID;
 	float Mass;
 } *P;
-

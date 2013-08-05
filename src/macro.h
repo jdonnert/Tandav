@@ -19,6 +19,6 @@
 #define len3_sq(a) (a[0]*a[0] + a[1]*a[1] + a[2]*a[2])
 #define len2_sq(a) (a[0]*a[0] + a[1]*a[1])
 
-#define p2(a) (a*a)  
-#define p3(a) (a*a*a)
+#define p2(a) ((a)*(a))  
+#define p3(a) ((a)*(a)*(a))
 

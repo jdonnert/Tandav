@@ -114,7 +114,8 @@ void Assert_Info(const char *func, const char *file, int line,
 	va_start(varArgList, errmsg);
 
 	/* we fucked up, tell them */
-    fprintf(stderr, "\nERROR Task %d: In file %s, function %s(), line %d :\n\n", 
+    fprintf(stderr, 
+			"\nERROR Task %d: In file %s, function %s(), line %d :\n\n	", 
 			Task.Rank, file, func, line);
 
 	vfprintf(stderr, errmsg, varArgList); 

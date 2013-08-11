@@ -1,3 +1,7 @@
+/* Functions */
+unsigned int largest_block_member_nbytes();
+unsigned int npart_in_block(const int, const int *);
+
 /* Parameter I/O */
 struct parameter_definitions {
 	char tag[CHARBUFSIZE]; // Parameter file tag

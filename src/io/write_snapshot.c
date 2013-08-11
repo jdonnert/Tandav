@@ -3,9 +3,6 @@
 
 #define WRITE_FORTRAN_RECORD(recSize) fwrite(&recSize, 4, 1, fp);
 
-static inline unsigned int largest_block_member_nbytes();
-static inline unsigned int npart_in_block(const int, const int *);
-
 static int safe_fwrite(void *, size_t, size_t, FILE *);
 void write_file(const char *, const int, const int, const MPI_Comm);
 void write_gadget_header(const int *npart, FILE *fp);
@@ -47,7 +44,7 @@ void Write_Snapshot()
 	return ;
 }
 
-void write_file(const char *filename, const int groupRank, const int groupSize, 
+void write_file(const char *filename, const int groupRank, const int groupSize,
 		const MPI_Comm mpi_comm_write)
 {
 	const int groupMaster = 0;  
@@ -76,7 +73,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 		write_gadget_header(nPartFile, fp);
 	} 
 	
-	size_t nBytes = largest_block_member_nbytes(); // dataBuf fits largest block
+	size_t nBytes = largest_block_member_nbytes(); 
 	
 	if (groupRank == groupMaster)
 		nBytes *= 2*nPartTotalFile; // master stores comm & write buf 
@@ -89,7 +86,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 
 		fill_data_buffer(i, dataBuf);
 	
-		int xferSizes[groupSize+1]; // get size of data, last is dummy for loop 
+		int xferSizes[groupSize+1]; // get size of data, last is for loop end
 		
 		int nBytesSend = Block[i].Nbytes * npart_in_block(i, Task.Npart);
 		
@@ -98,7 +95,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 		
 		if (groupRank == groupMaster) { // master does all the work
 
-			uint32_t blocksize = npart_in_block(i, nPartFile) * Block[i].Nbytes; 
+			uint32_t blocksize = npart_in_block(i, nPartFile)*Block[i].Nbytes; 
 
 			write_block_header(Block[i].Label, blocksize, fp); 
 			
@@ -114,8 +111,9 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 				char * restrict writeBuf = dataBuf + swap * halfBufSize;
 				char * restrict commBuf = dataBuf + (1 - swap) * halfBufSize;
 		
-				MPI_Irecv(commBuf,xferSizes[task+1], MPI_BYTE, task, MPI_ANY_TAG,
-						mpi_comm_write, &request); // assume xfersize=0 is valid
+				/* Assume xfersize=0 doesn't fail */
+				MPI_Irecv(commBuf,xferSizes[task+1], MPI_BYTE, task, 
+						MPI_ANY_TAG, mpi_comm_write, &request); 
 
 				fwrite(writeBuf, xferSizes[task], 1, fp);
 
@@ -234,26 +232,4 @@ static void write_block_header(const char *name, uint32_t blocksize, FILE *fp)
 	WRITE_FORTRAN_RECORD(fmt2Size)
 
 	return ;
-}
-
-static inline unsigned int largest_block_member_nbytes()
-{
-	int imax = 0;
-
-	for (int i = 0; i < NBlocks; i++)
-		if (Block[i].Nbytes > Block[imax].Nbytes)
-			imax = i;
-
-	return Block[imax].Nbytes;
-} 
-
-/* Finds the number of particles for block i, branch free */
-static inline unsigned int npart_in_block(const int i, const int *nPart)
-{
-	unsigned int result = 0;
-	
-	for (int j = 0; j < NPARTYPE; j++)
-		result += nPart[j] * ((1 << j & Block[i].PartBitMask) >> j);
-
-	return result;
 }

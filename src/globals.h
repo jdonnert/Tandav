@@ -24,15 +24,19 @@
 #include "cosmo.h" 				// cosmology functions 
 #include "unit.h" 				// unit functions
 
+#if __STDC_VERSION__ < 199901L
+# error Recompile with C99 support
+#endif
+
 /* CODE PARAMETERS */
 #define CHARBUFSIZE 256 		// Maximum No. of chars in every string
-#define NPARTYPE 6 		// No of particle types
+#define NPARTYPE 6 				// No of particle types
 
 /* VARIABLES */
 extern struct Local_Task_Properties {		
 	int Rank;					// MPI Rank of this processor
 	int ThreadID;				// OpenMP ID of this thread
-	int Npart[NPARTYPE];	// Number of particles on this processor
+	int Npart[NPARTYPE];		// Number of particles on this processor
 	int NpartTotal;				// Sum of Npart
 	int FirstActivePart;		// Start of linked list of active particles
 	int *NextActivePart;		// Next in linked list
@@ -43,8 +47,8 @@ extern struct Global_Simulation_Properties {
 	int NTask;					// Number of MPI tasks
 	int NThreads;				// Number of OpenMP threads
 	uint64_t NpartTotal;		// total global number of particles
-	uint64_t Npart[NPARTYPE]; // global number of particles
-	float Mpart[NPARTYPE]; // Global Masses 
+	uint64_t Npart[NPARTYPE]; 	// global number of particles
+	float Mpart[NPARTYPE]; 		// Global Masses 
 	float Boxsize;	
 } Sim;
 

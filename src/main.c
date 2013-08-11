@@ -74,9 +74,15 @@ static void preamble(int argc, char *argv[])
 		
 		print_compile_time_settings();
 
-		Assert(argc >= 2, "I need one parameter file and maybe a flag");
+		Assert(argc >= 2, "Wrong number of arguments, let me help you: \n\n" 
+			"USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
+			"    StartFlag   Action \n"
+			"       0        Read IC and start simulation (default) \n"
+			"       1        Read restart files and resume simulation \n"
+			"       2        Read snapshot file and continue simulation \n"
+			"       10       Dump a valid paramater file for this Config\n"
+			);
 
-		Assert(__STDC_VERSION__ >= 199901L, "Recompile with C99 support");
 	}
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);

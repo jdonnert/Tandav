@@ -53,7 +53,7 @@ void Read_Snapshot(char *input_name)
 	MPI_Bcast(&restFiles, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&swapEndian, sizeof(swapEndian), MPI_BYTE, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&Sim, sizeof(Sim), MPI_BYTE, 0, MPI_COMM_WORLD);
-
+	
 	while (restFiles) {
 
 		nIOTasks = fmin(nIOTasks,restFiles);
@@ -85,7 +85,8 @@ void Read_Snapshot(char *input_name)
 			int fileNum = restFiles - nIOTasks + groupMaster / groupSize;
 			sprintf(filename, "%s.%i", input_name, fileNum);
 
-			read_file(filename, swapEndian, groupRank, groupSize, mpi_comm_read);
+			read_file(filename, swapEndian, groupRank, groupSize, 
+					mpi_comm_read);
 			
 			restFiles -= nIOTasks; 
 			
@@ -321,9 +322,9 @@ static void read_header_data(FILE *fp, const bool swapEndian)
 	Assert(Sim.Boxsize >= 0, "Boxsize in header not > 0, but %g ", Sim.Boxsize);
 #endif	
 
-	printf("Particle Numbers (Masses) in Snapshot Header:	\n"
-		"   Gas   %llu (%1.5f), DM   %llu (%1.5f), Disk %llu (%1.5f)\n"
-		"   Bulge %llu (%1.5f), Star %llu (%1.5f), Bndy %llu (%1.5f)\n",
+	printf("Total Particle Numbers (Masses) in Snapshot Header:	\n"
+		"   Gas   %9llu (%1.5f), DM   %9llu (%1.5f), Disk %9llu (%1.5f)\n"
+		"   Bulge %9llu (%1.5f), Star %9llu (%1.5f), Bndy %9llu (%1.5f)\n",
 		Sim.Npart[0], Sim.Mpart[0], Sim.Npart[1], Sim.Mpart[1], 
 		Sim.Npart[2], Sim.Mpart[2], Sim.Npart[3], Sim.Mpart[3], 
 		Sim.Npart[4], Sim.Mpart[4], Sim.Npart[5], Sim.Mpart[5]);

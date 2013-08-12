@@ -8,11 +8,11 @@ static int safe_fread(void *, size_t, size_t, FILE *, bool);
 static int find_files(char *);
 static bool find_endianess(FILE *);
 static int find_block(FILE *, const char label[4], const bool);
-static void read_header_data(FILE *fp, const bool);
+static void read_header_data(FILE *fp, const bool, int);
 static void read_file(char *, const bool, const int, const int, MPI_Comm);
-static void empty_comm_buffer(void *, const int, const int *, const int *);
+static void empty_comm_buffer(char *, const int, const int *, const size_t *);
 
-static void * restrict RecvBuf = NULL, * restrict ReadBuf = NULL;
+static char * restrict RecvBuf = NULL, * restrict ReadBuf = NULL;
 static size_t Sizeof_RecvBuf = 0, Sizeof_ReadBuf = 0;
 
 void Read_Snapshot(char *input_name)
@@ -23,7 +23,7 @@ void Read_Snapshot(char *input_name)
 
 	MPI_Comm mpi_comm_read;
 
-	int restFiles = 0;
+	int restFiles = 0, nFiles = 0;
  	
 	bool swapEndian = false;
 	
@@ -31,21 +31,20 @@ void Read_Snapshot(char *input_name)
 
 	if (!Task.Rank) {
 
-		restFiles = find_files(input_name);
+		nFiles = restFiles = find_files(input_name);
 		
 		rprintf("\nParallel Reading of %d files on %d tasks\n\n", 
 			restFiles, nIOTasks);
 
 		strncpy(filename, input_name, CHARBUFSIZE);
 		if (restFiles > 1)
-
         	sprintf(filename, "%s.0", input_name);
 
 		FILE *fp = fopen(filename, "r");
 
 		swapEndian = find_endianess(fp);
 
-		read_header_data(fp, swapEndian); // fills global variable Sim
+		read_header_data(fp, swapEndian, restFiles); // fills global var 'Sim'
 		
 		fclose(fp);
 	}
@@ -62,10 +61,14 @@ void Read_Snapshot(char *input_name)
 		int groupMaster = round(Task.Rank / groupSize) * groupSize;
 		int groupRank = Task.Rank - groupMaster;
 
+		strncpy(filename, input_name, CHARBUFSIZE);
+
 		if (restFiles >= nTask) { // read in nIO blocks, no communication
 		
 			int fileNum = Task.Rank + (restFiles - nTask); // backwards
-			sprintf(filename, "%s.%i", input_name, fileNum);
+			
+			if (nFiles > 1)
+				sprintf(filename, "%s.%i", filename, fileNum);
 
 			for (int i = 0; i < groupSize; i++) {
 
@@ -83,7 +86,9 @@ void Read_Snapshot(char *input_name)
 					&mpi_comm_read);
 		
 			int fileNum = restFiles - nIOTasks + groupMaster / groupSize;
-			sprintf(filename, "%s.%i", input_name, fileNum);
+			
+			if (nFiles > 1)
+				sprintf(filename, "%s.%i", filename, fileNum);
 
 			read_file(filename, swapEndian, groupRank, groupSize, 
 					mpi_comm_read);
@@ -97,10 +102,16 @@ void Read_Snapshot(char *input_name)
 	}
 	
 	if (!Task.Rank) {
+
 		Free(RecvBuf); 
+		
 		Free(ReadBuf);
 	}
-	rprintf("\nReading completed\n");
+
+	MPI_Allreduce(Task.Npart, Sim.Npart, NPARTYPE, MPI_INT, MPI_SUM, 
+			MPI_COMM_WORLD); // make sure this is consistent
+
+	rprintf("\nReading completed\n\n");
 
 	return ;
 }
@@ -121,11 +132,15 @@ static void read_file(char *filename, const bool swapEndian,
 	if (groupRank == groupMaster) { // get nPart for this file
 
 		fp = fopen(filename, "r");
-	 
+	 	
+		Assert(fp != NULL, "File not found %s", filename);
+
 		find_block(fp, "HEAD", swapEndian);
 
 		SKIP_FORTRAN_RECORD;
+		
 		safe_fread(nPartRead, sizeof(*nPartRead), 6, fp, swapEndian);
+		
 		SKIP_FORTRAN_RECORD;
 		
 		for (i=0; i<NPARTYPE; i++)
@@ -155,7 +170,7 @@ static void read_file(char *filename, const bool swapEndian,
 	for (j = 0; j < NPARTYPE; j++) 
 		nPartGetTotal += nPartGet[j];
 	
-	int offsets[NPARTYPE] = { 0 }; 
+	size_t offsets[NPARTYPE] = { 0 }; 
 
 	Reallocate_P(nPartGet, offsets); // return offsets, update Task.Npart
 
@@ -177,7 +192,7 @@ static void read_file(char *filename, const bool swapEndian,
 		MPI_Bcast(&blocksize, 1, MPI_INT, 0, mpi_comm_read);
 
 		if (blocksize == 0) 
-			continue ; // not found
+			continue ; // block not found
 		
 		size_t nBytes = nPartGetTotal * Block[i].Nbytes;
 		
@@ -240,8 +255,8 @@ static void read_file(char *filename, const bool swapEndian,
 	return ;
 }
 
-static void empty_comm_buffer(void *DataBuf, const int iBlock, const int *nPart, 
-		const int *offsets)
+static void empty_comm_buffer(char *DataBuf, const int iBlock, 
+		const int *nPart, const size_t *offsets)
 {
 	const size_t nBytes = Block[iBlock].Nbytes;
 
@@ -250,20 +265,26 @@ static void empty_comm_buffer(void *DataBuf, const int iBlock, const int *nPart,
 	char *start_P = (char *)P + Block[iBlock].Offset;
 	//char *start_G = (char *)G + Block[iBlock].Offset;
 
+	size_t src = 0; 
+
 	switch (Block[iBlock].Target) { // ptr fun for the whole family
 
 		case VAR_P:
 
-			for (int type = 0; type < NPARTYPE; type++) {
+			for (int type = 0; type < NPARTYPE; type++) { 
 				
-				size_t iMin = offsets[type];
-				size_t iMax = iMin + nPart[type];
+				size_t dest = offsets[type]*sizeof_P; 
 
-				for (int i = iMin; i < iMax; i++)
-					memcpy(&start_P[i*sizeof_P], &((char *)DataBuf)[nBytes*i], 
-							nBytes);
+				for (int i = 0; i < nPart[type]; i++) {  
+
+					memcpy(start_P+dest, DataBuf+src, nBytes);
+					
+					dest += sizeof_P; // increments in bytes
+					
+					src += nBytes;
+				}
 			}
-
+			
 			break;
 
 /*		case VAP_G:
@@ -280,7 +301,7 @@ static void empty_comm_buffer(void *DataBuf, const int iBlock, const int *nPart,
 	return ;
 }
 
-static void read_header_data(FILE *fp, const bool swapEndian) 
+static void read_header_data(FILE *fp, const bool swapEndian, int nFiles) 
 { 
 	const bool swap = swapEndian;
 	
@@ -329,10 +350,15 @@ static void read_header_data(FILE *fp, const bool swapEndian)
 		Sim.Npart[2], Sim.Mpart[2], Sim.Npart[3], Sim.Mpart[3], 
 		Sim.Npart[4], Sim.Mpart[4], Sim.Npart[5], Sim.Mpart[5]);
 	
+	if (head.NumFiles != nFiles)
+		fprintf(stderr, "\nWARNING: NumFiles in Header (%d) "
+				"inconsistent with number of files (%d) \n\n", 
+				head.NumFiles, nFiles);
+
 	return ;
 }
 
-static int find_block(FILE * fp, const char label[4], const bool swapEndian)
+static int find_block(FILE *fp, const char label[4], const bool swapEndian)
 {
 	int32_t blocksize = 8;
 
@@ -445,6 +471,7 @@ static int safe_fread(void *data, size_t size, size_t nWanted, FILE *stream,
 		char buf[16];
 
 		for (int j=0; j<nWanted; j++) {
+
 			memcpy(buf, &(( (char *)data )[j * size]), size);
 			
 			for (int i=0; i<size; i++)

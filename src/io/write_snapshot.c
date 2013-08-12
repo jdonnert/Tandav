@@ -19,11 +19,13 @@ void Write_Snapshot()
 
 	int groupSize = nTask/nFiles; // big last file for weird nTask nFiles combos 
 	int groupMaster = min(nFiles-1, floor(Task.Rank/groupSize)) * groupSize;
+
 	int groupRank = Task.Rank - groupMaster;
 
 	MPI_Comm_split(MPI_COMM_WORLD, groupMaster, groupRank, &mpi_comm_write);
 
 	int fileNum = groupMaster / groupSize;
+
 	char filename[CHARBUFSIZE];
 
 	sprintf(filename, "%s_%03d",Param.OutputFileBase, Time.SnapCounter);
@@ -64,7 +66,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 	if (groupRank == groupMaster) { // open file, write header
 
 		printf("Writing file '%s' on Task %i - %i \n",
-				filename, Task.Rank, Task.Rank+groupSize);
+				filename, Task.Rank, Task.Rank+groupSize-1);
 
 		fp = fopen(filename, "w");
 		
@@ -86,13 +88,13 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 
 		fill_data_buffer(i, dataBuf);
 	
-		int xferSizes[groupSize+1]; // get size of data, last is for loop end
+		int xferSizes[groupSize]; // get size of data
 		
 		int nBytesSend = Block[i].Nbytes * npart_in_block(i, Task.Npart);
 		
 		MPI_Gather(&nBytesSend, 1, MPI_INT, xferSizes, groupSize, MPI_INT, 
 				groupMaster, mpi_comm_write);
-		
+	
 		if (groupRank == groupMaster) { // master does all the work
 
 			uint32_t blocksize = npart_in_block(i, nPartFile)*Block[i].Nbytes; 
@@ -106,13 +108,15 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 			int swap = 0; // to swap memory areas
 			int halfBufSize = 0.5 * nBytesSend;
 
-			for (int task = 0; task < groupSize; task++) {
+			rprintf("%18s %8u MB\n", Block[i].Name, blocksize/1024/1024);
+			fflush(stdout);
+
+			for (int task = 0; task < groupSize-1; task++) {
 				
 				char * restrict writeBuf = dataBuf + swap * halfBufSize;
 				char * restrict commBuf = dataBuf + (1 - swap) * halfBufSize;
 		
-				/* Assume xfersize=0 doesn't fail */
-				MPI_Irecv(commBuf,xferSizes[task+1], MPI_BYTE, task, 
+				MPI_Irecv(commBuf,xferSizes[task+1], MPI_BYTE, task+1, 
 						MPI_ANY_TAG, mpi_comm_write, &request); 
 
 				fwrite(writeBuf, xferSizes[task], 1, fp);
@@ -122,7 +126,13 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 				MPI_Wait(&request, &status);
 			}
 
-			WRITE_FORTRAN_RECORD(blocksize)
+			/* last one in group */
+			fwrite(dataBuf+swap*halfBufSize, xferSizes[groupSize-1], 1, fp);
+
+			for (int i=0; i<nPartTotalFile; i+=3)
+			printf("W %d %g %g %g\n ",i, ((float*)dataBuf+swap*halfBufSize)[3*i], ((float*)dataBuf+swap*halfBufSize)[3*i+1],((float*)dataBuf+swap*halfBufSize)[3*i+2] );
+			WRITE_FORTRAN_RECORD(blocksize) 
+exit(0);
 
 		} else   // slaves just post a blocking send
 			MPI_Send(dataBuf, nBytesSend, MPI_BYTE, groupMaster, groupRank, 

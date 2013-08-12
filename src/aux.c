@@ -41,11 +41,10 @@ void Free_info(const char* file, const char* func, const int line,
  * Expands P so that space for nPart[type] is at offset[type]
  * Contracts P so that the last nPart[type] particles are removed */
 void Reallocate_P_Info(const char *func, const char *file, int line, 
-		int dNpart[NPARTYPE], int offset_out[NPARTYPE])
+		int dNpart[NPARTYPE], size_t offset_out[NPARTYPE])
 {
-	size_t offset[NPARTYPE] = { 0 };
+	size_t offset[NPARTYPE] = { 0 }, new_npartTotal = 0;
 	ptrdiff_t new_npart[NPARTYPE] = { 0 };
-	size_t new_npartTotal = 0;
 	
 	for (int type = 0; type < NPARTYPE; type++) { // calc offset
 
@@ -58,10 +57,10 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 			"requested from %s, %s(), line %d", 
 			type, dNpart[type], Task.Npart[type], file, func, line);
 
-		if (dNpart[type]) 
+		if (!dNpart[type]) 
 			continue; // don't need offset here
 
-		for (int i=0; i <= type; i++)
+		for (int i=0; i <= type; i++) 
 			offset[type] += new_npart[i];
 
 		offset[type] -= max(0, dNpart[type]); // correct for dNpart > 0 
@@ -70,7 +69,9 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 	for (int type = 0; type < NPARTYPE; type++) { // move left
 
 		size_t src = offset[type] - dNpart[type]; 
+
 		size_t dest = offset[type];
+		
 		ptrdiff_t npart = Task.NpartTotal - src;
 
 		if (dNpart[type] < 0 && npart > 0)
@@ -78,12 +79,15 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 	}
 
 	size_t nBytes = sizeof(*P) * new_npartTotal;
+
 	P = Realloc(P, nBytes);
 
 	for (int type = 0; type < NPARTYPE-1; type++) { // move right
 
 		size_t src = offset[type];
+		
 		size_t dest = offset[type] + dNpart[type];
+		
 		ptrdiff_t npart = Task.NpartTotal - src;
 
 		if (dNpart[type] > 0 && npart > 0)
@@ -96,8 +100,8 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		Task.Npart[type] = new_npart[type];
 
 	if (offset_out != NULL) // return ptrs to freed space
-		memcpy(offset_out, offset, NPARTYPE);
-		
+		memcpy(offset_out, offset, NPARTYPE*sizeof(*offset));
+
 	return ;
 }
 

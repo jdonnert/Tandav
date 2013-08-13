@@ -11,13 +11,12 @@ static void fill_data_buffer(const int, char *);
 
 void Write_Snapshot()
 {
-	const int nTask = Sim.NTask;
 	const int nFiles = Param.NumOutputFiles;
 	const int nIOTasks = Param.NumIOTasks;
 	
 	MPI_Comm mpi_comm_write;
 
-	int groupSize = nTask/nFiles; // big last file for weird nTask nFiles combos 
+	int groupSize = Sim.NTask/nFiles; // big last file possible 
 	int groupMaster = min(nFiles-1, floor(Task.Rank/groupSize)) * groupSize;
 
 	int groupRank = Task.Rank - groupMaster;
@@ -52,12 +51,14 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 	const int groupMaster = 0;  
 
 	int nPartFile[NPARTYPE] = { 0 }; // npart in file by type
-	
 	MPI_Reduce(Task.Npart, nPartFile, NPARTYPE, MPI_INT, MPI_SUM, 
 			groupMaster, mpi_comm_write);
 
+	int nPartLargest = 0; // largest part number to transfer
+	MPI_Reduce(&Task.NpartTotal, &nPartLargest, 1, MPI_INT, MPI_MAX, 
+			groupMaster, mpi_comm_write);
+
 	int nPartTotalFile = 0; // total number of particles in file
-	
 	for (int i = 0; i < NPARTYPE; i++) 
 			nPartTotalFile += nPartFile[i];
 	
@@ -65,8 +66,12 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 		
 	if (groupRank == groupMaster) { // open file, write header
 
-		printf("Writing file '%s' on Task %i - %i \n",
-				filename, Task.Rank, Task.Rank+groupSize-1);
+		printf("Writing file '%s' on Task %i - %i \n"
+			"   Gas   %9d, DM   %9d, Disk %9d\n"
+			"   Bulge %9d, Star %9d, Bndy %9d\n\n",
+				filename, Task.Rank, Task.Rank+groupSize-1,
+				nPartFile[0],nPartFile[1],nPartFile[2],
+				nPartFile[3],nPartFile[4],nPartFile[5]);
 
 		fp = fopen(filename, "w");
 		
@@ -75,25 +80,26 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 		write_gadget_header(nPartFile, fp);
 	} 
 	
-	size_t nBytes = largest_block_member_nbytes(); 
+	size_t dataBufSize = largest_block_member_nbytes(); 
 	
 	if (groupRank == groupMaster)
-		nBytes *= 2*nPartTotalFile; // master stores comm & write buf 
+		dataBufSize *= 2*nPartLargest; // master stores comm & write buf 
 	else
-		nBytes *= Task.NpartTotal; // slaves just local data
+		dataBufSize *= Task.NpartTotal; // slaves just local data
 	
-	char *dataBuf = Malloc(nBytes); 
+	char *dataBuf = Malloc(dataBufSize); 
 		
 	for (int i = 0; i < NBlocks; i++) { // write blocks, hiding comm. latency
 
 		fill_data_buffer(i, dataBuf);
-	
-		int xferSizes[groupSize]; // get size of data
+
+		size_t nBytesSend = Block[i].Nbytes * npart_in_block(i, Task.Npart);
 		
-		int nBytesSend = Block[i].Nbytes * npart_in_block(i, Task.Npart);
-		
-		MPI_Gather(&nBytesSend, 1, MPI_INT, xferSizes, groupSize, MPI_INT, 
-				groupMaster, mpi_comm_write);
+		size_t xferSizes[groupSize]; // get size of data
+
+		MPI_Gather(&nBytesSend, sizeof(nBytesSend), MPI_BYTE, 
+					xferSizes,  sizeof(*xferSizes), MPI_BYTE, 
+					groupMaster, mpi_comm_write);
 	
 		if (groupRank == groupMaster) { // master does all the work
 
@@ -105,19 +111,19 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 
 			MPI_Request request; MPI_Status status;
 			
-			int swap = 0; // to swap memory areas
-			int halfBufSize = 0.5 * nBytesSend;
+			size_t swap = 0; // to swap memory areas
+			size_t halfBufSize = 0.5 * dataBufSize;
 
-			rprintf("%18s %8u MB\n", Block[i].Name, blocksize/1024/1024);
+			printf("%18s %8g MB\n", Block[i].Name,round(blocksize/p2(1024.))); 
 			fflush(stdout);
 
 			for (int task = 0; task < groupSize-1; task++) {
-				
+
 				char * restrict writeBuf = dataBuf + swap * halfBufSize;
 				char * restrict commBuf = dataBuf + (1 - swap) * halfBufSize;
 		
-				MPI_Irecv(commBuf,xferSizes[task+1], MPI_BYTE, task+1, 
-						MPI_ANY_TAG, mpi_comm_write, &request); 
+				MPI_Irecv(commBuf, xferSizes[task+1], MPI_BYTE, task+1, 
+						task+1, mpi_comm_write, &request); 
 
 				fwrite(writeBuf, xferSizes[task], 1, fp);
 
@@ -129,14 +135,13 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 			/* last one in group */
 			fwrite(dataBuf+swap*halfBufSize, xferSizes[groupSize-1], 1, fp);
 
-			for (int i=0; i<nPartTotalFile; i+=3)
-			printf("W %d %g %g %g\n ",i, ((float*)dataBuf+swap*halfBufSize)[3*i], ((float*)dataBuf+swap*halfBufSize)[3*i+1],((float*)dataBuf+swap*halfBufSize)[3*i+2] );
 			WRITE_FORTRAN_RECORD(blocksize) 
-exit(0);
 
 		} else   // slaves just post a blocking send
 			MPI_Send(dataBuf, nBytesSend, MPI_BYTE, groupMaster, groupRank, 
 					mpi_comm_write);
+
+		MPI_Barrier(mpi_comm_write);
 	}
 
 	if (groupRank == groupMaster)
@@ -205,6 +210,7 @@ static void fill_data_buffer(const int i, char *dataBuf)
 	switch (Block[i].Target) {
 
 		case VAR_P:
+
 			src = (char *) P+offset;
 			
 			for (int i = 0; i < Task.NpartTotal; i++) 

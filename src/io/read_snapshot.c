@@ -12,8 +12,9 @@ static void read_header_data(FILE *fp, const bool, int);
 static void read_file(char *, const bool, const int, const int, MPI_Comm);
 static void empty_comm_buffer(char *, const int, const int *, const size_t *);
 
+static void generate_masses_from_header();
+
 static char * restrict RecvBuf = NULL, * restrict ReadBuf = NULL;
-static size_t Sizeof_RecvBuf = 0, Sizeof_ReadBuf = 0;
 
 void Read_Snapshot(char *input_name)
 {
@@ -111,6 +112,8 @@ void Read_Snapshot(char *input_name)
 	MPI_Allreduce(Task.Npart, Sim.Npart, NPARTYPE, MPI_INT, MPI_SUM, 
 			MPI_COMM_WORLD); // make sure this is consistent
 
+	generate_masses_from_header();
+
 	rprintf("\nReading completed\n\n");
 
 	return ;
@@ -121,13 +124,13 @@ void Read_Snapshot(char *input_name)
 static void read_file(char *filename, const bool swapEndian, 
 		const int groupRank, const int groupSize, MPI_Comm mpi_comm_read)
 {
+	const int groupMaster = 0;  
+	
 	int i = 0, j = 0;
 
 	FILE *fp = NULL;
 
-	const int groupMaster = 0;  
-	
-	int nPartRead[NPARTYPE] = { 0 }, nTotRead = 0;
+	int nPartFile[NPARTYPE] = { 0 }, nTotRead = 0;
 
 	if (groupRank == groupMaster) { // get nPart for this file
 
@@ -139,12 +142,12 @@ static void read_file(char *filename, const bool swapEndian,
 
 		SKIP_FORTRAN_RECORD;
 		
-		safe_fread(nPartRead, sizeof(*nPartRead), 6, fp, swapEndian);
+		safe_fread(nPartFile, sizeof(*nPartFile), 6, fp, swapEndian);
 		
 		SKIP_FORTRAN_RECORD;
 		
 		for (i=0; i<NPARTYPE; i++)
-			nTotRead += nPartRead[i];
+			nTotRead += nPartFile[i];
 		
 		printf("\nReading file '%s' on Task %i - %i \n"
         	    "   Gas   %9i   DM     %9i    \n"
@@ -152,17 +155,17 @@ static void read_file(char *filename, const bool swapEndian,
             	"   Star  %9i   Bndry  %9i    \n"
             	"   Total in File %9i \n\n",
 				filename, Task.Rank, Task.Rank+groupSize-1,
-				nPartRead[0], nPartRead[1], nPartRead[2],
-				nPartRead[3], nPartRead[4], nPartRead[5], 
+				nPartFile[0], nPartFile[1], nPartFile[2],
+				nPartFile[3], nPartFile[4], nPartFile[5], 
             	nTotRead); fflush(stdout);
 	}
 
-	MPI_Bcast(nPartRead, NPARTYPE, MPI_INT, 0, mpi_comm_read);
+	MPI_Bcast(nPartFile, NPARTYPE, MPI_INT, 0, mpi_comm_read);
 	
 	int nPartGet[NPARTYPE] = { 0 }; // find npart per CPU and type
 		
 	for (i = 0; i < NPARTYPE; i++) 
-		for (j = groupRank; j < nPartRead[i]; j += groupSize) 
+		for (j = groupRank; j < nPartFile[i]; j += groupSize) 
 			nPartGet[i]++;
 
 	int nPartGetTotal = 0; 
@@ -173,6 +176,14 @@ static void read_file(char *filename, const bool swapEndian,
 	size_t offsets[NPARTYPE] = { 0 }; 
 
 	Reallocate_P(nPartGet, offsets); // return offsets, update Task.Npart
+
+	size_t nBytes = nPartGetTotal * largest_block_member_nbytes();
+	
+	RecvBuf = Realloc(RecvBuf, nBytes);
+
+	nBytes = nTotRead * largest_block_member_nbytes(); // != 0 only for master
+
+	ReadBuf = Realloc(ReadBuf, nBytes); 
 
 	for (i = 0; i < NBlocks; i++) { // read blockwise
 
@@ -194,26 +205,10 @@ static void read_file(char *filename, const bool swapEndian,
 		if (blocksize == 0) 
 			continue ; // block not found
 		
-		size_t nBytes = nPartGetTotal * Block[i].Nbytes;
-		
-		if (nBytes > Sizeof_RecvBuf) { // check for space in local recv buffer
-
-				RecvBuf = Realloc(RecvBuf, nBytes);
-				
-				Sizeof_RecvBuf = nBytes;
-		}
-
 		if (groupRank == groupMaster) { // read on master
-		 
-			nBytes = nTotRead * Block[i].Nbytes;
 			
-			if (nBytes > Sizeof_ReadBuf) { // check for space in read buffer
-
-				ReadBuf = Realloc(ReadBuf, nBytes);
-				
-				Sizeof_ReadBuf = nBytes;
-			}
-
+			nBytes = npart_in_block(i, nPartFile) * Block[i].Nbytes;
+			
 			Assert(nBytes == blocksize, 
 					"File and Code blocksize inconsistent '%s', %zu != %d byte",
 					Block[i].Label, nBytes, blocksize);
@@ -225,28 +220,24 @@ static void read_file(char *filename, const bool swapEndian,
 			SKIP_FORTRAN_RECORD
 		} 
 		
-		int nPartSend[groupSize]; // particle send book keeping
+		int nBytesGetBlock = npart_in_block(i, nPartGet)* Block[i].Nbytes;
+		
+		int nBytesSend[groupSize];
+		MPI_Allgather(&nBytesGetBlock, 1 , MPI_INT, nBytesSend, 1, MPI_INT, 
+				mpi_comm_read);
 
-		MPI_Gather(&nPartGetTotal, 1 , MPI_INT, nPartSend, 1, MPI_INT, 
-				groupMaster, mpi_comm_read);
+		int displs[groupSize]; // displacements
 
-		int nByteSend[groupSize];
-
-		for (j = 0; j < groupSize; j++) 
-			nByteSend[j] = nPartSend[j] * Block[i].Nbytes;
-
-		int offsetSend[groupSize];
-
-		offsetSend[0] = 0; 
+		memset(displs, 0, groupSize*sizeof(*displs));
 
 		for (j = 1; j < groupSize; j++) 
-			offsetSend[j] += (nPartSend[j-1]+offsetSend[j-1]) * Block[i].Nbytes;
+			displs[j] += nBytesSend[j-1] + displs[j-1];
 
-		MPI_Scatterv(ReadBuf, nByteSend, offsetSend, MPI_BYTE, // distribute
-				RecvBuf, nByteSend[groupRank], MPI_BYTE, groupMaster, 
-				mpi_comm_read); 
+		MPI_Scatterv(ReadBuf, nBytesSend, displs, MPI_BYTE, // distribute
+					 RecvBuf, nBytesSend[groupRank], MPI_BYTE, 
+					 groupMaster, mpi_comm_read); 
 
-		empty_comm_buffer(RecvBuf, i, nPartGet, offsets); // copy to part struct 
+		empty_comm_buffer(RecvBuf, i, nPartGet, offsets); // copy *P 
 	}
 
 	if (fp != NULL)
@@ -259,7 +250,6 @@ static void empty_comm_buffer(char *DataBuf, const int iBlock,
 		const int *nPart, const size_t *offsets)
 {
 	const size_t nBytes = Block[iBlock].Nbytes;
-
 	const size_t sizeof_P = sizeof(*P);
 
 	char *start_P = (char *)P + Block[iBlock].Offset;
@@ -280,7 +270,6 @@ static void empty_comm_buffer(char *DataBuf, const int iBlock,
 					memcpy(start_P+dest, DataBuf+src, nBytes);
 					
 					dest += sizeof_P; // increments in bytes
-					
 					src += nBytes;
 				}
 			}
@@ -343,6 +332,12 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 	Assert(Sim.Boxsize >= 0, "Boxsize in header not > 0, but %g ", Sim.Boxsize);
 #endif	
 
+	size_t sum = 0;
+
+	for (int i=0; i<NPARTYPE; i++)
+		sum += Sim.Mpart[i];
+
+
 	printf("Total Particle Numbers (Masses) in Snapshot Header:	\n"
 		"   Gas   %9llu (%1.5f), DM   %9llu (%1.5f), Disk %9llu (%1.5f)\n"
 		"   Bulge %9llu (%1.5f), Star %9llu (%1.5f), Bndy %9llu (%1.5f)\n",
@@ -352,10 +347,31 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 	
 	if (head.NumFiles != nFiles)
 		fprintf(stderr, "\nWARNING: NumFiles in Header (%d) "
-				"inconsistent with number of files (%d) \n\n", 
+				"doesnt match number of files for readin (%d) \n\n", 
 				head.NumFiles, nFiles);
 
 	return ;
+}
+
+static void generate_masses_from_header() 
+{
+	for (int i=0; i<NPARTYPE; i++)
+		if (Sim.Mpart[i])
+			return;
+
+	int iMin = 0;
+	
+	for (int type=0; type<NPARTYPE; type++) {
+		
+		int iMax = iMin + Task.Npart[type];
+
+		for (int ipart=iMin; ipart<iMax; ipart++)
+			P[ipart].Mass = Sim.Mpart[type];
+
+		iMin += Task.Npart[type];
+	}
+
+	return;
 }
 
 static int find_block(FILE *fp, const char label[4], const bool swapEndian)

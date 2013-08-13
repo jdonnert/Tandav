@@ -86,7 +86,7 @@ $(SRCDIR)print_settings.c : Config	# does not work with sh shell
 	echo '#include "globals.h"' >>  $(SRCDIR)print_settings.c
 	echo 'void print_compile_time_settings(){' >> $(SRCDIR)print_settings.c
 	echo '	rprintf("Compiled with : \n"' >> $(SRCDIR)print_settings.c
-	sed '/^#/d; /^$$/d; s/^/"   /g; s/$$/ \\n"/g;' Config >>  $(SRCDIR)print_settings.c
+	sed '/^#/d; /^$$/d; s/^/"      /g; s/$$/ \\n"/g;' Config >>  $(SRCDIR)print_settings.c
 	echo '); return ;}' >> $(SRCDIR)print_settings.c
 
 clean : 

@@ -1,7 +1,3 @@
-/* Functions */
-unsigned int largest_block_member_nbytes();
-unsigned int npart_in_block(const int, const int *);
-
 /* Parameter I/O */
 struct parameter_definitions {
 	char tag[CHARBUFSIZE]; // Parameter file tag
@@ -27,6 +23,9 @@ static const struct parameter_definitions ParDef[] = {
 static const int NTags = sizeof(ParDef) / sizeof(*ParDef);
 
 /* Snapshot I/O */
+unsigned int largest_block_member_nbytes();
+unsigned int npart_in_block(const int, const int *);
+
 struct gadget_header { // standard gadget header, filled to 256 byte
 	uint32_t Npart[6];
 	double Massarr[6];
@@ -55,7 +54,7 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 	} Target;				// identify global var
 	int Offset;				// offset in underlying struct
 	int Nbytes; 			// sizeof target member
-	int PartBitMask;		// == 1 at bit i+1, if needed by type i
+	int PartBitMask;		// == 1 at bit i+1, if present for type i
 };
 
 #define P_OFFSET(member) offsetof(struct Particle_Data, member)
@@ -65,7 +64,7 @@ static const struct io_block_def Block[] = {
 	{"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_MEMBER_SIZE(Pos), 0x3F},
 	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_MEMBER_SIZE(Vel),0x3F},
 	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_MEMBER_SIZE(ID), 0x3F},
-	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_MEMBER_SIZE(Mass), 0x00}
+	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_MEMBER_SIZE(Mass), 0x3F}
 };
 
 #undef P_OFFSET

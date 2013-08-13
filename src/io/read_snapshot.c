@@ -24,36 +24,36 @@ void Read_Snapshot(char *input_name)
 
 	MPI_Comm mpi_comm_read;
 
-	int restFiles = 0, nFiles = 0;
- 	
+	int nFiles = 0;
 	bool swapEndian = false;
-	
-	char filename[CHARBUFSIZE];
+	char filename[CHARBUFSIZE] = "";
 
 	if (!Task.Rank) {
 
-		nFiles = restFiles = find_files(input_name);
+		nFiles = find_files(input_name);
 		
 		rprintf("\nParallel Reading of %d files on %d tasks\n\n", 
-			restFiles, nIOTasks);
+				nFiles, nIOTasks);
 
 		strncpy(filename, input_name, CHARBUFSIZE);
-		if (restFiles > 1)
+		if (nFiles > 1)
         	sprintf(filename, "%s.0", input_name);
 
 		FILE *fp = fopen(filename, "r");
 
 		swapEndian = find_endianess(fp);
 
-		read_header_data(fp, swapEndian, restFiles); // fills global var 'Sim'
+		read_header_data(fp, swapEndian, nFiles); // fills global var 'Sim'
 		
 		fclose(fp);
 	}
 	
-	MPI_Bcast(&restFiles, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&nFiles, 1, MPI_INT, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&swapEndian, sizeof(swapEndian), MPI_BYTE, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&Sim, sizeof(Sim), MPI_BYTE, 0, MPI_COMM_WORLD);
 	
+	int restFiles = nFiles;
+
 	while (restFiles) {
 
 		nIOTasks = fmin(nIOTasks,restFiles);
@@ -66,7 +66,7 @@ void Read_Snapshot(char *input_name)
 
 		if (restFiles >= nTask) { // read in nIO blocks, no communication
 		
-			int fileNum = Task.Rank + (restFiles - nTask); // backwards
+			int fileNum = nFiles - 1 - (Task.Rank + (restFiles - nTask)); 
 			
 			if (nFiles > 1)
 				sprintf(filename, "%s.%i", filename, fileNum);
@@ -86,8 +86,8 @@ void Read_Snapshot(char *input_name)
 			MPI_Comm_split(MPI_COMM_WORLD, groupMaster, groupRank, 
 					&mpi_comm_read);
 		
-			int fileNum = restFiles - nIOTasks + groupMaster / groupSize;
-			
+			int fileNum = nFiles - 1 - (restFiles - nIOTasks 
+					+ groupMaster / groupSize);
 			if (nFiles > 1)
 				sprintf(filename, "%s.%i", filename, fileNum);
 
@@ -108,9 +108,6 @@ void Read_Snapshot(char *input_name)
 		
 		Free(ReadBuf);
 	}
-
-	MPI_Allreduce(Task.Npart, Sim.Npart, NPARTYPE, MPI_INT, MPI_SUM, 
-			MPI_COMM_WORLD); // make sure this is consistent
 
 	generate_masses_from_header();
 
@@ -178,11 +175,9 @@ static void read_file(char *filename, const bool swapEndian,
 	Reallocate_P(nPartGet, offsets); // return offsets, update Task.Npart
 
 	size_t nBytes = nPartGetTotal * largest_block_member_nbytes();
-	
 	RecvBuf = Realloc(RecvBuf, nBytes);
 
 	nBytes = nTotRead * largest_block_member_nbytes(); // != 0 only for master
-
 	ReadBuf = Realloc(ReadBuf, nBytes); 
 
 	for (i = 0; i < NBlocks; i++) { // read blockwise
@@ -227,7 +222,6 @@ static void read_file(char *filename, const bool swapEndian,
 				mpi_comm_read);
 
 		int displs[groupSize]; // displacements
-
 		memset(displs, 0, groupSize*sizeof(*displs));
 
 		for (j = 1; j < groupSize; j++) 
@@ -336,7 +330,6 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 
 	for (int i=0; i<NPARTYPE; i++)
 		sum += Sim.Mpart[i];
-
 
 	printf("Total Particle Numbers (Masses) in Snapshot Header:	\n"
 		"   Gas   %9llu (%1.5f), DM   %9llu (%1.5f), Disk %9llu (%1.5f)\n"

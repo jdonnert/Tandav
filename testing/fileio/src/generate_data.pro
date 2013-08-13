@@ -4,9 +4,9 @@ pro generate_fileio_data
 
 	outfile = "./data/IC_fileio"
 
-	nFiles = 12
+	nFiles = 10
 
-	npart = 100000
+	npart = 40
 
 	for file=0, nFiles-1 do begin
 		
@@ -18,7 +18,7 @@ pro generate_fileio_data
 		head.npart[3] = npart / 4.0
 		head.parttotal = head.npart * nFiles
 
-		head.massarr = [0.23003, 0.23421, 0.423555, 0.44442, 0.123456, 1]
+		head.massarr = [0.23003, 0.23421, 0.423555, 0.44442, 0, 0]
 		head.num_files = nFiles
 		head.redshift = 1
 		head.time = 1 / (1+head.redshift)

@@ -82,6 +82,10 @@ void Read_Parameter_File(char *filename)
 	Assert(Param.NumIOTasks <= Param.NumOutputFiles, 
 			"NumIOTasks (=%d) can't be smaller than NumOutputFiles (=%d)", 
 			Param.NumIOTasks,  Param.NumOutputFiles);
+	
+	Param.NumIOTasks = min(Param.NumIOTasks, Sim.NTask);
+	Param.NumOutputFiles = min(Param.NumOutputFiles, Sim.NTask);
+	
 	}
 
 	MPI_Barrier(MPI_COMM_WORLD);

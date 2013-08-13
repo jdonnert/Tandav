@@ -66,33 +66,37 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		offset[type] -= max(0, dNpart[type]); // correct for dNpart > 0 
 	}
 
-	for (int type = 0; type < NPARTYPE; type++) { // move left
+	ptrdiff_t nMove = Task.NpartTotal; // move particles left
+	for (int type = 0; type < NPARTYPE; type++) { 
 
-		size_t src = offset[type] - dNpart[type]; 
+		nMove -= Task.Npart[type];
 
+		if (dNpart[type] >= 0 || Task.Npart[type] == 0 || nMove == 0)
+			continue;
+
+		size_t src = offset[type] + fabs(dNpart[type]); 
 		size_t dest = offset[type];
-		
-		ptrdiff_t npart = Task.NpartTotal - src;
 
-		if (dNpart[type] < 0 && npart > 0)
-			memmove(&P[dest], &P[src], npart*sizeof(*P));
+		memmove(&P[dest], &P[src], nMove*sizeof(*P));
 	}
 
 	size_t nBytes = sizeof(*P) * new_npartTotal;
 
 	P = Realloc(P, nBytes);
 
-	for (int type = 0; type < NPARTYPE-1; type++) { // move right
+	nMove = Task.NpartTotal; // move particles right
+	for (int type = 0; type < NPARTYPE-1; type++) { 
+
+		nMove -= Task.Npart[type];
+
+		if (dNpart[type] <= 0 || Task.Npart[type] == 0 || nMove == 0)
+			continue;
 
 		size_t src = offset[type];
-		
 		size_t dest = offset[type] + dNpart[type];
 		
-		ptrdiff_t npart = Task.NpartTotal - src;
-
-		if (dNpart[type] > 0 && npart > 0)
-			memmove(&P[dest], &P[src], npart*sizeof(*P));
-	}
+		memmove(&P[dest], &P[src], nMove*sizeof(*P));
+	} 
 
 	Task.NpartTotal = new_npartTotal;
 	

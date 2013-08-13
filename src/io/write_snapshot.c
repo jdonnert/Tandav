@@ -42,6 +42,8 @@ void Write_Snapshot()
 
 	Time.SnapCounter++;
 
+	rprintf("\nWriting completed \n");
+
 	return ;
 }
 
@@ -68,10 +70,11 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 
 		printf("Writing file '%s' on Task %i - %i \n"
 			"   Gas   %9d, DM   %9d, Disk %9d\n"
-			"   Bulge %9d, Star %9d, Bndy %9d\n\n",
+			"   Bulge %9d, Star %9d, Bndy %9d\n"
+			"   Total %9d\n\n",
 				filename, Task.Rank, Task.Rank+groupSize-1,
 				nPartFile[0],nPartFile[1],nPartFile[2],
-				nPartFile[3],nPartFile[4],nPartFile[5]);
+				nPartFile[3],nPartFile[4],nPartFile[5],nPartTotalFile);
 
 		fp = fopen(filename, "w");
 		

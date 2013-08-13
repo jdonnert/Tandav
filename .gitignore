@@ -1,3 +1,6 @@
+snap_*
+IC_*
+
 # Object files
 *.o
 
@@ -16,5 +19,3 @@
 *.out
 *.app
 
-# Directories
-data/

@@ -42,7 +42,7 @@ void Write_Snapshot()
 
 	Time.SnapCounter++;
 
-	rprintf("\nWriting completed \n");
+	rprintf("Snapshot written\n");
 
 	return ;
 }
@@ -116,9 +116,6 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 			
 			size_t swap = 0; // to swap memory areas
 			size_t halfBufSize = 0.5 * dataBufSize;
-
-			printf("%18s %8g MB\n", Block[i].Name,round(blocksize/p2(1024.))); 
-			fflush(stdout);
 
 			for (int task = 0; task < groupSize-1; task++) {
 

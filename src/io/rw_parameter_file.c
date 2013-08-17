@@ -56,7 +56,7 @@ void Read_Parameter_File(char *filename)
 				
 				break;
 			case INT:
-				
+
 				*((int *)ParDef[j].addr) = atoi(buf2);
 				
 				break;

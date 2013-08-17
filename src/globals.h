@@ -20,9 +20,10 @@
 #include "config.h" 			// holds configuration switches
 
 #include "macro.h" 				// macro definitions
-#include "aux.h" 				// auxiliary functions (allocation, assert ...)
+#include "aux.h" 				// auxiliary functions 
 #include "cosmo.h" 				// cosmology functions 
 #include "unit.h" 				// unit functions
+#include "memory.h"				// memory management
 
 #if __STDC_VERSION__ < 199901L
 # error Recompile with C99 support

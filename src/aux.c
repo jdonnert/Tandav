@@ -1,40 +1,5 @@
 #include "globals.h"
 
-/* Memory management */
-void *Malloc_info(const char* file, const char* func, const int line, 
-		size_t size)
-{
-	void *result = malloc(size);
-
-	Assert_Info(func, file, line, result != NULL || size==0,
-			"Allocation failed, %zu Bytes \n" ,size);
-
-	return result;
-}
-
-void *Realloc_info(const char* file, const char* func, const int line, 
-		void *ptr, size_t new_size)
-{
-	void * result = realloc(ptr, new_size);
-
-	Assert_Info(func, file, line, result != NULL || new_size==0,
-			"Reallocation failed: %zu bytes \n" ,new_size);
-
-	return result;
-}
-
-void Free_info(const char* file, const char* func, const int line, 
-		void *ptr) 
-{
-    if (ptr != NULL)        
-    	free(ptr);
-	else
-		printf("WARNING Task %d. You tried to free a NULL pointer "
-				"in file %s, function %s(), line %d\n", 
-				Task.Rank, file, func, line);
-    return;
-}
-
 /* Reallocates the Particle structures. Takes the relative change
  * as argument, not the total number. Add or Remove via sign of nPart.
  * Also updates Task.Npart and Task.NPartTotal. 
@@ -136,7 +101,7 @@ void Assert_Info(const char *func, const char *file, int line,
 
     MPI_Abort(MPI_COMM_WORLD, -1); // finish him ...
 
-    exit(-1); // ... fatality
+    exit(EXIT_FAILURE); // ... fatality
 
     return;
 }

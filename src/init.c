@@ -13,6 +13,10 @@ struct Particle_Data *P = NULL;
 void Init() 
 {
 
+	Init_Memory_Management();
+
+
+
 	return ;
 }
 

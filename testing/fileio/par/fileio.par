@@ -2,8 +2,8 @@
 
 InputFile		data/IC_fileio
 OutputFileBase	snap 
-NumIOTasks		2 
-NumOutputFiles	4 
+NumIOTasks		1 
+NumOutputFiles	1 
 MaxMemSize		1000 
 Boxsize			4000 
 Omega0			1 

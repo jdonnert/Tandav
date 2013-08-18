@@ -2,3 +2,5 @@
 #PERIODIC			// periodic boundary conditions
 #BOXSIZE_FROM_SNAP	// take boxsize from snap, not parameter file
 
+#COMOVING			// time integration in comoving coordinates
+

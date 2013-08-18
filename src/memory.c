@@ -1,62 +1,119 @@
 /* Memory management */
-
 #include "globals.h"
 
-static void *Memory = NULL;
+static void *Memory = NULL; 
 
-static size_t NbytesLeft = 0;
+static size_t NBytesLeft = 0;
+static size_t MemSize = 0;
 static size_t NMemObjs = 0;
 
-size_t getMemorySize();
-
 static struct memory_objects {
-	char name[CHARBUFSIZE];
-	size_t Start;
-	size_t Last;
+	void * Start;
 	size_t Size;
 	char File[CHARBUFSIZE];
 	char Func[CHARBUFSIZE];
 	int Line;
 } MemObjs[MAXMEMOBJECTS];
 
+int find_memory_object_from_ptr(void *);
+size_t get_system_memory_size();
+
 void *Malloc_info(const char* file, const char* func, const int line, 
 		size_t size)
 {
-	void *result = malloc(size);
+	if ( (size % MEM_ALIGNMENT) > 0) // make sure we stay aligned
+		size = (size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
 
-	Assert_Info(func, file, line, NbytesLeft >= size, 
+	if (size < MEM_ALIGNMENT)
+		size = MEM_ALIGNMENT;
+
+	Assert_Info(file, func, line, NBytesLeft >= size, 
 			"Can't allocate Memory, %zu bytes wanted, %zu bytes left", 
-			size, NbytesLeft);
+			size, NBytesLeft);
 
-	return result;
+	const int i = NMemObjs;
+
+	MemObjs[i].Start = Memory + MemSize - NBytesLeft;
+	MemObjs[i].Size = size;
+
+	strncpy(MemObjs[i].File, file, CHARBUFSIZE);
+	strncpy(MemObjs[i].Func, func, CHARBUFSIZE);
+	MemObjs[i].Line = line;
+
+	NMemObjs++;
+
+	NBytesLeft -= size;
+
+	return MemObjs[i].Start;
 }
 
 void *Realloc_info(const char* file, const char* func, const int line, 
 		void *ptr, size_t new_size)
 {
-	void * result = realloc(ptr, new_size);
+	if ( (new_size % MEM_ALIGNMENT) > 0)
+		new_size = (new_size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
 
-	Assert_Info(func, file, line, result != NULL || new_size==0,
-			"Reallocation failed: %zu bytes \n" ,new_size);
+	if (new_size < MEM_ALIGNMENT)
+		new_size = MEM_ALIGNMENT;
 
-	return result;
+	const int i = find_memory_object_from_ptr(ptr);
+ 
+	const ptrdiff_t delta = new_size - MemObjs[i].Size; // change in bytes
+
+	Assert_Info(file, func, line, NBytesLeft >= delta,
+			"Can't reallocate Memory, additional %zu bytes wanted, "
+			"%zu bytes left", new_size, NBytesLeft);
+
+	if (i != NMemObjs-1) { // move the rest
+
+		void * src = MemObjs[i+1].Start;
+		
+		void * dest = src+delta;
+		
+		size_t nBytes = Memory + MemSize - NBytesLeft - src;
+
+		memmove(src, dest, nBytes);
+	}
+
+	for (int j = i; j < NMemObjs; j++)
+		MemObjs[j].Start += delta;
+	
+	MemObjs[i].Size += delta;
+
+	NBytesLeft -= delta;
+
+	return MemObjs[i].Start;
 }
 
 void Free_info(const char* file, const char* func, const int line, void *ptr) 
 {
-    if (ptr != NULL)        
-    	free(ptr);
-	else
+    if (ptr == NULL)        
 		printf("WARNING Task %d. You tried to free a NULL pointer "
 				"in file %s, function %s(), line %d\n", 
 				Task.Rank, file, func, line);
+
+	const int i = find_memory_object_from_ptr(ptr);
+
+	Realloc_info(file, func, line, MemObjs[i].Start, 0);
+
+	void * src = &MemObjs[i+1];
+	
+	void * dest = &MemObjs[i];
+
+	size_t nBytes = sizeof(*MemObjs) * (NMemObjs - i);
+
+	memmove(src, dest, nBytes);
+
+	NMemObjs--;
+
     return ;
 }
 
 void Init_Memory_Management()
 {
-	const size_t nBytes = Param.MaxMemSize * 1024L * 1024L; // in MBytes
-	size_t availNbytes = getMemorySize();
+	MemSize = Param.MaxMemSize * 1024L * 1024L; // in MBytes
+
+	size_t availNbytes = get_system_memory_size();
 
 	size_t minNbytes = 0, maxNbytes = 0;
 
@@ -66,14 +123,18 @@ void Init_Memory_Management()
 			MPI_COMM_WORLD);
 
 	rprintf("Init Memory Manager\n"
-			"   Max Usable Memory : %zu bytes \n" 
-			"   Min Usable Memory : %zu bytes \n"
-			"   Requested Mem     : %zu bytes \n", 
-			maxNbytes, minNbytes, nBytes);
+			"   Max Usable Memory   %zu bytes \n" 
+			"   Min Usable Memory   %zu bytes \n"
+			"   Requested  Memory   %zu bytes \n", 
+			maxNbytes, minNbytes, MemSize);
 
-	Memory = malloc(nBytes);
+	int fail = posix_memalign(&Memory, MEM_ALIGNMENT, MemSize);
 
-	Assert(Memory != NULL, "Couldn't allocate Memory. MaxMemSize too large ?");
+	Assert(!fail, "Couldn't allocate Memory. MaxMemSize too large ?");
+
+	NBytesLeft = MemSize;
+
+	memset(Memory, 0, NBytesLeft);
 
 	return ;
 }
@@ -82,11 +143,12 @@ void Print_Memory_Usage()
 {
 	size_t nBytesLeftGlobal[Sim.NTask];
 
-	MPI_Allgather(&NbytesLeft, 1, MPI_BYTE, 
+	MPI_Allgather(&NBytesLeft, 1, MPI_BYTE, 
 			nBytesLeftGlobal, sizeof(*nBytesLeftGlobal), MPI_BYTE, 
 			MPI_COMM_WORLD);
 	
 	int minIdx = 0;
+
 	for (int i = 0; i < Sim.NTask; i++)
 		if (nBytesLeftGlobal[i] < nBytesLeftGlobal[minIdx])
 			minIdx = i;
@@ -99,7 +161,7 @@ void Print_Memory_Usage()
 
 		size_t memCumulative = 0;
 
-		for (int i=0; i<NMemObjs; i++) {
+		for (int i = 0; i < NMemObjs; i++) {
 			
 			memCumulative += MemObjs[i].Size;
 
@@ -116,7 +178,6 @@ void Print_Memory_Usage()
 
 void Finish_Memory_Management()
 {
-
 	rprintf("Memory Manager: Freeing %d MB of Memory \n", Param.MaxMemSize);
 
 	if (Memory != NULL)
@@ -125,6 +186,18 @@ void Finish_Memory_Management()
 	return ;
 }
 
+int find_memory_object_from_ptr(void *ptr)
+{
+	int i = 0;
+
+	for (i = 0; i < NMemObjs; i++)
+		if (ptr == MemObjs[i].Start)
+			break;
+
+	Assert(i < NMemObjs, "Could not find memory object");
+
+	return i;
+}
 
 /* Get system memory size in a rather portable way
  *
@@ -147,7 +220,7 @@ void Finish_Memory_Management()
 
 #endif // unix
 
-size_t getMemorySize()
+size_t get_system_memory_size()
 {
 #if defined(__unix__) || defined(__unix) || defined(unix) || \
 	(defined(__APPLE__) && defined(__MACH__))
@@ -212,3 +285,5 @@ size_t getMemorySize()
 #endif // sysctl and sysconf variants
 #endif // unix
 }
+
+

@@ -32,6 +32,7 @@
 /* CODE PARAMETERS */
 #define CHARBUFSIZE 256 		// Maximum No. of chars in every string
 #define NPARTYPE 6 				// No of particle types
+#define MEM_ALIGNMENT 256L		// bit memory alignment
 
 /* VARIABLES */
 extern struct Local_Task_Properties {		

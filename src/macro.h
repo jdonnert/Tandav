@@ -4,7 +4,7 @@
 #define Assert(...) Assert_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
 #define Reallocate_P(...) Reallocate_P_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
 
-#define rprintf(...) if (!Task.Rank) printf(__VA_ARGS__)
+#define rprintf(...) if (!Task.Rank)printf(__VA_ARGS__) 
 
 #define Malloc(x) Malloc_info( __func__, __FILE__, __LINE__, x)
 #define Realloc(x,y) Realloc_info(__func__, __FILE__, __LINE__, x, y)

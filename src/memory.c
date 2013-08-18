@@ -34,9 +34,6 @@ void *Malloc_info(const char* file, const char* func, const int line,
 
 	const int i = find_free_object_from_size(size);
 
-printf("MALLOC, %d, %zu %d , %s %s %d\n", 
-		i, size, NMemBlocks, file, func, line); 
-
 	strncpy(MemBlock[i].File, file, CHARBUFSIZE);
 	strncpy(MemBlock[i].Func, func, CHARBUFSIZE);
 	MemBlock[i].Line = line;
@@ -51,7 +48,9 @@ printf("MALLOC, %d, %zu %d , %s %s %d\n",
 
 		NBytesLeft -= size;
 	}
-Print_Memory_Usage();
+
+	Print_Memory_Usage();
+
 	return MemBlock[i].Start;
 }
 
@@ -69,9 +68,6 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 	const int i = find_memory_object_from_ptr(ptr);
 	int i_return = i; 
-
-printf("REALLOC, %d, %zu %d %s %s %d  \n", 
-		i, new_size, NMemBlocks, file, func, line); 
 
 	if (i == NMemBlocks-1) { // enlarge last block
 
@@ -98,7 +94,8 @@ printf("REALLOC, %d, %zu %d %s %s %d  \n",
 		i_return = NMemBlocks-1;
 	}
 
-Print_Memory_Usage();
+	Print_Memory_Usage();
+
 	return MemBlock[i_return].Start;
 }
 
@@ -106,12 +103,10 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 {
     if (ptr == NULL)        
 		printf("WARNING Task %d. You tried to free a NULL pointer "
-				"in file %s, function %s(), line %d\n", 
+				"in file %s, function %s():%d\n", 
 				Task.Rank, file, func, line);
 
 	const int i = find_memory_object_from_ptr(ptr);
-
-printf("Free, %d, %d %s %s %d \n", i, NMemBlocks,  file, func, line); 
 
 	memset(MemBlock[i].Start, 0, MemBlock[i].Size);
 
@@ -120,6 +115,8 @@ printf("Free, %d, %d %s %s %d \n", i, NMemBlocks,  file, func, line);
 	strncpy(MemBlock[i].Func,"",CHARBUFSIZE);
 	MemBlock[i].Line = 0;
 	
+	Print_Memory_Usage();
+
     return ;
 }
 

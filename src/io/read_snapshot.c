@@ -102,11 +102,10 @@ void Read_Snapshot(char *input_name)
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 	
-printf("PING ! \n");fflush(stdout);
+	if (RecvBuf != NULL)
 		Free(RecvBuf); 
-printf("PANG ! \n");fflush(stdout);
+	if (ReadBuf != NULL)
 		Free(ReadBuf);
-printf("PONG ! \n");
 
 	generate_masses_from_header();
 

@@ -104,7 +104,6 @@ Print_Memory_Usage();
 
 void Free_info(const char* file, const char* func, const int line, void *ptr) 
 {
-printf("Free,  %zu %d, %s %s %d \n",   NMemBlocks, file, func, line); fflush(stdout);
     if (ptr == NULL)        
 		printf("WARNING Task %d. You tried to free a NULL pointer "
 				"in file %s, function %s(), line %d\n", 
@@ -112,7 +111,7 @@ printf("Free,  %zu %d, %s %s %d \n",   NMemBlocks, file, func, line); fflush(std
 
 	const int i = find_memory_object_from_ptr(ptr);
 
-printf("Free, %d, %zu %d, %s %s %d \n", i,  NMemBlocks, file, func, line); 
+printf("Free, %d, %d %s %s %d \n", i, NMemBlocks,  file, func, line); 
 
 	memset(MemBlock[i].Start, 0, MemBlock[i].Size);
 
@@ -181,7 +180,7 @@ void Print_Memory_Usage()
 			
 			memCumulative += MemBlock[i].Size;
 
-			printf("   %d	%p %7zu	 %8zu  %21s()  %s:%d\n",
+			printf("   %d	%11p %7zu	 %8zu  %21s()  %s:%d\n",
 				i, MemBlock[i].Start, MemBlock[i].Size/1024/1024, 
 				memCumulative, MemBlock[i].File,MemBlock[i].Func, 
 				MemBlock[i].Line);

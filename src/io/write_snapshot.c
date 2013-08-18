@@ -3,7 +3,6 @@
 
 #define WRITE_FORTRAN_RECORD(recSize) fwrite(&recSize, 4, 1, fp);
 
-static int safe_fwrite(void *, size_t, size_t, FILE *);
 void write_file(const char *, const int, const int, const MPI_Comm);
 void write_gadget_header(const int *npart, FILE *fp);
 static void write_block_header(const char *, uint32_t, FILE *);

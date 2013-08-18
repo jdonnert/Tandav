@@ -5,17 +5,18 @@ static void *Memory = NULL;
 
 static size_t NBytesLeft = 0;
 static size_t MemSize = 0;
-static size_t NMemObjs = 0;
+static size_t NMemBlocks = 0; // all blocks, also empty ones
 
-static struct memory_objects {
+static struct memory_block_infos {
 	void * Start;
 	size_t Size;
 	char File[CHARBUFSIZE];
 	char Func[CHARBUFSIZE];
 	int Line;
-} MemObjs[MAXMEMOBJECTS];
+} MemBlock[MAXMEMOBJECTS];
 
 int find_memory_object_from_ptr(void *);
+int find_free_object_from_size(const size_t);
 size_t get_system_memory_size();
 
 void *Malloc_info(const char* file, const char* func, const int line, 
@@ -31,25 +32,35 @@ void *Malloc_info(const char* file, const char* func, const int line,
 			"Can't allocate Memory, %zu bytes wanted, %zu bytes left", 
 			size, NBytesLeft);
 
-	const int i = NMemObjs;
+	const int i = find_free_object_from_size(size);
 
-	MemObjs[i].Start = Memory + MemSize - NBytesLeft;
-	MemObjs[i].Size = size;
+printf("MALLOC, %d, %zu %d , %s %s %d\n", 
+		i, size, NMemBlocks, file, func, line); 
 
-	strncpy(MemObjs[i].File, file, CHARBUFSIZE);
-	strncpy(MemObjs[i].Func, func, CHARBUFSIZE);
-	MemObjs[i].Line = line;
+	strncpy(MemBlock[i].File, file, CHARBUFSIZE);
+	strncpy(MemBlock[i].Func, func, CHARBUFSIZE);
+	MemBlock[i].Line = line;
 
-	NMemObjs++;
+	if (!MemBlock[i].Size) { // couldn't find a hole, add new at the end
+		
+		MemBlock[i].Start = Memory + MemSize - NBytesLeft;
+	
+		MemBlock[i].Size = size;
+		
+		NMemBlocks++;
 
-	NBytesLeft -= size;
-
-	return MemObjs[i].Start;
+		NBytesLeft -= size;
+	}
+Print_Memory_Usage();
+	return MemBlock[i].Start;
 }
 
 void *Realloc_info(const char* file, const char* func, const int line, 
 		void *ptr, size_t new_size)
 {
+	if (ptr == NULL)
+		return Malloc_info(file, func, line, new_size);
+
 	if ( (new_size % MEM_ALIGNMENT) > 0)
 		new_size = (new_size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
 
@@ -57,36 +68,43 @@ void *Realloc_info(const char* file, const char* func, const int line,
 		new_size = MEM_ALIGNMENT;
 
 	const int i = find_memory_object_from_ptr(ptr);
- 
-	const ptrdiff_t delta = new_size - MemObjs[i].Size; // change in bytes
+	int i_return = i; 
 
-	Assert_Info(file, func, line, NBytesLeft >= delta,
-			"Can't reallocate Memory, additional %zu bytes wanted, "
-			"%zu bytes left", new_size, NBytesLeft);
+printf("REALLOC, %d, %zu %d %s %s %d  \n", 
+		i, new_size, NMemBlocks, file, func, line); 
 
-	if (i != NMemObjs-1) { // move the rest
+	if (i == NMemBlocks-1) { // enlarge last block
 
-		void * src = MemObjs[i+1].Start;
+		const int delta = new_size - MemBlock[i].Size;
+
+		MemBlock[i].Size += delta;
+
+		NBytesLeft += delta;
+
+		i_return = i;
+	
+	} else if (new_size < MemBlock[i].Size) { // Free and move
+
+		printf("%zu %zu \n",  new_size, MemBlock[i].Size);
 		
-		void * dest = src+delta;
-		
-		size_t nBytes = Memory + MemSize - NBytesLeft - src;
+		void *dest = Malloc_info(file, func, line, new_size);
+		void *src = MemBlock[i].Start;
+		size_t nBytes = MemBlock[i].Size;
 
-		memmove(src, dest, nBytes);
+		memcpy(dest, src, nBytes);
+
+		Free(MemBlock[i].Start);
+
+		i_return = NMemBlocks-1;
 	}
 
-	for (int j = i; j < NMemObjs; j++)
-		MemObjs[j].Start += delta;
-	
-	MemObjs[i].Size += delta;
-
-	NBytesLeft -= delta;
-
-	return MemObjs[i].Start;
+Print_Memory_Usage();
+	return MemBlock[i_return].Start;
 }
 
 void Free_info(const char* file, const char* func, const int line, void *ptr) 
 {
+printf("Free,  %zu %d, %s %s %d \n",   NMemBlocks, file, func, line); fflush(stdout);
     if (ptr == NULL)        
 		printf("WARNING Task %d. You tried to free a NULL pointer "
 				"in file %s, function %s(), line %d\n", 
@@ -94,24 +112,21 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 
 	const int i = find_memory_object_from_ptr(ptr);
 
-	Realloc_info(file, func, line, MemObjs[i].Start, 0);
+printf("Free, %d, %zu %d, %s %s %d \n", i,  NMemBlocks, file, func, line); 
 
-	void * src = &MemObjs[i+1];
+	memset(MemBlock[i].Start, 0, MemBlock[i].Size);
+
+	MemBlock[i].Start = NULL;
+	strncpy(MemBlock[i].File,"",CHARBUFSIZE);
+	strncpy(MemBlock[i].Func,"",CHARBUFSIZE);
+	MemBlock[i].Line = 0;
 	
-	void * dest = &MemObjs[i];
-
-	size_t nBytes = sizeof(*MemObjs) * (NMemObjs - i);
-
-	memmove(src, dest, nBytes);
-
-	NMemObjs--;
-
     return ;
 }
 
 void Init_Memory_Management()
 {
-	MemSize = Param.MaxMemSize * 1024L * 1024L; // in MBytes
+	MemSize = Param.MaxMemSize * 1024L * 1024L; // parameter is in MBytes
 
 	size_t availNbytes = get_system_memory_size();
 
@@ -155,21 +170,26 @@ void Print_Memory_Usage()
 
 	if (Task.Rank == minIdx) {
 		
-		printf("Memory Manager: Reporting Task %d with largest usage:\n"
-			   "   No	Size	Cumulative	File	Function	Line\n",
-			   Task.Rank);
+		printf("\nMemory Manager: Reporting Task %d with %zu MB free memory\n"
+			   "   No	Address        Size    Cumulative      "
+			   "           Function  File:Line\n", Task.Rank, 
+			   NBytesLeft/1024/1024);
 
 		size_t memCumulative = 0;
 
-		for (int i = 0; i < NMemObjs; i++) {
+		for (int i = 0; i < NMemBlocks; i++) {
 			
-			memCumulative += MemObjs[i].Size;
+			memCumulative += MemBlock[i].Size;
 
-			printf("   %d	%zu	%zu	%s	%s	%d\n",
-				i, MemObjs[i].Size/1024/1024, memCumulative, 
-				MemObjs[i].File,MemObjs[i].Func, MemObjs[i].Line);
+			printf("   %d	%p %7zu	 %8zu  %21s()  %s:%d\n",
+				i, MemBlock[i].Start, MemBlock[i].Size/1024/1024, 
+				memCumulative, MemBlock[i].File,MemBlock[i].Func, 
+				MemBlock[i].Line);
 		}
+
+		printf("\n");
 	}
+
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	
@@ -190,11 +210,22 @@ int find_memory_object_from_ptr(void *ptr)
 {
 	int i = 0;
 
-	for (i = 0; i < NMemObjs; i++)
-		if (ptr == MemObjs[i].Start)
+	for (i = 0; i < NMemBlocks; i++) 
+		if (ptr == MemBlock[i].Start)
 			break;
 
-	Assert(i < NMemObjs, "Could not find memory object");
+	Assert(i < NMemBlocks,"Could not find memory object belonging to %p", ptr);
+
+	return i;
+}
+
+int find_free_object_from_size(const size_t size)
+{
+	int i = 0;
+
+	for (i = 0; i < NMemBlocks; i++)
+		if ((MemBlock[i].Start == NULL) && (MemBlock[i].Size <= size))
+			break;
 
 	return i;
 }

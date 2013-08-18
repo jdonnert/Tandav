@@ -77,7 +77,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 /* Error Handling, we use variable arguments to be able
  * to print more informative error messages */
 void Assert_Info(const char *func, const char *file, int line,
-		int expr, const char *errmsg, ...)
+		int64_t expr, const char *errmsg, ...)
 {
     if (expr)
         return;

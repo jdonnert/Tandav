@@ -102,12 +102,11 @@ void Read_Snapshot(char *input_name)
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 	
-	if (!Task.Rank) {
-
+printf("PING ! \n");fflush(stdout);
 		Free(RecvBuf); 
-		
+printf("PANG ! \n");fflush(stdout);
 		Free(ReadBuf);
-	}
+printf("PONG ! \n");
 
 	generate_masses_from_header();
 
@@ -170,15 +169,15 @@ static void read_file(char *filename, const bool swapEndian,
 	for (j = 0; j < NPARTYPE; j++) 
 		nPartGetTotal += nPartGet[j];
 	
-	size_t offsets[NPARTYPE] = { 0 }; 
-
-	Reallocate_P(nPartGet, offsets); // return offsets, update Task.Npart
-
 	size_t nBytes = nPartGetTotal * largest_block_member_nbytes();
 	RecvBuf = Realloc(RecvBuf, nBytes);
 
 	nBytes = nTotRead * largest_block_member_nbytes(); // != 0 only for master
 	ReadBuf = Realloc(ReadBuf, nBytes); 
+
+	size_t offsets[NPARTYPE] = { 0 }; 
+
+	Reallocate_P(nPartGet, offsets); // return offsets, update Task.Npart
 
 	for (i = 0; i < NBlocks; i++) { // read blockwise
 

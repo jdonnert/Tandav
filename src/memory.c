@@ -169,7 +169,7 @@ void Print_Memory_Usage()
 		printf("\nMemory Manager: Reporting Task %d with %zu MB free memory\n"
 			   "   No  Used      Address       Size    Cumulative      "
 			   "           Function  File:Line\n", Task.Rank, 
-			   NBytesLeft/1024/1024);
+			   NBytesLeft/1024L/1024L);
 
 		size_t memCumulative = 0;
 

@@ -11,6 +11,7 @@ extern void Read_Parameter_File(char *);
 extern void Write_Parameter_File(char *);
 extern void Setup();
 extern void Read_Snapshot();
+extern void Read_Restart_File();
 extern void Init();
 extern void Update(enum Update_Parameters);
 extern void Kick_First_Halfstep();

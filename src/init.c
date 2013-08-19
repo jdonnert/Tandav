@@ -1,5 +1,6 @@
 /* Intialise global variables */
 #include "globals.h"
+#include "proto.h"
 
 struct Time_Integration_Infos Time;   
 struct Particle_Data *P; 
@@ -12,10 +13,7 @@ struct Particle_Data *P = NULL;
 
 void Init() 
 {
-
 	Init_Memory_Management();
-
-
 
 	return ;
 }

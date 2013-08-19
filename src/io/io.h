@@ -54,17 +54,17 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 	} Target;				// identify global var
 	int Offset;				// offset in underlying struct
 	int Nbytes; 			// sizeof target member
-	int PartBitMask;		// == 1 at bit i+1, if present for type i
+	int PartBitMask;		// == 1 at bit i+1, if required for type i
 };
 
 #define P_OFFSET(member) offsetof(struct Particle_Data, member)
 #define P_MEMBER_SIZE(member) sizeof(((struct Particle_Data *)0)->member)
 
 static const struct io_block_def Block[] = {
-	{"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_MEMBER_SIZE(Pos), 0x3F},
-	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_MEMBER_SIZE(Vel),0x3F},
-	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_MEMBER_SIZE(ID), 0x3F},
-	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_MEMBER_SIZE(Mass), 0x3F}
+	{"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_MEMBER_SIZE(Pos), 0xFF},
+	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_MEMBER_SIZE(Vel),0xFF},
+	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_MEMBER_SIZE(ID), 0xFF},
+	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_MEMBER_SIZE(Mass), 0xFF}
 };
 
 #undef P_OFFSET

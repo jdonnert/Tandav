@@ -11,12 +11,15 @@ int main(int argc, char *argv[])
 
 	Init();
 
-	Read_Snapshot(Param.InputFile);
-	
+	if (Param.StartFlag == 1) 
+		Read_Restart_File();
+	else 
+		Read_Snapshot(Param.InputFile);
+
 	Setup();
 
 	Update(BEFORE_MAIN_LOOP);
-	
+
 	for (;;) {
 
 		Kick_First_Halfstep();
@@ -46,6 +49,8 @@ int main(int argc, char *argv[])
 		
 		Update(AFTER_SECOND_KICK);
 	}
+
+	Finish_Memory_Management();
 
 	rprintf("Simulation Ends ... \n");
 

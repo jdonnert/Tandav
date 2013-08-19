@@ -4,6 +4,8 @@ ifndef SYSTYPE # set this in your ~/.bashrc or ~/.tcshrc
 SYSTYPE = $(shell hostname)
 endif
 
+SYSTYPE = "DARWIN"
+
 # standard systypes
 CC		 = mpicc
 OPTIMIZE = -Wall -g -O2 
@@ -16,7 +18,7 @@ FFT_LIBS =
 
 ifeq ($(SYSTYPE),"DARWIN")
 CC       =  mpicc
-OPTIMIZE = -O0 -Wall -lmpich -mtune=native -march=corei7 -ftree-vectorizer-verbose=2
+OPTIMIZE = -O3 -Wall -lmpich -mtune=native -march=corei7 -ftree-vectorizer-verbose=2
 MPI_LIBS = -L/Users/julius/Devel/lib
 MPI_INCL = 
 GSL_INCL =  
@@ -58,7 +60,7 @@ OBJFILES = main.o aux.o constants.o cosmo.o domain.o update.o print_settings.o \
 		   drift.o init.o kick.o setup.o time.o tree.o unit.o memory.o\
 		   io/io.o \
 		   		io/read_snapshot.o io/write_snapshot.o io/rw_parameter_file.o \
-				io/write_restart_file.o
+				io/write_restart_file.o io/read_restart_file.o
 
 INCLFILES = config.h globals.h tree.h cosmo.h unit.h aux.h macro.h proto.h \
 			memory.h io/io.h ../Makefile ../Config

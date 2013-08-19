@@ -332,9 +332,12 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 	printf("Total Particle Numbers (Masses) in Snapshot Header:	\n"
 		"   Gas   %9llu (%1.5f), DM   %9llu (%1.5f), Disk %9llu (%1.5f)\n"
 		"   Bulge %9llu (%1.5f), Star %9llu (%1.5f), Bndy %9llu (%1.5f)\n",
-		Sim.Npart[0], Sim.Mpart[0], Sim.Npart[1], Sim.Mpart[1], 
-		Sim.Npart[2], Sim.Mpart[2], Sim.Npart[3], Sim.Mpart[3], 
-		Sim.Npart[4], Sim.Mpart[4], Sim.Npart[5], Sim.Mpart[5]);
+		(long long unsigned int)Sim.Npart[0], Sim.Mpart[0], 
+		(long long unsigned int)Sim.Npart[1], Sim.Mpart[1], 
+		(long long unsigned int)Sim.Npart[2], Sim.Mpart[2], 
+		(long long unsigned int)Sim.Npart[3], Sim.Mpart[3], 
+		(long long unsigned int)Sim.Npart[4], Sim.Mpart[4], 
+		(long long unsigned int)Sim.Npart[5], Sim.Mpart[5]);
 	
 	if (head.NumFiles != nFiles)
 		fprintf(stderr, "\nWARNING: NumFiles in Header (%d) "

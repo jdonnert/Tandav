@@ -18,7 +18,7 @@ FFT_LIBS =
 
 ifeq ($(SYSTYPE),"DARWIN")
 CC       =  mpicc
-OPTIMIZE = -O3 -Wall -lmpich -mtune=native -march=corei7 -ftree-vectorizer-verbose=2
+OPTIMIZE = -O0 -Wall -lmpich -mtune=native -march=corei7 -ftree-vectorizer-verbose=2
 MPI_LIBS = -L/Users/julius/Devel/lib
 MPI_INCL = 
 GSL_INCL =  

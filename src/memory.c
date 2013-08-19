@@ -30,10 +30,6 @@ void *Malloc_info(const char* file, const char* func, const int line,
 	if (size < MEM_ALIGNMENT)
 		size = MEM_ALIGNMENT;
 
-	Assert_Info(file, func, line, NBytesLeft >= size, 
-			"Can't allocate Memory, %zu bytes wanted, %zu bytes left", 
-			size, NBytesLeft);
-
 	const int i = find_free_block_from_size(size);
 
 	strncpy(MemBlock[i].File, file, CHARBUFSIZE);
@@ -41,6 +37,10 @@ void *Malloc_info(const char* file, const char* func, const int line,
 	MemBlock[i].Line = line;
 
 	if (i == NMemBlocks) { // couldn't find a hole, add new at the end
+	
+		Assert_Info(file, func, line, NBytesLeft >= size, 
+			"Can't allocate Memory, %zu bytes wanted, %zu bytes left", 
+			size, NBytesLeft);
 		
 		MemBlock[i].Start = Memory + MemSize - NBytesLeft;
 	
@@ -52,6 +52,8 @@ void *Malloc_info(const char* file, const char* func, const int line,
 
 		NBytesLeft -= size;
 	}
+
+	memset(MemBlock[i].Start, 0, MemBlock[i].Size);
 
 	return MemBlock[i].Start;
 }
@@ -77,11 +79,11 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 		MemBlock[i].Size += delta;
 
-		NBytesLeft += delta;
+		NBytesLeft -= delta;
 
 		i_return = i;
 	
-	} else if (new_size < MemBlock[i].Size) { // Free and move
+	} else if (new_size < MemBlock[i].Size) { // move old to new and free
 
 		printf("%zu %zu \n",  new_size, MemBlock[i].Size);
 		
@@ -134,10 +136,11 @@ void Init_Memory_Management()
 			MPI_COMM_WORLD);
 
 	rprintf("Init Memory Manager\n"
-			"   Max Usable Memory   %zu bytes \n" 
-			"   Min Usable Memory   %zu bytes \n"
-			"   Requested  Memory   %zu bytes \n", 
-			maxNbytes, minNbytes, MemSize);
+			"   Max Usable Memory   %zu bytes = %zu MB\n" 
+			"   Min Usable Memory   %zu bytes = %zu MB\n"
+			"   Requested  Memory   %zu bytes = %zu MB\n", 
+			maxNbytes, maxNbytes/1024/1024, minNbytes, minNbytes/1024/1024, MemSize, 
+			MemSize/1024/1024);
 
 	int fail = posix_memalign(&Memory, MEM_ALIGNMENT, MemSize);
 
@@ -183,7 +186,8 @@ void Print_Memory_Usage()
 				MemBlock[i].File, MemBlock[i].Func, MemBlock[i].Line);
 		}
 
-		printf("\n");
+		printf("\n"); fflush(stdout);
+
 	}
 
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -225,10 +229,10 @@ int find_free_block_from_size(const size_t size)
 	return i;
 }
 
-/* merge memory block to minimize fragmentation */
+/* merge memory blocks to minimize fragmentation */
 void merge_free_memory_blocks(int i) 
 {
-	if (i == NMemBlocks-1) { // Last, merge into end
+	if (i == NMemBlocks-1) { // Last, merge right into free
 
 		NMemBlocks--;
 		NBytesLeft += MemBlock[i].Size;
@@ -237,10 +241,10 @@ void merge_free_memory_blocks(int i)
 		MemBlock[i].Size = 0;
 		
 		if (i && MemBlock[i-1].FlagInUse == false)
-			merge_free_memory_blocks(i-1); // call again to merge left
+			merge_free_memory_blocks(i-1); // merge left into free
 
 	} else if (MemBlock[i+1].FlagInUse == false) { // merge right
-	printf("MERGE RIGHT i=%d \n", i);
+		
 		MemBlock[i].Size += MemBlock[i+1].Size;
 
 		void *src = &MemBlock[i+2].Start;
@@ -263,10 +267,11 @@ void merge_free_memory_blocks(int i)
 		
 		NMemBlocks--;
 	}
-
+	
 	return ;
 }
 /* Get system memory size in a rather portable way
+ * This represents the hard upper bound, maybe leave 10% for the OS ?
  *
  * Author:  David Robert Nadeau
  * Site:    http://NadeauSoftware.com/

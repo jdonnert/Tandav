@@ -30,9 +30,11 @@
 #endif
 
 /* CODE PARAMETERS */
-#define CHARBUFSIZE 256 		// Maximum No. of chars in every char buffer
-#define NPARTYPE 6 				// No of particle types
-#define MEM_ALIGNMENT 64L		// byte memory alignment
+#define CHARBUFSIZE 256L 		// Maximum No. of chars in every char buffer
+#define NPARTYPE 6L 			// No of particle types
+#define MEM_ALIGNMENT 128L		// byte memory alignment
+#define PARTALLOCFACTOR 1.3		// Mem overhead in P to account for inbalance
+#define MAXPROFILEITEMS 999		// Max number of profiling marks
 
 /* VARIABLES */
 extern struct Local_Task_Properties {		

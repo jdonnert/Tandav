@@ -45,7 +45,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		memmove(&P[dest], &P[src], nMove*sizeof(*P));
 	}
 
-	size_t nBytes = sizeof(*P) * new_npartTotal;
+	size_t nBytes = sizeof(*P) * new_npartTotal * PARTALLOCFACTOR;
 
 	P = Realloc(P, nBytes);
 

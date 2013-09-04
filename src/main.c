@@ -1,12 +1,44 @@
 #include "globals.h"
 #include "proto.h"
 
+#include <time.h>
+
+int compare(const void * a, const void *b) 
+{
+	const int8_t *ca = (int8_t*)a;
+	const int8_t *cb = (int8_t*)b;
+
+	return (int) (*ca - *cb);
+}
+
 static void preamble(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
 	preamble(argc, argv);	
 
+	const size_t N = 16.;
+	int8_t *x = malloc(N * sizeof(*x) );
+
+  for (int i = 0; i < N; i++) {
+      x[i] = random();
+	  printf("%d %d %p \n", i,x[i], &x[i]);
+  }
+
+  clock_t time;
+  time = clock();
+
+  Qsort(x, N, sizeof(*x), &compare);
+
+  clock_t time2;
+  time2 = clock();
+
+  for (int i = 0; i < N; i++) 
+	  printf("%d %d %p \n", i,x[i], &x[i]);
+
+  printf("%g sec\n", difftime(time2,time) / CLOCKS_PER_SEC  ) ;
+
+exit(0);
 	Read_Parameter_File(Param.File);
 
 	Init();

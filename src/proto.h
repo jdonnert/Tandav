@@ -21,5 +21,7 @@ extern void Write_Restart_File();
 extern void Kick_Second_Halfstep();
 
 extern void print_compile_time_settings();
+extern void Qsort(void const *, size_t, size_t, 
+		int (*)(const void*, const void*));
 
 

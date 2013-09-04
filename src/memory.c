@@ -104,9 +104,8 @@ void *Realloc_info(const char* file, const char* func, const int line,
 void Free_info(const char* file, const char* func, const int line, void *ptr) 
 {
     if (ptr == NULL)        
-		printf("WARNING Task %d. You tried to free a NULL pointer "
-				"in file %s, function %s():%d\n", 
-				Task.Rank, file, func, line);
+		printf("WARNING Task %d. You tried to free a NULL pointer in file "
+				"%s, function %s():%d\n",Task.Rank, file, func, line);
 
 	const int i = find_memory_block_from_ptr(ptr);
 
@@ -139,8 +138,8 @@ void Init_Memory_Management()
 			"   Max Usable Memory   %zu bytes = %zu MB\n" 
 			"   Min Usable Memory   %zu bytes = %zu MB\n"
 			"   Requested  Memory   %zu bytes = %zu MB\n", 
-			maxNbytes, maxNbytes/1024/1024, minNbytes, minNbytes/1024/1024, MemSize, 
-			MemSize/1024/1024);
+			maxNbytes, maxNbytes/1024/1024, minNbytes, minNbytes/1024/1024, 
+			MemSize, MemSize/1024/1024);
 
 	int fail = posix_memalign(&Memory, MEM_ALIGNMENT, MemSize);
 
@@ -187,7 +186,6 @@ void Print_Memory_Usage()
 		}
 
 		printf("\n"); fflush(stdout);
-
 	}
 
 	MPI_Barrier(MPI_COMM_WORLD);

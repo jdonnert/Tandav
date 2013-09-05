@@ -2,255 +2,186 @@
  * Shamelessly copied from glibc, thereby GPL2 */
 
 #include "globals.h"
-/* Byte-wise swap two items of size SIZE. */
-#define SWAP(a, b, size)						      \
-  do									      \
-    {									      \
-printf("SWP a %d < b %d \n", *((int8_t*)a), *((int8_t*)b)); fflush(stdout); \
-      size_t __size = (size);						      \
-      char *__a = (a), *__b = (b);					      \
-      do								      \
-	{								      \
-	  char __tmp = *__a;						      \
-	  *__a++ = *__b;						      \
-	  *__b++ = __tmp;						      \
-	} while (--__size > 0);						      \
-    } while (0)
 
-#define MAX_THRESH 1 // change to insertion sort for partitions smaller  
 
-/* Stack node declarations used to store unfulfilled partition obligations. */
-typedef struct
-  {
+#define SWAP(a, b, size)		\
+  	do { 						\
+		char tmp[size]; 		\
+		memcpy(tmp, a, size); 	\
+		memcpy(a, b, size); 	\
+		memcpy(b, tmp, size);	\
+	} while (0)
+
+#define PARALLEL_THRESHOLD 20000 // use serial sort below this limit
+#define STACK_SIZE (Sim.NThreads * sizeof(stack_node))
+
+typedef struct // work queue element that holds partitions
+{
     char *lo;
     char *hi;
-  } stack_node;
+} stack_node;
 
-#define STACK_SIZE	(CHAR_BIT * sizeof(stack_node))
-#define PUSH(low, high)	((void) ((top->lo = (low)), (top->hi = (high)), ++top))
-#define	POP(low, high) ((void) (--top, (low = top->lo), (high = top->hi)))
-#define	STACK_NOT_EMPTY	(stack < top )
+void test_sort(); 
 
-void Qsort (void *const pbase, size_t total_elems, size_t size, 
+/* Simple OpenMP Qsort, modified from glibc library. 
+ * We assign one thread per partition until there is a  partition for every
+ * thread. Then we continue serial on every partition. There is little
+ * need for synchronisation. However the speedup is suboptimal, because the
+ * intial iterations are not parallel */
+
+void Qsort (void *const pbase, size_t nElements, size_t size, 
 		int (*cmp) (const void *, const void*))
 {
+  	if (nElements == 0) // don't be silly
+    	return;
+	
 	char *base_ptr = (char *) pbase;
 
-char *pb = (char *) pbase;
+	stack_node stack[STACK_SIZE];
 
-  	const size_t max_thresh = MAX_THRESH * size;
+	stack[0].lo = base_ptr; // initial stack node is just the whole array
+	stack[0].hi = &base_ptr[size * (nElements - 1)];
 
-printf("TEST \n");
+	#pragma omp parallel shared(stack)
+	{
 
-  	if (total_elems == 0) // Avoid lossage with unsigned arithmetic below. 
-    	return;
+	const int tID = Task.ThreadID;
+	const int itMax = (Sim.NThreads/2)*2; // use only 2^N threads
 
-printf("%zu  %d \n", total_elems, MAX_THRESH);
+	char *hi, *lo; 
 
-  	if (total_elems > MAX_THRESH) {
+	if (nElements > PARALLEL_THRESHOLD) { 
+	
+		int i = 0; // number of partitions / iterations 
 
-      	char *lo = base_ptr; 
-      	char *hi = &lo[size * (total_elems - 1)];
- 	     	stack_node stack[STACK_SIZE];
-      	stack_node *top = stack;
-		int n_working = 0;
-
-      	PUSH (lo, hi); // init stack
-
-printf("A \n");
-		#pragma omp parallel private(hi, lo) shared(n_working,stack,top)
-		while (STACK_NOT_EMPTY || n_working) {
-
-			int worker = 0;
-
+		for (i = 1; i < itMax; i *= 2) {
+	
 			#pragma omp barrier
 
-			#pragma omp critical
-			if (STACK_NOT_EMPTY) { 
-				POP(lo,hi);
-				
-				n_working++;
-				worker++;
-printf("lo=%p hi=%p \n", lo-pb, hi-pb);
-			} 
+			if (tID >= i)
+				continue; // not enough partitions for these, wait at the top
+	
+			lo = stack[tID].lo; // pop from stack
+			hi = stack[tID].hi;
 
-printf("B \n");
-			if (!worker)
-				continue;
-
-printf("w %d, nw %d \n", worker, n_working);
-
-        	char *left_ptr;
+    	    char *left_ptr;
       		char *right_ptr;
 			
-	  		/* Select median value from among LO, MID, and HI. Rearrange
-	     	 * LO and HI so the three values are sorted. This lowers the
-	     	 * probability of picking a pathological pivot value and
-	     	 * skips a comparison for both the LEFT_PTR and RIGHT_PTR in
-	     	 * the while loops. */
+			/* Find pivot element from median and sort */
+		  	char *mid = lo + size * ((hi - lo) / size >> 1); 
 
-	  		char *mid = lo + size * ((hi - lo) / size >> 1);
-
-printf("0 lo=%p mid=%p  hi=%p %d %d %d\n", 
-		lo-pb,mid-pb,  hi-pb, *((int8_t*)lo), *((int8_t*)mid), *((int8_t*)hi));
-
-printf("CC %d \n", (*cmp) ((void *) mid, (void *) lo));
-	  		if ( (*cmp) ((void *) mid, (void *) lo) < 0)
+	  		if ( (*cmp) ((void *) mid, (void *) lo) < 0) 
 	    		SWAP(mid, lo, size);
-
-printf("1 lo=%p mid=%p  hi=%p %d %d %d\n", 
-		lo-pb,mid-pb,  hi-pb, *((int8_t*)lo), *((int8_t*)mid), *((int8_t*)hi));
-	  		if ( (*cmp) ((void *) hi, (void *) mid) < 0)
+	
+		  	if ( (*cmp) ((void *) hi, (void *) mid) < 0)
 	    		SWAP (mid, hi, size);
 	  		else
 	    		goto jump_over;
 	  	
-printf("2 lo=%p mid=%p  hi=%p %d %d %d \n", 
-		lo-pb,mid-pb,  hi-pb, *((int8_t*)lo), *((int8_t*)mid), *((int8_t*)hi));
 			if ( (*cmp) ((void *) mid, (void *) lo) < 0)
-	    		SWAP (mid, lo, size);
+		    	SWAP (mid, lo, size);
 		
 			jump_over:;
-printf("3 lo=%p mid=%p  hi=%p %d %d %d\n", 
-		lo-pb,mid-pb,  hi-pb, *((int8_t*)lo), *((int8_t*)mid), *((int8_t*)hi));
 
 	  		left_ptr  = lo + size;
 	  		right_ptr = hi - size;
 
-printf("C lo=%p mid=%p hi=%p \n", lo-pb , mid-pb, hi-pb);
-	  		/* Here's the famous ``collapse the walls'' section of quicksort.
-	     	 * Gotta like those tight inner loops!  They are the main reason
-	    	 * that this algorithm runs much faster than others. */
-	  		do {
-
-printf("left=%d right=%d \n", *(int8_t*)left_ptr, *(int8_t *)right_ptr);
+			/* now put all larger/smaller than the pivot on the right/left */
+	  		do { 
 				
 				while ((*cmp) ((void *) left_ptr, (void *) mid) < 0)
 					left_ptr += size;
 
-	      		while ((*cmp) ((void *) mid, (void *) right_ptr) < 0)
+				while ((*cmp) ((void *) mid, (void *) right_ptr) < 0)
 					right_ptr -= size;
 
-	    		if (left_ptr < right_ptr) {
+	    		if (left_ptr < right_ptr) { 
 					
 					SWAP (left_ptr, right_ptr, size);
-printf("mid=%d left=%d right=%d \n", 
-		*((int8_t *)(mid)), * ((int8_t*)(left_ptr)), 
-		* ((int8_t*)(right_ptr)));
+					
 					if (mid == left_ptr)
 		    			mid = right_ptr;
 		  			else if (mid == right_ptr)
 		    			mid = left_ptr;
 		  
 					left_ptr += size;
-		  
 					right_ptr -= size;
 		
 				} else if (left_ptr == right_ptr) {
-printf("OUT \n");	
-		  			left_ptr += size;
-		  			right_ptr -= size;
-		  
+		  			
+					left_ptr += size;
+					right_ptr -= size;
+		 
 					break;
 				}
-
-for (int j = 0; j < 10; j++) 
-printf("%d %d \n", j,((int8_t*)pb)[j]);
 			} while (left_ptr <= right_ptr);
 
-printf("left=%p right=%p lo=%p mid=%p hi=%p \n", 
-		left_ptr-pb, right_ptr-pb, lo-pb, mid-pb, hi-pb);
+			/* Push next iterations / partitions to the stack */
 
+			stack[2*tID].lo = lo;
+			stack[2*tID].hi = right_ptr;
 
-			/* Push next iterations to the stack if they are larger than 
-			 * the threshold size. Always push the large one first */
-
-        	if ((right_ptr - lo) > (hi - left_ptr)) { // Push larger first 
-        		
-				if ((size_t) (right_ptr - lo) > max_thresh) {  // push right
-					#pragma omp critical
-        			PUSH (left_ptr, hi);
-printf("PUSH left=%p hi=%p \n", left_ptr-pb, hi-pb);
-				}
-        		if ((size_t) (hi - left_ptr) > max_thresh) { // push left 
-					#pragma omp critical
-            		PUSH (lo, right_ptr);
-printf("PUSH lo=%p right=%p \n", lo-pb, right_ptr-pb);
-				}
-
-			} else {
-
-				if ((size_t) (hi - left_ptr) > max_thresh) { // push left 
-					#pragma omp critical
-            		PUSH (lo, right_ptr);
-printf("PUSH left=%p hi=%p \n", left_ptr-pb, hi-pb);
-				}
-
-				if ((size_t) (right_ptr - lo) > max_thresh) {  // push right
-					#pragma omp critical
-        			PUSH (left_ptr, hi);
-printf("PUSH lo=%p right=%p \n", lo-pb, right_ptr-pb);
-				}
-			}		
-
-			#pragma omp atomic
-			n_working--;
-
-printf("NEXT \n");
+			stack[2*tID+1].lo = left_ptr;
+			stack[2*tID+1].hi = hi;
     	}
-	}
-printf("FINISH\n");
-return ;
-  	/* Once the BASE_PTR array is partially sorted by quicksort the rest
-     * is completely sorted using insertion sort, since this is efficient
-     * for partitions below MAX_THRESH size. BASE_PTR points to the beginning
-     * of the array to sort, and END_PTR points at the very last element in
-     * the array (*not* one beyond it!). */
 
-  
-    char *const end_ptr = &base_ptr[size * (total_elems - 1)];
-    char *tmp_ptr = base_ptr;
-    char *thresh = min(end_ptr, base_ptr + max_thresh);
-    char *run_ptr;
+		#pragma omp barrier
 
-    /* Find smallest element in first threshold and place it at the
-       array's beginning.  This is the smallest array element,
-       and the operation speeds up insertion sort's inner loop. */
+		if (tID < i) // serial sort on subpartitions
+	 		qsort(stack[tID].lo, (stack[tID].hi-stack[tID].lo)/size+1, 
+					size, cmp);
 
-    for (run_ptr = tmp_ptr + size; run_ptr <= thresh; run_ptr += size)
-      if ((*cmp) ((void *) run_ptr, (void *) tmp_ptr) < 0)
-        tmp_ptr = run_ptr;
-
-    if (tmp_ptr != base_ptr)
-      SWAP (tmp_ptr, base_ptr, size);
-
-    /* Insertion sort, running from left-hand-side up to right-hand-side.  */
-
-    run_ptr = base_ptr + size;
-    while ((run_ptr += size) <= end_ptr)
-      {
-	tmp_ptr = run_ptr - size;
-	while ((*cmp) ((void *) run_ptr, (void *) tmp_ptr) < 0)
-	  tmp_ptr -= size;
-
-	tmp_ptr += size;
-        if (tmp_ptr != run_ptr)
-          {
-            char *trav;
-
-	    trav = run_ptr + size;
-	    while (--trav >= run_ptr)
-              {
-                char c = *trav;
-                char *hi, *lo;
-
-                for (hi = lo = trav; (lo -= size) >= tmp_ptr; hi = lo)
-                  *hi = *lo;
-                *hi = c;
-              }
-          }
-      }
-  
-
-  return;
+		}  
+	} // omp parallel
+	
+	return;
 }
+
+int test_compare(const void * a, const void *b) 
+{
+	const double *ca = (double*)a;
+	const double *cb = (double*)b;
+
+	return (int) (*ca - *cb);
+}
+void test_sort()
+{
+	const size_t N = 20000000;
+	double *x = malloc(N * sizeof(*x) );
+	double *y = malloc(N * sizeof(*y) );
+
+  for (int i = 0; i < N; i++) {
+      x[i] = random();
+	  y[i] = x[i];
+  }
+
+  double time = omp_get_wtime();
+
+  Qsort(x, N, sizeof(*x), &test_compare);
+
+  double time2 = omp_get_wtime();
+
+  double Rime = omp_get_wtime();
+
+  qsort(y, N, sizeof(*y), &test_compare);
+  
+  double Rime2 = omp_get_wtime();
+
+  int good = 1;
+  
+  for (int i = 1; i < N; i++) 
+	 if (x[i] < x[i-1])
+		  good = 0;
+
+  if (good)
+	  printf("Array sorted  :-)\n");
+  else 
+	  printf("Array not sorted :-( \n");
+
+  printf("%d Parallel:  %g sec, Single:  %g sec\n",
+		  N, (time2-time), (Rime2-Rime));
+
+exit(0);
+	return ;
+}
+

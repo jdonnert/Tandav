@@ -3,7 +3,6 @@
 
 #include "globals.h"
 
-
 #define SWAP(a, b, size)		\
   	do { 						\
 		char tmp[size]; 		\
@@ -36,13 +35,14 @@ void Qsort (void *const pbase, size_t nElements, size_t size,
     	return;
 	
 	char *base_ptr = (char *) pbase;
-
+	
+	/* initial stack node is just the whole array */
 	stack_node stack[STACK_SIZE];
 
-	stack[0].lo = base_ptr; // initial stack node is just the whole array
+	stack[0].lo = base_ptr; 
 	stack[0].hi = &base_ptr[size * (nElements - 1)];
 
-	#pragma omp parallel shared(stack)
+#pragma omp parallel shared(stack) 
 	{
 
 	const int tID = Task.ThreadID;
@@ -150,36 +150,36 @@ void test_sort()
 	double *x = malloc(N * sizeof(*x) );
 	double *y = malloc(N * sizeof(*y) );
 
-  for (int i = 0; i < N; i++) {
-      x[i] = random();
-	  y[i] = x[i];
-  }
+  	for (int i = 0; i < N; i++) {
+    	x[i] = random();
+	  	y[i] = x[i];
+  	}
 
-  double time = omp_get_wtime();
+  	double time = omp_get_wtime();
 
-  Qsort(x, N, sizeof(*x), &test_compare);
+  	Qsort(x, N, sizeof(*x), &test_compare);
 
-  double time2 = omp_get_wtime();
+  	double time2 = omp_get_wtime();
 
-  double Rime = omp_get_wtime();
-
-  qsort(y, N, sizeof(*y), &test_compare);
+  	double Rime = omp_get_wtime();
+	
+ 	qsort(y, N, sizeof(*y), &test_compare);
   
-  double Rime2 = omp_get_wtime();
+  	double Rime2 = omp_get_wtime();
 
-  int good = 1;
+  	int good = 1;
   
-  for (int i = 1; i < N; i++) 
-	 if (x[i] < x[i-1])
-		  good = 0;
+  	for (int i = 1; i < N; i++) 
+	 	if (x[i] < x[i-1])
+			good = 0;
 
-  if (good)
-	  printf("Array sorted  :-)\n");
-  else 
-	  printf("Array not sorted :-( \n");
+  	if (good)
+	  	printf("Array sorted  :-)\n");
+  	else 
+	  	printf("Array not sorted :-( \n");
 
-  printf("%d Parallel:  %g sec, Single:  %g sec\n",
-		  N, (time2-time), (Rime2-Rime));
+  	printf("%d Parallel:  %g sec, Single:  %g sec\n",
+		N, (time2-time), (Rime2-Rime));
 
 exit(0);
 	return ;

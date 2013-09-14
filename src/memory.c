@@ -3,7 +3,7 @@
 
 static void *Memory = NULL; 
 
-static size_t NBytesLeft = 0;
+static size_t NBytesLeft = 0; // size of block at the end
 static size_t MemSize = 0;
 static size_t NMemBlocks = 0; // all blocks, also empty ones
 
@@ -24,11 +24,11 @@ size_t get_system_memory_size();
 void *Malloc_info(const char* file, const char* func, const int line, 
 		size_t size)
 {
-	if ( (size % MEM_ALIGNMENT) > 0) // make sure we stay aligned
-		size = (size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
-
 	if (size < MEM_ALIGNMENT)
 		size = MEM_ALIGNMENT;
+
+	if ( (size % MEM_ALIGNMENT) > 0) // make sure we stay aligned
+		size = (size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
 
 	const int i = find_free_block_from_size(size);
 
@@ -190,6 +190,26 @@ void Print_Memory_Usage()
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	
+	return ;
+}
+
+void Get_Free_Memory(int *total, int *largest, int *smallest)
+{
+	*total = *largest = *smallest = 0;
+
+	for (int i=0; i<NMemBlocks; i++) {
+	
+		if (! MemBlock[i].FlagInUse)
+			continue;
+
+		int size = MemBlock[i].Size;
+
+		*total += size;
+		
+		*smallest = imin(smallest, size);
+		*largest = imax(largest, size);
+	}
+
 	return ;
 }
 

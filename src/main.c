@@ -1,8 +1,6 @@
 #include "globals.h"
 #include "proto.h"
 
-#include <time.h>
-
 static void preamble(int argc, char *argv[]);
 
 int main(int argc, char *argv[])

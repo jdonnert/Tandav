@@ -25,16 +25,11 @@
 #include "unit.h" 				// unit functions
 #include "memory.h"				// memory management
 
-#if __STDC_VERSION__ < 199901L
-# error Recompile with C99 support
-#endif
-
 /* CODE PARAMETERS */
 #define CHARBUFSIZE 256L 		// Maximum No. of chars in every char buffer
 #define NPARTYPE 6L 			// No of particle types
 #define MEM_ALIGNMENT 128L		// byte memory alignment
 #define PARTALLOCFACTOR 1.3		// Mem overhead in P to account for inbalance
-#define MAXPROFILEITEMS 999		// Max number of profiling marks
 
 /* VARIABLES */
 extern struct Local_Task_Properties {		
@@ -42,8 +37,6 @@ extern struct Local_Task_Properties {
 	int ThreadID;				// OpenMP ID of this thread
 	int Npart[NPARTYPE];		// Number of particles on this processor
 	int NpartTotal;				// Sum of Npart
-	int FirstActivePart;		// Start of linked list of active particles
-	int *NextActivePart;		// Next in linked list
 } Task;
 #pragma omp threadprivate(Task)
 

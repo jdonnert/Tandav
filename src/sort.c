@@ -22,11 +22,11 @@ typedef struct // work queue element that holds partitions
 
 void test_sort(); 
 
-/* Simple OpenMP Qsort, modified from glibc library. 
- * We assign one thread per partition until there is a  partition for every
- * thread. Then we continue serial on every partition. There is little
+/* A stack keeps the partition pointers. We assign one thread per 
+ * partition until there is a partition for every thread. 
+ * Then we continue serial on every partition. There is little
  * need for synchronisation. However the speedup is suboptimal, because the
- * intial iterations are not parallel */
+ * initial iterations are not parallel */
 
 void Qsort (void *const pbase, size_t nElements, size_t size, 
 		int (*cmp) (const void *, const void*))
@@ -46,13 +46,13 @@ void Qsort (void *const pbase, size_t nElements, size_t size,
 	{
 
 	const int tID = Task.ThreadID;
-	const int itMax = (Sim.NThreads/2)*2; // use only 2^N threads
+	const int itMax = 2*(Sim.NThreads/2); // use only 2^N threads
 
 	char *hi, *lo; 
 
 	if (nElements > PARALLEL_THRESHOLD) { 
 	
-		int i = 0; // number of partitions / iterations 
+		int i = 0; // number of partitions or iterations 
 
 		for (i = 1; i < itMax; i *= 2) {
 	
@@ -67,7 +67,8 @@ void Qsort (void *const pbase, size_t nElements, size_t size,
     	    char *left_ptr;
       		char *right_ptr;
 			
-			/* Find pivot element from median and sort */
+			/* Find pivot element from median and sort the three. 
+			 * That helps to prevent the n^2 worst case */
 		  	char *mid = lo + size * ((hi - lo) / size >> 1); 
 
 	  		if ( (*cmp) ((void *) mid, (void *) lo) < 0) 
@@ -144,13 +145,16 @@ int test_compare(const void * a, const void *b)
 
 	return (int) (*ca - *cb);
 }
+
 void test_sort()
 {
 	const size_t N = 20000000;
+
 	double *x = malloc(N * sizeof(*x) );
 	double *y = malloc(N * sizeof(*y) );
 
   	for (int i = 0; i < N; i++) {
+
     	x[i] = random();
 	  	y[i] = x[i];
   	}
@@ -160,12 +164,10 @@ void test_sort()
   	Qsort(x, N, sizeof(*x), &test_compare);
 
   	double time2 = omp_get_wtime();
-
-  	double Rime = omp_get_wtime();
 	
  	qsort(y, N, sizeof(*y), &test_compare);
   
-  	double Rime2 = omp_get_wtime();
+  	double time4 = omp_get_wtime();
 
   	int good = 1;
   
@@ -179,7 +181,7 @@ void test_sort()
 	  	printf("Array not sorted :-( \n");
 
   	printf("%d Parallel:  %g sec, Single:  %g sec\n",
-		N, (time2-time), (Rime2-Rime));
+		N, (time2-time), (time4-time2));
 
 exit(0);
 	return ;

@@ -6,3 +6,4 @@ void Free_info(const char* file, const char* func, const int line,void*);
 void Init_Memory_Management();
 void Print_Memory_Usage();
 void Finish_Memory_Management();
+void Get_Free_Memory(int *total, int *largest, int *smallest);

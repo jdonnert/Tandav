@@ -15,6 +15,8 @@ void Init()
 {
 	Init_Memory_Management();
 
+ 	Init_Profiler();
+
 	return ;
 }
 

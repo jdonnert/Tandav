@@ -12,13 +12,14 @@ extern void Write_Parameter_File(char *);
 extern void Setup();
 extern void Read_Snapshot();
 extern void Read_Restart_File();
-extern void Init();
+extern void Read_and_Init();
 extern void Update(enum Update_Parameters);
 extern void Kick_First_Halfstep();
 extern void Drift();
 extern void Write_Snapshot();
 extern void Write_Restart_File();
 extern void Kick_Second_Halfstep();
+extern void Finish();
 
 extern void print_compile_time_settings();
 extern void Qsort(void const *, size_t, size_t, 

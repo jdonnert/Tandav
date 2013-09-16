@@ -28,6 +28,8 @@ void Read_Snapshot(char *input_name)
 	bool swapEndian = false;
 	char filename[CHARBUFSIZE] = "";
 
+	Profile("Read Snap");
+
 	if (!Task.Rank) {
 
 		nFiles = find_files(input_name);
@@ -110,6 +112,8 @@ void Read_Snapshot(char *input_name)
 	generate_masses_from_header();
 
 	rprintf("\nReading completed\n\n");
+
+	Profile("Read Snap");
 
 	return ;
 }

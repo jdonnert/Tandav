@@ -206,8 +206,8 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 
 		*total += size;
 		
-		*smallest = imin(smallest, size);
-		*largest = imax(largest, size);
+		*smallest = min(*smallest, size);
+		*largest = max(*largest, size);
 	}
 
 	return ;
@@ -215,7 +215,7 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 
 void Finish_Memory_Management()
 {
-	rprintf("Memory Manager: Freeing %d MB of Memory \n", Param.MaxMemSize);
+	rprintf("\nMemory Manager: Freeing %d MB of Memory \n", Param.MaxMemSize);
 
 	if (Memory != NULL)
 		free(Memory);

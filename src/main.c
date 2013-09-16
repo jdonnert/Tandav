@@ -7,16 +7,7 @@ int main(int argc, char *argv[])
 {
 	preamble(argc, argv);	
 
-	test_sort();
-
-	Read_Parameter_File(Param.File);
-
-	Init();
-
-	if (Param.StartFlag == 1) 
-		Read_Restart_File();
-	else 
-		Read_Snapshot(Param.InputFile);
+	Read_and_Init();
 
 	Setup();
 
@@ -32,18 +23,10 @@ int main(int argc, char *argv[])
 
 		//if (Time.Current == Time.NextSnap)
 			Write_Snapshot();
-		
-		if (Time.Running == Time.Limit) {
 
-			Write_Restart_File();
-			
+		if (Time.Current == Time.End
+		 || Time.Current == Time.Limit)
 			break;
-		}
-
-		if (Time.Current == Time.End)
-			break;
-
-		Drift();
 
 		Update(AFTER_DRIFT);
 
@@ -51,10 +34,11 @@ int main(int argc, char *argv[])
 		
 		Update(AFTER_SECOND_KICK);
 	}
+		
+	if (Time.Running == Time.Limit) 
+		Write_Restart_File();
 
-	Finish_Memory_Management();
-
-	rprintf("Simulation Ends ... \n");
+	Finish();
 
 	MPI_Finalize();
 
@@ -87,9 +71,7 @@ static void preamble(int argc, char *argv[])
 			"       0        Read IC and start simulation (default) \n"
 			"       1        Read restart files and resume simulation \n"
 			"       2        Read snapshot file and continue simulation \n"
-			"       10       Dump a valid paramater file for this Config\n"
-			);
-
+			"       10       Dump a valid paramater file for this Config\n");
 	}
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);

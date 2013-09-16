@@ -58,7 +58,7 @@ SRCDIR = src/
 # do not add a ".c" file here, or "make clean" will send it into the abyss
 OBJFILES = main.o aux.o cosmo.o domain.o update.o print_settings.o \
 		   drift.o init.o kick.o setup.o time.o tree.o unit.o memory.o \
-		   profile.o sort.o \
+		   profile.o sort.o finish.o \
 		   io/io.o \
 		   		io/read_snapshot.o io/write_snapshot.o io/rw_parameter_file.o \
 				io/write_restart_file.o io/read_restart_file.o

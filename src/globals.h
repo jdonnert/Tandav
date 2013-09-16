@@ -17,13 +17,14 @@
 #include <gsl/gsl_const_cgsm.h>
 #include <gsl/gsl_const_num.h>
 
-#include "config.h" 			// holds configuration switches
+#include "config.h" 			// holds Config #defines
 
 #include "macro.h" 				// macro definitions
 #include "aux.h" 				// auxiliary functions 
 #include "cosmo.h" 				// cosmology functions 
 #include "unit.h" 				// unit functions
 #include "memory.h"				// memory management
+#include "profile.h"			// time measurement & logging
 
 /* CODE PARAMETERS */
 #define CHARBUFSIZE 256L 		// Maximum No. of chars in every char buffer

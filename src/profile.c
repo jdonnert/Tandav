@@ -3,39 +3,32 @@
 
 #define MAXPROFILEITEMS 999		// Max number of profiling marks
 
-struct AllTaskStats {
-	double This;
-	double Min;
-	double Max;
-	double Mean;
-};
-
 static struct Profiling_Object {
 	char Name[CHARBUFSIZE];
 	double Tbeg;
 	double Tend;
-	struct SimpleStats{
-		double This;
-		double All;
-	} dTotal; // this & max
-	struct AllTaskStats dT;
-	struct AllTaskStats Mem;
+	double ThisLast;	// Last iteration this CPU
+	double Total;		// Total time over all iterations / All CPUs
+	double Min;			// Min time spend here by a CPU
+	double Max;			// Max Time spend here by a CPU
+	double Mean;		// Mean Time spend here by all CPUs
+	double Imbalance;	// Time wasted waiting for the slowest CPU
 } Prof[MAXPROFILEITEMS];
 
-static int Last = 0;
+static int NProfObjs = 0;
 
-int find_index_from_name(const char *name);
+static inline int find_index_from_name(const char *name);
 
 void Init_Profiler()
 {
-	Profile("Whole Program");
+	Profile("Whole Run");
 
 	return ;
 }
 
 void Finish_Profiler() 
 {
-	Profile("Whole Program");
+	Profile("Whole Run");
 
 	Profile_Report();
 
@@ -47,11 +40,11 @@ void Profile_Info(const char* file, const char* func, const int line,
 {
 	int i = find_index_from_name(name);
 
-	if (i == Last) { // new item start profiling
+	if (i == NProfObjs) { // new item start profiling
 		
 		strncpy(Prof[i].Name, name, CHARBUFSIZE);
 
-		Last++;
+		NProfObjs++;
 
 		Prof[i].Tbeg = MPI_Wtime();
 
@@ -59,20 +52,20 @@ void Profile_Info(const char* file, const char* func, const int line,
 		
 		Prof[i].Tend = MPI_Wtime();
 	
-		Prof[i].dT.This = Prof[i].Tbeg - Prof[i].Tend;
+		Prof[i].ThisLast = Prof[i].Tend - Prof[i].Tbeg;
 
-		MPI_Reduce(Prof[i].dT.This, Prof[i].dT.Min, 1, MPI_DOUBLE, MPI_MIN, 0,
-				MPI_COMM_WORLD);
+		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Min, 
+				1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
 
-		MPI_Reduce(Prof[i].dT.This, Prof[i].dT.Max, 1, MPI_DOUBLE, MPI_MAX, 0,
-				MPI_COMM_WORLD);
+		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Max, 
+				1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
 
-		MPI_Reduce(Prof[i].dT.This, Prof[i].dT.Mean, 1, MPI_DOUBLE, MPI_SUM, 0,
-				MPI_COMM_WORLD);
-		Prof[i].dT.Mean /= Sim.NTask;
+		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Mean, 
+				1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+		Prof[i].Mean /= Sim.NTask;
 
-		Prof[i].dTotal.This += Prof[i].dT.This;
-		Prof[i].dTotal.All += Prof[i].dT.Max;
+		Prof[i].Total += Prof[i].Max;
+		Prof[i].Imbalance += Prof[i].Max - Prof[i].Min;
 	}
 
 	return ;
@@ -80,11 +73,39 @@ void Profile_Info(const char* file, const char* func, const int line,
 
 void Profile_Report()
 {
+	if (Task.Rank)
+		return; 
+
+	double now = MPI_Wtime();
+
+	printf("\nProfiler: All timers, total Runtime of %g min\n"
+		"    Name          Total     Min       Max       Mean     Imbal.  "
+		" Tot. Imbal.\n", 
+		(now-Prof[0].Tbeg)/60);
+
+	for (int i = 1; i < NProfObjs; i++ )
+		printf("%12s :  %08.1g  %08.1g  %08.1g  %08.1g  %08.1g  %08.1g\n",
+				Prof[i].Name, Prof[i].Total/60,Prof[i].Max/60, Prof[i].Min/60,
+				Prof[i].Mean/60, (Prof[i].Max-Prof[i].Min)/60, 
+				Prof[i].Imbalance/60);
+
 	return ;
 }
 
 void Profile_Report_Last()
 {
+	if (Task.Rank)
+		return ; 
+
+	double now = MPI_Wtime();
+
+	const int i = NProfObjs-1;
+
+	printf("Profiler: Last Timer, running for %g min\n"
+			"Name	  	Total	Min	Max	Mean\n"
+			"%s		: %g	%g	%g	%g\n", 
+			(now-Prof[0].Tbeg)/60, Prof[i].Name, Prof[i].Total,
+			Prof[i].Max, Prof[i].Min, Prof[i].Mean);
 
 	return ;
 }
@@ -94,13 +115,13 @@ void Write_Logs()
 	return;
 }
 
-int find_index_from_name(const char *name)
+static inline int find_index_from_name(const char *name)
 {
 	int i = 0;
 
-	for (i = 0; i<Last; i++)
+	for (i = 0; i < NProfObjs; i++)
 		if (!strncmp(name, Prof[i].Name, CHARBUFSIZE))
 			break;
 
-	return i; // may return i=Last, i.e. new item
+	return i; // may return i=NProfObjs, i.e. new item
 }

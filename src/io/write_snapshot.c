@@ -10,6 +10,8 @@ static void fill_data_buffer(const int, char *);
 
 void Write_Snapshot()
 {
+	Profile("Write Snap");
+
 	const int nFiles = Param.NumOutputFiles;
 	const int nIOTasks = Param.NumIOTasks;
 	
@@ -42,6 +44,8 @@ void Write_Snapshot()
 	Time.SnapCounter++;
 
 	rprintf("Snapshot written\n");
+	
+	Profile("Write Snap");
 
 	return ;
 }

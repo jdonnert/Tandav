@@ -11,11 +11,18 @@ struct Unit_Constants_In_Cgs Unit = { 0 };
 
 struct Particle_Data *P = NULL;
 
-void Init() 
+void Read_and_Init() 
 {
+	Read_Parameter_File(Param.File);
+	
 	Init_Memory_Management();
 
  	Init_Profiler();
+
+	if (Param.StartFlag == 1) 
+		Read_Restart_File();
+	else 
+		Read_Snapshot(Param.InputFile);
 
 	return ;
 }

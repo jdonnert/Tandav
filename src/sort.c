@@ -180,7 +180,7 @@ void test_sort()
   	else 
 	  	printf("Array not sorted :-( \n");
 
-  	printf("%d Parallel:  %g sec, Single:  %g sec\n",
+  	printf("%zu Parallel:  %g sec, Single:  %g sec\n",
 		N, (time2-time), (time4-time2));
 
 exit(0);

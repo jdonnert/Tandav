@@ -79,15 +79,16 @@ void Profile_Report()
 	double now = MPI_Wtime();
 
 	printf("\nProfiler: All timers, total Runtime of %g min\n"
-		"    Name          Total     Min       Max       Mean     Imbal.  "
-		" Tot. Imbal.\n", 
+		"    Name          Total    Tot Imbal       Max       Mean      Min  "
+		"      Imbal\n", 
 		(now-Prof[0].Tbeg)/60);
 
 	for (int i = 1; i < NProfObjs; i++ )
-		printf("%12s :  %08.1g  %08.1g  %08.1g  %08.1g  %08.1g  %08.1g\n",
-				Prof[i].Name, Prof[i].Total/60,Prof[i].Max/60, Prof[i].Min/60,
-				Prof[i].Mean/60, (Prof[i].Max-Prof[i].Min)/60, 
-				Prof[i].Imbalance/60);
+		printf("%12s    %08.1g   %08.1g      %08.1g  %08.1g  %08.1g   "
+				"%08.1g\n",
+				Prof[i].Name, Prof[i].Total/60,Prof[i].Imbalance/60,
+				Prof[i].Max/60, Prof[i].Min/60, Prof[i].Mean/60, 
+				(Prof[i].Max-Prof[i].Min)/60);
 
 	return ;
 }

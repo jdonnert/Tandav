@@ -5,13 +5,16 @@ This is the Style Guide :
 	solved by introducing new variables, which the compiler might later
 	optimize away. 
 	For example compare :
-	 	int myGreatArray = malloc(Task.Npart * N_BINS * 
+	
+        int myGreatArray = malloc(Task.Npart * N_BINS * 
 			sizeof(*my_great_array));
 	with 
+
 		size_t nBytes = Task.Npart * N_BINS * sizeof(*myGreatArray);
 		int myGreatArray = malloc(nBytes);
-	Another case is a large number of nested loops and conditions. While this
-	can not always be avoided, proper modularisation and short local variable
+	
+    Consider a large number of nested loops and conditions. While this
+	can not always be avoided, proper modularisation and shorter local variable
 	names should make this rarely a problem.
 
 * We indent like the Linux kernel - Linus is right.
@@ -25,12 +28,12 @@ This is the Style Guide :
 * Global variables have long meaningful names, start with a capital letter.
 	Obviously the main structure like P, Task and Sim are exceptions, because
 	you have to learn those anyway.
-	Scope should be visible and global variable haves to be understandable and 
+	Scope should be visible and global variables have to be understandable and 
 	unambiguous. You might not want to use these names locally, but define a 
 	local variable using the const keyword. This might even help the compiler.
 	In general you should only need to define new global variables on file
 	scope ("static X" outside of a function). Code-wide variables should be
-	embedded in the existing structures.
+	embedded in the existing structures, if possible.
 
 * Local variables are short, hungarian and start with a small letter.
 	Again scope should be visible. Short names make it easy to code
@@ -46,11 +49,14 @@ This is the Style Guide :
 * Comments are // on the side, /* */ on the line.
 	Saves lines, increases readability.
 
-* return; is not a function.
+* return ; is not a function.
 * The C idiom for infinite loops is for(;;)
 * strcpy() is deprecated, always use strncpy(), it's safer.
-* All char buffers have size CHARBUFSIZE ! That also helps you to use
-  strncpy.
-* Bitmasks etc. are set in hex format : int a = 0x0A;
-* 
+* All char buffers have size CHARBUFSIZE ! That also helps you to use strncpy.
+* Bitmasks are set in hex format : int a = 0x0A;
+* mark what you are closing in preprocessor macros : #endif // PMGRID
+* write in C99
+* inline functions should not contain if () statements depending on function input. The compiler does not always treat this correctly. Keep them short as well.
+* All integers are int for simplicity, if there is no good reason. Otherwise use int64_t, uint64_t etc. long and int are architecture dependent :-(
+
 

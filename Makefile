@@ -1,10 +1,11 @@
 SHELL = /bin/bash # This should always be present in a Makefile
 
-ifndef SYSTYPE # set this in your ~/.bashrc or ~/.tcshrc
-SYSTYPE = $(shell hostname)
+ifdef SYSTYPE # set this in your ~/.bashrc or ~/.tcshrc
+SYSTYPE := "$(SYSTYPE)"
+else
+SYSTYPE = "DARWIN"
 endif
 
-SYSTYPE = "DARWIN"
 
 # standard systypes
 CC		 = mpicc

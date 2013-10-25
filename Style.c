@@ -39,12 +39,24 @@ This is the Style Guide :
 	Again scope should be visible. Short names make it easy to code
 	efficiently and stay readable.
 
+* Every .c files has a corresponding .h header file of the same name. The 
+    header file has two sections: the first contains the Global functions
+    (global variables are in globals.h). These all start with a capital letter.
+    the second section contains all local variables and functions on file 
+    scope. These are declared static and start with a small letter.
+
 * Constants are macros, have unique long descriptive capitalised names
 	There is no elegant alternative to this in pure C. Don't forget to bracket
 	everything thats not a one word constant, or division may fail.
 	E.g. :
 		#define SPEED_OF_LIGHT 3e10
 		#define ELECTRON_REST_MASS_ENERGY (me*c*c)
+
+    This will be clunky in your code. Use a constant local variable :
+        const double c = SPEED_OF_LIGHT;
+
+    This solves the naming problem and lets you write equations that look like
+    math.
 
 * Comments are // on the side, /* */ on the line.
 	Saves lines, increases readability.

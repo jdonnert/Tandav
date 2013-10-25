@@ -39,11 +39,14 @@ This is the Style Guide :
 	Again scope should be visible. Short names make it easy to code
 	efficiently and stay readable.
 
-* Every .c files has a corresponding .h header file of the same name. The 
-    header file has two sections: the first contains the Global functions
-    (global variables are in globals.h). These all start with a capital letter.
-    the second section contains all local variables and functions on file 
-    scope. These are declared static and start with a small letter.
+* Every .c file has a corresponding .h header file of the same name. The 
+    header file contains the Global functions and variables. 
+    These all start with a capital letter and are enclosed in an #ifdef if
+    the functionality is switchable. All header file are includes in proto.h
+    which itself is contained in globals.h.
+    The exception to this rule is core of the code, that is cannot be switched 
+    off. Here global variables are in globals.h and prototypes are in proto.h.
+    This ensures modularisation, whereever possible !
 
 * Constants are macros, have unique long descriptive capitalised names
 	There is no elegant alternative to this in pure C. Don't forget to bracket

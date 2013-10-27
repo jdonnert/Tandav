@@ -1,4 +1,5 @@
 #include "../globals.h"
+#include "../proto.h"
 #include "io.h"
 
 #define SKIP_FORTRAN_RECORD safe_fread(&Fortran_Record, 4, 1, fp, swapEndian);

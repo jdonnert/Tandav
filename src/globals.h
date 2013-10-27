@@ -17,15 +17,6 @@
 #include <gsl/gsl_const_cgsm.h>
 #include <gsl/gsl_const_num.h>
 
-#include "config.h" 			// holds Config #defines
-
-#include "macro.h" 				// macro definitions
-#include "aux.h" 				// auxiliary functions 
-#include "cosmo.h" 				// cosmology functions 
-#include "unit.h" 				// unit functions
-#include "memory.h"				// memory management
-#include "profile.h"			// time measurement & logging
-
 /* CODE PARAMETERS */
 #define CHARBUFSIZE 256L 		// Maximum No. of chars in every char buffer
 #define NPARTYPE 6L 			// No of particle types
@@ -58,6 +49,7 @@ extern struct Parameters_From_File {
 	int NumIOTasks;				// written in parallel
 	int MaxMemSize;				// Memory Ceiling in 1024^2 Bytes
 	int NumOutputFiles;			// Number of output files
+	float TimeLimit;			// Time Limit
 } Param;
 
 extern struct Time_Integration_Infos {
@@ -70,7 +62,6 @@ extern struct Time_Integration_Infos {
 	int Nsteps;					// Number of steps walked so far
 	int SnapCounter;			// Keep track of Snapshots written
 	float Running;				// Run time of this task
-	float Limit;				// Time Limit
 } Time;
 
 extern struct Particle_Data {
@@ -78,4 +69,6 @@ extern struct Particle_Data {
 	float Vel[3];
 	uint32_t ID;
 	float Mass;
+	uint32_t TimeBin;
+	uint64_t Peanokey;
 } *P;

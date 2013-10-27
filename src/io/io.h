@@ -1,3 +1,12 @@
+/* Function Prototypes */
+extern void Read_Parameter_File(char *);
+extern void Write_Parameter_File(char *);
+extern void Read_Snapshot();
+extern void Read_Restart_File();
+extern void Read_and_Init();
+extern void Write_Snapshot();
+extern void Write_Restart_File();
+
 /* Parameter I/O */
 struct parameter_definitions {
 	char tag[CHARBUFSIZE]; // Parameter file tag

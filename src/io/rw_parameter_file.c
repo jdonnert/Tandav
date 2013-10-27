@@ -1,4 +1,5 @@
 #include "../globals.h"
+#include "../proto.h"
 #include "io.h"
 
 void Read_Parameter_File(char *filename)

@@ -1,6 +1,7 @@
 /* Intialise global variables */
 #include "globals.h"
 #include "proto.h"
+#include "io/io.h"
 
 struct Time_Integration_Infos Time;   
 struct Particle_Data *P; 

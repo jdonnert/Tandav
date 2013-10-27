@@ -1,4 +1,5 @@
 #include "../globals.h"
+#include "../proto.h"
 #include "io.h"
 
 #define WRITE_FORTRAN_RECORD(recSize) fwrite(&recSize, 4, 1, fp);
@@ -43,7 +44,7 @@ void Write_Snapshot()
 
 	Time.SnapCounter++;
 
-	rprintf("Snapshot written\n");
+	rprintf("\nSnapshot written\n");
 	
 	Profile("Write Snap");
 
@@ -91,12 +92,12 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 	if (groupRank == groupMaster)
 		dataBufSize *= 2*nPartLargest; // master stores comm & write buf 
 	else
-		dataBufSize *= Task.NpartTotal; // slaves just local data
+		dataBufSize *= Task.NpartTotal; // slaves buffer just local data
 	
 	char *dataBuf = Malloc(dataBufSize); 
 		
 	for (int i = 0; i < NBlocks; i++) { // write blocks, hiding comm. latency
-
+	
 		fill_data_buffer(i, dataBuf);
 
 		size_t nBytesSend = Block[i].Nbytes * npart_in_block(i, Task.Npart);
@@ -111,16 +112,18 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 
 			uint32_t blocksize = npart_in_block(i, nPartFile)*Block[i].Nbytes; 
 
+			printf("%18s %8d MB\n", Block[i].Name, blocksize/1024/1024);
+		
 			write_block_header(Block[i].Label, blocksize, fp); 
 			
 			WRITE_FORTRAN_RECORD(blocksize)
 
 			MPI_Request request; MPI_Status status;
 			
-			size_t swap = 0; // to swap memory areas
+			size_t swap = 0; // to alternate between mem areas
 			size_t halfBufSize = 0.5 * dataBufSize;
 
-			for (int task = 0; task < groupSize-1; task++) {
+			for (int task = 0; task < groupSize-1; task++) { // recv & write
 
 				char * restrict writeBuf = dataBuf + swap * halfBufSize;
 				char * restrict commBuf = dataBuf + (1 - swap) * halfBufSize;
@@ -146,6 +149,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 
 		MPI_Barrier(mpi_comm_write);
 	}
+
 
 	if (groupRank == groupMaster)
 		fclose(fp);
@@ -216,8 +220,13 @@ static void fill_data_buffer(const int i, char *dataBuf)
 
 			src = (char *) P+offset;
 			
-			for (int i = 0; i < Task.NpartTotal; i++) 
-				memcpy(dest+i*nBytes, src+i*sizeof_P, nBytes);
+			for (int i = 0; i < Task.NpartTotal; i++) {
+			
+				memcpy(dest, src, nBytes);
+
+				dest += nBytes;
+				src += sizeof_P;
+			}
 			
 			break;
 

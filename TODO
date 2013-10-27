@@ -1,7 +1,7 @@
 1. Main infrastructure
 	x macros, globals etc
 	x memory management
-	- profiling infrastucture
+	x profiling infrastucture
 2. I/O
 	x Parameter File
 	x Reading

@@ -1,4 +1,5 @@
 #include "globals.h"
+#include "proto.h"
 
 /* Reallocates the Particle structures. Takes the relative change
  * as argument, not the total number. Add or Remove via sign of nPart.

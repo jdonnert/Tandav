@@ -1,5 +1,5 @@
 #include "globals.h"
-#include "profile.h"
+#include "proto.h"
 
 #define MAXPROFILEITEMS 999		// Max number of profiling marks
 
@@ -78,14 +78,13 @@ void Profile_Report()
 
 	double now = MPI_Wtime();
 
-	printf("\nProfiler: All timers, total Runtime of %g min\n"
+	printf("\nProfiler: All sections, total runtime of %g min\n"
 		"    Name          Total    Tot Imbal       Max       Mean      Min  "
-		"      Imbal\n", 
-		(now-Prof[0].Tbeg)/60);
+		"      Imbal\n", (now-Prof[0].Tbeg)/60);
 
 	for (int i = 1; i < NProfObjs; i++ )
-		printf("%12s    %08.1g   %08.1g      %08.1g  %08.1g  %08.1g   "
-				"%08.1g\n",
+		printf("%12s    %8.1g   %8.1g      %8.1g  %8.1g  %8.1g   "
+				"%8.1g\n",
 				Prof[i].Name, Prof[i].Total/60,Prof[i].Imbalance/60,
 				Prof[i].Max/60, Prof[i].Min/60, Prof[i].Mean/60, 
 				(Prof[i].Max-Prof[i].Min)/60);
@@ -98,11 +97,11 @@ void Profile_Report_Last()
 	if (Task.Rank)
 		return ; 
 
-	double now = MPI_Wtime();
+	const double now = MPI_Wtime();
 
 	const int i = NProfObjs-1;
 
-	printf("Profiler: Last Timer, running for %g min\n"
+	printf("Profiler: Last section, total runtime of %g min\n"
 			"Name	  	Total	Min	Max	Mean\n"
 			"%s		: %g	%g	%g	%g\n", 
 			(now-Prof[0].Tbeg)/60, Prof[i].Name, Prof[i].Total,

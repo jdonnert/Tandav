@@ -1,5 +1,10 @@
 #include "globals.h"
 #include "proto.h"
+#include "update.h"
+#include "kick.h"
+#include "drift.h"
+#include "setup.h"
+#include "io/io.h"
 
 static void preamble(int argc, char *argv[]);
 
@@ -21,11 +26,11 @@ int main(int argc, char *argv[])
 
 		Drift();
 
-		//if (Time.Current == Time.NextSnap)
+		if (Time.Current == Time.NextSnap)
 			Write_Snapshot();
 
 		if (Time.Current == Time.End
-		 || Time.Current == Time.Limit)
+		 || Time.Running == Param.TimeLimit)
 			break;
 
 		Update(AFTER_DRIFT);
@@ -35,7 +40,9 @@ int main(int argc, char *argv[])
 		Update(AFTER_SECOND_KICK);
 	}
 		
-	if (Time.Running == Time.Limit) 
+	MPI_Barrier(MPI_COMM_WORLD);
+
+	if (Time.Running == Param.TimeLimit) 
 		Write_Restart_File();
 
 	Finish();
@@ -64,6 +71,8 @@ static void preamble(int argc, char *argv[])
 				Sim.NTask, Sim.NThreads);
 		
 		print_compile_time_settings();
+
+		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P));
 
 		Assert(argc >= 2, "Wrong number of arguments, let me help you: \n\n" 
 			"USAGE: ./Tandav ParameterFile <StartFlag>\n\n"

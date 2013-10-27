@@ -6,7 +6,7 @@ pro generate_fileio_data
 
 	nFiles = 10
 
-	npart = 4000000
+	npart = 2000000
 
 	for file=0, nFiles-1 do begin
 		

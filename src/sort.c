@@ -2,6 +2,7 @@
  * Shamelessly copied from glibc, thereby GPL2 */
 
 #include "globals.h"
+#include "proto.h"
 
 #define SWAP(a, b, size)		\
   	do { 						\
@@ -28,10 +29,10 @@ void test_sort();
  * need for synchronisation. However the speedup is suboptimal, because the
  * initial iterations are not parallel */
 
-void Qsort (void *const pbase, size_t nElements, size_t size, 
+void Qsort (void *const pbase, int nElements, size_t size, 
 		int (*cmp) (const void *, const void*))
 {
-  	if (nElements == 0) // don't be silly
+  	if (nElements <= 1) // don't be silly
     	return;
 	
 	char *base_ptr = (char *) pbase;

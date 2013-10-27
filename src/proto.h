@@ -1,28 +1,19 @@
-/* Dump all global (!) function prototypes here 
- * I.e. functions down to main + 1 */
-enum Update_Parameters {
-	BEFORE_MAIN_LOOP,
-	AFTER_FIRST_KICK,
-	AFTER_DRIFT,
-	AFTER_SECOND_KICK
-};
+#include "macro.h" 				// macro definitions
+#include "aux.h" 				// auxiliary functions 
+#include "cosmo.h" 				// cosmology functions 
+#include "unit.h" 				// unit functions
+#include "memory.h"				// memory management
+#include "profile.h"			// time measurement & logging
+#include "constants.h"			// physical constants
+#include "sort.h" 				// sort functions
 
-extern void Read_Parameter_File(char *);
-extern void Write_Parameter_File(char *);
-extern void Setup();
-extern void Read_Snapshot();
-extern void Read_Restart_File();
-extern void Read_and_Init();
-extern void Update(enum Update_Parameters);
-extern void Kick_First_Halfstep();
-extern void Drift();
-extern void Write_Snapshot();
-extern void Write_Restart_File();
-extern void Kick_Second_Halfstep();
+#include "config.h" 			// holds Config #defines
+
+/* Global function prototypes */
+
 extern void Finish();
 
 extern void print_compile_time_settings();
-extern void Qsort(void const *, size_t, size_t, 
-		int (*)(const void*, const void*));
 
+/* Add your headers here, #ifdefs into .h file */
 

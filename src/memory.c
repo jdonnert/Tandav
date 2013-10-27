@@ -1,5 +1,6 @@
 /* Memory management */
 #include "globals.h"
+#include "proto.h"
 
 static void *Memory = NULL; 
 
@@ -13,7 +14,7 @@ static struct memory_block_infos {
 	char File[CHARBUFSIZE];
 	char Func[CHARBUFSIZE];
 	int Line;
-	bool FlagInUse;
+	bool InUse;
 } MemBlock[MAXMEMOBJECTS];
 
 void merge_free_memory_blocks(int);
@@ -39,14 +40,15 @@ void *Malloc_info(const char* file, const char* func, const int line,
 	if (i == NMemBlocks) { // couldn't find a hole, add new at the end
 	
 		Assert_Info(file, func, line, NBytesLeft >= size, 
-			"Can't allocate Memory, %zu bytes wanted, %zu bytes left", 
-			size, NBytesLeft);
+			"Can't allocate Memory, "
+			"%zu bytes wanted, %zu bytes left, %zu bytes total", 
+			size, NBytesLeft, MemSize);
 		
 		MemBlock[i].Start = Memory + MemSize - NBytesLeft;
 	
 		MemBlock[i].Size = size;
 
-		MemBlock[i].FlagInUse = true;
+		MemBlock[i].InUse = true;
 		
 		NMemBlocks++;
 
@@ -76,6 +78,10 @@ void *Realloc_info(const char* file, const char* func, const int line,
 	if (i == NMemBlocks-1) { // enlarge last block
 
 		const int delta = new_size - MemBlock[i].Size;
+
+		Assert_Info(file, func,line, delta < NBytesLeft,
+				"Not enough memory for %zu MB. Increase MaxMemSize", 
+				delta/1024/1024);
 
 		MemBlock[i].Size += delta;
 
@@ -111,7 +117,7 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 
 	memset(MemBlock[i].Start, 0, MemBlock[i].Size);
 
-	MemBlock[i].FlagInUse = false;
+	MemBlock[i].InUse = false;
 	strncpy(MemBlock[i].File, "", CHARBUFSIZE);
 	strncpy(MemBlock[i].Func, "", CHARBUFSIZE);
 	MemBlock[i].Line = 0;
@@ -180,7 +186,7 @@ void Print_Memory_Usage()
 			memCumulative += MemBlock[i].Size;
 
 			printf("    %d   %d    %11p    %7zu	 %8zu  %21s()  %s:%d\n",
-				i,MemBlock[i].FlagInUse, MemBlock[i].Start, 
+				i,MemBlock[i].InUse, MemBlock[i].Start, 
 				MemBlock[i].Size/1024/1024, memCumulative/1024/1024, 
 				MemBlock[i].File, MemBlock[i].Func, MemBlock[i].Line);
 		}
@@ -199,7 +205,7 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 
 	for (int i=0; i<NMemBlocks; i++) {
 	
-		if (! MemBlock[i].FlagInUse)
+		if (! MemBlock[i].InUse)
 			continue;
 
 		int size = MemBlock[i].Size;
@@ -258,10 +264,10 @@ void merge_free_memory_blocks(int i)
 		MemBlock[i].Start = NULL;
 		MemBlock[i].Size = 0;
 		
-		if (i && MemBlock[i-1].FlagInUse == false)
+		if (i && MemBlock[i-1].InUse == false)
 			merge_free_memory_blocks(i-1); // merge left into free
 
-	} else if (MemBlock[i+1].FlagInUse == false) { // merge right
+	} else if (MemBlock[i+1].InUse == false) { // merge right
 		
 		MemBlock[i].Size += MemBlock[i+1].Size;
 
@@ -273,7 +279,7 @@ void merge_free_memory_blocks(int i)
 		
 		NMemBlocks--;
 	
-	} else if (i && MemBlock[i-1].FlagInUse == false) { // merge left
+	} else if (i && MemBlock[i-1].InUse == false) { // merge left
 
 		MemBlock[i-1].Size += MemBlock[i].Size;
 

@@ -1,4 +1,5 @@
 #include "../globals.h"
+#include "../proto.h"
 #include "io.h"
 
 unsigned int largest_block_member_nbytes();

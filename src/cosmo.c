@@ -5,7 +5,7 @@
 static float Hubble_Function () // i.e. Mo, van den Bosch, White 2010
 {
 
-	return ;
+	return  1;
 }
 
 #define TABLESIZE 1000
@@ -13,12 +13,12 @@ static float Hubble_Function () // i.e. Mo, van den Bosch, White 2010
 static float drift_factor_table[TABLESIZE] = { 0 };
 static float kick_factor_table[TABLESIZE] = { 0 };
 
-static float symplectic_drift_factor() // Quinn+ 1996
+static float symplectic_comoving_drift_factor() // Quinn+ 1996
 {
 	return 1;
 }
 
-static float symplectic_kick_factor() // Quinn+ 1996
+static float symplectic_comoving_kick_factor() // Quinn+ 1996
 {
 	return 1;
 }

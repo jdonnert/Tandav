@@ -25,6 +25,10 @@ void Read_and_Init()
 	else 
 		Read_Snapshot(Param.InputFile);
 
+#ifdef COMOVING
+	Fill_Comoving_Factor_Tables()
+#endif
+
 	return ;
 }
 

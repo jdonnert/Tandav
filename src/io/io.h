@@ -26,6 +26,7 @@ static const struct parameter_definitions ParDef[] = {
 	{"MaxMemSize", "1000", &Param.MaxMemSize, INT},
 	{"Omega0", "1", &Cosmo.Omega0, FLOAT},
 	{"OmegaLambda", "0.7", &Cosmo.OmegaLambda, FLOAT},
+	{"OmegaBaryon", "1", &Cosmo.OmegaBaryon, FLOAT},
 	{"HubbleParam", "0.7", &Cosmo.HubbleParam, FLOAT}
 };
 

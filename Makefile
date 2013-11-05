@@ -16,7 +16,7 @@ FFT_INCL =
 FFT_LIBS =
 
 # machine specifics
-ifeq ($(SYSTYPE),'DARWIN')
+ifeq ($(SYSTYPE),"DARWIN")
 CC       =  mpicc
 OPTIMIZE = -O0 -g -Wall -lmpich -mtune=native -march=corei7 -ftree-vectorizer-verbose=2
 MPI_LIBS = 
@@ -27,7 +27,7 @@ FFT_INCL =
 FFT_LIBS =
 endif
 
-ifeq ($(SYSTYPE),"mach64.ira.inaf.it")
+ifeq ($(SYSTYPE),mach64.ira.inaf.it)
 CC       =  mpicc
 OPTIMIZE =  -g -O3 -march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp -minline-all-stringops -fprefetch-loop-arrays --param prefetch-latency=300 -funroll-all-loops 
 MPI_LIBS = -L/homes/donnert/Libs/lib
@@ -38,7 +38,7 @@ FFT_INCL =
 FFT_LIBS =
 endif
 
-ifeq ($(SYSTYPE),"getorin.ira.inaf.it")
+ifeq ($(SYSTYPE),getorin.ira.inaf.it)
 CC       =  mpicc
 OPTIMIZE =  -g  -O3 -Wall -g -lmpich -finline -finline-functions -funroll-loops -xhost  -mkl -use-intel-optimized-headers -ipo -fast-transcendentals
 MPI_LIBS = -L/homes/donnert/Libs/lib
@@ -75,8 +75,8 @@ CFLAGS = -std=c99 -fopenmp -g $(OPTIMIZE) $(GSL_INCL) $(MPI_INCL) $(FFT_INCL)
 LIBS = -lm -lgsl -lgslcblas $(MPI_LIBS) $(GSL_LIBS) $(FFTW_LIBS)
 
 %.o: %.c
-	@echo [CC] $@
-	@$(CC) $(CFLAGS)  -o $@ -c $<
+	echo [CC] $@
+	$(CC) $(CFLAGS)  -o $@ -c $<
 
 $(EXEC)	: $(OBJS)
 	@echo " "

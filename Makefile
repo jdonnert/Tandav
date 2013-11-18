@@ -3,10 +3,10 @@
 SHELL = /bin/bash # This should always be present in a Makefile
 
 ifndef SYSTYPE # set this in your ~/.bashrc or ~/.tcshrc
-SYSTYPE := ${hostname}
+SYSTYPE := ${shell hostname}
 endif
 
-CC		 = mpicc
+CC	 = mpicc
 OPTIMIZE = -Wall -g -O2 
 MPI_INCL = $(CPPFLAGS)
 MPI_LIBS = $(LDFLAGS)
@@ -27,7 +27,7 @@ FFT_INCL =
 FFT_LIBS =
 endif
 
-ifeq ($(SYSTYPE),"mach64.ira.inaf.it")
+ifeq ($(SYSTYPE),mach64.ira.inaf.it)
 CC       =  mpicc
 OPTIMIZE =  -g -O3 -march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp -minline-all-stringops -fprefetch-loop-arrays --param prefetch-latency=300 -funroll-all-loops 
 MPI_LIBS = -L/homes/donnert/Libs/lib
@@ -38,7 +38,7 @@ FFT_INCL =
 FFT_LIBS =
 endif
 
-ifeq ($(SYSTYPE),"getorin.ira.inaf.it")
+ifeq ($(SYSTYPE),getorin.ira.inaf.it)
 CC       =  mpicc
 OPTIMIZE =  -g  -O3 -Wall -g -lmpich -finline -finline-functions -funroll-loops -xhost  -mkl -use-intel-optimized-headers -ipo -fast-transcendentals
 MPI_LIBS = -L/homes/donnert/Libs/lib
@@ -57,15 +57,17 @@ SRCDIR = src/
 
 # do not add a ".c" file here, or "make clean" will send it into the abyss
 OBJFILES = main.o aux.o cosmo.o domain.o update.o print_settings.o \
-		   drift.o init.o kick.o setup.o time.o tree.o unit.o memory.o \
-		   profile.o sort.o finish.o \
-		   io/io.o \
-		   		io/read_snapshot.o io/write_snapshot.o io/rw_parameter_file.o \
-				io/write_restart_file.o io/read_restart_file.o
+	   drift.o init.o kick.o setup.o time.o tree.o unit.o memory.o \
+	   profile.o sort.o finish.o \
+	   io/io.o \
+	   	io/read_snapshot.o io/write_snapshot.o \
+		io/rw_parameter_file.o io/write_restart_file.o \
+		io/read_restart_file.o
 
 INCLFILES = config.h globals.h tree.h cosmo.h unit.h aux.h macro.h proto.h \
-			memory.h profile.h io/io.h ../Makefile ../Config constants.h \
-			kick.h setup.h update.h drift.h tree.h time.h
+	    memory.h profile.h io/io.h ../Makefile ../Config \
+	    constants.h kick.h setup.h update.h drift.h tree.h \
+	    time.h
 
 OBJS = $(addprefix $(SRCDIR),$(OBJFILES))
 INCS = $(addprefix $(SRCDIR),$(INCLFILES))

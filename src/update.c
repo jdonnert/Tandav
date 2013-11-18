@@ -5,22 +5,18 @@
 void Update(enum Update_Parameters stage) 
 {
 
-	if (stage == BEFORE_MAIN_LOOP) {
-		
+	switch (stage) {
+	case BEFORE_MAIN_LOOP:
 		Print_Memory_Usage();
-	
-	}
-
-	if (stage == AFTER_FIRST_KICK) {
-
-	}
-
-	if (stage == AFTER_DRIFT) {
-
-	}
-
-	if (stage == AFTER_SECOND_KICK) {
-
+		break;
+	case AFTER_FIRST_KICK:
+		break;
+	case AFTER_DRIFT:
+		break;
+	case AFTER_SECOND_KICK:
+		break;
+	default:
+		Assert(0, "Update Stage not handled %d", stage);
 	}
 
 	return;

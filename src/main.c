@@ -59,10 +59,10 @@ static void preamble(int argc, char *argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &Sim.NTask);
 
 #pragma omp parallel
-    {
-    Task.ThreadID = omp_get_thread_num();
-    Sim.NThreads = omp_get_num_threads();
-    }
+    	{
+    	Task.ThreadID = omp_get_thread_num();
+    	Sim.NThreads = omp_get_num_threads();
+    	}
 
 	if (!Task.Rank) {
 		printf("# Tandav #\n\n");
@@ -74,13 +74,13 @@ static void preamble(int argc, char *argv[])
 
 		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P));
 
-		Assert(argc >= 2, "Wrong number of arguments, let me help you: \n\n" 
+		Assert(argc >= 2, 
+			"Wrong number of arguments, let me help you: \n\n" 
 			"USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
-			"    StartFlag   Action \n"
-			"       0        Read IC and start simulation (default) \n"
-			"       1        Read restart files and resume simulation \n"
-			"       2        Read snapshot file and continue simulation \n"
-			"       10       Dump a valid paramater file for this Config\n");
+			" 0  : Read IC file and start simulation (default) \n"
+			" 1  : Read restart files and resume  \n"
+			" 2  :  Read snapshot file and continue \n"
+			" 10 : Dump a valid parameter file for this Config\n");
 	}
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);

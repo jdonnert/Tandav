@@ -2,11 +2,16 @@
 #include "proto.h"
 
 
-static float Hubble_Function () // i.e. Mo, van den Bosch, White 2010
+float Hubble_Function (float a) // i.e. Mo, van den Bosch, White 2010
 {
-
 	return  1;
 }
+
+float Critical_Density (float a)
+{
+	return 1;
+}
+
 
 #define TABLESIZE 1000
 
@@ -23,7 +28,7 @@ static float symplectic_comoving_kick_factor() // Quinn+ 1996
 	return 1;
 }
 
-void Fill_Comoving_Factor_Tables()
+void Init_Cosmology()
 {
 
 	return ;

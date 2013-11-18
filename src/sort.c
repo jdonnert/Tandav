@@ -5,8 +5,8 @@
 #include "proto.h"
 
 #define SWAP(a, b, size)		\
-  	do { 						\
-		char tmp[size]; 		\
+  	do {				\
+		char tmp[size]; 	\
 		memcpy(tmp, a, size); 	\
 		memcpy(a, b, size); 	\
 		memcpy(b, tmp, size);	\
@@ -33,7 +33,7 @@ void Qsort (void *const pbase, int nElements, size_t size,
 		int (*cmp) (const void *, const void*))
 {
   	if (nElements <= 1) // don't be silly
-    	return;
+    		return;
 	
 	char *base_ptr = (char *) pbase;
 	
@@ -60,44 +60,45 @@ void Qsort (void *const pbase, int nElements, size_t size,
 			#pragma omp barrier
 
 			if (tID >= i)
-				continue; // not enough partitions for these, wait at the top
+				continue; // not enough partitions for these
 	
 			lo = stack[tID].lo; // pop from stack
 			hi = stack[tID].hi;
 
-    	    char *left_ptr;
-      		char *right_ptr;
+    			char *left_ptr;
+      			char *right_ptr;
 			
 			/* Find pivot element from median and sort the three. 
 			 * That helps to prevent the n^2 worst case */
 		  	char *mid = lo + size * ((hi - lo) / size >> 1); 
 
 	  		if ( (*cmp) ((void *) mid, (void *) lo) < 0) 
-	    		SWAP(mid, lo, size);
+	    			SWAP(mid, lo, size);
 	
 		  	if ( (*cmp) ((void *) hi, (void *) mid) < 0)
-	    		SWAP (mid, hi, size);
+	    			SWAP (mid, hi, size);
 	  		else
-	    		goto jump_over;
+	    			goto jump_over;
 	  	
 			if ( (*cmp) ((void *) mid, (void *) lo) < 0)
-		    	SWAP (mid, lo, size);
+		    		SWAP (mid, lo, size);
 		
 			jump_over:;
 
 	  		left_ptr  = lo + size;
 	  		right_ptr = hi - size;
 
-			/* now put all larger/smaller than the pivot on the right/left */
+			/* now put all larger/smaller than the pivot*/
+			/* on the right/left */
 	  		do { 
 				
-				while ((*cmp) ((void *) left_ptr, (void *) mid) < 0)
+				while ((*cmp)((void *)left_ptr, (void *)mid)<0)
 					left_ptr += size;
 
-				while ((*cmp) ((void *) mid, (void *) right_ptr) < 0)
+				while ((*cmp)((void *)mid,(void *)right_ptr)<0)
 					right_ptr -= size;
 
-	    		if (left_ptr < right_ptr) { 
+	    			if (left_ptr < right_ptr) { 
 					
 					SWAP (left_ptr, right_ptr, size);
 					
@@ -116,6 +117,7 @@ void Qsort (void *const pbase, int nElements, size_t size,
 		 
 					break;
 				}
+
 			} while (left_ptr <= right_ptr);
 
 			/* Push next iterations / partitions to the stack */
@@ -125,15 +127,17 @@ void Qsort (void *const pbase, int nElements, size_t size,
 
 			stack[2*tID+1].lo = left_ptr;
 			stack[2*tID+1].hi = hi;
-    	}
+    		}
 
 		#pragma omp barrier
+	
+		if (tID < i) { // serial sort on subpartitions
+			int chunkSize = (stack[tID].hi-stack[tID].lo)/size+1;
 
-		if (tID < i) // serial sort on subpartitions
-	 		qsort(stack[tID].lo, (stack[tID].hi-stack[tID].lo)/size+1, 
-					size, cmp);
+			qsort(stack[tID].lo, chunkSize, size, cmp);
+		}
+	}  
 
-		}  
 	} // omp parallel
 	
 	return;
@@ -156,7 +160,8 @@ void test_sort()
 
   	for (int i = 0; i < N; i++) {
 
-    	x[i] = random();
+    		x[i] = random();
+
 	  	y[i] = x[i];
   	}
 

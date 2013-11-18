@@ -19,17 +19,17 @@
 
 /* unit conversions */
 #define BARN2CGS GSL_CONST_CGSM_BARN // [cm^2]
-#define MEV2CGS 1e6*GSL_CONST_CGSM_ELECTRON_VOLT // [erg]
-#define GEV2CGS 1e9*GSL_CONST_CGSM_ELECTRON_VOLT // [erg]
+#define MEV2CGS (1e6*GSL_CONST_CGSM_ELECTRON_VOLT) // [erg]
+#define GEV2CGS (1e9*GSL_CONST_CGSM_ELECTRON_VOLT) // [erg]
 #define MSOL2CGS GSL_CONST_CGSM_SOLAR_MASS // [g]
 #define KPC2CGS 3.08567758e21 // [cm]
 #define YR2SEC 31556926
 
 /* models */
-#define TCMB 2.728 // [K] Temperature of the CMB
-#define BCMB = 3.24516e-6 // [G] Magnetic field equivalent of Tcmb
-#define H_FRACTION 0.76 // Hydrogen fraction
-#define HE_FRACTION 1-H_fraction // Helium fraction
-#define UMOL 4.0/(5.0*H_fraction+3.0) // Mean mol. weight in H
-#define ADIABATIC_INDEX 5.0/3.0
+#define TCMB 2.728 		// [K] Temperature of the CMB
+#define BCMB 3.24516e-6 	// [G] Magnetic field equivalent of Tcmb
+#define H_FRACTION 0.76 		// Hydrogen fraction
+#define HE_FRACTION (1-H_fraction) 	// Helium fraction
+#define UMOL (4.0/(5.0*H_fraction+3.0)) // Mean mol. weight in H
+#define ADIABATIC_INDEX (5.0/3.0)
 

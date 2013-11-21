@@ -1,4 +1,4 @@
-/* Intialise global variables */
+/* Initialise global variables */
 #include "globals.h"
 #include "proto.h"
 #include "io/io.h"
@@ -20,14 +20,16 @@ void Read_and_Init()
 
  	Init_Profiler();
 
-	if (Param.StartFlag == 1) 
+	if (Param.StartFlag == 0) 
+		Read_Snapshot(Param.InputFile);
+	else if (Param.StartFlag == 1)
 		Read_Restart_File();
 	else 
-		Read_Snapshot(Param.InputFile);
+		Assert(0, "Start Flag not handled");
 
 #ifdef COMOVING
-	Fill_Comoving_Factor_Tables()
-#endif
+	Init_Cosmology();
+#endif // COMOVING
 
 	return ;
 }

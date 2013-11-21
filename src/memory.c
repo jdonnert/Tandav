@@ -6,7 +6,7 @@ static void *Memory = NULL;
 
 static size_t NBytesLeft = 0; // size of block at the end
 static size_t MemSize = 0;
-static size_t NMemBlocks = 0; // all blocks, also empty ones
+static int NMemBlocks = 0; // all blocks, also empty ones
 
 static struct memory_block_infos {
 	void * Start;
@@ -37,7 +37,7 @@ void *Malloc_info(const char* file, const char* func, const int line,
 	strncpy(MemBlock[i].Func, func, CHARBUFSIZE);
 	MemBlock[i].Line = line;
 
-	if (i == NMemBlocks) { // couldn't find a hole, add new at the end
+	if (i == NMemBlocks) { // couldn't find a free gap, add new at the end
 	
 		Assert_Info(file, func, line, NBytesLeft >= size, 
 			"Can't allocate Memory, "
@@ -87,8 +87,6 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 		NBytesLeft -= delta;
 
-		i_return = i;
-	
 	} else if (new_size < MemBlock[i].Size) { // move old to new and free
 
 		printf("%zu %zu \n",  new_size, MemBlock[i].Size);
@@ -109,9 +107,11 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 void Free_info(const char* file, const char* func, const int line, void *ptr) 
 {
-    if (ptr == NULL)        
-		printf("WARNING Task %d. You tried to free a NULL pointer in file "
-				"%s, function %s():%d\n",Task.Rank, file, func, line);
+    	if (ptr == NULL)        
+		printf("WARNING Task %d. "
+				"You tried to free a NULL pointer in file "
+				"%s, function %s():%d\n",
+				Task.Rank, file, func, line);
 
 	const int i = find_memory_block_from_ptr(ptr);
 
@@ -144,8 +144,8 @@ void Init_Memory_Management()
 			"   Max Usable Memory   %zu bytes = %zu MB\n" 
 			"   Min Usable Memory   %zu bytes = %zu MB\n"
 			"   Requested  Memory   %zu bytes = %zu MB\n", 
-			maxNbytes, maxNbytes/1024/1024, minNbytes, minNbytes/1024/1024, 
-			MemSize, MemSize/1024/1024);
+			maxNbytes, maxNbytes/1024/1024, minNbytes, 
+			minNbytes/1024/1024, MemSize, MemSize/1024/1024);
 
 	int fail = posix_memalign(&Memory, MEM_ALIGNMENT, MemSize);
 
@@ -155,16 +155,15 @@ void Init_Memory_Management()
 
 	memset(Memory, 0, NBytesLeft);
 
-	return ;
+	return;
 }
 
 void Print_Memory_Usage()
 {
 	size_t nBytesLeftGlobal[Sim.NTask];
 
-	MPI_Allgather(&NBytesLeft, 1, MPI_BYTE, 
-			nBytesLeftGlobal, sizeof(*nBytesLeftGlobal), MPI_BYTE, 
-			MPI_COMM_WORLD);
+	MPI_Allgather(&NBytesLeft, 1, MPI_BYTE, nBytesLeftGlobal, 
+			sizeof(*nBytesLeftGlobal), MPI_BYTE, MPI_COMM_WORLD);
 	
 	int minIdx = 0;
 
@@ -173,11 +172,11 @@ void Print_Memory_Usage()
 			minIdx = i;
 
 	if (Task.Rank == minIdx) {
-		
-		printf("\nMemory Manager: Reporting Task %d with %zu MB free memory\n"
-			   "   No  Used      Address       Size    Cumulative      "
-			   "           Function  File:Line\n", Task.Rank, 
-			   NBytesLeft/1024L/1024L);
+		printf("\nMemory Manager: "
+			"Reporting Task %d with %zu MB free memory\n"
+			"   No  Used      Address       Size    Cumulative"
+			"                 Function  File:Line\n", 
+			Task.Rank, NBytesLeft/1024L/1024L);
 
 		size_t memCumulative = 0;
 
@@ -185,10 +184,13 @@ void Print_Memory_Usage()
 			
 			memCumulative += MemBlock[i].Size;
 
-			printf("    %d   %d    %11p    %7zu	 %8zu  %21s()  %s:%d\n",
+			printf("    %d   %d    %11p    %7zu	 %8zu"
+				"  %21s()  %s:%d\n",
 				i,MemBlock[i].InUse, MemBlock[i].Start, 
-				MemBlock[i].Size/1024/1024, memCumulative/1024/1024, 
-				MemBlock[i].File, MemBlock[i].Func, MemBlock[i].Line);
+				MemBlock[i].Size/1024/1024, 
+				memCumulative/1024/1024, 
+				MemBlock[i].File, MemBlock[i].Func, 
+				MemBlock[i].Line);
 		}
 
 		printf("\n"); fflush(stdout);
@@ -196,7 +198,7 @@ void Print_Memory_Usage()
 
 	MPI_Barrier(MPI_COMM_WORLD);
 	
-	return ;
+	return;
 }
 
 void Get_Free_Memory(int *total, int *largest, int *smallest)
@@ -204,7 +206,7 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 	*total = *largest = *smallest = 0;
 
 	for (int i=0; i<NMemBlocks; i++) {
-	
+		
 		if (! MemBlock[i].InUse)
 			continue;
 
@@ -221,7 +223,8 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 
 void Finish_Memory_Management()
 {
-	rprintf("\nMemory Manager: Freeing %d MB of Memory \n", Param.MaxMemSize);
+	rprintf("\nMemory Manager: Freeing %d MB of Memory \n", 
+			Param.MaxMemSize);
 
 	if (Memory != NULL)
 		free(Memory);
@@ -237,7 +240,8 @@ int find_memory_block_from_ptr(void *ptr)
 		if (ptr == MemBlock[i].Start)
 			break;
 
-	Assert(i < NMemBlocks,"Could not find memory block belonging to %p", ptr);
+	Assert(i < NMemBlocks,
+		"Could not find memory block belonging to %p", ptr);
 
 	return i;
 }
@@ -294,6 +298,7 @@ void merge_free_memory_blocks(int i)
 	
 	return ;
 }
+
 /* Get system memory size in a rather portable way
  * This represents the hard upper bound, maybe leave 10% for the OS ?
  *

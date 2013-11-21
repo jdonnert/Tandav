@@ -39,20 +39,22 @@ void Read_Snapshot(char *input_name)
 				nFiles, nIOTasks);
 
 		strncpy(filename, input_name, CHARBUFSIZE);
+
 		if (nFiles > 1)
-        	sprintf(filename, "%s.0", input_name);
+        		sprintf(filename, "%s.0", input_name);
 
 		FILE *fp = fopen(filename, "r");
 
 		swapEndian = find_endianess(fp);
 
-		read_header_data(fp, swapEndian, nFiles); // fills global var 'Sim'
+		read_header_data(fp, swapEndian, nFiles); // fills Sim
 		
 		fclose(fp);
 	}
 	
 	MPI_Bcast(&nFiles, 1, MPI_INT, 0, MPI_COMM_WORLD);
-	MPI_Bcast(&swapEndian, sizeof(swapEndian), MPI_BYTE, 0, MPI_COMM_WORLD);
+
+	MPI_Bcast(&swapEndian, sizeof(swapEndian), MPI_BYTE, 0,MPI_COMM_WORLD);
 	MPI_Bcast(&Sim, sizeof(Sim), MPI_BYTE, 0, MPI_COMM_WORLD);
 	
 	int restFiles = nFiles;
@@ -67,9 +69,10 @@ void Read_Snapshot(char *input_name)
 
 		strncpy(filename, input_name, CHARBUFSIZE);
 
-		if (restFiles >= nTask) { // read in nIO blocks, no communication
+		if (restFiles >= nTask) { // read in nIO blocks, no commun.
 		
-			int fileNum = nFiles - 1 - (Task.Rank + (restFiles - nTask)); 
+			int fileNum = nFiles - 1 
+				- (Task.Rank + (restFiles - nTask)); 
 			
 			if (nFiles > 1)
 				sprintf(filename, "%s.%i", filename, fileNum);
@@ -77,7 +80,8 @@ void Read_Snapshot(char *input_name)
 			for (int i = 0; i < groupSize; i++) {
 
 				if (Task.Rank == groupMaster + i)
-					read_file(filename, swapEndian, 0, 1, MPI_COMM_SELF);
+					read_file(filename, swapEndian, 0, 1,
+							MPI_COMM_SELF);
 
 				MPI_Barrier(MPI_COMM_WORLD);
 			}
@@ -107,6 +111,7 @@ void Read_Snapshot(char *input_name)
 	
 	if (RecvBuf != NULL)
 		Free(RecvBuf); 
+
 	if (ReadBuf != NULL)
 		Free(ReadBuf);
 
@@ -121,8 +126,9 @@ void Read_Snapshot(char *input_name)
 
 /* reads file on master and distributes it to an MPI communicator 
  * spanning groupSize with local rank groupRank */
-static void read_file(char *filename, const bool swapEndian, 
-		const int groupRank, const int groupSize, MPI_Comm mpi_comm_read)
+static void 
+read_file(char *filename, const bool swapEndian, const int groupRank, 
+		const int groupSize, MPI_Comm mpi_comm_read)
 {
 	const int groupMaster = 0;  
 	
@@ -150,14 +156,15 @@ static void read_file(char *filename, const bool swapEndian,
 			nTotRead += nPartFile[i];
 		
 		printf("\nReading file '%s' on Task %i - %i \n"
-        	    "   Gas   %9i   DM     %9i    \n"
+        	    	"   Gas   %9i   DM     %9i    \n"
            		"   Disk  %9i   Bulge  %9i    \n"
-            	"   Star  %9i   Bndry  %9i    \n"
-            	"   Total in File %9i \n\n",
-				filename, Task.Rank, Task.Rank+groupSize-1,
-				nPartFile[0], nPartFile[1], nPartFile[2],
-				nPartFile[3], nPartFile[4], nPartFile[5], 
-            	nTotRead); fflush(stdout);
+            		"   Star  %9i   Bndry  %9i    \n"
+            		"   Total in File %9i \n\n",
+			filename, Task.Rank, Task.Rank+groupSize-1,
+			nPartFile[0], nPartFile[1], nPartFile[2],
+			nPartFile[3], nPartFile[4], nPartFile[5], 
+            		nTotRead); 
+		fflush(stdout);
 	}
 
 	MPI_Bcast(nPartFile, NPARTYPE, MPI_INT, 0, mpi_comm_read);
@@ -174,9 +181,10 @@ static void read_file(char *filename, const bool swapEndian,
 		nPartGetTotal += nPartGet[j];
 	
 	size_t nBytes = nPartGetTotal * largest_block_member_nbytes();
+
 	RecvBuf = Realloc(RecvBuf, nBytes);
 
-	nBytes = nTotRead * largest_block_member_nbytes(); // != 0 only for master
+	nBytes = nTotRead * largest_block_member_nbytes(); // only for master
 	ReadBuf = Realloc(ReadBuf, nBytes); 
 
 	size_t offsets[NPARTYPE] = { 0 }; 
@@ -192,9 +200,11 @@ static void read_file(char *filename, const bool swapEndian,
 			blocksize = find_block(fp, Block[i].Label, swapEndian);
 		
 			Assert(blocksize > 0 || !Block[i].PartBitMask, 
-					"Can't find required block '%s'", Block[i].Label);
+					"Can't find required block '%s'", 
+					Block[i].Label);
 
-			printf("%18s %8d MB\n", Block[i].Name, blocksize/1024/1024);
+			printf("%18s %8d MB\n", Block[i].Name, 
+					blocksize/1024/1024);
 			fflush(stdout);
 		}
 
@@ -208,8 +218,9 @@ static void read_file(char *filename, const bool swapEndian,
 			nBytes = npart_in_block(i, nPartFile) * Block[i].Nbytes;
 			
 			Assert(nBytes == blocksize, 
-					"File and Code blocksize inconsistent '%s', %zu != %d byte",
-					Block[i].Label, nBytes, blocksize);
+				"File and Code blocksize inconsistent "
+				"'%s', %zu != %d byte",
+				Block[i].Label, nBytes, blocksize);
 
 			SKIP_FORTRAN_RECORD
 			
@@ -218,21 +229,23 @@ static void read_file(char *filename, const bool swapEndian,
 			SKIP_FORTRAN_RECORD
 		} 
 		
-		int nBytesGetBlock = npart_in_block(i, nPartGet)* Block[i].Nbytes;
+		int nBytesGetBlock = npart_in_block(i, nPartGet) 
+			* Block[i].Nbytes;
 		
 		int nBytesSend[groupSize];
-		MPI_Allgather(&nBytesGetBlock, 1 , MPI_INT, nBytesSend, 1, MPI_INT, 
-				mpi_comm_read);
+		MPI_Allgather(&nBytesGetBlock, 1 , MPI_INT, nBytesSend, 1, 
+				MPI_INT, mpi_comm_read);
 
 		int displs[groupSize]; // displacements
+
 		memset(displs, 0, groupSize*sizeof(*displs));
 
 		for (j = 1; j < groupSize; j++) 
 			displs[j] += nBytesSend[j-1] + displs[j-1];
 
-		MPI_Scatterv(ReadBuf, nBytesSend, displs, MPI_BYTE, // distribute
-					 RecvBuf, nBytesSend[groupRank], MPI_BYTE, 
-					 groupMaster, mpi_comm_read); 
+		MPI_Scatterv(ReadBuf, nBytesSend, displs, MPI_BYTE, 
+			RecvBuf, nBytesSend[groupRank], MPI_BYTE, 
+			groupMaster, mpi_comm_read); // distribute
 
 		empty_comm_buffer(RecvBuf, i, nPartGet, offsets); // copy *P 
 	}
@@ -252,21 +265,20 @@ static void empty_comm_buffer(char *DataBuf, const int iBlock,
 	char *start_P = (char *)P + Block[iBlock].Offset;
 	//char *start_G = (char *)G + Block[iBlock].Offset;
 
-	size_t src = 0; 
+	char *src = DataBuf; 
 
 	switch (Block[iBlock].Target) { // ptr fun for the whole family
 
 		case VAR_P:
-
 			for (int type = 0; type < NPARTYPE; type++) { 
 				
-				size_t dest = offsets[type]*sizeof_P; 
+				char *dest = start_P + offsets[type]*sizeof_P;
 
 				for (int i = 0; i < nPart[type]; i++) {  
 
-					memcpy(start_P+dest, DataBuf+src, nBytes);
+					memcpy(dest, src, nBytes);
 					
-					dest += sizeof_P; // increments in bytes
+					dest += sizeof_P; // in bytes
 					src += nBytes;
 				}
 			}
@@ -276,7 +288,8 @@ static void empty_comm_buffer(char *DataBuf, const int iBlock,
 /*		case VAP_G:
 
 			for (int i=0; i<nPart; i++)
-				memcpy(&G[i]+offset, CommBuf+ nBytes*ibuf++, nBytes);
+				memcpy(&G[i]+offset, CommBuf+ nBytes*ibuf++, 
+				nBytes);
 
 			break; */
 
@@ -316,7 +329,7 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 	safe_fread(&head.FlagMetals, sizeof(head.FlagMetals), 1, fp,swap);
 	safe_fread(head.NallHighWord, sizeof(*head.NallHighWord), 6, fp,swap);
 
-	for (int i= Sim.NpartTotal =0; i<NPARTYPE; i++) {
+	for (int i = Sim.NpartTotal = 0; i < NPARTYPE; i++) {
 		Sim.Mpart[i] = head.Massarr[i];
 
 		Sim.Npart[i] = (uint64_t)head.Nall[i];
@@ -326,7 +339,8 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 	}
 
 #ifdef PERIODIC
-	Assert(Sim.Boxsize >= 0, "Boxsize in header not > 0, but %g ", Sim.Boxsize);
+	Assert(Sim.Boxsize >= 0, "Boxsize in header not > 0, but %g ", 
+			Sim.Boxsize);
 #endif	
 
 	size_t sum = 0;
@@ -335,9 +349,9 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 		sum += Sim.Mpart[i];
 
 	printf("Total Particle Numbers (Masses) in Snapshot Header:	\n"
-		"   Gas   %9llu (%1.5f), DM   %9llu (%1.5f), Disk %9llu (%1.5f)\n"
-		"   Bulge %9llu (%1.5f), Star %9llu (%1.5f), Bndy %9llu (%1.5f)\n",
-		(long long unsigned int)Sim.Npart[0], Sim.Mpart[0], 
+		"Gas   %9llu (%1.5f), DM   %9llu (%1.5f), Disk %9llu (%1.5f)\n"
+		"Bulge %9llu (%1.5f), Star %9llu (%1.5f), Bndy %9llu (%1.5f)\n"
+		,(long long unsigned int)Sim.Npart[0], Sim.Mpart[0], 
 		(long long unsigned int)Sim.Npart[1], Sim.Mpart[1], 
 		(long long unsigned int)Sim.Npart[2], Sim.Mpart[2], 
 		(long long unsigned int)Sim.Npart[3], Sim.Mpart[3], 
@@ -346,25 +360,25 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 	
 	if (head.NumFiles != nFiles)
 		fprintf(stderr, "\nWARNING: NumFiles in Header (%d) "
-				"doesnt match number of files for readin (%d) \n\n", 
-				head.NumFiles, nFiles);
+			"doesnt match number of files for readin (%d) \n\n", 
+			head.NumFiles, nFiles);
 
 	return ;
 }
 
 static void generate_masses_from_header() 
 {
-	for (int i=0; i<NPARTYPE; i++)
+	for (int i = 0; i < NPARTYPE; i++)
 		if (Sim.Mpart[i])
 			return;
 
 	int iMin = 0;
 	
-	for (int type=0; type<NPARTYPE; type++) {
+	for (int type = 0; type < NPARTYPE; type++) {
 		
 		int iMax = iMin + Task.Npart[type];
 
-		for (int ipart=iMin; ipart<iMax; ipart++)
+		for (int ipart = iMin; ipart < iMax; ipart++)
 			P[ipart].Mass = Sim.Mpart[type];
 
 		iMin += Task.Npart[type];
@@ -388,9 +402,9 @@ static int find_block(FILE *fp, const char label[4], const bool swapEndian)
 		safe_fread(blocklabel, 4 * sizeof(char), 1, fp, swapEndian);
 		safe_fread(&blocksize, 4 * sizeof(char), 1, fp, swapEndian);
 
-        SKIP_FORTRAN_RECORD;
+        	SKIP_FORTRAN_RECORD;
 			
-        if (strncmp(label, blocklabel, 4) == 0) 
+        	if (strncmp(label, blocklabel, 4) == 0) 
 			break; // found it
 			
 		fseek(fp, blocksize, 1); // skip to end of block
@@ -417,7 +431,7 @@ static bool find_endianess(FILE *fp)
 
 	bool swapEndian = false;
 	
-	if (testRecord == 134217728) { // first block is always 8 bytes in format 2
+	if (testRecord == 134217728) { // first block is always 8 bytes
 
 		printf("\nEnabling Endian Swapping\n");
 
@@ -470,8 +484,10 @@ static int find_files(char *filename)
 }
 
 /* this fread wrapper checks for eof, corruption and swaps endianess 
- * if swapEndian == true */
-static int safe_fread(void *data, size_t size, size_t nWanted, FILE *stream, 
+ * if swapEndian == true 
+ * */
+static int 
+safe_fread(void *data, size_t size, size_t nWanted, FILE *stream, 
 		bool swapEndian)
 {
 	size_t nRead = fread(data, size, nWanted, stream);
@@ -479,18 +495,25 @@ static int safe_fread(void *data, size_t size, size_t nWanted, FILE *stream,
 	if (feof(stream)) // we catch EOF further up, because of block finding
 		nRead = nWanted = 0;
 		
-	Assert(nRead == nWanted, "Read %zu bytes, but %zu wanted", nRead, nWanted);
+	Assert(nRead == nWanted, "Read %zu bytes, but %zu wanted", 
+		nRead, nWanted);
 
 	if (swapEndian && !feof(stream)) { // swap endianess
 
 		char buf[16];
 
-		for (int j=0; j<nWanted; j++) {
+		for (int j = 0; j < nWanted; j++) {
 
 			memcpy(buf, &(( (char *)data )[j * size]), size);
 			
-			for (int i=0; i<size; i++)
-				( (char*)data )[j*nWanted + i] = buf[size - i - 1];
+			for (int i = 0; i < size; i++) {
+
+				size_t dest = j*nWanted + i;
+				
+				size_t src = size - i - 1;
+
+				((char*) data)[dest] = buf[src];
+			}
 		}
 	}
 

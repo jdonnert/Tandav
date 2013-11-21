@@ -9,8 +9,8 @@
 void Reallocate_P_Info(const char *func, const char *file, int line, 
 		int dNpart[NPARTYPE], size_t offset_out[NPARTYPE])
 {
-	size_t offset[NPARTYPE] = { 0 }, new_npartTotal = 0;
-	ptrdiff_t new_npart[NPARTYPE] = { 0 };
+	int offset[NPARTYPE] = { 0 }, new_npartTotal = 0;
+	int new_npart[NPARTYPE] = { 0 };
 	
 	for (int type = 0; type < NPARTYPE; type++) { // calc offset
 
@@ -18,10 +18,11 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		
 		new_npartTotal += new_npart[type];
 		
-        Assert(new_npart[type] >= 0, 
-			"Can't alloc negative particles, type %d, delta %d, current %d,\n"
+        	Assert(new_npart[type] >= 0, "Can't alloc negative particles,"
+			" type %d, delta %d, current %d,\n"
 			"requested from %s, %s(), line %d", 
-			type, dNpart[type], Task.Npart[type], file, func, line);
+			type, dNpart[type], Task.Npart[type], 
+			file, func, line);
 
 		if (!dNpart[type]) 
 			continue; // don't need offset here
@@ -29,10 +30,11 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		for (int i=0; i <= type; i++) 
 			offset[type] += new_npart[i];
 
-		offset[type] -= max(0, dNpart[type]); // correct for dNpart > 0 
+		offset[type] -= max(0, dNpart[type]); // correct for dNpart>0
 	}
 
-	ptrdiff_t nMove = Task.NpartTotal; // move particles left
+	int nMove = Task.NpartTotal; // move particles left
+	
 	for (int type = 0; type < NPARTYPE; type++) { 
 
 		nMove -= Task.Npart[type];
@@ -40,8 +42,8 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		if (dNpart[type] >= 0 || Task.Npart[type] == 0 || nMove == 0)
 			continue;
 
-		size_t src = offset[type] + fabs(dNpart[type]); 
-		size_t dest = offset[type];
+		int src = offset[type] + fabs(dNpart[type]); 
+		int dest = offset[type];
 
 		memmove(&P[dest], &P[src], nMove*sizeof(*P));
 	}
@@ -51,6 +53,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 	P = Realloc(P, nBytes);
 
 	nMove = Task.NpartTotal; // move particles right
+
 	for (int type = 0; type < NPARTYPE-1; type++) { 
 
 		nMove -= Task.Npart[type];
@@ -58,8 +61,8 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		if (dNpart[type] <= 0 || Task.Npart[type] == 0 || nMove == 0)
 			continue;
 
-		size_t src = offset[type];
-		size_t dest = offset[type] + dNpart[type];
+		int src = offset[type];
+		int dest = offset[type] + dNpart[type];
 		
 		memmove(&P[dest], &P[src], nMove*sizeof(*P));
 	} 
@@ -80,16 +83,16 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 void Assert_Info(const char *func, const char *file, int line,
 		int64_t expr, const char *errmsg, ...)
 {
-    if (expr)
-        return;
+	if (expr)
+        	return;
 
 	va_list varArgList;
 
 	va_start(varArgList, errmsg);
 
 	/* we fucked up, tell them */
-    fprintf(stderr, 
-			"\nERROR Task %d: In file %s, function %s(), line %d :\n\n	", 
+    	fprintf(stderr, "\nERROR Task %d: In file %s, "
+			"function %s(), line %d :\n\n	", 
 			Task.Rank, file, func, line);
 
 	vfprintf(stderr, errmsg, varArgList); 
@@ -100,9 +103,9 @@ void Assert_Info(const char *func, const char *file, int line,
 
 	va_end(varArgList);
 
-    MPI_Abort(MPI_COMM_WORLD, -1); // finish him ...
+    	MPI_Abort(MPI_COMM_WORLD, -1); // finish him ...
 
-    exit(EXIT_FAILURE); // ... fatality
+    	exit(EXIT_FAILURE); // ... fatality
 
     return;
 }

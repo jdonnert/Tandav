@@ -9,8 +9,8 @@ static struct Profiling_Object {
 	double Tend;
 	double ThisLast;	// Last iteration this CPU
 	double Total;		// Total time over all iterations / All CPUs
-	double Min;			// Min time spend here by a CPU
-	double Max;			// Max Time spend here by a CPU
+	double Min;		// Min time spend here by a CPU
+	double Max;		// Max Time spend here by a CPU
 	double Mean;		// Mean Time spend here by all CPUs
 	double Imbalance;	// Time wasted waiting for the slowest CPU
 } Prof[MAXPROFILEITEMS];
@@ -79,14 +79,15 @@ void Profile_Report()
 	double now = MPI_Wtime();
 
 	printf("\nProfiler: All sections, total runtime of %g min\n"
-		"    Name          Total    Tot Imbal       Max       Mean      Min  "
-		"      Imbal\n", (now-Prof[0].Tbeg)/60);
+		"    Name          Total    Tot Imbal       Max       "
+		"Mean      Min        Imbal\n", (now-Prof[0].Tbeg)/60);
 
 	for (int i = 1; i < NProfObjs; i++ )
 		printf("%12s    %8.1g   %8.1g      %8.1g  %8.1g  %8.1g   "
 				"%8.1g\n",
-				Prof[i].Name, Prof[i].Total/60,Prof[i].Imbalance/60,
-				Prof[i].Max/60, Prof[i].Min/60, Prof[i].Mean/60, 
+				Prof[i].Name, Prof[i].Total/60, 
+				Prof[i].Imbalance/60, Prof[i].Max/60, 
+				Prof[i].Min/60, Prof[i].Mean/60, 
 				(Prof[i].Max-Prof[i].Min)/60);
 
 	return ;

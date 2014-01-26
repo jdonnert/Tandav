@@ -1,5 +1,6 @@
 #include "../globals.h"
 #include "../proto.h"
+#include "../timestep.h"
 #include "io.h"
 
 #define WRITE_FORTRAN_RECORD(recSize) fwrite(&recSize, 4, 1, fp);
@@ -29,7 +30,7 @@ void Write_Snapshot()
 
 	char filename[CHARBUFSIZE];
 
-	sprintf(filename, "%s_%03d",Param.OutputFileBase, Time.SnapCounter);
+	sprintf(filename, "%s_%03d", Param.OutputFileBase, Time.SnapCounter);
 	
 	if (nFiles > 1)
 		sprintf(filename, "%s.%i", filename, fileNum);

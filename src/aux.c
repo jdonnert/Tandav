@@ -109,3 +109,30 @@ void Assert_Info(const char *func, const char *file, int line,
 
     return;
 }
+
+void Warn_Info(const char *func, const char *file, int line,
+		int64_t expr, const char *errmsg, ...)
+{
+	if (expr)
+        	return;
+
+	va_list varArgList;
+
+	va_start(varArgList, errmsg);
+
+	/* we fucked up, tell them */
+    	fprintf(stderr, "\nWARNING Task %d: In file %s, "
+			"function %s(), line %d :\n\n	", 
+			Task.Rank, file, func, line);
+
+	vfprintf(stderr, errmsg, varArgList); 
+	
+	fprintf(stderr, "\n\n"); 
+	
+	fflush(stderr);
+
+	va_end(varArgList);
+
+    return;
+}
+

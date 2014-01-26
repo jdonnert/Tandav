@@ -9,6 +9,8 @@
 #define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
 
 #define Assert(...) Assert_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
+#define Warn(...) Warn_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
+
 #define Reallocate_P(...) Reallocate_P_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
 
 #define rprintf(...) if(!Task.Rank)printf(__VA_ARGS__)

@@ -3,7 +3,6 @@
 #include "proto.h"
 #include "io/io.h"
 
-struct Time_Integration_Infos Time;   
 struct Particle_Data *P; 
 struct Local_Task_Properties Task = { 0 };
 struct Global_Simulation_Properties Sim;
@@ -20,15 +19,20 @@ void Read_and_Init()
 
  	Init_Profiler();
 
-	if (Param.StartFlag == 0) 
-		Read_Snapshot(Param.InputFile);
-	else if (Param.StartFlag == 1)
-		Read_Restart_File();
-	else 
-		Assert(0, "Start Flag not handled");
+	switch (Param.StartFlag) {
+		case 0: Read_Snapshot(Param.InputFile);
+				break;
+		case 1: Read_Restart_File();
+				break;
+		default:
+			Assert(0, "Start Flag not handled");
+			break;
+	}
 
 #ifdef COMOVING
 	Init_Cosmology();
+
+	Init_Comoving();
 #endif // COMOVING
 
 	return ;

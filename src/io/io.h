@@ -1,6 +1,6 @@
 /* Function Prototypes */
-extern void Read_Parameter_File(char *);
-extern void Write_Parameter_File(char *);
+extern void Read_Parameter_File(const char *);
+extern void Write_Parameter_File(const char *);
 extern void Read_Snapshot();
 extern void Read_Restart_File();
 extern void Read_and_Init();
@@ -32,7 +32,7 @@ static const struct parameter_definitions ParDef[] = {
 	{"HubbleParam", "0.7", &Cosmo.HubbleParam, FLOAT}
 };
 
-static const int NTags = sizeof(ParDef) / sizeof(*ParDef);
+static const int NTags = ARRAY_SIZE(ParDef);
 
 /* Snapshot I/O */
 unsigned int largest_block_member_nbytes();

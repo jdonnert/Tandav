@@ -26,14 +26,14 @@ int main(int argc, char *argv[])
 		Update(AFTER_FIRST_KICK);
 
 		Drift();
+		
+		Update(AFTER_DRIFT);
 
 		if (Time_For_Snapshot())
 			Write_Snapshot();
 
 		if (Time_Is_Up())
 			break;
-
-		Update(AFTER_DRIFT);
 
 		Kick_Second_Halfstep();
 		
@@ -78,10 +78,10 @@ static void preamble(int argc, char *argv[])
 		Assert(argc >= 2 && argc < 4, 
 			"Wrong number of arguments, let me help you: \n\n" 
 			"USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
-			" 0  : Read IC file and start simulation (default) \n"
-			" 1  : Read restart files and resume  \n"
-			" 2  : Read snapshot file and continue \n"
-			" 10 : Dump a valid parameter file for this Config\n");
+			"  0  : Read IC file and start simulation (default) \n"
+			"  1  : Read restart files and resume  \n"
+			"  2  : Read snapshot file and continue \n"
+			"  10 : Dump a valid parameter file for this Config\n");
 	}
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);

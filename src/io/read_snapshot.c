@@ -41,7 +41,7 @@ void Read_Snapshot(char *input_name)
 		strncpy(filename, input_name, CHARBUFSIZE);
 
 		if (nFiles > 1)
-        		sprintf(filename, "%s.0", input_name);
+        	sprintf(filename, "%s.0", input_name);
 
 		FILE *fp = fopen(filename, "r");
 
@@ -70,7 +70,7 @@ void Read_Snapshot(char *input_name)
 
 		strncpy(filename, input_name, CHARBUFSIZE);
 
-		if (restFiles >= nTask) { // read in nIO blocks, no commun.
+		if (restFiles >= nTask) { // read in nIO blocks, no communication
 		
 			int fileNum = nFiles - 1 - (Task.Rank + (restFiles - nTask)); 
 			
@@ -269,6 +269,7 @@ static void empty_comm_buffer (char *DataBuf, const int iBlock,
 	switch (Block[iBlock].Target) { // ptr fun for the whole family
 
 		case VAR_P:
+
 			for (int type = 0; type < NPARTYPE; type++) { 
 				
 				char *dest = start_P + offsets[type]*sizeof_P;
@@ -330,6 +331,7 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 	safe_fread(head.NallHighWord, sizeof(*head.NallHighWord), 6, fp,swap);
 
 	for (int i = Sim.NpartTotal = 0; i < NPARTYPE; i++) {
+
 		Sim.Mpart[i] = head.Massarr[i];
 
 		Sim.Npart[i] = (uint64_t)head.Nall[i] 

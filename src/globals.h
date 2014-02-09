@@ -29,7 +29,7 @@ extern struct Local_Task_Properties {
 	int ThreadID;			// OpenMP ID of this thread
 	int Npart[NPARTYPE];	// Number of particles on this processor
 	int NpartTotal;			// Sum of Npart
-	unsigned short Seed[3];	// Thread local urand48() seed
+	unsigned short Seed[3];	// Thread safe urand48() seed
 } Task;
 #pragma omp threadprivate(Task)
 
@@ -38,8 +38,8 @@ extern struct Global_Simulation_Properties {
 	int NThreads;				// Number of OpenMP threads
 	uint64_t NpartTotal;		// total global number of particles
 	uint64_t Npart[NPARTYPE]; 	// global number of particles
-	float Mpart[NPARTYPE]; 		// Global Masses 
-	float Boxsize;	
+	double Mpart[NPARTYPE]; 		// Global Masses 
+	double Boxsize;	
 } Sim;
 
 extern struct Parameters_From_File {

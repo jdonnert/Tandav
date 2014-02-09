@@ -20,12 +20,14 @@ void Read_and_Init()
  	Init_Profiler();
 
 	switch (Param.StartFlag) {
+
 		case 0: Read_Snapshot(Param.InputFile);
 				break;
+
 		case 1: Read_Restart_File();
 				break;
-		default:
-			Assert(0, "Start Flag not handled");
+
+		default: Assert(0, "Start Flag not handled");
 			break;
 	}
 

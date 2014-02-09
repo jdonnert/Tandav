@@ -6,6 +6,7 @@
 #include "profile.h"		// time measurement & logging
 #include "constants.h"		// physical constants
 #include "sort.h" 			// sort functions
+#include "comov.h"			// Comoving coordinates
 
 #include "config.h" 		// holds Config #defines
 

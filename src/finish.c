@@ -7,5 +7,7 @@ void Finish()
 	
 	Finish_Memory_Management();
 
+	MPI_Finalize();
+
 	return;
 }

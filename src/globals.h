@@ -25,44 +25,33 @@
 
 /* VARIABLES */
 extern struct Local_Task_Properties {		
-	int Rank;		// MPI Rank of this processor
-	int ThreadID;		// OpenMP ID of this thread
+	int Rank;				// MPI Rank of this processor
+	int ThreadID;			// OpenMP ID of this thread
 	int Npart[NPARTYPE];	// Number of particles on this processor
-	int NpartTotal;		// Sum of Npart
+	int NpartTotal;			// Sum of Npart
+	unsigned short Seed[3];	// Thread safe urand48() seed
 } Task;
 #pragma omp threadprivate(Task)
 
 extern struct Global_Simulation_Properties {	
-	int NTask;			// Number of MPI tasks
-	int NThreads;			// Number of OpenMP threads
+	int NTask;					// Number of MPI tasks
+	int NThreads;				// Number of OpenMP threads
 	uint64_t NpartTotal;		// total global number of particles
 	uint64_t Npart[NPARTYPE]; 	// global number of particles
-	float Mpart[NPARTYPE]; 		// Global Masses 
-	float Boxsize;	
+	double Mpart[NPARTYPE]; 		// Global Masses 
+	double Boxsize;	
 } Sim;
 
 extern struct Parameters_From_File {
-	int StartFlag;			// invokation mode
 	char File[CHARBUFSIZE]; 	// parameter file name
 	char InputFile[CHARBUFSIZE];
 	char OutputFileBase[CHARBUFSIZE];
-	int NumIOTasks;			// written in parallel
-	int MaxMemSize;			// Memory Ceiling in 1024^2 Bytes
-	int NumOutputFiles;		// Number of output files
-	float TimeLimit;		// Time Limit
+	int StartFlag;				// invokation mode
+	int NumIOTasks;				// written in parallel
+	int MaxMemSize;				// Memory Ceiling in 1024^2 Bytes
+	int NumOutputFiles;			// Number of output files
+	float TimeLimit;			// Time Limit
 } Param;
-
-extern struct Time_Integration_Infos {
-	float Begin;			// Start time of simulation
-	float End;			// End time of simulation
-	float Current;			// Current time of simulation
-	float Base;			// Smallest step (Begin-End) / 2^63
-	float NextSnap;			// Time of next snapshot to write
-	bool Fullstep;			// Indicates if current is fullstep
-	int Nsteps;			// Number of steps walked so far
-	int SnapCounter;		// Keep track of Snapshots written
-	float Running;			// Run time of this task
-} Time;
 
 extern struct Particle_Data {
 	float Pos[3];

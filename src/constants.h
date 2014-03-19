@@ -1,5 +1,5 @@
 /* This file defines global physical constants in cgsm units
- * Use unique descriptive names */
+ * Use unique descriptive names, all Capital letters */
 
 /* math */
 #define PI M_PI

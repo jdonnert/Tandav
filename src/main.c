@@ -3,6 +3,7 @@
 #include "update.h"
 #include "kick.h"
 #include "drift.h"
+#include "timestep.h"
 #include "setup.h"
 #include "io/io.h"
 
@@ -25,24 +26,21 @@ int main(int argc, char *argv[])
 		Update(AFTER_FIRST_KICK);
 
 		Drift();
+		
+		Update(AFTER_DRIFT);
 
-		if (Time.Current == Time.NextSnap)
+		if (Time_For_Snapshot())
 			Write_Snapshot();
 
-		if (Time.Current == Time.End
-		 || Time.Running == Param.TimeLimit)
+		if (Time_Is_Up())
 			break;
-
-		Update(AFTER_DRIFT);
 
 		Kick_Second_Halfstep();
 		
 		Update(AFTER_SECOND_KICK);
 	}
-		
-	MPI_Barrier(MPI_COMM_WORLD);
 
-	if (Time.Running == Param.TimeLimit) 
+	if (Runtime() >= Param.TimeLimit) 
 		Write_Restart_File();
 
 	Finish();
@@ -59,10 +57,13 @@ static void preamble(int argc, char *argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &Sim.NTask);
 
 #pragma omp parallel
-    	{
-    	Task.ThreadID = omp_get_thread_num();
-    	Sim.NThreads = omp_get_num_threads();
-    	}
+   	{
+   	Task.ThreadID = omp_get_thread_num();
+   	Sim.NThreads = omp_get_num_threads();
+		
+	Task.Seed[2] = 1441981 * Task.ThreadID; // init thread safe rng
+   	erand48(Task.Seed); // remove leading 0 in some implementations
+   	}
 
 	if (!Task.Rank) {
 		printf("# Tandav #\n\n");
@@ -70,17 +71,17 @@ static void preamble(int argc, char *argv[])
 		printf("Using %d MPI tasks, %d OpenMP threads \n\n", 
 				Sim.NTask, Sim.NThreads);
 		
-		print_compile_time_settings();
+		Print_compile_time_settings();
 
 		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P));
 
-		Assert(argc >= 2, 
+		Assert(argc >= 2 && argc < 4, 
 			"Wrong number of arguments, let me help you: \n\n" 
 			"USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
-			" 0  : Read IC file and start simulation (default) \n"
-			" 1  : Read restart files and resume  \n"
-			" 2  :  Read snapshot file and continue \n"
-			" 10 : Dump a valid parameter file for this Config\n");
+			"  0  : Read IC file and start simulation (default) \n"
+			"  1  : Read restart files and resume  \n"
+			"  2  : Read snapshot file and continue \n"
+			"  10 : Dump a valid parameter file for this Config\n");
 	}
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);

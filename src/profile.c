@@ -9,8 +9,8 @@ static struct Profiling_Object {
 	double Tend;
 	double ThisLast;	// Last iteration this CPU
 	double Total;		// Total time over all iterations / All CPUs
-	double Min;		// Min time spend here by a CPU
-	double Max;		// Max Time spend here by a CPU
+	double Min;			// Min time spend here by a CPU
+	double Max;			// Max Time spend here by a CPU
 	double Mean;		// Mean Time spend here by all CPUs
 	double Imbalance;	// Time wasted waiting for the slowest CPU
 } Prof[MAXPROFILEITEMS];
@@ -18,6 +18,7 @@ static struct Profiling_Object {
 static int NProfObjs = 0;
 
 static inline int find_index_from_name(const char *name);
+static double measure_time();
 
 void Init_Profiler()
 {
@@ -46,25 +47,27 @@ void Profile_Info(const char* file, const char* func, const int line,
 
 		NProfObjs++;
 
-		Prof[i].Tbeg = MPI_Wtime();
+		Prof[i].Tbeg = measure_time();
 
 	} else { // existing item, stop & reduce
 		
-		Prof[i].Tend = MPI_Wtime();
+		Prof[i].Tend = measure_time();
 	
 		Prof[i].ThisLast = Prof[i].Tend - Prof[i].Tbeg;
 
-		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Min, 
-				1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
+		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Min, 1, MPI_DOUBLE, 
+				MPI_MIN, 0, MPI_COMM_WORLD);
 
-		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Max, 
-				1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Max, 1, MPI_DOUBLE, 
+				MPI_MAX, 0, MPI_COMM_WORLD);
 
-		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Mean, 
-				1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Mean, 1, MPI_DOUBLE, 
+				MPI_SUM, 0, MPI_COMM_WORLD);
+		
 		Prof[i].Mean /= Sim.NTask;
 
 		Prof[i].Total += Prof[i].Max;
+
 		Prof[i].Imbalance += Prof[i].Max - Prof[i].Min;
 	}
 
@@ -76,7 +79,7 @@ void Profile_Report()
 	if (Task.Rank)
 		return; 
 
-	double now = MPI_Wtime();
+	double now = measure_time();
 
 	printf("\nProfiler: All sections, total runtime of %g min\n"
 		"    Name          Total    Tot Imbal       Max       "
@@ -98,7 +101,7 @@ void Profile_Report_Last()
 	if (Task.Rank)
 		return ; 
 
-	const double now = MPI_Wtime();
+	const double now = measure_time();
 
 	const int i = NProfObjs-1;
 
@@ -109,6 +112,13 @@ void Profile_Report_Last()
 			Prof[i].Max, Prof[i].Min, Prof[i].Mean);
 
 	return ;
+}
+
+float Runtime()
+{
+	const double now = measure_time();
+
+	return (Prof[0].Tbeg - now) / 60; // in minutes
 }
 
 void Write_Logs()
@@ -125,4 +135,9 @@ static inline int find_index_from_name(const char *name)
 			break;
 
 	return i; // may return i=NProfObjs, i.e. new item
+}
+
+static double measure_time()
+{
+	return MPI_Wtime();
 }

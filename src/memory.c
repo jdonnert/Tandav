@@ -25,8 +25,7 @@ size_t get_system_memory_size();
 void *Malloc_info(const char* file, const char* func, const int line, 
 		size_t size)
 {
-	if (size < MEM_ALIGNMENT)
-		size = MEM_ALIGNMENT;
+	size = max(MEM_ALIGNMENT, size); // don't break alignment
 
 	if ( (size % MEM_ALIGNMENT) > 0) // make sure we stay aligned
 		size = (size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
@@ -63,14 +62,15 @@ void *Malloc_info(const char* file, const char* func, const int line,
 void *Realloc_info(const char* file, const char* func, const int line, 
 		void *ptr, size_t new_size)
 {
-	if (ptr == NULL)
+	if (ptr == NULL) {
+		
+		Warn(1, "Trying to realloc a NULL pointer");
+		
 		return Malloc_info(file, func, line, new_size);
+	}
 
 	if ( (new_size % MEM_ALIGNMENT) > 0)
 		new_size = (new_size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
-
-	if (new_size < MEM_ALIGNMENT)
-		new_size = MEM_ALIGNMENT;
 
 	const int i = find_memory_block_from_ptr(ptr);
 	int i_return = i; 
@@ -107,11 +107,8 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 void Free_info(const char* file, const char* func, const int line, void *ptr) 
 {
-    	if (ptr == NULL)        
-		printf("WARNING Task %d. "
-				"You tried to free a NULL pointer in file "
-				"%s, function %s():%d\n",
-				Task.Rank, file, func, line);
+	Warn(ptr == NULL, "You tried to free a NULL pointer in file "
+		"%s, function %s():%d\n", file, func, line);
 
 	const int i = find_memory_block_from_ptr(ptr);
 
@@ -165,13 +162,13 @@ void Print_Memory_Usage()
 	MPI_Allgather(&NBytesLeft, 1, MPI_BYTE, nBytesLeftGlobal, 
 			sizeof(*nBytesLeftGlobal), MPI_BYTE, MPI_COMM_WORLD);
 	
-	int minIdx = 0;
+	int maxIdx = 0;
 
 	for (int i = 0; i < Sim.NTask; i++)
-		if (nBytesLeftGlobal[i] < nBytesLeftGlobal[minIdx])
-			minIdx = i;
+		if (nBytesLeftGlobal[i] > nBytesLeftGlobal[maxIdx])
+			maxIdx = i;
 
-	if (Task.Rank == minIdx) {
+	if (Task.Rank == maxIdx) {
 		printf("\nMemory Manager: "
 			"Reporting Task %d with %zu MB free memory\n"
 			"   No  Used      Address       Size    Cumulative"
@@ -205,7 +202,7 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 {
 	*total = *largest = *smallest = 0;
 
-	for (int i=0; i<NMemBlocks; i++) {
+	for (int i = 0; i < NMemBlocks; i++) {
 		
 		if (! MemBlock[i].InUse)
 			continue;

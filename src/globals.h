@@ -38,7 +38,7 @@ extern struct Global_Simulation_Properties {
 	int NThreads;				// Number of OpenMP threads
 	uint64_t NpartTotal;		// total global number of particles
 	uint64_t Npart[NPARTYPE]; 	// global number of particles
-	double Mpart[NPARTYPE]; 		// Global Masses 
+	double Mpart[NPARTYPE]; 	// Global Masses 
 	double Boxsize;	
 } Sim;
 

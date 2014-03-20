@@ -1,11 +1,11 @@
+#include "constants.h"		// physical constants
 #include "macro.h" 			// macro definitions
 #include "aux.h" 			// auxiliary functions 
-#include "cosmo.h" 			// cosmology functions 
 #include "unit.h" 			// unit functions
 #include "memory.h"			// memory management
 #include "profile.h"		// time measurement & logging
-#include "constants.h"		// physical constants
 #include "sort.h" 			// sort functions
+#include "cosmo.h" 			// cosmology functions 
 #include "comov.h"			// Comoving coordinates
 
 #include "config.h" 		// holds Config #defines

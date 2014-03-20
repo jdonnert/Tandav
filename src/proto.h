@@ -17,4 +17,9 @@ extern void Finish();
 extern void Print_compile_time_settings();
 
 /* Add your headers here, #ifdefs into .h file */
-
+enum Update_Parameters {
+	BEFORE_MAIN_LOOP,
+	AFTER_FIRST_KICK,
+	AFTER_DRIFT,
+	AFTER_SECOND_KICK
+};

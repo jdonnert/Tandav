@@ -41,11 +41,10 @@ FFT_INCL =
 FFT_LIBS =
 endif
 
-ifeq ($(SYSTYPE),getorin.ira.inaf.it)
+ifeq ($(SYSTYPE),getorin)
 CC       =  mpicc
-OPTIMIZE =  -g  -O3 -Wall -g -lmpich -finline -finline-functions \
-			-funroll-loops -xhost  -mkl -use-intel-optimized-headers -ipo \
-			-fast-transcendentals
+OPTIMIZE =  -g -O3 #-Wall -g -lmpich -finline -finline-functions \
+			-funroll-loops -xhost -mkl -openmp
 MPI_LIBS = -L/homes/donnert/Libs/lib
 MPI_INCL = -I/homes/donnert/Libs/include
 GSL_INCL =  
@@ -63,19 +62,19 @@ SRCDIR = src/
 # do not add a ".c" file here, or "make clean" will send it into the abyss
 OBJFILES = main.o aux.o cosmo.o domain.o update.o print_settings.o drift.o \
 		init.o kick.o setup.o timestep.o tree.o unit.o memory.o profile.o \
-		sort.o finish.o \
+		sort.o finish.o peano.o \
 	   	io/io.o io/read_snapshot.o io/write_snapshot.o io/rw_parameter_file.o \
 		io/write_restart_file.o io/read_restart_file.o
 
 INCLFILES = config.h globals.h tree.h cosmo.h unit.h aux.h macro.h proto.h \
 	    memory.h profile.h io/io.h constants.h kick.h setup.h update.h \
-		drift.h tree.h timestep.h \
+		drift.h tree.h timestep.h peano.h\
 		../Makefile ../Config
 
 OBJS = $(addprefix $(SRCDIR),$(OBJFILES))
 INCS = $(addprefix $(SRCDIR),$(INCLFILES))
 
-CFLAGS = -std=c99 -fopenmp -g $(OPTIMIZE) $(GSL_INCL) $(MPI_INCL) $(FFT_INCL)
+CFLAGS = -std=c99  $(OPTIMIZE) $(GSL_INCL) $(MPI_INCL) $(FFT_INCL)
 
 LIBS = -lm -lgsl -lgslcblas $(MPI_LIBS) $(GSL_LIBS) $(FFTW_LIBS)
 

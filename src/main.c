@@ -5,17 +5,21 @@
 #include "drift.h"
 #include "timestep.h"
 #include "setup.h"
+#include "peano.h"
 #include "io/io.h"
 
 static void preamble(int argc, char *argv[]);
+ struct TimeData Time;
 
 int main(int argc, char *argv[])
 {
 	preamble(argc, argv);	
 
+	test();
+
 	Read_and_Init();
 
-	Setup();
+/*	Setup();
 
 	Update(BEFORE_MAIN_LOOP);
 
@@ -44,6 +48,8 @@ int main(int argc, char *argv[])
 		Write_Restart_File();
 
 	Finish();
+*/
+	MPI_Finalize();
 
 	return EXIT_SUCCESS;
 }
@@ -75,11 +81,11 @@ static void preamble(int argc, char *argv[])
 
 		Assert(argc >= 2 && argc < 4, 
 			"Wrong number of arguments, let me help you: \n\n" 
-			"USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
-			"  0  : Read IC file and start simulation (default) \n"
-			"  1  : Read restart files and resume  \n"
-			"  2  : Read snapshot file and continue \n"
-			"  10 : Dump a valid parameter file for this Config\n");
+			"	USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
+			"	  0  : Read IC file and start simulation (default) \n"
+			"	  1  : Read restart files and resume  \n"
+			"	  2  : Read snapshot file and continue \n"
+			"	  10 : Dump a valid parameter file for this Config\n");
 	}
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);

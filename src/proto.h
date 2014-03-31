@@ -6,7 +6,6 @@
 #include "profile.h"		// time measurement & logging
 #include "sort.h" 			// sort functions
 #include "cosmo.h" 			// cosmology functions 
-#include "comov.h"			// Comoving coordinates
 
 #include "config.h" 		// holds Config #defines
 
@@ -17,9 +16,5 @@ extern void Finish();
 extern void Print_compile_time_settings();
 
 /* Add your headers here, #ifdefs into .h file */
-enum Update_Parameters {
-	BEFORE_MAIN_LOOP,
-	AFTER_FIRST_KICK,
-	AFTER_DRIFT,
-	AFTER_SECOND_KICK
-};
+#include "comov.h"			// Comoving coordinates
+

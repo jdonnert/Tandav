@@ -10,7 +10,7 @@
 #include <math.h>
 #include <limits.h>
 
-#include <mpi.h> 		// parallelisation
+#include <mpi.h> 			// parallelisation
 #include <omp.h>
 
 #include <gsl/gsl_math.h> 	// GNU scientific library

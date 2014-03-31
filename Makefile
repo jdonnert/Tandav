@@ -41,12 +41,12 @@ FFT_INCL =
 FFT_LIBS =
 endif
 
-ifeq ($(SYSTYPE),getorin)
+ifeq ($(SYSTYPE),getorin.ira.inaf.it)
 CC       =  mpicc
-OPTIMIZE =  -g -O3 #-Wall -g -lmpich -finline -finline-functions \
-			-funroll-loops -xhost -mkl -openmp
-MPI_LIBS = -L/homes/donnert/Libs/lib
-MPI_INCL = -I/homes/donnert/Libs/include
+OPTIMIZE =  -Wall -g -O0 -openmp   -finline -finline-functions \
+			-funroll-loops -xhost -mkl 
+MPI_LIBS = -lmpich -L/homes/donnert/Libs/lib
+MPI_INCL = -I/homes/donnert/Libs/include -I/usr/lib/gcc/x86_64-linux-gnu/4.6.3/include
 GSL_INCL =  
 GSL_LIBS = 
 FFT_INCL =
@@ -81,8 +81,8 @@ LIBS = -lm -lgsl -lgslcblas $(MPI_LIBS) $(GSL_LIBS) $(FFTW_LIBS)
 # rules
 
 %.o: %.c
-	echo [CC] $@
-	$(CC) $(CFLAGS)  -o $@ -c $<
+	@echo [CC] $@
+	@$(CC) $(CFLAGS)  -o $@ -c $<
 
 $(EXEC)	: $(OBJS)
 	@echo " "

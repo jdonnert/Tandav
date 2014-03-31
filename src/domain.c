@@ -1,15 +1,15 @@
 #include "globals.h"
 #include "proto.h"
+#include "peano.h"
 
-static const int nTask = Sim.NTask, nThreads = Sim.NThreads;
 
-typedef bunch struct bunch_information {
-	int npart[NPARTYPES];
+typedef  struct bunch_information {
+	int npart[NPARTYPE];
 	int next_bunch; 
 	int target_task;
-	peanokey key_max;
-	peanokey key_min;
-};
+	peanoKey key_max;
+	peanoKey key_min;
+} bunch;
 
 /* This function distributes particles in bunches, which are continuous
  * on the Peano curve. Because of this the bunches correspond to parts
@@ -20,6 +20,9 @@ typedef bunch struct bunch_information {
  * we keep more bunches than Tasks */
 void Domain_Decomposition()
 {
+	const int nTask = Sim.NTask, nThreads = Sim.NThreads;
+	
+	
 	bunch *bunchlist = NULL;
 
 	// construct bunches

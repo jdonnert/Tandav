@@ -15,11 +15,11 @@ int main(int argc, char *argv[])
 {
 	preamble(argc, argv);	
 
-	test();
+	//test();
 
 	Read_and_Init();
 
-/*	Setup();
+	Setup();
 
 	Update(BEFORE_MAIN_LOOP);
 
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 		Write_Restart_File();
 
 	Finish();
-*/
+
 	MPI_Finalize();
 
 	return EXIT_SUCCESS;

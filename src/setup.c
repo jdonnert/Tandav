@@ -1,5 +1,4 @@
 #include "globals.h"
-#include "proto.h"
 
 void Setup() 
 {

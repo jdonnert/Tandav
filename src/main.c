@@ -1,5 +1,4 @@
 #include "globals.h"
-#include "proto.h"
 #include "update.h"
 #include "kick.h"
 #include "drift.h"

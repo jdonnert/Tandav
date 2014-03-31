@@ -1,6 +1,5 @@
 /* Initialise global variables */
 #include "globals.h"
-#include "proto.h"
 #include "io/io.h"
 
 struct Particle_Data *P; 

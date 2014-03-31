@@ -1,5 +1,4 @@
 #include "globals.h"
-#include "proto.h"
 
 #define MAXPROFILEITEMS 999		// Max number of profiling marks
 

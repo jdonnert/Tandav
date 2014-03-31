@@ -1,5 +1,4 @@
 #include "globals.h"
-#include "proto.h"
 #include "peano.h"
 
 /* Here we compute the peano keys and reorder the particles */
@@ -221,7 +220,7 @@ void print_bits(uint64_t x)
 		
 		uint64_t val = (x & (1 << 63-i)) >> 63-i;
 	
-		printf("%i", val);
+		printf("%lu", val);
 
 		if (! ((i+1)%4) && i && i!=63)
 			printf("_");
@@ -240,7 +239,7 @@ void print_bits32(uint32_t x)
 		
 		uint64_t val = (x & (1 << 31-i)) >> 31-i;
 	
-		printf("%i", val);
+		printf("%lu", val);
 
 		if (! ((i+1)%4) && i && i!=31)
 			printf("_");
@@ -259,7 +258,7 @@ void print_bits_peano(uint64_t x)
 		
 		uint64_t val = (x & (1ULL << 63ULL-i)) >> 63ULL-i;
 	
-		printf("%i", val);
+		printf("%lu", val);
 
 		if (! ( (i) % 3ULL) && i && i!=63ULL)
 			printf("_");

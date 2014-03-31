@@ -43,10 +43,10 @@ endif
 
 ifeq ($(SYSTYPE),getorin.ira.inaf.it)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O0 -openmp   -finline -finline-functions \
+OPTIMIZE =  -Wall -g -O0 -openmp -finline -finline-functions \
 			-funroll-loops -xhost -mkl 
 MPI_LIBS = -lmpich -L/homes/donnert/Libs/lib
-MPI_INCL = -I/homes/donnert/Libs/include -I/usr/lib/gcc/x86_64-linux-gnu/4.6.3/include
+MPI_INCL = -I/homes/donnert/Libs/include
 GSL_INCL =  
 GSL_LIBS = 
 FFT_INCL =
@@ -74,7 +74,7 @@ INCLFILES = config.h globals.h tree.h cosmo.h unit.h aux.h macro.h proto.h \
 OBJS = $(addprefix $(SRCDIR),$(OBJFILES))
 INCS = $(addprefix $(SRCDIR),$(INCLFILES))
 
-CFLAGS = -std=c99  $(OPTIMIZE) $(GSL_INCL) $(MPI_INCL) $(FFT_INCL)
+CFLAGS += -std=c99  $(OPTIMIZE) $(GSL_INCL) $(MPI_INCL) $(FFT_INCL)
 
 LIBS = -lm -lgsl -lgslcblas $(MPI_LIBS) $(GSL_LIBS) $(FFTW_LIBS)
 

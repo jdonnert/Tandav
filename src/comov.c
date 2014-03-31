@@ -1,6 +1,5 @@
 #ifdef COMOVING
 #include "globals.h"
-#include "proto.h"
 
 #define TABLESIZE 1000
 

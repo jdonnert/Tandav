@@ -1,5 +1,4 @@
 #include "globals.h"
-#include "proto.h"
 
 struct Cosmology_Infos Cosmo = { 0 };
 

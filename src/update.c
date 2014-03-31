@@ -1,5 +1,4 @@
 #include "globals.h"
-#include "proto.h"
 #include "update.h"
 
 /* provide a consistent way of updating/calling different parts of the code

@@ -1,6 +1,5 @@
 /* Memory management */
 #include "globals.h"
-#include "proto.h"
 
 static void *Memory = NULL; 
 

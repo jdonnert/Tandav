@@ -1,5 +1,4 @@
 #include "globals.h"
-#include "proto.h"
 #include "peano.h"
 
 

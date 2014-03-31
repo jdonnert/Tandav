@@ -2,7 +2,6 @@
  * Shamelessly copied from glibc, thereby GPL2 */
 
 #include "globals.h"
-#include "proto.h"
 
 #define SWAP(a, b, size)		\
   	do {				\
@@ -160,7 +159,7 @@ void test_sort()
 
   	for (int i = 0; i < N; i++) {
 
-    		x[i] = random();
+    		x[i] = rand();
 
 	  	y[i] = x[i];
   	}

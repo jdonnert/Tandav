@@ -1,4 +1,4 @@
-#include "proto.h"
+#include "globals.h"
 #include "timestep.h"
 
 bool Time_Is_Up()

@@ -1,21 +1,7 @@
-/* INCLUDES */
-#include <stdlib.h> 		// system       
-#include <stdio.h>
-#include <stdint.h>
-#include <stdarg.h>
-#include <stddef.h>
-#include <stdbool.h>
-#include <string.h>
-#include <time.h>
-#include <math.h>
-#include <limits.h>
+#ifndef GLOBALS_H
+#define GLOBALS_H
 
-#include <mpi.h> 			// parallelisation
-#include <omp.h>
-
-#include <gsl/gsl_math.h> 	// GNU scientific library
-#include <gsl/gsl_const_cgsm.h>
-#include <gsl/gsl_const_num.h>
+#include "proto.h"
 
 /* CODE PARAMETERS */
 #define CHARBUFSIZE 256L 	// Maximum No. of chars in every char buffer
@@ -61,3 +47,5 @@ extern struct Particle_Data {
 	uint32_t TimeBin;
 	uint64_t Peanokey;
 } *P;
+
+#endif // GLOBALS_H

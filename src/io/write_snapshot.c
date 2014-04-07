@@ -193,8 +193,8 @@ void write_gadget_header(const int *npart, FILE *fp)
 		head.Massarr[i] = Sim.Mpart[i];
 	}
 
-	head.Time = Time.Current;
-	head.Redshift = 1.0/(1.0+head.Time);
+	head.Time = Sim.CurrentTime;
+	head.Redshift = 1.0/(1.0 + head.Time);
 	head.FlagSfr = 0;
 	head.FlagFeedback = 0;
 	head.FlagCooling = 0;

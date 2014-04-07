@@ -80,7 +80,14 @@ static const struct io_block_def Block[] = {
   {"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_FIELD_SIZEOF(Pos), 0xFF},
   {"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_FIELD_SIZEOF(Vel),0xFF},
   {"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_FIELD_SIZEOF(ID), 0xFF},
+
+#ifdef INDIVIDUAL_PARTICLE_MASSES
   {"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_FIELD_SIZEOF(Mass), 0xFF}
+#endif
+
+#ifdef OUTPUT_FORCE
+  {"FRCE", "Force", VAR_P, P_OFFSET(Force), P_FIELD_SIZEOF(Force), 0xFF}
+#endif
 };
 
 #undef P_OFFSET

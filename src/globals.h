@@ -25,7 +25,8 @@ extern struct Global_Simulation_Properties {
 	uint64_t NpartTotal;		// total global number of particles
 	uint64_t Npart[NPARTYPE]; 	// global number of particles
 	double Mpart[NPARTYPE]; 	// Global Masses 
-	double Boxsize;	
+	double Boxsize;				//
+	double CurrentTime;			// Holds current simulation time
 } Sim;
 
 extern struct Parameters_From_File {
@@ -42,10 +43,15 @@ extern struct Parameters_From_File {
 extern struct Particle_Data {
 	float Pos[3];
 	float Vel[3];
-	float Mass;
 	uint32_t ID;
 	uint32_t TimeBin;
 	uint64_t Peanokey;
+	int Type;
+	float Mass;
+#ifdef OUTPUT_FORCE
+	float Force[3];
+#endif // OUTPUT_FORCE
+
 } *P;
 
 #endif // GLOBALS_H

@@ -1,6 +1,9 @@
 /* This file defines global physical constants in cgsm units
  * Use unique descriptive names, all Capital letters */
 
+#include <gsl/gsl_const_cgsm.h>
+#include <gsl/gsl_const_num.h>
+
 /* math */
 #define PI M_PI
 #define DEG2RAD 0.017453293
@@ -31,5 +34,10 @@
 #define H_FRACTION 0.76 		// Hydrogen fraction
 #define HE_FRACTION (1-H_fraction) 	// Helium fraction
 #define UMOL (4.0/(5.0*H_fraction+3.0)) // Mean mol. weight in H
-#define ADIABATIC_INDEX (5.0/3.0)
+#define ADIABATIC_INDEX_MONOATOMIC_GAS (5.0/3.0)
 
+
+const struct Constants_In_Code_Units {
+	double Gamma;
+	double Gravity;
+} Const; 

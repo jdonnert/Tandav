@@ -4,3 +4,12 @@
 
 #COMOVING			// time integration in comoving coordinates
 
+GRAVITY				// gravitational interaction
+
+#### CODE UNITS ####
+
+UNITS_GADGET_STD 	// kpc, 10^10 Msol, km/s
+
+#### OUTPUT OPTIONS ####
+
+#OUTPUT_FORCE		// add total force on particle to snapshot: "FRCE"

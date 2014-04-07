@@ -8,7 +8,7 @@
 #include "io/io.h"
 
 static void preamble(int argc, char *argv[]);
- struct TimeData Time;
+struct TimeData Time;
 
 int main(int argc, char *argv[])
 {
@@ -22,9 +22,9 @@ int main(int argc, char *argv[])
 
 	Update(BEFORE_MAIN_LOOP);
 
-	for (;;) {
+	for (;;) { // Quinn+97
 
-		Kick_First_Halfstep();
+		Kick_Halfstep();
 		
 		Update(AFTER_FIRST_KICK);
 
@@ -32,13 +32,19 @@ int main(int argc, char *argv[])
 		
 		Update(AFTER_DRIFT);
 
+		Set_New_Timesteps();
+
+		Update(AFTER_NEW_TIMESTEPS);
+
 		if (Time_For_Snapshot())
 			Write_Snapshot();
 
 		if (Time_Is_Up())
 			break;
+	
+		Update(BEFORE_SECOND_KICK);
 
-		Kick_Second_Halfstep();
+		Kick_Halfstep();
 		
 		Update(AFTER_SECOND_KICK);
 	}

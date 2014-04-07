@@ -2,6 +2,8 @@
 #include "../proto.h"
 #include "io.h"
 
+void sanity_check_input_parameters();
+
 void Read_Parameter_File(const char *filename)
 {
 	char buf[CHARBUFSIZE], buf1[CHARBUFSIZE],buf2[CHARBUFSIZE],
@@ -79,26 +81,11 @@ void Read_Parameter_File(const char *filename)
 
 	}
 
-	MPI_Bcast(&Param, sizeof(Param), MPI_BYTE, 0, MPI_COMM_WORLD);
-
-	/* sanity check parameters, yes yours too ! */
-	Assert(Param.NumOutputFiles > 0, "NumOutputFiles has to be > 0");
-	
-	Assert(Param.NumIOTasks > 0, "NumIOTasks has to be > 0");
-	
-	Assert(Param.NumIOTasks <= Sim.NTask, 
-		"NTask (=%d) can't be smaller than No_IOTasks (=%d)", 
-		Sim.NTask,  Param.NumOutputFiles);
-	
-	Assert(Param.NumIOTasks <= Param.NumOutputFiles, 
-		"NumIOTasks (=%d) can't be smaller than NumOutputFiles (=%d)", 
-		Param.NumIOTasks,  Param.NumOutputFiles);
-	
-	Param.NumIOTasks = min(Param.NumIOTasks, Sim.NTask);
-	
-	Param.NumOutputFiles = min(Param.NumOutputFiles, Sim.NTask);
+	sanity_check_input_parameters();
 	
 	MPI_Barrier(MPI_COMM_WORLD);
+
+	MPI_Bcast(&Param, sizeof(Param), MPI_BYTE, 0, MPI_COMM_WORLD);
 
 	return ;
 }
@@ -123,11 +110,31 @@ void Write_Parameter_File(const char *filename)
 		printf("\ndone, Good Bye.\n\n");
 	}
 
-	Finish();
+	Finish(); // done here
 
-	MPI_Finalize();
+	return ; // never reached
+}
 
-	exit(EXIT_SUCCESS);
+void sanity_check_input_parameters()
+{
+	if (Task.Rank)
+		return ;
+		
+	Assert(Param.NumOutputFiles > 0, "NumOutputFiles has to be > 0");
+	
+	Assert(Param.NumIOTasks > 0, "NumIOTasks has to be > 0");
+	
+	Assert(Param.NumIOTasks <= Sim.NTask, 
+		"NTask (=%d) can't be smaller than No_IOTasks (=%d)", 
+		Sim.NTask,  Param.NumOutputFiles);
+	
+	Assert(Param.NumIOTasks <= Param.NumOutputFiles, 
+		"NumIOTasks (=%d) can't be smaller than NumOutputFiles (=%d)", 
+		Param.NumIOTasks,  Param.NumOutputFiles);
+	
+	Param.NumIOTasks = min(Param.NumIOTasks, Sim.NTask);
+	
+	Param.NumOutputFiles = min(Param.NumOutputFiles, Sim.NTask);
 
 	return ;
 }

@@ -8,13 +8,10 @@
 #include "io/io.h"
 
 static void preamble(int argc, char *argv[]);
-struct TimeData Time;
 
 int main(int argc, char *argv[])
 {
 	preamble(argc, argv);	
-
-	//test();
 
 	Read_and_Init();
 
@@ -49,7 +46,7 @@ int main(int argc, char *argv[])
 		Update(AFTER_SECOND_KICK);
 	}
 
-	if (Runtime() >= Param.TimeLimit) 
+	if (Runtime() >= Param.RuntimeLimit) 
 		Write_Restart_File();
 
 	Finish();

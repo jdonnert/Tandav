@@ -1,3 +1,5 @@
+#include "../timestep.h"
+
 /* Function Prototypes */
 extern void Read_Parameter_File(const char *);
 extern void Write_Parameter_File(const char *);
@@ -8,7 +10,7 @@ extern void Write_Snapshot();
 extern void Write_Restart_File();
 
 /* Parameter I/O */
-struct parameter_definitions {
+typedef struct {
 	char tag[CHARBUFSIZE]; // Parameter file tag
 	char val[CHARBUFSIZE]; // Standard value
 	void *addr; // Address of target variable
@@ -16,20 +18,39 @@ struct parameter_definitions {
 		FLOAT, 
 		INT, 
 		STRING,
+		COMMENT,
 	} type; // type of addr
-};
+}  parameter;
 
-static const struct parameter_definitions ParDef[] = { 
+static const parameter ParDef[] = { 
+
+	{"\n%% Files %%\n", "", NULL, COMMENT},
 	{"InputFile", "IC_file", &Param.InputFile, STRING},
 	{"OutputFileBase", "snap", &Param.OutputFileBase, STRING},
 	{"NumIOTasks", "1", &Param.NumIOTasks, INT},
 	{"NumOutputFiles", "1", &Param.NumOutputFiles, INT},
-	{"Boxsize", "4000", &Sim.Boxsize, FLOAT},
+
+	{"\n%% Code Parameters %%\n", "", NULL, COMMENT},
 	{"MaxMemSize", "1000", &Param.MaxMemSize, INT},
+	{"TimeLimitCPU", "", &Param.RuntimeLimit, INT},
+	{"CommBufSize", "", &Param.CommBufSize, INT},
+
+	{"\n%% Simulation Characteristics %%\n", "", NULL, COMMENT},
+	{"Boxsize0", "4000", &Sim.Boxsize[0], FLOAT},
+	{"Boxsize1", "4000", &Sim.Boxsize[1], FLOAT},
+	{"Boxsize2", "4000", &Sim.Boxsize[2], FLOAT},
+	{"TimeBegin", "0", &Time.Begin, FLOAT},
+	{"TimeEnd", "10", &Time.End, FLOAT},
+	{"TimeOfFirstSnaphot", "0", &Time.FirstSnap, FLOAT},
+	{"TimeBetSnapshot", "0", &Time.BetSnap, FLOAT},
+
+	{"\n%% Cosmology %%\n", "", NULL, COMMENT},
 	{"Omega0", "1", &Cosmo.Omega0, FLOAT},
 	{"OmegaLambda", "0.7", &Cosmo.OmegaLambda, FLOAT},
 	{"OmegaBaryon", "1", &Cosmo.OmegaBaryon, FLOAT},
 	{"HubbleParam", "0.7", &Cosmo.HubbleParam, FLOAT}
+
+	/* Add yours below */
 };
 
 static const int NTags = ARRAY_SIZE(ParDef);
@@ -69,29 +90,33 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 		VAR_BND
 	} Target;		// identify global var
 	int Offset;		// offset in underlying struct
-	int Nbytes; 		// sizeof target field
-	int PartBitMask;	// == 1 at bit i+1, if required for type i
+	int Nbytes; 	// sizeof target field
+	int PartBitMask;// == 1 at bit i+1, if required for type i
 };
 
 #define P_OFFSET(member) offsetof(struct Particle_Data, member)
 #define P_FIELD_SIZEOF(member) sizeof(((struct Particle_Data *)0)->member)
 
 static const struct io_block_def Block[] = {
-  {"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_FIELD_SIZEOF(Pos), 0xFF},
-  {"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_FIELD_SIZEOF(Vel),0xFF},
-  {"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_FIELD_SIZEOF(ID), 0xFF},
+
+  	{"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_FIELD_SIZEOF(Pos), 0xFF},
+  	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_FIELD_SIZEOF(Vel),0xFF},
+  	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_FIELD_SIZEOF(ID), 0xFF},
 
 #ifdef INDIVIDUAL_PARTICLE_MASSES
-  {"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_FIELD_SIZEOF(Mass), 0xFF}
+  	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_FIELD_SIZEOF(Mass), 0xFF}
+#endif
+#ifdef OUTPUT_FORCE
+  	{"FRCE", "Forces", VAR_P, P_OFFSET(Force), P_FIELD_SIZEOF(Force), 0xFF}
+#endif
+#ifdef OUTPUT_PEANO_KEY
+  	{"PKEY","Peanokeys",VAR_P,P_OFFSET(Peanokey),P_FIELD_SIZEOF(peanoKey),0xFF}
 #endif
 
-#ifdef OUTPUT_FORCE
-  {"FRCE", "Force", VAR_P, P_OFFSET(Force), P_FIELD_SIZEOF(Force), 0xFF}
-#endif
+	/* Add yours below */
 };
 
 #undef P_OFFSET
 #undef P_FIELD_SIZE
 
 static const int NBlocks = ARRAY_SIZE(Block);
-

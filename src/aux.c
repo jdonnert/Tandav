@@ -8,6 +8,15 @@
 void Reallocate_P_Info(const char *func, const char *file, int line, 
 		int dNpart[NPARTYPE], size_t offset_out[NPARTYPE])
 {
+	if (P == NULL)
+		P = Malloc(Sim.NpartTotalMean);
+
+	for (int i = 0; i < NPARTYPE; i++)
+		Assert(Task.Npart[i] + dNpart[i] < Sim.NpartMean[i], 
+			"Too many particles type %d on this task. "
+			"Increase PARTALLOCFACTOR = %g", 
+			i, PARTALLOCFACTOR);
+
 	int offset[NPARTYPE] = { 0 }, new_npartTotal = 0;
 	int new_npart[NPARTYPE] = { 0 };
 	
@@ -20,8 +29,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
         	Assert(new_npart[type] >= 0, "Can't alloc negative particles,"
 			" type %d, delta %d, current %d,\n"
 			"requested from %s, %s(), line %d", 
-			type, dNpart[type], Task.Npart[type], 
-			file, func, line);
+			type, dNpart[type], Task.Npart[type], file, func, line);
 
 		if (!dNpart[type]) 
 			continue; // don't need offset here
@@ -48,8 +56,6 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 	}
 
 	size_t nBytes = sizeof(*P) * new_npartTotal * PARTALLOCFACTOR;
-
-	P = Realloc(P, nBytes);
 
 	nMove = Task.NpartTotal; // move particles right
 
@@ -90,9 +96,9 @@ void Assert_Info(const char *func, const char *file, int line,
 	va_start(varArgList, errmsg);
 
 	/* we fucked up, tell them */
-    	fprintf(stderr, "\nERROR Task %d: In file %s, "
-			"function %s(), line %d :\n\n	", 
-			Task.Rank, file, func, line);
+    	fprintf(stderr, "\nERROR Task %d, Thread %d:"
+			" file %s, line %d, %s()\n\n	", 
+			Task.Rank, Task.ThreadID, file, line, func);
 
 	vfprintf(stderr, errmsg, varArgList); 
 	
@@ -102,9 +108,9 @@ void Assert_Info(const char *func, const char *file, int line,
 
 	va_end(varArgList);
 
-    	MPI_Abort(MPI_COMM_WORLD, -1); // finish him ...
+    MPI_Abort(MPI_COMM_WORLD, -1); // finish him ...
 
-    	exit(EXIT_FAILURE); // ... fatality
+    exit(EXIT_FAILURE); // ... fatality
 
     return;
 }

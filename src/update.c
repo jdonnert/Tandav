@@ -10,6 +10,8 @@ void Update(enum Update_Parameters stage)
 		case BEFORE_MAIN_LOOP:
 		
 			Print_Memory_Usage();
+	
+			Arrange_Particles_By_Peano_Key();
 		
 			break;
 
@@ -19,6 +21,8 @@ void Update(enum Update_Parameters stage)
 		
 		case AFTER_DRIFT:
 		
+			Arrange_Particles_By_Peano_Key();
+
 			break;
 		
 		case AFTER_SECOND_KICK:

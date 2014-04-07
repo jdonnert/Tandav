@@ -1,8 +1,8 @@
 /* Unit conversion from code to CGSM units */
 #include "globals.h"
 
-const struct Units_In_Cgs Unit = 
-	{ 	LENGTH2CGS, 
+const struct Units_In_Cgs Unit = { 	
+		LENGTH2CGS, 
 		MASS2CGS, 
 		VELOCITY2CGS, 
 		LENGTH2CGS/VELOCITY2CGS, // time

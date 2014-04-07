@@ -1,116 +1,12 @@
 #include "globals.h"
 #include "peano.h"
+#include <gsl/gsl_sort.h>
 
 /* Here we compute the peano keys and reorder the particles */
+peanoKey Compute_Peano_Key(const float, const float, const float, 
+		const double *);
 
-//const uint32_t ordering_tab[24][8] = {}, 
-//				 orientation_tab[24][8] = {};
-const char ordering_tab[24][8] = {
-	{0,1,3,2,6,7,5,4},
-	{0,4,6,2,3,7,5,1},
-	{0,1,5,4,6,7,3,2},
-	{5,1,0,4,6,2,3,7},
-	{3,7,6,2,0,4,5,1},
-	{6,7,3,2,0,1,5,4},
-	{5,1,3,7,6,2,0,4},
-	{0,4,5,1,3,7,6,2},
-	{5,4,0,1,3,2,6,7},
-	{5,4,6,7,3,2,0,1},
-	{0,2,3,1,5,7,6,4},
-	{6,4,0,2,3,1,5,7},
-	{5,7,3,1,0,2,6,4},
-	{3,7,5,1,0,4,6,2},
-	{6,4,5,7,3,1,0,2},
-	{0,2,6,4,5,7,3,1},
-	{6,2,0,4,5,1,3,7},
-	{6,2,3,7,5,1,0,4},
-	{3,2,0,1,5,4,6,7},
-	{6,7,5,4,0,1,3,2},
-	{5,7,6,4,0,2,3,1},
-	{3,2,6,7,5,4,0,1},
-	{3,1,0,2,6,4,5,7},
-	{3,1,5,7,6,4,0,2}};
-
-const char index_tab[24][8] = {
-	{0,1,3,2,7,6,4,5},
-	{0,7,3,4,1,6,2,5},
-	{0,1,7,6,3,2,4,5},
-	{2,1,5,6,3,0,4,7},
-	{4,7,3,0,5,6,2,1},
-	{4,5,3,2,7,6,0,1},
-	{6,1,5,2,7,0,4,3},
-	{0,3,7,4,1,2,6,5},
-	{2,3,5,4,1,0,6,7},
-	{6,7,5,4,1,0,2,3},
-	{0,3,1,2,7,4,6,5},
-	{2,5,3,4,1,6,0,7},
-	{4,3,5,2,7,0,6,1},
-	{4,3,7,0,5,2,6,1},
-	{6,5,7,4,1,2,0,3},
-	{0,7,1,6,3,4,2,5},
-	{2,5,1,6,3,4,0,7},
-	{6,5,1,2,7,4,0,3},
-	{2,3,1,0,5,4,6,7},
-	{4,5,7,6,3,2,0,1},
-	{4,7,5,6,3,0,2,1},
-	{6,7,1,0,5,4,2,3},
-	{2,1,3,0,5,6,4,7},
-	{6,1,7,0,5,2,4,3}};
-
-
-const char orientation_tab_old[24][8] = { 
-	{ 1, 2, 0, 3, 4, 0, 5, 6},
-	{ 0, 7, 1, 8, 5, 1, 4, 9},
-	{15, 0, 2,22,20, 2,19,23},
-	{20, 6, 3,23,15, 3,16,22},
-	{22,13, 4,12,11, 4, 1,20},
-	{11,19, 5,20,22, 5, 0,12},
-	{ 9, 3, 6, 2,21, 6,17, 0},
-	{10, 1, 7,11,12, 7,13,14},
-	{12, 9, 8,14,10, 8,18,11},
-	{ 6, 8, 9, 7,17, 9,21, 1},
-	{ 7,15,10,16,13,10,12,17},
-	{ 5,14,11, 9, 0,11,22, 8},
-	{ 8,20,12,19,18,12,10, 5},
-	{18, 4,13, 5, 8,13, 7,19},
-	{17,11,14, 1, 6,14,23, 7},
-	{ 2,10,15,18,19,15,20,21},
-	{19,17,16,21, 2,16, 3,18},
-	{14,16,17,15,23,17, 6,10},
-	{13,21,18,17, 7,18, 8,16},
-	{16, 5,19, 4, 3,19, 2,13},
-	{ 3,12,20,13,16,20,15, 4},
-	{23,18,21,10,14,21, 9,15},
-	{ 4,23,22, 6, 1,22,11, 3},
-	{21,22,23, 0, 9,23,14, 2}};
-
-const char next_tab[24][8] = {
-{ 1, 2, 3, 0, 5, 6, 0, 4},
-{ 0, 5, 4, 1, 8, 9, 1, 7},
-{15, 0, 2,20,19,23,22, 2},
-{ 3, 6,20,15,16, 3,23,22},
-{12,20, 1, 4,22,11, 4,13},
-{ 0,12,20, 5,11,19, 5,22},
-{ 6, 3, 2, 0,17, 6, 9,21},
-{10,12, 7, 1,11,14,13, 7},
-{ 8,10,12, 9,14, 8,18,11},
-{ 9,17,21, 1, 7, 9, 6, 8},
-{ 7,10,16,15,10,17,12,13},
-{22, 0, 5,11, 9,14,11, 8},
-{12, 5,19,20, 8,12,10,18},
-{ 5,19,13, 4,18, 8, 7,13},
-{23, 6,14, 7, 1,11,17,14},
-{ 2,15,20,19,15,21,18,10},
-{ 3,16,19, 2,16,17,21,18},
-{ 6,17,15,10,17,16,14,23},
-{17,18,13,21,18, 7, 8,16},
-{ 2,13,19, 3,16, 5, 4,19},
-{20, 4,15,16, 3,20,13,12},
-{10,21, 9,15,21,14,23,18},
-{ 6,23, 4,22,11, 1,22, 3},
-{ 0,22,23, 2,14, 9,21,23} };
-/*
-const unsigned char orientation_tab[48][8] = {
+const unsigned char next_tab[48][8] = {
   {36, 28, 25, 27, 10, 10, 25, 27},
   {29, 11, 24, 24, 37, 11, 26, 26},
   {8, 8, 25, 27, 30, 38, 25, 27},
@@ -161,7 +57,7 @@ const unsigned char orientation_tab[48][8] = {
   {13, 7, 13, 7, 41, 41, 22, 20}
 };
 
-const unsigned char ordering_tab[48][8] = {
+const unsigned char index_tab[48][8] = {
   {0, 7, 1, 6, 3, 4, 2, 5},
   {7, 4, 6, 5, 0, 3, 1, 2},
   {4, 3, 5, 2, 7, 0, 6, 1},
@@ -211,161 +107,84 @@ const unsigned char ordering_tab[48][8] = {
   {3, 2, 0, 1, 4, 5, 7, 6},
   {2, 5, 1, 6, 3, 4, 0, 7}
 }; 
-*/
-void print_bits(uint64_t x)
+
+void Arrange_Particles_By_Peano_Key()
 {
-	printf("\n");
+	const int npart = Task.NpartTotal;
 
-	for (int i = 0; i < 64; i++) {
-		
-		uint64_t val = (x & (1 << 63-i)) >> 63-i;
-	
-		printf("%lu", val);
+	peanoKey *keys = Malloc(Sim.NpartTotalMean * sizeof(*keys));
 
-		if (! ((i+1)%4) && i && i!=63)
-			printf("_");
+#pragma omp parallel for
+	for (int ipart = 0; ipart < npart; ipart++) {
+
+		keys[ipart] = Compute_Peano_Key( P[ipart].Pos[0], P[ipart].Pos[1], 
+				 						 P[ipart].Pos[2], Sim.Boxsize);
+
+		P[ipart].Peanokey = keys[ipart];
 	}
-		
-	printf("\n");
+
+	unsigned int *idx = Malloc(Sim.NpartTotalMean * sizeof(*idx));
+	
+	gsl_sort_index(idx, keys, 1, npart); // use omp insertion sort here
+
+	for (int i = 0; i < npart; i++) {
+
+        if (idx[i] == i)
+            continue;
+
+		int dest = i;
+
+        struct Particle_Data Ptmp = P[dest];
+		int src = idx[i];
+
+        for (;;) {
+
+			memcpy(&P[dest], &P[src], sizeof(*P));
+            idx[dest] = dest;
+
+			dest = src;
+			src = idx[dest];
+
+            if (src == i) 
+                break;
+        }
+
+		memcpy(&P[dest], &Ptmp, sizeof(*P));
+        idx[dest] = dest;
+    }
+
+	Free(keys); Free(idx);
 
 	return ;
 }
 
-void print_bits32(uint32_t x)
-{
-	printf("\n");
-
-	for (int i = 0; i < 32; i++) {
-		
-		uint64_t val = (x & (1 << 31-i)) >> 31-i;
-	
-		printf("%lu", val);
-
-		if (! ((i+1)%4) && i && i!=31)
-			printf("_");
-	}
-		
-	printf("\n");
-
-	return ;
-}
-
-void print_bits_peano(uint64_t x)
-{
-	printf("\n");
-
-	for (uint64_t i = 1; i < 64; i++) {
-		
-		uint64_t val = (x & (1ULL << 63ULL-i)) >> 63ULL-i;
-	
-		printf("%lu", val);
-
-		if (! ( (i) % 3ULL) && i && i!=63ULL)
-			printf("_");
-	}
-		
-	printf("\n");
-
-	return ;
-}
-
-/* Based on 'Dynamic Octree Load Balancing Using Space-Filling Curves' 
- * by Campbell et al 2003. Their tables have been modified to give
- * the index, not the position on the curve. They use z as most significant
- * bit. Because of FORTRAN ?
- * Gadget-3 uses a similar algorithm, Gadget-2 seems to use Jagadish 1990 */
-peanoKey compute_peano_key(const float x, const float y, const float z, 
+/* See e.g. 'Dynamic Octree Load Balancing Using Space-Filling Curves' 
+ * by Campbell et al 2003. */
+peanoKey Compute_Peano_Key(const float x, const float y, const float z, 
 		const double *boxsize)
 {
-	uint32_t a = ( x / boxsize[0]) * 0x20000000, // z is most significant
+	uint32_t a = ( x / boxsize[0]) * 0x80000000, // z is most significant
 			 b = ( y / boxsize[1]) * 0x40000000,
-			 c = ( z / boxsize[2]) * 0x80000000;
-
-	a = ~a;
-	b = ~b;
-	c = ~c;
-
-	//print_bits32(a);
-	//print_bits32(b);
-//	print_bits32(c);
+			 c = ( z / boxsize[2]) * 0x20000000;
 
 	peanoKey key = 0;
-	uint32_t or = 0;
+	uint32_t row = 0; // row for next triplet
 
 	const int nBitsPerDim = (int) ( sizeof(peanoKey) * CHAR_BIT / 3 ); // 21
 
 	for (int i = 0; i < nBitsPerDim; i++) {
 
-		int tmp = ((a & 0x20000000)|(b & 0x40000000)|(c & 0x80000000)) >> 29;
-		
-		//printf("%u %u %u \n", i, tmp, or);
+		int col = ((a & 0x80000000)|(b & 0x40000000)|(c & 0x20000000)) >> 29;
 		
 		key <<= 3; a <<= 1; b <<= 1; c <<= 1;
 
-		key |= tmp;
+		key |= index_tab[row][col]; // col is the morton key triplet
 
-		//printf("--- %d %d %d \n", or, tmp, index_tab[or][tmp]);
-
-		Assert( next_tab[or][tmp] == orientation_tab_old[or][ordering_tab[or][tmp]], "Orientation error");
-
-		//key |= index_tab[or][tmp]; // tmp is the morton key
-		or = next_tab[or][tmp];
+		row = next_tab[row][col];
 	}
-	//print_bits_peano(key);
 	
 	return key;
 }
 
-void test()
-{
-	const double boxsize[] = { 1, 1 , 1};
-
-	for (int i=0; i<4; i++)
-		for (int j=0; j<4; j++) 
-		for (int k=0; k<4; k++) {
-			
-			peanoKey key = compute_peano_key( i*0.25, j*0.25, k*0.25, boxsize);
-
-			//print_bits_peano(key);
-			printf("%g %g %g %g \n", i*0.25, j*0.25, k*0.25, (double) key );
-
-		}
-
-	exit(0);
-
-	return ;
-}
-
-/*
- !p.multi[1:2] = 2
-readcol, 'test', x,y,z, key
-srt=(sort(key))
-key = key[srt]
-x = x[srt]
-y = y[srt] 
-z = z[srt] 
-good = where(z eq 0)
-plot, [0,1], [0,1], /nodata, /iso
-for i=0, 16 do begin & oplot, x[good[i]]*[1,1]+0.125 ,y[good[i]]*[1,1]+0.125, psym=4 & print, x[good[i]], y[good[i]], z[good[i]], key[good[i]]   & xyouts, x[good[i]]+0.125, y[good[i]]+0.125, strn(good[i], len=2) & end
-for i=1, 15 do oplot, x[good[i-1:i]]+0.125, y[good[i-1:i]]+0.125, col=color(1)
-xyouts, 0.5, 0.5, 'z=0'
-good = where(z eq 0.25)
-plot, [0,1], [0,1], /nodata, /iso
-for i=0, 16 do begin & oplot, x[good[i]]*[1,1]+0.125 ,y[good[i]]*[1,1]+0.125, psym=4 & print, x[good[i]], y[good[i]], z[good[i]], key[good[i]] & xyouts, x[good[i]]+0.125, y[good[i]]+0.125, strn(good[i], len=2)   &end
-for i=1, 15 do oplot, x[good[i-1:i]]+0.125, y[good[i-1:i]]+0.125, col=color(1)
-xyouts, 0.5, 0.5, 'z=0.25'
-good = where(z eq 0.5)
-plot, [0,1], [0,1], /nodata, /iso
-for i=0, 16 do begin & oplot, x[good[i]]*[1,1]+0.125 ,y[good[i]]*[1,1]+0.125, psym=4 & print, x[good[i]], y[good[i]], z[good[i]], key[good[i]] & xyouts, x[good[i]]+0.125, y[good[i]]+0.125, strn(good[i], len=2)   &end
-for i=1, 15 do oplot, x[good[i-1:i]]+0.125, y[good[i-1:i]]+0.125, col=color(1)
-xyouts, 0.5, 0.5, 'z=0.5'
-good = where(z eq 0.75)
-plot, [0,1], [0,1], /nodata, /iso
-for i=0, 16 do begin & oplot, x[good[i]]*[1,1]+0.125 ,y[good[i]]*[1,1]+0.125, psym=4 & print, x[good[i]], y[good[i]], z[good[i]], key[good[i]] & xyouts, x[good[i]]+0.125, y[good[i]]+0.125, strn(good[i], len=2)   &end
-for i=1, 15 do oplot, x[good[i-1:i]]+0.125, y[good[i-1:i]]+0.125, col=color(1)
-xyouts, 0.5, 0.5, 'z=0.75'
 
 
-
-
-*/

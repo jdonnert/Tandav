@@ -336,9 +336,13 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 
 		Sim.Npart[i] = (uint64_t)head.Nall[i] 
 					+ ( ((uint64_t)head.NallHighWord[i]) << 32);
-
+		
 		Sim.NpartTotal += Sim.Npart[i];
+
+		Sim.NpartMean[i] = ceil(Sim.Npart[i]/Sim.NTask * PARTALLOCFACTOR);
 	}
+
+	Sim.NpartTotalMean = ceil(Sim.NpartTotal/Sim.NTask * PARTALLOCFACTOR);
 
 #ifdef PERIODIC
 	Assert(Sim.Boxsize >= 0, "Boxsize in header not > 0, but %g ", Sim.Boxsize);

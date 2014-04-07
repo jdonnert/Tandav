@@ -9,7 +9,9 @@ GRAVITY				// gravitational interaction
 #### CODE UNITS ####
 
 UNITS_GADGET_STD 	// kpc, 10^10 Msol, km/s
+#UNITS_CGS
 
 #### OUTPUT OPTIONS ####
 
 #OUTPUT_FORCE		// add total force on particle to snapshot: "FRCE"
+#OUTPUT_PEANO_KEY   // add peano key of particle "PKEY"

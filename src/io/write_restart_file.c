@@ -4,7 +4,7 @@
 
 void Write_Restart_File()
 {
-	rprintf("Run Time Limit %g min reached.\n", Param.TimeLimit / 60);
+	rprintf("Run Time Limit %g min reached.\n", Param.RuntimeLimit / 60);
 
 	return ;
 }

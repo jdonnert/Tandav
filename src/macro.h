@@ -31,4 +31,3 @@
 
 #define p2(a) ((a)*(a))  
 #define p3(a) ((a)*(a)*(a))
-

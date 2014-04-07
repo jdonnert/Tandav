@@ -26,6 +26,7 @@
 #include "memory.h"			// memory management
 #include "profile.h"		// time measurement & logging
 #include "sort.h" 			// sort functions
+#include "peano.h" 			// peano keys 
 
 /* Global function prototypes */
 

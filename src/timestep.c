@@ -1,6 +1,8 @@
 #include "globals.h"
 #include "timestep.h"
 
+struct TimeData Time;
+
 void Set_New_Timesteps()
 {
 	return ;

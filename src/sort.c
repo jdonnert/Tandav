@@ -29,7 +29,7 @@ void test_sort();
  * initial iterations are not parallel */
 
 void Qsort (void *const pbase, int nElements, size_t size, 
-		int (*cmp) (const void *, const void*))
+		int (*cmp) (const void *, const void *))
 {
   	if (nElements <= 1) // don't be silly
     		return;

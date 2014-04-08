@@ -56,17 +56,19 @@ void Read_Parameter_File(const char *filename)
 				*((double *)ParDef[j].addr) = atof(buf2);
 				
 				break;
+
 			case STRING:
 			
 				strncpy((char *)ParDef[j].addr, buf2, 
 						CHARBUFSIZE);
-				
 				break;
+
 			case INT:
 
 				*((int *)ParDef[j].addr) = atoi(buf2);
 				
 				break;
+
 			default:
 				Assert(0, "Code Error in ParDef struct: %s",
 						ParDef[j].tag);

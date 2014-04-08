@@ -1,4 +1,4 @@
-1. Main infrastructure
+x. Main infrastructure
 	x macros, globals etc
 	x memory management
 	x profiling infrastucture
@@ -11,10 +11,13 @@
 	- find grav equations
 	- transform grav equations to comoving
 4. Time integration
+	- Cosmo Drift Factor
+	- Individual time steps
 	- Kepler test problem
-5. Peano Hilbert Order
-6. Parallel Tree
-7. Domain Decomposition
+5. Peano Hilbert Order 
+	x key generation
+	- omp sorting
+6. Domain Decomposition
+7. Parallel Tree / FMM
 8. Ewald Summation
-9. PM grid
 ----------------------

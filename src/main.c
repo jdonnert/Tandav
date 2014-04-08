@@ -12,8 +12,8 @@ static void preamble(int argc, char *argv[]);
 int main(int argc, char *argv[])
 {
 	preamble(argc, argv);	
-
-	Read_and_Init();
+test_sort();
+	/*Read_and_Init();
 
 	Setup();
 
@@ -48,8 +48,9 @@ int main(int argc, char *argv[])
 
 	if (Runtime() >= Param.RuntimeLimit) 
 		Write_Restart_File();
-
+	
 	Finish();
+*/
 
 	MPI_Finalize();
 

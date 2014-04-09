@@ -1,20 +1,39 @@
 /* Simple parallel sorting based on subdiving the list
- * Shamelessly copied from glibc, thereby GPL2 */
+ * Shamelessly hacked from glibc, thereby GPL2 
+ * Jon Bentley and M. Douglas McIlroy; Software - Practice and Experience; 
+ * Vol. 23 (11), 1249-1265, 1993. */
 
 #include <gsl/gsl_heapsort.h>
 #include "globals.h"
 
-#define SWAP(a, b, size)		\
-  	do {						\
-		char tmp[size]; 		\
-		memcpy(tmp, a, size); 	\
-		memcpy(a, b, size); 	\
-		memcpy(b, tmp, size);	\
-	} while (0)
-	
 #define PARALLEL_THRESHOLD 10000 // use serial sort below this limit
-#define STACK_SIZE (Sim.NThreads * sizeof(stack_node))
-#define IDX_STACK_SIZE (Sim.NThreads * sizeof(stack_node))
+#define INSERTION_SORT_THRESHOLD 8
+
+#define SWAP(a, b, size)     		\
+  	do							    \
+    {								\
+      size_t __size = (size);		\
+      char *__a = (a), *__b = (b);	\
+      do							\
+	{								\
+	  char __tmp = *__a;			\
+	  *__a++ = *__b;				\
+	  *__b++ = __tmp;				\
+	} while (--__size > 0);			\
+    } while (0)
+	
+#define SWAP_SIZE_T(a,b)				\
+	do {								\
+		size_t *__a = (a), *__b = (b);	\
+		size_t __tmp = *__a;			\
+		*__a = *__b;					\
+		*__b = __tmp;					\
+	} while (0)				
+
+#define COMPARE_DATA(a,b,size) ((*cmp) ((void *)(data + *a * size), \
+	(void *)(data + *b * size))) // compare with non-permutated data
+
+#define STACK_SIZE (CHAR_BIT * sizeof(size_t))
 
 typedef struct // work queue element that holds partitions
 {
@@ -38,7 +57,7 @@ typedef struct
 void Qsort(void *const pbase, int nElements, size_t size, 
 		int (*cmp) (const void *, const void *))
 {
-	if (nElements < PARALLEL_THRESHOLD) {
+	if (nElements < PARALLEL_THRESHOLD || Sim.NThreads == 1) {
 
 		qsort(pbase, nElements, size, cmp);
 	
@@ -53,223 +72,330 @@ void Qsort(void *const pbase, int nElements, size_t size,
 	stack[0].lo = base_ptr; 
 	stack[0].hi = &base_ptr[size * (nElements - 1)];
 
-#pragma omp parallel shared(stack) 
+	const int nThreads = 2*(Sim.NThreads/2); // use only 2^N threads
+
+#pragma omp parallel shared(stack) num_threads(nThreads)
 	{
 
 	const int tID = Task.ThreadID;
-	const int itMax = 2*(Sim.NThreads/2); // use only 2^N threads
 
 	char *hi, *lo; 
 
 	int i = 0; // number of partitions or iterations 
 
-	for (i = 1; i < itMax; i *= 2) {
-	
-#pragma omp barrier
+	for (i = 1; i < nThreads; i *= 2) {
 
-		if (tID >= i)
-			continue; // not enough partitions for these
-	
-		lo = stack[tID].lo; // pop from stack
-		hi = stack[tID].hi;
+	#pragma omp barrier
 
-    	char *left_ptr;
-      	char *right_ptr;
-			
-		/* Find pivot element from median and sort the three. 
-		 * That helps to prevent the n^2 worst case */
-	  	char *mid = lo + size * ((hi - lo) / size >> 1); 
+		#pragma omp for schedule(static, 1)
+		for (int j = 0; j < i; j++) {
 
-		if ( (*cmp) ((void *) mid, (void *) lo) < 0) 
-	   		SWAP(mid, lo, size);
+			lo = stack[j].lo; // pop from stack
+			hi = stack[j].hi;
+
+			/* Find pivot element from median and sort the three. 
+			 * That helps to prevent the n^2 worst case */
+	  		char *mid = lo + size * ((hi - lo) / size >> 1); 
+
+			if ( (*cmp) ((void *) mid, (void *) lo) < 0) 
+		   		SWAP(mid, lo, size);
 	
-		if ( (*cmp) ((void *) hi, (void *) mid) < 0)
-	    	SWAP (mid, hi, size);
-	  	else
-	    	goto jump_over;
+			if ( (*cmp) ((void *) hi, (void *) mid) < 0)
+	    		SWAP (mid, hi, size);
+		  	else
+		    	goto jump_over;
 	  	
-		if ( (*cmp) ((void *) mid, (void *) lo) < 0)
-		 	SWAP (mid, lo, size);
+			if ( (*cmp) ((void *) mid, (void *) lo) < 0)
+		 		SWAP (mid, lo, size);
 		
-		jump_over:;
+			jump_over:;
 
-	  	left_ptr  = lo + size;
-	  	right_ptr = hi - size;
+		  	char *left_ptr  = lo + size;
+	  		char *right_ptr = hi - size;
 
-		/* now put all larger/smaller than the pivot on the right/left */
-	  	do { 
-				
-			while ((*cmp)((void *)left_ptr, (void *)mid) < 0)
-				left_ptr += size;
-
-			while ((*cmp)((void *)mid,(void *)right_ptr) < 0)
-				right_ptr -= size;
-
-	    	if (left_ptr < right_ptr) { 
+			/* now put all larger/smaller than the pivot on the right/left */
+		  	do { 
 					
-				SWAP (left_ptr, right_ptr, size);
+				while ((*cmp)((void *)left_ptr, (void *)mid) < 0)
+					left_ptr += size;
+
+				while ((*cmp)((void *)mid,(void *)right_ptr) < 0)
+					right_ptr -= size;
+
+	    		if (left_ptr < right_ptr) { 
+						
+					SWAP (left_ptr, right_ptr, size);
 					
-				if (mid == left_ptr)
-		   			mid = right_ptr;
-				else if (mid == right_ptr)
-		   			mid = left_ptr;
-		  
-				left_ptr += size;
-				right_ptr -= size;
+					if (mid == left_ptr)
+			   			mid = right_ptr;
+					else if (mid == right_ptr)
+		   				mid = left_ptr;
+		  	
+					left_ptr += size;
+					right_ptr -= size;
 		
-			} else if (left_ptr == right_ptr) {
-		  			
-				left_ptr += size;
-				right_ptr -= size;
-		 
-				break;
-			}
+				} else if (left_ptr == right_ptr) {
+			  			
+					left_ptr += size;
+					right_ptr -= size;
+		 	
+					break;
+				}	
 
-		} while (left_ptr <= right_ptr);
+			} while (left_ptr <= right_ptr);
 
-		/* Push next iterations / partitions to the stack */
-		stack[2*tID].lo = lo;
-		stack[2*tID].hi = right_ptr;
+			/* Push next iterations / partitions to the stack */
+			stack[2*j].lo = lo;
+			stack[2*j].hi = right_ptr;
 
-		stack[2*tID + 1].lo = left_ptr;
-		stack[2*tID + 1].hi = hi;
-
-    }
+			stack[2*j + 1].lo = left_ptr;
+			stack[2*j + 1].hi = hi;
+		} // j
+    } // i
 	
 	#pragma omp barrier
 
-/*	if (tID <= i) { // serial sort on subpartitions
+	if (tID <= i) { // serial sort on subpartitions
 
-		int chunkSize = (stack[tID].hi-stack[tID].lo)/size+1;
+		size_t chunkSize = (stack[tID].hi-stack[tID].lo)/size + 1;
 
 		qsort(stack[tID].lo, chunkSize, size, cmp);
-	} */
+	} 
 
 	} // omp parallel
 	
 	return;
 }
 
-/* This is an OpenMP parallel external sort
- * we use the same algorithm as above to divide and conquer, 
- * but then use the GSL heapsort. */
-void Sort_Index(size_t *p, void *const datap, const int nElements, 
-		const size_t dsize, int (*cmp) (const void *, const void *))
+/* This is an OpenMP parallel external sort.
+ * We use the same algorithm as above to divide and conquer.
+ * In the first stage we make a partition for every thread.
+ * In the second stage a qsort on the subpartition and an insertion sort. 
+ * Here we are swaping ONLY the permutation array *perm and
+ * are comparing ONLY the data array indexed by *perm */
+
+void Qsort_Index(size_t *perm, void *const data, const int nElements, 
+		const size_t datasize, int (*cmp) (const void *, const void *))
 {
-	if (nElements < PARALLEL_THRESHOLD) { // fallback
-
-		gsl_heapsort_index(p, datap, nElements, dsize, cmp);
-
+	if (nElements < PARALLEL_THRESHOLD) {
+	
+		gsl_heapsort_index(perm, data, nElements, datasize, cmp);
+		
 		return ;
 	}
 
-	/* Initialise permutation */
-	for (size_t i = 0; i < nElements; i++ )
-		p[i] = i;
+	for (size_t i = 0; i < nElements; i++ ) 
+		perm[i] = i; 
 
-	const size_t size = sizeof(*p);
+	int nThreads = 2*(Sim.NThreads/2); // N threads has to be power of 2
 
-	char *base_ptr = (char *) datap;
-	
-	/* initial stack node is just the whole array */
-	idx_stack_node stack[IDX_STACK_SIZE];
+	idx_stack_node public_stack[nThreads]; // one node per thread  
 
-	stack[0].lo = p; 
-	stack[0].hi = &p[nElements - 1];
+	public_stack[0].lo = perm;  // initial stack node is just the whole array
+	public_stack[0].hi = &perm[nElements - 1];
 
-#pragma omp parallel shared(stack) 
+#pragma omp parallel shared(public_stack)  num_threads(nThreads)
 	{
 
 	const int tID = Task.ThreadID;
-	const int itMax = 2*(Sim.NThreads/2); // use only 2^N threads
 
 	size_t *hi, *lo; 
+	
+	/* First stage: subpartitions */
 
-	int i = 0; // number of partitions or iterations 
-
-	for (i = 1; i < itMax    +    2; i *= 2) {
+	for (int i = 1; i < nThreads; i *= 2) { 
+ 
 	#pragma omp barrier
 
-		if (tID >= i)
-			continue; // not enough partitions for these
-	
-		lo = stack[tID].lo; // pop from stack
-		hi = stack[tID].hi;
+		#pragma omp for schedule(static, 1)
+		for (int j = 0; j < i; j++) { // split
 
-    	size_t *left_ptr;
-      	size_t *right_ptr;
+			lo = public_stack[j].lo; // pop from public stack
+			hi = public_stack[j].hi;
+
+	  		size_t *mid = lo + ((hi - lo) >> 1); // pivot from median
+
+			if (COMPARE_DATA(mid,lo,datasize) < 0) 
+				SWAP_SIZE_T (mid, lo);
+	
+			if (COMPARE_DATA(hi,mid,datasize) < 0)  
+				SWAP_SIZE_T (mid, hi);
+			else
+	    		goto jump_over;
+	  	
+			if (COMPARE_DATA(mid,lo,datasize) < 0) 
+				SWAP_SIZE_T (mid, lo);
 			
-		/* Find pivot element from median and sort the three. 
-		 * That helps to prevent the n^2 worst case */
+			jump_over:;
+	
+			size_t *left  = lo + 1;
+	  		size_t *right = hi - 1;
+
+		  	do { // collapse the walls again
+			
+				while (COMPARE_DATA(left,mid,datasize) < 0) 
+					left++;
+
+				while (COMPARE_DATA(mid,right,datasize) < 0)
+					right--;
+
+	    		if (left < right) { 
+					
+					SWAP_SIZE_T (left, right);
+					
+					if (mid == left)
+			   			mid = right;
+					else if (mid == right)
+		   				mid = left;
+		  
+					left++;
+					right--;
+		
+				} else if (left == right) {
+		  		
+					left++;
+					right--;
+		 
+					break;
+				}
+
+			} while (left <= right);
+
+			public_stack[2*j].lo = lo; // Push to public stack
+			public_stack[2*j].hi = right;
+	
+			public_stack[2*j + 1].lo = left;
+			public_stack[2*j + 1].hi = hi;
+		} // j
+    } // i
+
+#pragma omp barrier 
+
+	/* Second stage, every thread: Qsort on subpartitions */
+
+	int top = 0;
+
+	idx_stack_node stack[STACK_SIZE]; // private stack
+
+	stack[top].lo = public_stack[tID].lo;
+	stack[top].hi = public_stack[tID].hi;
+
+	const size_t partition_size = stack[top].hi - stack[top].lo + 1;
+
+	if (partition_size < INSERTION_SORT_THRESHOLD)
+		goto serial_insertion_sort;
+
+	for (;;) { 
+
+		if (top == -1)
+			break;
+
+		lo = stack[top].lo;  // pop from private stack
+		hi = stack[top--].hi;
+
 	  	size_t *mid = lo + ((hi - lo) >> 1); 
 
-		if ( (*cmp) ((void *) (datap +*mid * dsize), 
-					 (void *) (datap + *lo * dsize)) < 0) 
-			SWAP (mid, lo, size);
+		if (COMPARE_DATA(mid,lo,datasize) < 0) 
+			SWAP_SIZE_T (mid, lo);
 	
-		if ( (*cmp) ((void *) (datap + *hi * dsize), 
-					 (void *) (datap +*mid * dsize)) < 0) 
-			SWAP (mid, hi, size);
+		if (COMPARE_DATA(hi,mid,datasize) < 0)  
+			SWAP_SIZE_T (mid, hi);
 		else
-	    	goto jump_over;
+	    	goto hop_over;
 	  	
-		if ( (*cmp) ((void *) (datap +*mid * dsize), 
-					 (void *) (datap + *lo * dsize)) < 0) 
-			SWAP (mid, lo, size);
+		if (COMPARE_DATA(mid,lo,datasize)) 
+			SWAP_SIZE_T (mid, lo);
 		
-		jump_over:;
+		hop_over:;
 
-	  	left_ptr  = lo + 1;
-	  	right_ptr = hi - 1;
+	  	size_t *left  = lo + 1;
+	  	size_t *right = hi - 1;
 
-		/* now put all larger/smaller than the pivot on the right/left */
-	  	do { 
+	  	do { // collapse the walls
 		
-			while ((*cmp)((void *)(datap + *left_ptr * dsize), 
-						  (void *)(datap + *mid * dsize)) < 0)
-				left_ptr++;
+			while (COMPARE_DATA(left,mid,datasize) < 0) 
+				left++;
 
-			while ((*cmp)((void *)(datap + *mid * dsize), 
-						  (void *)(datap + *right_ptr * dsize)) < 0)
-				right_ptr--;
+			while (COMPARE_DATA(mid,right,datasize) < 0)
+				right--;
 
-	    	if (left_ptr < right_ptr) { 
+	    	if (left < right) { 
 					
-				SWAP (left_ptr, right_ptr, size);
+				SWAP_SIZE_T (left, right);
 					
-				if (mid == left_ptr)
-		   			mid = right_ptr;
-				else if (mid == right_ptr)
-		   			mid = left_ptr;
+				if (mid == left)
+		   			mid = right;
+				else if (mid == right)
+		   			mid = left;
 		  
-				left_ptr++;
-				right_ptr--;
+				left++;
+				right--;
 		
-			} else if (left_ptr == right_ptr) {
-		  			
-				left_ptr++;
-				right_ptr--;
+			} else if (left == right) {
+		  		
+				left++;
+				right--;
 		 
 				break;
 			}
 
-		} while (left_ptr <= right_ptr);
+		} while (left <= right);
 
-		/* Push next iterations / partitions to the stack */
-		stack[2*tID].lo = lo;
-		stack[2*tID].hi = right_ptr;
+		if (right - lo + 1 > INSERTION_SORT_THRESHOLD) { // push
 
-		stack[2*tID + 1].lo = left_ptr;
-		stack[2*tID + 1].hi = hi;
+				stack[++top].lo = lo;
+				stack[top].hi = right;
+		}
+			
+		if (hi - left + 1 > INSERTION_SORT_THRESHOLD) {
 
-    }
+				stack[++top].lo = left;
+				stack[top].hi = hi;
+		}
+	}
+    
+	/* Third stage, every thread: insertion sort */
+
+	serial_insertion_sort:;   
 	
-	#pragma omp barrier
+	size_t *beg = public_stack[tID].lo;
+	size_t *end = public_stack[tID].hi;
 
-	if (tID <= i) { // serial sort on subpartitions
+	size_t *trail = beg;
+	size_t *run = NULL;
+	
+	const size_t *runMax = min(end, beg + INSERTION_SORT_THRESHOLD);
 
-		int chunkSize = (stack[tID].hi-stack[tID].lo)/size + 1;
-		
+	for (run = beg + 1; run < runMax; run++) // smallest element first
+		if (COMPARE_DATA(run, trail, datasize) < 0)
+			trail = run;
+
+	if (trail != beg)
+		SWAP_SIZE_T(trail, beg);
+
+	run = beg + 1;
+
+	while (++run <= end) { // insertion sort left to right
+	
+		trail = run - 1;
+
+		while (COMPARE_DATA(run, trail, datasize) < 0)
+			trail--;
+
+		trail++;
+
+		if (trail != run)  {
+
+			size_t save = *run;
+
+			hi = run;
+			lo = hi - 1;
+
+			while (lo >= trail) 
+				*hi-- = *lo--;
+
+			*hi = save;
+		}
 	}
 
 	} // omp parallel
@@ -300,33 +426,63 @@ int test_compare(const void * a, const void *b)
 
 void test_sort()
 {
-	const size_t N = 10;
-	const size_t Nit = 1;
+	const size_t N = 500000;
+	const size_t Nit = 10;
+	int good;
 
 	double *x = malloc(N * sizeof(*x) );
 	double *y = malloc(N * sizeof(*y) );
 	size_t *p = malloc(N * sizeof(*p) );
+	size_t *q = malloc(N * sizeof(*p) );
   	
-	for (int i = 0; i < N; i++) 
-    	x[i] = y[i] = erand48(Task.Seed);
-	
-	for (int i = 0; i < N; i++) 
-		printf("%d %zu %g %g \n",i, p[i], x[i],  x[p[i]]);
-
-	//gsl_sort_index(p, x, 1, N);
-	Sort_Index(p, x, N, sizeof(*x), &test_compare);
-	Qsort(y, N, sizeof(*y), &test_compare);	
-	for (int i = 0; i < N; i++) 
-		printf("%d %zu %g %g %g \n",i, p[i], x[i],  x[p[i]], y[i]);
-	
-	exit(0);
-	
 	double tmp = omp_get_wtime();
   	double tmp2 = omp_get_wtime();
 
   	double time, time2, time3, deltasum0 = 0, deltasum1 = 0;
 	
+	for (int j = 0; j < N; j++) 
+    	x[j] = y[j] = erand48(Task.Seed);
+
 	for (int i = 0; i < Nit; i++) {
+	
+		time = omp_get_wtime();
+
+  		Qsort_Index(p, x, N, sizeof(*x), &test_compare);
+
+  		time2 = omp_get_wtime();
+	
+		gsl_heapsort_index(q, y, N, sizeof(*y), &test_compare);
+  		
+ 	 	time3 = omp_get_wtime();
+
+		deltasum0 += time2-time;
+		deltasum1 += time3-time2;
+	}
+
+	deltasum0 /= Nit; deltasum1 /= Nit;
+
+  	good = 1;
+  
+  	for (int i = 1; i < N; i++) {
+
+//		printf("%d %g %g \n", i, x[i], x[p[i]]);
+
+	 	if (x[p[i]] < x[p[i-1]])
+			good = 0;
+	}
+
+  	if (good)
+	  	printf("Array sorted  :-)\n");
+  	else 
+	  	printf("Array not sorted :-( \n");
+  	
+	printf("%zu Parallel:  %g sec, Single:  %g sec, Speedup: %g \n",
+		N, deltasum0, deltasum1, deltasum1/deltasum0 );
+
+exit(0);
+
+
+	/*for (int i = 0; i < Nit; i++) {
 	
 		for (int j = 0; j < N; j++) 
     		x[j] = y[j] = erand48(Task.Seed);
@@ -347,7 +503,7 @@ void test_sort()
 
 	deltasum0 /= Nit; deltasum1 /= Nit;
 
-  	int good = 1;
+  	good = 1;
   
   	for (int i = 1; i < N; i++) 
 	 	if (x[i] < x[i-1])
@@ -361,7 +517,7 @@ void test_sort()
   	printf("%zu Parallel:  %g sec, Single:  %g sec, Speedup: %g \n",
 		N, deltasum0, deltasum1, deltasum1/deltasum0 );
 
-	exit(0);
+	exit(0);*/
 	
 	return ;
 }

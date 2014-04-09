@@ -43,7 +43,7 @@ endif
 
 ifeq ($(SYSTYPE),getorin.ira.inaf.it)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O2 -openmp # -finline -finline-functions \
+OPTIMIZE =  -Wall -g -O2 -openmp  -finline -finline-functions \
 			-funroll-loops -xhost -mkl 
 MPI_LIBS = -lmpich -L/homes/donnert/Libs/lib
 MPI_INCL = -I/homes/donnert/Libs/include

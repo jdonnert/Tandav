@@ -199,7 +199,7 @@ void Qsort_Index(size_t *perm, void *const data, const int nData,
 	for (size_t i = 0; i < nData; i++ ) 
 		perm[i] = i; 
 
-	const int desNumPar = min(Sim.NThreads*SUB_PAR_FAC, nData/INSERT_THRES);
+	const int desNumPar = min(Sim.NThreads, nData/INSERT_THRES);
 
 	const size_t minParSize = nData/desNumPar;
 	

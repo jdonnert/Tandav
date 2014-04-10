@@ -1,6 +1,6 @@
 #include "globals.h"
 #include "peano.h"
-#include <gsl/gsl_sort.h>
+#include "sort.h"
 
 /* Here we compute the peano keys and reorder the particles */
 peanoKey Compute_Peano_Key(const float, const float, const float, 
@@ -108,13 +108,21 @@ const unsigned char index_tab[48][8] = {
   {2, 5, 1, 6, 3, 4, 0, 7}
 }; 
 
+int compare_peanokeys(const void * a, const void *b)
+{
+	const peanoKey *x = (const peanoKey*)a;
+	const peanoKey *y = (const peanoKey*)b;
+
+	return (int) (*x - *y);
+}
+
 void Arrange_Particles_By_Peano_Key()
 {
 	const int npart = Task.NpartTotal;
 
 	peanoKey *keys = Malloc(Sim.NpartTotalMean * sizeof(*keys));
 
-#pragma omp parallel for
+	#pragma omp parallel for
 	for (int ipart = 0; ipart < npart; ipart++) {
 
 		keys[ipart] = Compute_Peano_Key( P[ipart].Pos[0], P[ipart].Pos[1], 
@@ -125,7 +133,7 @@ void Arrange_Particles_By_Peano_Key()
 
 	unsigned int *idx = Malloc(Sim.NpartTotalMean * sizeof(*idx));
 	
-	gsl_sort_index(idx, keys, 1, npart); // use omp insertion sort here
+	Qsort_Index(idx, keys, 1, npart, &compare_peanokeys); 
 
 	for (int i = 0; i < npart; i++) {
 
@@ -163,7 +171,7 @@ void Arrange_Particles_By_Peano_Key()
 peanoKey Compute_Peano_Key(const float x, const float y, const float z, 
 		const double *boxsize)
 {
-	uint32_t a = ( x / boxsize[0]) * 0x80000000, // z is most significant
+	uint32_t a = ( x / boxsize[0]) * 0x80000000, // noermalise & convert 
 			 b = ( y / boxsize[1]) * 0x40000000,
 			 c = ( z / boxsize[2]) * 0x20000000;
 

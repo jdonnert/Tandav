@@ -3,11 +3,14 @@
  * Jon Bentley and M. Douglas McIlroy; Software - Practice and Experience; 
  * Vol. 23 (11), 1249-1265, 1993. */
 
-#include <gsl/gsl_heapsort.h>
 #include "globals.h"
+#include <gsl/gsl_heapsort.h>
 
-#define PARALLEL_THRESHOLD 10000 // use serial sort below this limit
-#define INSERTION_SORT_THRESHOLD 8
+#define PARALLEL_THRES_QSORT 2000 // use serial sort below this limit
+#define PARALLEL_THRES_HEAPS 15000
+
+#define INSERT_THRES 10 // insertion sort threshold
+#define SUB_PAR_FAC 8 // sub partitions per thread for load balancing
 
 #define SWAP(a, b, size)     		\
   	do							    \
@@ -33,7 +36,7 @@
 #define COMPARE_DATA(a,b,size) ((*cmp) ((void *)(data + *a * size), \
 	(void *)(data + *b * size))) // compare with non-permutated data
 
-#define STACK_SIZE (CHAR_BIT * sizeof(size_t))
+#define STACK_SIZE (CHAR_BIT * sizeof(size_t)) // can't be larger 
 
 typedef struct // work queue element that holds partitions
 {
@@ -54,44 +57,45 @@ typedef struct
  * need for synchronisation. However the speedup is suboptimal, because the
  * initial iterations are not parallel */
 
-void Qsort(void *const pbase, int nElements, size_t size, 
+void Qsort(void *const data_ptr, int nData, size_t size, 
 		int (*cmp) (const void *, const void *))
 {
-	if (nElements < PARALLEL_THRESHOLD || Sim.NThreads == 1) {
+	if (nData < PARALLEL_THRES_QSORT || Sim.NThreads == 1) {
 
-		qsort(pbase, nElements, size, cmp);
+		qsort(data_ptr, nData, size, cmp);
 	
 		return ;
 	}
 
-	char *base_ptr = (char *) pbase;
-	
 	/* initial stack node is just the whole array */
-	stack_node stack[STACK_SIZE];
+	stack_node stack[STACK_SIZE] = { NULL };
 
-	stack[0].lo = base_ptr; 
-	stack[0].hi = &base_ptr[size * (nElements - 1)];
+	stack[0].lo = data_ptr; 
+	stack[0].hi = &data_ptr[size * (nData - 1)];
 
-	const int nThreads = 2*(Sim.NThreads/2); // use only 2^N threads
+	const int desNumPar = min(Sim.NThreads*SUB_PAR_FAC, nData/INSERT_THRES);
 
-#pragma omp parallel shared(stack) num_threads(nThreads)
+	const size_t minParSize = nData/desNumPar * size;
+
+	int top = 1;
+
+#pragma omp parallel shared(stack,top) 
 	{
 
-	const int tID = Task.ThreadID;
+	for (; top < desNumPar;) {
 
-	char *hi, *lo; 
-
-	int i = 0; // number of partitions or iterations 
-
-	for (i = 1; i < nThreads; i *= 2) {
+		int jmax = top;
 
 	#pragma omp barrier
 
-		#pragma omp for schedule(static, 1)
-		for (int j = 0; j < i; j++) {
+		#pragma omp for 
+		for (int j = 0; j < jmax; j++) {
 
-			lo = stack[j].lo; // pop from stack
-			hi = stack[j].hi;
+			char *lo = stack[j].lo; // pop from stack
+			char *hi = stack[j].hi;
+
+			if (hi - lo < minParSize)  // don't split, too small
+				continue;
 
 			/* Find pivot element from median and sort the three. 
 			 * That helps to prevent the n^2 worst case */
@@ -145,22 +149,28 @@ void Qsort(void *const pbase, int nElements, size_t size,
 			} while (left_ptr <= right_ptr);
 
 			/* Push next iterations / partitions to the stack */
-			stack[2*j].lo = lo;
-			stack[2*j].hi = right_ptr;
+			stack[j].lo = lo;
+			stack[j].hi = right_ptr;
+	
+			#pragma omp atomic
+			top++;
 
-			stack[2*j + 1].lo = left_ptr;
-			stack[2*j + 1].hi = hi;
+			stack[top - 1].lo = left_ptr;
+			stack[top - 1].hi = hi;
 		} // j
+		
+		#pragma omp flush(top)
     } // i
 	
 	#pragma omp barrier
 
-	if (tID <= i) { // serial sort on subpartitions
+	#pragma omp for
+	for (int i = 0; i < top; i++) { // serial sort on subpartitions
 
-		size_t chunkSize = (stack[tID].hi-stack[tID].lo)/size + 1;
-
-		qsort(stack[tID].lo, chunkSize, size, cmp);
-	} 
+		size_t chunkSize = (stack[i].hi-stack[i].lo)/size + 1;
+		
+		qsort(stack[i].lo, chunkSize, size, cmp);
+	} // i
 
 	} // omp parallel
 	
@@ -169,53 +179,60 @@ void Qsort(void *const pbase, int nElements, size_t size,
 
 /* This is an OpenMP parallel external sort.
  * We use the same algorithm as above to divide and conquer.
- * In the first stage we make a partition for every thread.
- * In the second stage a qsort on the subpartition and an insertion sort. 
+ * In the first stage we sort SUB_PAR_FAC partitions per thread.
+ * The second stage a threaded qsort on the subpartitions down,
+ * to INSERT_THRES followed by insertion sort on the nearly 
+ * ordered subpartition. 
  * Here we are swaping ONLY the permutation array *perm and
- * are comparing ONLY the data array indexed by *perm */
+ * are comparing ONLY to the data array indexed by *perm */
 
-void Qsort_Index(size_t *perm, void *const data, const int nElements, 
+void Qsort_Index(size_t *perm, void *const data, const int nData, 
 		const size_t datasize, int (*cmp) (const void *, const void *))
 {
-	if (nElements < PARALLEL_THRESHOLD) {
+	if (nData < PARALLEL_THRES_HEAPS) { 
 	
-		gsl_heapsort_index(perm, data, nElements, datasize, cmp);
+		gsl_heapsort_index(perm, data, nData, datasize, cmp); // less overhead
 		
 		return ;
 	}
 
-	for (size_t i = 0; i < nElements; i++ ) 
+	for (size_t i = 0; i < nData; i++ ) 
 		perm[i] = i; 
 
-	int nThreads = 2*(Sim.NThreads/2); // N threads has to be power of 2
+	const int desNumPar = min(Sim.NThreads*SUB_PAR_FAC, nData/INSERT_THRES);
 
-	idx_stack_node public_stack[nThreads]; // one node per thread  
+	const size_t minParSize = nData/desNumPar;
+	
+	idx_stack_node public_stack[STACK_SIZE] = { NULL };   
 
-	public_stack[0].lo = perm;  // initial stack node is just the whole array
-	public_stack[0].hi = &perm[nElements - 1];
+	int top = 0;
 
-#pragma omp parallel shared(public_stack)  num_threads(nThreads)
+	public_stack[top].lo = perm;  
+	public_stack[top++].hi = &perm[nData - 1];\
+
+#pragma omp parallel shared(public_stack, top)  
 	{
 
-	const int tID = Task.ThreadID;
+	/* First stage: subpartitions, roughly NThreads*SUB_PAR_FAC */
 
-	size_t *hi, *lo; 
-	
-	/* First stage: subpartitions */
+	for (int i = 0; top < desNumPar; i++) { 
 
-	for (int i = 1; i < nThreads; i *= 2) { 
- 
+		int jmax = top;
+
 	#pragma omp barrier
 
-		#pragma omp for schedule(static, 1)
-		for (int j = 0; j < i; j++) { // split
+		#pragma omp for 
+		for (int j = 0; j < jmax; j++) { 
 
-			lo = public_stack[j].lo; // pop from public stack
-			hi = public_stack[j].hi;
+			size_t *lo = public_stack[j].lo; // pop from public stack
+			size_t *hi = public_stack[j].hi;
+
+			if (hi - lo < minParSize)  // don't split, too small
+				continue; 
 
 	  		size_t *mid = lo + ((hi - lo) >> 1); // pivot from median
 
-			if (COMPARE_DATA(mid,lo,datasize) < 0) 
+			if (COMPARE_DATA(mid,lo,datasize) < 0) // sort the three
 				SWAP_SIZE_T (mid, lo);
 	
 			if (COMPARE_DATA(hi,mid,datasize) < 0)  
@@ -231,7 +248,7 @@ void Qsort_Index(size_t *perm, void *const data, const int nElements,
 			size_t *left  = lo + 1;
 	  		size_t *right = hi - 1;
 
-		  	do { // collapse the walls again
+		  	do { // collapse the walls 
 			
 				while (COMPARE_DATA(left,mid,datasize) < 0) 
 					left++;
@@ -253,6 +270,93 @@ void Qsort_Index(size_t *perm, void *const data, const int nElements,
 		
 				} else if (left == right) {
 		  		
+					left++; 
+		 
+					break;
+				}
+
+			} while (left <= right);
+
+			public_stack[j].lo = lo; // Push to replace old position
+			public_stack[j].hi = right;
+	
+			#pragma omp atomic
+			top++;
+
+			public_stack[top - 1].lo = left; //Push to top
+			public_stack[top - 1].hi = hi;
+		} // j
+
+		#pragma omp flush (top)
+    } // i
+
+	#pragma omp barrier
+
+	/* Second stage, every thread: Qsort on subpartitions */
+	
+	#pragma omp for 
+	for (int i = 0; i < top; i++) {
+	
+		idx_stack_node stack[STACK_SIZE] = { NULL }; // private stack
+
+		int next = 0; 
+
+		stack[0].lo = public_stack[i].lo;
+		stack[0].hi = public_stack[i].hi;
+
+		const size_t partition_size = stack[0].hi - stack[0].lo + 1;
+
+		if (partition_size < INSERT_THRES)
+			goto insertion_sort;
+
+		for (;;) { 
+
+			if (next == -1)
+				break;
+
+			size_t *lo = stack[next].lo;  // pop from private stack
+			size_t *hi = stack[next--].hi;
+
+	  		size_t *mid = lo + ((hi - lo) >> 1); 
+		
+			if (COMPARE_DATA(mid,lo,datasize) < 0) 
+				SWAP_SIZE_T (mid, lo);
+	
+			if (COMPARE_DATA(hi,mid,datasize) < 0)  
+				SWAP_SIZE_T (mid, hi);
+			else
+		    	goto hop_over;
+	  	
+			if (COMPARE_DATA(mid,lo,datasize)) 
+				SWAP_SIZE_T (mid, lo);
+		
+			hop_over:;
+	
+		  	size_t *left  = lo + 1;
+	  		size_t *right = hi - 1;
+
+		  	do { // collapse the walls
+			
+				while (COMPARE_DATA(left,mid,datasize) < 0) 
+					left++;
+
+				while (COMPARE_DATA(mid,right,datasize) < 0)
+					right--;
+
+	    		if (left < right) { 
+						
+					SWAP_SIZE_T (left, right);
+					
+					if (mid == left)
+			   			mid = right;
+					else if (mid == right)
+		   				mid = left;
+		  
+					left++;
+					right--;
+		
+				} else if (left == right) {
+		  			
 					left++;
 					right--;
 		 
@@ -261,152 +365,68 @@ void Qsort_Index(size_t *perm, void *const data, const int nElements,
 
 			} while (left <= right);
 
-			public_stack[2*j].lo = lo; // Push to public stack
-			public_stack[2*j].hi = right;
-	
-			public_stack[2*j + 1].lo = left;
-			public_stack[2*j + 1].hi = hi;
-		} // j
-    } // i
+			if (right - lo + 1 > INSERT_THRES) { // push
 
-#pragma omp barrier 
-
-	/* Second stage, every thread: Qsort on subpartitions */
-
-	int top = 0;
-
-	idx_stack_node stack[STACK_SIZE]; // private stack
-
-	stack[top].lo = public_stack[tID].lo;
-	stack[top].hi = public_stack[tID].hi;
-
-	const size_t partition_size = stack[top].hi - stack[top].lo + 1;
-
-	if (partition_size < INSERTION_SORT_THRESHOLD)
-		goto serial_insertion_sort;
-
-	for (;;) { 
-
-		if (top == -1)
-			break;
-
-		lo = stack[top].lo;  // pop from private stack
-		hi = stack[top--].hi;
-
-	  	size_t *mid = lo + ((hi - lo) >> 1); 
-
-		if (COMPARE_DATA(mid,lo,datasize) < 0) 
-			SWAP_SIZE_T (mid, lo);
-	
-		if (COMPARE_DATA(hi,mid,datasize) < 0)  
-			SWAP_SIZE_T (mid, hi);
-		else
-	    	goto hop_over;
-	  	
-		if (COMPARE_DATA(mid,lo,datasize)) 
-			SWAP_SIZE_T (mid, lo);
-		
-		hop_over:;
-
-	  	size_t *left  = lo + 1;
-	  	size_t *right = hi - 1;
-
-	  	do { // collapse the walls
-		
-			while (COMPARE_DATA(left,mid,datasize) < 0) 
-				left++;
-
-			while (COMPARE_DATA(mid,right,datasize) < 0)
-				right--;
-
-	    	if (left < right) { 
-					
-				SWAP_SIZE_T (left, right);
-					
-				if (mid == left)
-		   			mid = right;
-				else if (mid == right)
-		   			mid = left;
-		  
-				left++;
-				right--;
-		
-			} else if (left == right) {
-		  		
-				left++;
-				right--;
-		 
-				break;
+					stack[++next].lo = lo;
+					stack[next].hi = right;
 			}
-
-		} while (left <= right);
-
-		if (right - lo + 1 > INSERTION_SORT_THRESHOLD) { // push
-
-				stack[++top].lo = lo;
-				stack[top].hi = right;
-		}
 			
-		if (hi - left + 1 > INSERTION_SORT_THRESHOLD) {
+			if (hi - left + 1 > INSERT_THRES) {
 
-				stack[++top].lo = left;
-				stack[top].hi = hi;
-		}
-	}
+					stack[++next].lo = left;
+					stack[next].hi = hi;
+			}
+		} // for()
     
-	/* Third stage, every thread: insertion sort */
+		/* Third stage, every thread: insertion sort */
 
-	serial_insertion_sort:;   
+		insertion_sort:;
+
+		size_t *beg = public_stack[i].lo;
+		size_t *end = public_stack[i].hi;
+
+		size_t *trail = beg;
+		size_t *run = NULL;
 	
-	size_t *beg = public_stack[tID].lo;
-	size_t *end = public_stack[tID].hi;
+		const size_t *runMax = min(end, beg + INSERT_THRES);
 
-	size_t *trail = beg;
-	size_t *run = NULL;
+		for (run = beg + 1; run < runMax; run++) // smallest element first
+			if (COMPARE_DATA(run, trail, datasize) < 0)
+				trail = run;
+
+		if (trail != beg)
+			SWAP_SIZE_T(trail, beg);
+
+		run = beg + 1;
+
+		while (++run <= end) { // insertion sort left to right
 	
-	const size_t *runMax = min(end, beg + INSERTION_SORT_THRESHOLD);
+			trail = run - 1;
 
-	for (run = beg + 1; run < runMax; run++) // smallest element first
-		if (COMPARE_DATA(run, trail, datasize) < 0)
-			trail = run;
+			while (COMPARE_DATA(run, trail, datasize) < 0)
+				trail--;
 
-	if (trail != beg)
-		SWAP_SIZE_T(trail, beg);
+			trail++;
 
-	run = beg + 1;
+			if (trail != run)  {
 
-	while (++run <= end) { // insertion sort left to right
-	
-		trail = run - 1;
+				size_t save = *run;
 
-		while (COMPARE_DATA(run, trail, datasize) < 0)
-			trail--;
+				size_t *hi = run;
+				size_t *lo = hi - 1;
 
-		trail++;
+				while (lo >= trail) 
+					*hi-- = *lo--;
 
-		if (trail != run)  {
-
-			size_t save = *run;
-
-			hi = run;
-			lo = hi - 1;
-
-			while (lo >= trail) 
-				*hi-- = *lo--;
-
-			*hi = save;
-		}
-	}
+				*hi = save;
+			}
+		} // while
+	} // i
 
 	} // omp parallel
 	
 	return;
 }
-
-
-
-
-
 
 
 
@@ -426,14 +446,14 @@ int test_compare(const void * a, const void *b)
 
 void test_sort()
 {
-	const size_t N = 500000;
-	const size_t Nit = 10;
+	const size_t N = 2001;
+	const size_t Nit = 200;
 	int good;
 
-	double *x = malloc(N * sizeof(*x) );
-	double *y = malloc(N * sizeof(*y) );
-	size_t *p = malloc(N * sizeof(*p) );
-	size_t *q = malloc(N * sizeof(*p) );
+	double *x = malloc( N * sizeof(*x) );
+	double *y = malloc( N * sizeof(*y) );
+	size_t *p = malloc( N * sizeof(*p) );
+	size_t *q = malloc( N * sizeof(*p) );
   	
 	double tmp = omp_get_wtime();
   	double tmp2 = omp_get_wtime();
@@ -443,7 +463,7 @@ void test_sort()
 	for (int j = 0; j < N; j++) 
     	x[j] = y[j] = erand48(Task.Seed);
 
-	for (int i = 0; i < Nit; i++) {
+/*	for (int i = 0; i < Nit; i++) {
 	
 		time = omp_get_wtime();
 
@@ -465,7 +485,7 @@ void test_sort()
   
   	for (int i = 1; i < N; i++) {
 
-//		printf("%d %g %g \n", i, x[i], x[p[i]]);
+		//printf("%d %g %g \n", i, x[i], x[p[i]]);
 
 	 	if (x[p[i]] < x[p[i-1]])
 			good = 0;
@@ -479,10 +499,10 @@ void test_sort()
 	printf("%zu Parallel:  %g sec, Single:  %g sec, Speedup: %g \n",
 		N, deltasum0, deltasum1, deltasum1/deltasum0 );
 
-exit(0);
+exit(0);*/
 
 
-	/*for (int i = 0; i < Nit; i++) {
+	for (int i = 0; i < Nit; i++) {
 	
 		for (int j = 0; j < N; j++) 
     		x[j] = y[j] = erand48(Task.Seed);
@@ -517,8 +537,8 @@ exit(0);
   	printf("%zu Parallel:  %g sec, Single:  %g sec, Speedup: %g \n",
 		N, deltasum0, deltasum1, deltasum1/deltasum0 );
 
-	exit(0);*/
-	
+	exit(0);
+
 	return ;
 }
 

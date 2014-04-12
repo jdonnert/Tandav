@@ -10,15 +10,13 @@
 #define PARALLEL_THRES_HEAPS 15000
 
 #define INSERT_THRES 10 // insertion sort threshold
-#define SUB_PAR_FAC 8 // sub partitions per thread for load balancing
+#define SUB_PAR_FAC 4 // sub partitions per thread for load balancing
 
 #define SWAP(a, b, size)     		\
-  	do							    \
-    {								\
+  	do {						    \
       size_t __size = (size);		\
       char *__a = (a), *__b = (b);	\
-      do							\
-	{								\
+      do {							\
 	  char __tmp = *__a;			\
 	  *__a++ = *__b;				\
 	  *__b++ = __tmp;				\
@@ -68,10 +66,10 @@ void Qsort(void *const data_ptr, int nData, size_t size,
 	}
 
 	/* initial stack node is just the whole array */
-	stack_node stack[STACK_SIZE] = { NULL };
+	stack_node stack[STACK_SIZE] = { { NULL, NULL} };
 
-	stack[0].lo = data_ptr; 
-	stack[0].hi = &data_ptr[size * (nData - 1)];
+	stack[0].lo = (char *)data_ptr; 
+	stack[0].hi = &((char *)data_ptr)[size * (nData - 1)];
 
 	const int desNumPar = min(Sim.NThreads*SUB_PAR_FAC, nData/INSERT_THRES);
 
@@ -163,7 +161,7 @@ void Qsort(void *const data_ptr, int nData, size_t size,
     } // i
 	
 	#pragma omp barrier
-
+	
 	#pragma omp for
 	for (int i = 0; i < top; i++) { // serial sort on subpartitions
 
@@ -174,7 +172,7 @@ void Qsort(void *const data_ptr, int nData, size_t size,
 
 	} // omp parallel
 	
-	return;
+	return ;
 }
 
 /* This is an OpenMP parallel external sort.
@@ -203,7 +201,7 @@ void Qsort_Index(size_t *perm, void *const data, const int nData,
 
 	const size_t minParSize = nData/desNumPar;
 	
-	idx_stack_node public_stack[STACK_SIZE] = { NULL };   
+	idx_stack_node public_stack[STACK_SIZE] = { { NULL, NULL } };   
 
 	int top = 0;
 
@@ -297,7 +295,7 @@ void Qsort_Index(size_t *perm, void *const data, const int nData,
 	#pragma omp for 
 	for (int i = 0; i < top; i++) {
 	
-		idx_stack_node stack[STACK_SIZE] = { NULL }; // private stack
+		idx_stack_node stack[STACK_SIZE] = { { NULL, NULL }}; // private stack
 
 		int next = 0; 
 
@@ -446,24 +444,24 @@ int test_compare(const void * a, const void *b)
 
 void test_sort()
 {
-	const size_t N = 2001;
-	const size_t Nit = 200;
+	const size_t N = 90401;
+	const size_t Nit = 1000;
 	int good;
 
 	double *x = malloc( N * sizeof(*x) );
 	double *y = malloc( N * sizeof(*y) );
 	size_t *p = malloc( N * sizeof(*p) );
 	size_t *q = malloc( N * sizeof(*p) );
-  	
-	double tmp = omp_get_wtime();
-  	double tmp2 = omp_get_wtime();
+
+	omp_get_wtime();
+  	omp_get_wtime();
 
   	double time, time2, time3, deltasum0 = 0, deltasum1 = 0;
 	
 	for (int j = 0; j < N; j++) 
     	x[j] = y[j] = erand48(Task.Seed);
 
-/*	for (int i = 0; i < Nit; i++) {
+	for (int i = 0; i < Nit; i++) {
 	
 		time = omp_get_wtime();
 
@@ -471,9 +469,9 @@ void test_sort()
 
   		time2 = omp_get_wtime();
 	
-		gsl_heapsort_index(q, y, N, sizeof(*y), &test_compare);
+	gsl_heapsort_index(q, y, N, sizeof(*y), &test_compare);
   		
- 	 	time3 = omp_get_wtime();
+	time3 = omp_get_wtime();
 
 		deltasum0 += time2-time;
 		deltasum1 += time3-time2;
@@ -499,7 +497,6 @@ void test_sort()
 	printf("%zu Parallel:  %g sec, Single:  %g sec, Speedup: %g \n",
 		N, deltasum0, deltasum1, deltasum1/deltasum0 );
 
-exit(0);*/
 
 
 	for (int i = 0; i < Nit; i++) {
@@ -510,8 +507,8 @@ exit(0);*/
 		time = omp_get_wtime();
 
   		Qsort(x, N, sizeof(*x), &test_compare);
-
-  		time2 = omp_get_wtime();
+  		
+		time2 = omp_get_wtime();
 	
  		qsort(y, N, sizeof(*y), &test_compare);
   	

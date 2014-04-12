@@ -131,7 +131,7 @@ void Arrange_Particles_By_Peano_Key()
 		P[ipart].Peanokey = keys[ipart];
 	}
 
-	unsigned int *idx = Malloc(Sim.NpartTotalMean * sizeof(*idx));
+	size_t *idx = Malloc(Sim.NpartTotalMean * sizeof(*idx));
 	
 	Qsort_Index(idx, keys, 1, npart, &compare_peanokeys); 
 

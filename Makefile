@@ -16,10 +16,9 @@ FFT_INCL =
 FFT_LIBS =
 
 # machine specifics
-ifeq ($(SYSTYPE),"DARWIN")
+ifeq ($(SYSTYPE),DARWIN)
 CC       =  mpicc
-OPTIMIZE = -O0 -g -Wall -lmpich -mtune=native -march=corei7 \
-		   -ftree-vectorizer-verbose=2
+OPTIMIZE = -O3 -g -Wall -lmpich -mtune=native -march=corei7 #-ftree-vectorizer-verbose=2
 MPI_LIBS = 
 MPI_INCL = 
 GSL_INCL =  
@@ -74,7 +73,7 @@ INCLFILES = config.h globals.h tree.h cosmo.h unit.h aux.h macro.h proto.h \
 OBJS = $(addprefix $(SRCDIR),$(OBJFILES))
 INCS = $(addprefix $(SRCDIR),$(INCLFILES))
 
-CFLAGS += -std=c99  $(OPTIMIZE) $(GSL_INCL) $(MPI_INCL) $(FFT_INCL)
+CFLAGS += -fopenmp -std=c99  $(OPTIMIZE) $(GSL_INCL) $(MPI_INCL) $(FFT_INCL)
 
 LIBS = -lm -lgsl -lgslcblas $(MPI_LIBS) $(GSL_LIBS) $(FFTW_LIBS)
 

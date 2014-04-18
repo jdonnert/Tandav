@@ -296,7 +296,7 @@ void Qsort_Index(size_t *perm, void *const data, const int nData,
 
 		size_t partition_size = stack[0].hi - stack[0].lo + 1;
 
-		for (;partition_size < INSERT_THRES;) { 
+		for (;partition_size > INSERT_THRES;) { 
 
 			if (next == -1)
 				break;

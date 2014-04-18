@@ -29,9 +29,7 @@ endif
 
 ifeq ($(SYSTYPE),mach64.ira.inaf.it)
 CC       =  mpicc
-OPTIMIZE =  -g -O3 -march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp \ 
-			-minline-all-stringops -fprefetch-loop-arrays \
-			--param prefetch-latency=300 -funroll-all-loops 
+OPTIMIZE =  -g -O3 -march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp -minline-all-stringops -fprefetch-loop-arrays --param prefetch-latency=300 -funroll-all-loops 
 MPI_LIBS = -L/homes/donnert/Libs/lib
 MPI_INCL = -I/homes/donnert/Libs/include
 GSL_INCL =  
@@ -43,7 +41,7 @@ endif
 ifeq ($(SYSTYPE),getorin.ira.inaf.it)
 CC       =  mpicc
 OPTIMIZE =  -Wall -g -O3 -openmp   -finline -finline-functions \
-			-funroll-loops  -xhost  -mkl  -ipo 
+			-funroll-loops  -xhost  -mkl  #-ipo 
 MPI_LIBS = -lmpich -L/homes/donnert/Libs/lib
 MPI_INCL = -I/homes/donnert/Libs/include
 GSL_INCL =  

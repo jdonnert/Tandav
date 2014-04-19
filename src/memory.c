@@ -127,13 +127,13 @@ void Init_Memory_Management()
 {
 	MemSize = Param.MaxMemSize * 1024L * 1024L; // parameter is in MBytes
 
-	size_t availNbytes = get_system_memory_size();
+	size_t nBytesMax = get_system_memory_size();
 
 	size_t minNbytes = 0, maxNbytes = 0;
 
-	MPI_Reduce(&availNbytes, &maxNbytes, 1, MPI_LONG_LONG, MPI_MAX, 0, 
+	MPI_Reduce(&nBytesMax, &maxNbytes, 1, MPI_LONG_LONG, MPI_MAX, 0, 
 			MPI_COMM_WORLD);
-	MPI_Reduce(&availNbytes, &minNbytes, 1, MPI_LONG_LONG, MPI_MIN, 0, 
+	MPI_Reduce(&nBytesMax, &minNbytes, 1, MPI_LONG_LONG, MPI_MIN, 0, 
 			MPI_COMM_WORLD);
 
 	rprintf("Init Memory Manager\n"
@@ -203,7 +203,7 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 
 	for (int i = 0; i < NMemBlocks; i++) {
 		
-		if (! MemBlock[i].InUse)
+		if (MemBlock[i].InUse)
 			continue;
 
 		int size = MemBlock[i].Size;
@@ -264,10 +264,10 @@ void merge_free_memory_blocks(int i)
 		MemBlock[i].Start = NULL;
 		MemBlock[i].Size = 0;
 		
-		if (i && MemBlock[i-1].InUse == false)
+		if (i != 0 && !MemBlock[i-1].InUse)
 			merge_free_memory_blocks(i-1); // merge left into free
 
-	} else if (MemBlock[i+1].InUse == false) { // merge right
+	} else if (!MemBlock[i+1].InUse) { // merge right
 		
 		MemBlock[i].Size += MemBlock[i+1].Size;
 
@@ -279,7 +279,7 @@ void merge_free_memory_blocks(int i)
 		
 		NMemBlocks--;
 	
-	} else if (i && MemBlock[i-1].InUse == false) { // merge left
+	} else if (i != 0 && ! MemBlock[i-1].InUse) { // merge left
 
 		MemBlock[i-1].Size += MemBlock[i].Size;
 

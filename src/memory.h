@@ -1,4 +1,4 @@
-#define MAXMEMOBJECTS 999
+#define MAXMEMOBJECTS 1024
 
 void *Malloc_info(const char*,const char*,const int, size_t);
 void *Realloc_info(const char*, const char*, const int, void *, size_t);

@@ -133,7 +133,7 @@ void Arrange_Particles_By_Peano_Key()
 
 	size_t *idx = Malloc(Sim.NpartTotalMean * sizeof(*idx));
 	
-	Qsort_Index(idx, keys, 1, npart, &compare_peanokeys); 
+	Qsort_Index(Sim.NThreads, idx, keys, 1, npart, &compare_peanokeys); 
 
 	for (int i = 0; i < npart; i++) {
 

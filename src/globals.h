@@ -8,6 +8,7 @@
 #define NPARTYPE 6L 		// No of particle types
 #define MEM_ALIGNMENT 64L	// byte memory alignment
 #define PARTALLOCFACTOR 1.2	// Mem overhead to account for dynamic inbalance
+#define MASTER 0			// Rank of MPI master task
 
 /* VARIABLES */
 extern struct Local_Task_Properties {		

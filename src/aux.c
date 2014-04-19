@@ -4,7 +4,10 @@
  * as argument, not the total number. Add or Remove via sign of nPart.
  * Also updates Task.Npart and Task.NPartTotal. 
  * Expands P so that space for nPart[type] is at offset[type]
- * Contracts P so that the last nPart[type] particles are removed */
+ * Contracts P so that the last nPart[type] particles are removed 
+ * Note that actually no real allocation is taking place, because
+ * that would fragment memory. Instead needs to stay with in the
+ * limit set by PARTALLOCFACTOR */
 void Reallocate_P_Info(const char *func, const char *file, int line, 
 		int dNpart[NPARTYPE], size_t offset_out[NPARTYPE])
 {
@@ -14,7 +17,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 	for (int i = 0; i < NPARTYPE; i++)
 		Assert(Task.Npart[i] + dNpart[i] < Sim.NpartMean[i], 
 			"Too many particles type %d on this task. "
-			"Increase PARTALLOCFACTOR = %g", 
+			"Current PARTALLOCFACTOR = %g; Increase !", 
 			i, PARTALLOCFACTOR);
 
 	int offset[NPARTYPE] = { 0 }, new_npartTotal = 0;
@@ -31,7 +34,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 			"requested from %s, %s(), line %d", 
 			type, dNpart[type], Task.Npart[type], file, func, line);
 
-		if (!dNpart[type]) 
+		if (dNpart[type] == 0) 
 			continue; // don't need offset here
 
 		for (int i=0; i <= type; i++) 
@@ -55,7 +58,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		memmove(&P[dest], &P[src], nMove*sizeof(*P));
 	}
 
-	size_t nBytes = sizeof(*P) * new_npartTotal * PARTALLOCFACTOR;
+	//size_t nBytes = sizeof(*P) * new_npartTotal * PARTALLOCFACTOR;
 
 	nMove = Task.NpartTotal; // move particles right
 
@@ -88,8 +91,8 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 void Assert_Info(const char *func, const char *file, int line,
 		int64_t expr, const char *errmsg, ...)
 {
-	if (expr)
-        	return;
+	if (expr != 0)
+        return;
 
 	va_list varArgList;
 
@@ -118,7 +121,7 @@ void Assert_Info(const char *func, const char *file, int line,
 void Warn_Info(const char *func, const char *file, int line,
 		int64_t expr, const char *errmsg, ...)
 {
-	if (expr)
+	if (expr != 0)
         return;
 
 	va_list varArgList;

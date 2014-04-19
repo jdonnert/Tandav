@@ -68,11 +68,12 @@ static void preamble(int argc, char *argv[])
    	Task.ThreadID = omp_get_thread_num();
    	Sim.NThreads = omp_get_num_threads();
 		
-	Task.Seed[2] = 1441981 * Task.ThreadID; // init thread safe rng
+	Task.Seed[2] = 1441981 * Task.ThreadID; // init thread safe std rng
    	erand48(Task.Seed); // remove leading 0 in some implementations
    	}
 
-	if (!Task.Rank) {
+	if (Task.Rank == MASTER) {
+
 		printf("# Tandav #\n\n");
 
 		printf("Using %d MPI tasks, %d OpenMP threads \n\n", 

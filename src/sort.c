@@ -418,7 +418,7 @@ int test_compare(const void * a, const void *b)
 void test_sort()
 {
 	const size_t N = 200000;
-	const size_t Nit = 10;
+	const size_t Nit = 50;
 	int good;
 
 	double *x = malloc( N * sizeof(*x) );
@@ -476,8 +476,8 @@ void test_sort()
 	  	printf("Array not sorted :-( \n");
   	
 	printf("Index: parallel %g sec; Single %g sec; Speedup: %g \n",
-		deltasum0/CLOCKS_PER_SEC, 
-		deltasum1/CLOCKS_PER_SEC, 	deltasum1/deltasum0 );
+		deltasum0/CLOCKS_PER_SEC/Sim.NThreads, 
+		deltasum1/CLOCKS_PER_SEC, 	deltasum1/deltasum0*Sim.NThreads );
 
 	/* in-place sort */
 
@@ -526,8 +526,8 @@ void test_sort()
 	  	printf("Array not sorted :-( \n");
 
   	printf("In-place: parallel  %g sec, Single:  %g sec, Speedup: %g \n",
-		deltasum0/CLOCKS_PER_SEC, 
-		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0 );
+		deltasum0/CLOCKS_PER_SEC/Sim.NThreads, 
+		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*Sim.NThreads );
 
 	exit(0);
 

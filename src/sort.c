@@ -424,8 +424,6 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 	return;
 }
 
-
-
 /* testing */
 int test_compare(const void * a, const void *b) 
 {
@@ -437,7 +435,7 @@ int test_compare(const void * a, const void *b)
 
 void test_sort()
 {
-	const size_t N = 20000;
+	const size_t N = 900000;
 	const size_t Nit = 10;
 	int good;
 
@@ -543,7 +541,6 @@ void test_sort()
   	printf("In-place: parallel  %g sec, Single:  %g sec, Speedup: %g \n",
 		deltasum0/CLOCKS_PER_SEC/Sim.NThreads, 
 		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*Sim.NThreads );
-
 
 	return ;
 }

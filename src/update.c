@@ -11,7 +11,7 @@ void Update(enum Update_Parameters stage)
 		
 			Print_Memory_Usage();
 	
-			Arrange_Particles_By_Peano_Key();
+			Sort_Particles_By_Peano_Key();
 		
 			break;
 
@@ -21,7 +21,7 @@ void Update(enum Update_Parameters stage)
 		
 		case AFTER_DRIFT:
 		
-			Arrange_Particles_By_Peano_Key();
+			Sort_Particles_By_Peano_Key();
 
 			break;
 		

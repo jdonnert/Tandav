@@ -12,14 +12,14 @@ static void preamble(int argc, char *argv[]);
 int main(int argc, char *argv[])
 {
 	preamble(argc, argv);	
-test_sort();
-	/*Read_and_Init();
+
+	Read_and_Init();
 
 	Setup();
 
 	Update(BEFORE_MAIN_LOOP);
 
-	for (;;) { // Quinn+97
+	for (;;) { // Quinn+97, Springel05
 
 		Kick_Halfstep();
 		
@@ -50,7 +50,6 @@ test_sort();
 		Write_Restart_File();
 	
 	Finish();
-*/
 
 	MPI_Finalize();
 

@@ -99,9 +99,8 @@ void Assert_Info(const char *func, const char *file, int line,
 	va_start(varArgList, errmsg);
 
 	/* we fucked up, tell them */
-    	fprintf(stderr, "\nERROR Task %d, Thread %d:"
-			" file %s, line %d, %s()\n\n	", 
-			Task.Rank, Task.ThreadID, file, line, func);
+    fprintf(stderr, "\nERROR Task %d, Thread %d: file %s, line %d,"
+			" %s()\n\n", Task.Rank, Task.ThreadID, file, line, func);
 
 	vfprintf(stderr, errmsg, varArgList); 
 	
@@ -129,9 +128,8 @@ void Warn_Info(const char *func, const char *file, int line,
 	va_start(varArgList, errmsg);
 
 	/* Houston, we got a problem here */
-    fprintf(stderr, "\nWARNING Task %d: In file %s, "
-		"function %s(), line %d :\n\n	", 
-		Task.Rank, file, func, line);
+    fprintf(stderr, "\nWARNING Task %d, Thread %d: In file %s, function %s(),"
+			" line %d :\n\n	", Task.Rank, Task.ThreadID, file, func, line);
 
 	vfprintf(stderr, errmsg, varArgList); 
 	

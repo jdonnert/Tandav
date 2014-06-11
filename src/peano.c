@@ -124,15 +124,18 @@ peanoKey Compute_Peano_Key(const float x, const float y,
 	/* bit interleave the transpose array */
 	peanoKey key = 0;
 
-	X[1] >>= 1; X[2] >>= 2;	
+	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
 
 	for (int i = 0; i < 21; i++) {
 
-		uint32_t col = ( (X[0] & 0x80000000) 
-				| (X[1] & 0x40000000) | (X[2] & 0x20000000)) >> 29;
+		uint32_t col = ((X[0] & 0x80000000) 
+					  | (X[1] & 0x40000000) 
+					  | (X[2] & 0x20000000)) >> 29;
 		
 		key <<= 3; 
+
 		X[0] <<= 1; X[1] <<= 1; X[2] <<= 1;
+
 		key |= col; 
 	} 
 

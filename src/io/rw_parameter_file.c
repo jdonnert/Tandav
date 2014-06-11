@@ -80,9 +80,9 @@ void Read_Parameter_File(const char *filename)
 		printf("\n");
 
 		for (int i = 0; i < NTags; i++) // are we missing one ?
-            		Assert(tagDone[i],
-				"Value for tag '%s' missing in parameter"
-				" file '%s'.\n",ParDef[i].tag, filename );
+           	Assert(tagDone[i] || ParDef[i].type == COMMENT, 
+				"Value for tag '%s' missing in parameter file '%s'.\n",
+				ParDef[i].tag, filename );
 
 	}
 

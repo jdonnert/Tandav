@@ -11,11 +11,10 @@ static bool find_endianess(FILE *);
 static int find_block(FILE *, const char label[4], const bool);
 static void read_header_data(FILE *fp, const bool, int);
 static void read_file(char *, const bool, const int, const int, MPI_Comm);
-static void empty_comm_buffer(char *, const int, const int *, const size_t *);
+static void empty_comm_buffer(char *, const int, const int, const int *, 
+		const size_t *);
 
 static void generate_masses_from_header();
-
-static char * restrict RecvBuf = NULL, * restrict ReadBuf = NULL;
 
 void Read_Snapshot(char *input_name)
 {
@@ -31,7 +30,7 @@ void Read_Snapshot(char *input_name)
 
 	Profile("Read Snap");
 
-	if (!Task.Rank) {
+	if (Task.Rank == MASTER) {
 
 		nFiles = find_files(input_name);
 		
@@ -108,12 +107,6 @@ void Read_Snapshot(char *input_name)
 		
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
-	
-	if (RecvBuf != NULL)
-		Free(RecvBuf); 
-
-	if (ReadBuf != NULL)
-		Free(ReadBuf);
 
 	generate_masses_from_header();
 
@@ -126,9 +119,8 @@ void Read_Snapshot(char *input_name)
 
 /* reads file on master and distributes it to an MPI communicator 
  * spanning groupSize with local rank groupRank */
-static void 
-read_file (char *filename, const bool swapEndian, const int groupRank, 
-		   const int groupSize, MPI_Comm mpi_comm_read)
+static void read_file (char *filename, const bool swapEndian, 
+		const int groupRank, const int groupSize, MPI_Comm mpi_comm_read)
 {
 	const int groupMaster = 0;  
 	
@@ -174,6 +166,10 @@ read_file (char *filename, const bool swapEndian, const int groupRank,
 	for (i = 0; i < NPARTYPE; i++) 
 		for (j = groupRank; j < nPartFile[i]; j += groupSize) 
 			nPartGet[i]++;
+	
+	size_t offsets[NPARTYPE] = { 0 }; 
+	
+	Reallocate_P(nPartGet, offsets); // return offsets, update Task.Npart
 
 	int nPartGetTotal = 0; 
 	
@@ -182,14 +178,16 @@ read_file (char *filename, const bool swapEndian, const int groupRank,
 	
 	size_t nBytes = nPartGetTotal * largest_block_member_nbytes();
 
-	RecvBuf = Realloc(RecvBuf, nBytes);
+	char *RecvBuf = Malloc(nBytes);
 
-	nBytes = nTotRead * largest_block_member_nbytes(); // only for master
-	ReadBuf = Realloc(ReadBuf, nBytes); 
+	char *ReadBuf = NULL;
 
-	size_t offsets[NPARTYPE] = { 0 }; 
-
-	Reallocate_P(nPartGet, offsets); // return offsets, update Task.Npart
+	if (groupRank == groupMaster) {
+	
+		nBytes = nTotRead * largest_block_member_nbytes(); 
+		
+		ReadBuf = Malloc(nBytes); 
+	}
 
 	for (i = 0; i < NBlocks; i++) { // read blockwise
 
@@ -226,10 +224,11 @@ read_file (char *filename, const bool swapEndian, const int groupRank,
 			
 			SKIP_FORTRAN_RECORD
 		} 
-		
+
 		int nBytesGetBlock = npart_in_block(i, nPartGet) * Block[i].Nbytes;
 		
 		int nBytesSend[groupSize];
+
 		MPI_Allgather(&nBytesGetBlock, 1 , MPI_INT, nBytesSend, 1, MPI_INT, 
 				mpi_comm_read);
 
@@ -241,58 +240,48 @@ read_file (char *filename, const bool swapEndian, const int groupRank,
 			displs[j] += nBytesSend[j-1] + displs[j-1];
 
 		MPI_Scatterv(ReadBuf, nBytesSend, displs, MPI_BYTE, // distribute
-			RecvBuf, nBytesSend[groupRank], MPI_BYTE, 
-			groupMaster, mpi_comm_read); 
+					RecvBuf, nBytesSend[groupRank], MPI_BYTE, 
+					groupMaster, mpi_comm_read); 
 
-		empty_comm_buffer(RecvBuf, i, nPartGet, offsets); // copy *P 
+		empty_comm_buffer(RecvBuf, i, nPartGetTotal, nPartGet, offsets);  
 	}
 
 	if (fp != NULL)
 		fclose(fp);
 	
+	Free(RecvBuf); Free(ReadBuf);
+
+	printf("i=%d m=%g type=%d \n", 0, P[0].Mass,P[0].Type);
 	return ;
 }
 
 /* This moves data from the comm buffer to P. Its generic but slow, 
  * but here we should be limited by the I/O of the drive anyway */
 static void empty_comm_buffer (char *DataBuf, const int iBlock, 
-		const int *nPart, const size_t *offsets)
+		const int nPartTotal, const int *nPart, const size_t *offsets)
 {
 	const size_t nBytes = Block[iBlock].Nbytes;
 	const size_t sizeof_P = sizeof(*P);
 
-	char *start_P = (char *)P + Block[iBlock].Offset;
-	//char *start_G = (char *)G + Block[iBlock].Offset;
-
 	char *src = DataBuf; 
+	char *dest = NULL;
 
 	switch (Block[iBlock].Target) { // ptr fun for the whole family
 
 		case VAR_P:
 
-			for (int type = 0; type < NPARTYPE; type++) { 
-				
-				char *dest = start_P + offsets[type]*sizeof_P;
+			dest = (char *)P + Block[iBlock].Offset;
+			
+			for (int i = 0; i < nPartTotal; i++) {  
 
-				for (int i = 0; i < nPart[type]; i++) {  
-
-					memcpy(dest, src, nBytes);
+				memcpy(dest, src, nBytes);
 					
-					dest += sizeof_P; // in bytes
+				dest += sizeof_P; // in bytes
 
-					src += nBytes;
-				}
+				src += nBytes;
 			}
 			
-			break;
-
-/*		case VAP_G:
-
-			for (int i=0; i<nPart; i++)
-				memcpy(&G[i]+offset, CommBuf+ nBytes*ibuf++, 
-				nBytes);
-
-			break; */
+		break;
 
 		default: 
 			Assert(0, "Input buffer target unknown");
@@ -339,10 +328,10 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 		
 		Sim.NpartTotal += Sim.Npart[i];
 
-		Sim.NpartMean[i] = ceil(Sim.Npart[i]/Sim.NTask * PARTALLOCFACTOR);
+		Sim.NpartMax[i] = ceil((double)Sim.Npart[i]/Sim.NTask*PARTALLOCFACTOR);
 	}
 
-	Sim.NpartTotalMean = ceil(Sim.NpartTotal/Sim.NTask * PARTALLOCFACTOR);
+	Sim.NpartTotalMax = ceil(Sim.NpartTotal/Sim.NTask * PARTALLOCFACTOR);
 
 #ifdef PERIODIC
 	Assert(Sim.Boxsize >= 0, "Boxsize in header not > 0, but %g ", Sim.Boxsize);
@@ -371,9 +360,14 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 
 static void generate_masses_from_header() 
 {
-	for (int i = 0; i < NPARTYPE; i++)
-		if (Sim.Mpart[i])
-			return;
+	bool mass_in_header = false;
+
+	for (int type = 0; type < NPARTYPE; type++)
+		if (Sim.Mpart[type] != 0)
+			mass_in_header = true;
+
+	if (! mass_in_header)
+		return;
 
 	int iMin = 0;
 	
@@ -489,8 +483,7 @@ static int find_files(char *filename)
 /* this fread wrapper checks for eof, corruption and swaps endianess 
  * if swapEndian == true 
  * */
-static int 
-safe_fread(void *data, size_t size, size_t nWanted, FILE *stream, 
+static int safe_fread(void *data, size_t size, size_t nWanted, FILE *stream, 
 		bool swapEndian)
 {
 	size_t nRead = fread(data, size, nWanted, stream);

@@ -15,7 +15,7 @@ typedef struct {
 	char val[CHARBUFSIZE]; // Standard value
 	void *addr; // Address of target variable
 	enum param_type {
-		FLOAT, 
+		DOUBLE, 
 		INT, 
 		STRING,
 		COMMENT,
@@ -32,23 +32,27 @@ static const parameter ParDef[] = {
 
 	{"\n%% Code Parameters %%\n", "", NULL, COMMENT},
 	{"MaxMemSize", "1000", &Param.MaxMemSize, INT},
-	{"TimeLimitCPU", "", &Param.RuntimeLimit, INT},
-	{"CommBufSize", "", &Param.CommBufSize, INT},
+	{"TimeLimitCPU", "20864", &Param.RuntimeLimit, INT},
+	{"CommBufSize", "1000", &Param.CommBufSize, INT},
 
 	{"\n%% Simulation Characteristics %%\n", "", NULL, COMMENT},
-	{"Boxsize0", "4000", &Sim.Boxsize[0], FLOAT},
-	{"Boxsize1", "4000", &Sim.Boxsize[1], FLOAT},
-	{"Boxsize2", "4000", &Sim.Boxsize[2], FLOAT},
-	{"TimeBegin", "0", &Time.Begin, FLOAT},
-	{"TimeEnd", "10", &Time.End, FLOAT},
-	{"TimeOfFirstSnaphot", "0", &Time.FirstSnap, FLOAT},
-	{"TimeBetSnapshot", "0", &Time.BetSnap, FLOAT},
+	{"Boxsize0", "4000", &Sim.Boxsize[0], DOUBLE},
+	{"Boxsize1", "4000", &Sim.Boxsize[1], DOUBLE},
+	{"Boxsize2", "4000", &Sim.Boxsize[2], DOUBLE},
+	{"TimeBegin", "0", &Time.Begin, DOUBLE},
+	{"TimeEnd", "10", &Time.End, DOUBLE},
+	{"TimeOfFirstSnaphot", "0", &Time.FirstSnap, DOUBLE},
+	{"TimeBetSnapshots", "0", &Time.BetSnap, DOUBLE},
 
 	{"\n%% Cosmology %%\n", "", NULL, COMMENT},
-	{"Omega0", "1", &Cosmo.Omega0, FLOAT},
-	{"OmegaLambda", "0.7", &Cosmo.OmegaLambda, FLOAT},
-	{"OmegaBaryon", "1", &Cosmo.OmegaBaryon, FLOAT},
-	{"HubbleParam", "0.7", &Cosmo.HubbleParam, FLOAT}
+	{"Omega0", "1", &Cosmo.Omega0, DOUBLE},
+	{"OmegaLambda", "0.7", &Cosmo.OmegaLambda, DOUBLE},
+	{"OmegaBaryon", "1", &Cosmo.OmegaBaryon, DOUBLE},
+	{"HubbleParam", "0.7", &Cosmo.HubbleParam, DOUBLE},
+
+	{"\n%% Time Integration %%\n", "", NULL, COMMENT},
+	{"TimeIntAccuracy", "0.1", &Param.TimeIntAccuracy, DOUBLE},
+	{"GravSoftening", "1", &Param.GravSoftening, DOUBLE}
 
 	/* Add yours below */
 };
@@ -89,8 +93,8 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 		VAR_BH, 
 		VAR_BND
 	} Target;		// identify global var
-	int Offset;		// offset in underlying struct
-	int Nbytes; 	// sizeof target field
+	size_t Offset;		// offset in underlying struct
+	size_t Nbytes; 	// sizeof target field
 	int PartBitMask;// == 1 at bit i+1, if required for type i
 };
 
@@ -102,14 +106,12 @@ static const struct io_block_def Block[] = {
   	{"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_FIELD_SIZEOF(Pos), 0xFF},
   	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_FIELD_SIZEOF(Vel),0xFF},
   	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_FIELD_SIZEOF(ID), 0xFF},
-#ifdef INDIVIDUAL_PARTICLE_MASSES
   	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_FIELD_SIZEOF(Mass), 0xFF}
-#endif
 #ifdef OUTPUT_FORCE
-  	{"FRCE", "Forces", VAR_P, P_OFFSET(Force), P_FIELD_SIZEOF(Force), 0xFF}
+  	,{"FRCE", "Forces", VAR_P, P_OFFSET(Force), P_FIELD_SIZEOF(Force), 0xFF}
 #endif
 #ifdef OUTPUT_PEANO_KEY
-  	{"PKEY","Peanokeys",VAR_P,P_OFFSET(Peanokey),P_FIELD_SIZEOF(peanoKey),0xFF}
+  	,{"PKEY","Peanokey",VAR_P,P_OFFSET(Peanokey),P_FIELD_SIZEOF(peanoKey),0xFF}
 #endif
 
 	/* Add yours below */

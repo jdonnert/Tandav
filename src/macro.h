@@ -1,5 +1,4 @@
-/* Try to avoid macros (especially global ones). If you can't do without
- * dump them here */
+/* Some useful macros */
 
 #if __STDC_VERSION__ < 199901L
 # error Recompile with C99 support
@@ -8,17 +7,7 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0])) 
 #define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
 
-#define Assert(...) Assert_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
-#define Warn(...) Warn_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
-
-#define Reallocate_P(...) Reallocate_P_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
-
-#define rprintf(...) if(!Task.Rank)printf(__VA_ARGS__)
-
-#define Malloc(x) Malloc_info( __func__, __FILE__, __LINE__, x)
-#define Realloc(x,y) Realloc_info(__func__, __FILE__, __LINE__, x, y)
-#define Free(x) Free_info(__func__, __FILE__, __LINE__, x)
-#define Profile(x) Profile_Info(__func__, __FILE__, __LINE__, x)
+#define rprintf(...) if(Task.Rank == MASTER)printf(__VA_ARGS__)
 
 #define min(a,b) ((a)<(b)?(a):(b)) // this doesnt always work: c = max(a++, b)
 #define max(a,b) ((a)>(b)?(a):(b))

@@ -9,29 +9,36 @@
 
 static void preamble(int argc, char *argv[]);
 
+/* This exposes the time integration */
 int main(int argc, char *argv[])
 {
 	preamble(argc, argv);	
-test_sort();
-	/*Read_and_Init();
+
+	Read_and_Init();
 
 	Setup();
 
 	Update(BEFORE_MAIN_LOOP);
 
-	for (;;) { // Quinn+97
+int cnt = 0,i = 1, ipart = 1;
+
+	for (;;) { // Quinn+97, Springel05
 
 		Kick_Halfstep();
-		
+
 		Update(AFTER_FIRST_KICK);
 
+if (cnt % 100 == 0)
+printf("%d %g %g %g %g %g %g %g %g %g %g \n", cnt,
+		P[i].Pos[0], P[i].Pos[1], P[i].Pos[2], 
+		P[i].Vel[0], P[i].Vel[1], P[i].Vel[2], 
+		P[i].Acc[0], P[i].Acc[1], P[i].Acc[2], Time.Current);
+
 		Drift();
-		
+
 		Update(AFTER_DRIFT);
 
 		Set_New_Timesteps();
-
-		Update(AFTER_NEW_TIMESTEPS);
 
 		if (Time_For_Snapshot())
 			Write_Snapshot();
@@ -39,18 +46,18 @@ test_sort();
 		if (Time_Is_Up())
 			break;
 	
-		Update(BEFORE_SECOND_KICK);
-
 		Kick_Halfstep();
-		
+   
+if (cnt++  == 1000000)
+exit(0);
+
 		Update(AFTER_SECOND_KICK);
 	}
 
-	if (Runtime() >= Param.RuntimeLimit) 
+	if (Flag.WriteRestartFile) 
 		Write_Restart_File();
 	
 	Finish();
-*/
 
 	MPI_Finalize();
 

@@ -26,7 +26,7 @@
 #include "memory.h"			// memory management
 #include "profile.h"		// time measurement & logging
 #include "sort.h" 			// sort functions
-#include "peano.h" 			// peano keys 
+#include "peano.h" 			
 
 /* Global function prototypes */
 
@@ -38,8 +38,6 @@ extern void Print_compile_time_settings();
 
 #include "cosmo.h" 			// cosmology functions 
 #include "comov.h"			// Comoving coordinates
-
-
 
 /* Workarounds */
 double erand48(unsigned short xsubi[3]);

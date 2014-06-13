@@ -61,12 +61,9 @@ void *Malloc_info(const char* file, const char* func, const int line,
 void *Realloc_info(const char* file, const char* func, const int line, 
 		void *ptr, size_t new_size)
 {
-	if (ptr == NULL) {
-		
-		Warn(1, "Trying to realloc a NULL pointer");
-		
+	if (ptr == NULL) 
 		return Malloc_info(file, func, line, new_size);
-	}
+	
 
 	if ( (new_size % MEM_ALIGNMENT) > 0)
 		new_size = (new_size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;

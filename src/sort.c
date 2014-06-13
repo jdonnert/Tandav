@@ -187,11 +187,11 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 		
 		return ;
 	}
-
+	
 	for (size_t i = 0; i < nData; i++ ) 
 		perm[i] = i; 
 
-	const int desNumPar = 2 * floor(min(nThreads, nData/INSERT_THRES)/2);
+	const int desNumPar = min(nThreads, floor(nData/INSERT_THRES));
 
 	stack_node_size_t shared_stack[desNumPar];   
 
@@ -204,7 +204,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 	int delta = desNumPar;
 
 	/* First stage: subpartitions, roughly NThreads */
-
+	
 	for (int i = 0; i < log2(desNumPar); i++) { 
 
 		delta >>= 1; 
@@ -424,8 +424,6 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 	return;
 }
 
-
-
 /* testing */
 int test_compare(const void * a, const void *b) 
 {
@@ -437,7 +435,7 @@ int test_compare(const void * a, const void *b)
 
 void test_sort()
 {
-	const size_t N = 5000000;
+	const size_t N = 900000;
 	const size_t Nit = 10;
 	int good;
 
@@ -450,6 +448,8 @@ void test_sort()
 	double deltasum0 = 0, deltasum1 = 0;
 	
 	/* external / index sort */
+
+	rprintf("\nTesting Sort ... \n\n");
 
 	for (int j = 0; j < N; j++) 
     	x[j] = y[j] = erand48(Task.Seed);
@@ -491,7 +491,7 @@ void test_sort()
 	printf("Index: parallel %g sec; Single %g sec; Speedup: %g \n",
 		deltasum0/CLOCKS_PER_SEC/Sim.NThreads, 
 		deltasum1/CLOCKS_PER_SEC, 	deltasum1/deltasum0*Sim.NThreads );
-
+	fflush(stdout);
 	/* in-place sort */
 
 	for (int j = 0; j < N; j++) 
@@ -541,8 +541,6 @@ void test_sort()
   	printf("In-place: parallel  %g sec, Single:  %g sec, Speedup: %g \n",
 		deltasum0/CLOCKS_PER_SEC/Sim.NThreads, 
 		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*Sim.NThreads );
-
-	exit(0);
 
 	return ;
 }

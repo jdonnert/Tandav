@@ -25,11 +25,10 @@ extern struct Global_Simulation_Properties {
 	int NThreads;				// Number of OpenMP threads
 	uint64_t NpartTotal;		// total global number of particles
 	uint64_t Npart[NPARTYPE]; 	// global number of particles
-	uint64_t NpartTotalMean;	// As above, but taking into account imbalance.
-	uint64_t NpartMean[NPARTYPE];// Use this if array size scales with Npart
+	uint64_t NpartTotalMax;		// per task taking into account imbalance.
+	uint64_t NpartMax[NPARTYPE];// Use this if array size scales with Npart
 	double Mpart[NPARTYPE]; 	// Global Masses  from header
 	double Boxsize[3];			// Now in 3D !
-	double CurrentTime;			// Holds current simulation time
 } Sim;
 
 extern struct Parameters_From_File {
@@ -40,18 +39,28 @@ extern struct Parameters_From_File {
 	int NumIOTasks;				// written in parallel
 	int MaxMemSize;				// Memory Ceiling in 1024^2 Bytes
 	int NumOutputFiles;			// Number of files per snapshot
-	float RuntimeLimit;			// Runtime Limit
+	double RuntimeLimit;			// Runtime Limit
+	double TimeIntAccuracy;		// Accuracy of Time integration
+	double GravSoftening;		// Gravitational softening parameter
 	int CommBufSize;			// in 1024 Bytes
 } Param;
+
+extern struct Simulation_Flags { // a primitive signal implementation
+	bool Fullstep;				// Current step if Fullstep
+	bool WriteSnapshot;			// write a snapshot
+	bool WriteRestartFile;		// write a restart file upon exit
+	bool Endrun;					// stops the runs regulary
+} Flag;
 
 extern struct Particle_Data {
 	float Pos[3];
 	float Vel[3];
+	float Acc[3];
 	uint32_t ID;
-	uint32_t TimeBin;
-	peanoKey Peanokey;
 	int Type;
 	float Mass;
+	int TimeBin;
+	peanoKey Peanokey;
 #ifdef OUTPUT_FORCE
 	float Force[3];
 #endif // OUTPUT_FORCE

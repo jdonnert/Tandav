@@ -437,7 +437,7 @@ int test_compare(const void * a, const void *b)
 
 void test_sort()
 {
-	const size_t N = 10000000;
+	const size_t N = 5000000;
 	const size_t Nit = 10;
 	int good;
 
@@ -462,7 +462,7 @@ void test_sort()
 
   		time2 = clock();
 	
-		//gsl_heapsort_index(q, y, N, sizeof(*y), &test_compare);
+		gsl_heapsort_index(q, y, N, sizeof(*y), &test_compare);
   		
 		time3 = clock();
 

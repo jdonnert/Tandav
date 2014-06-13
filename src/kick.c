@@ -10,8 +10,9 @@ void Kick_Halfstep()
 	const float driftfac = Cosmo_Kick_Factor(Sim.CurrentTime);
 #else
 	const float driftfac = 1;
-#endif
+#endif // COMOVING
 	
+#pragma omp parallel for 
 	for (int ipart = 0; ipart < Task.NpartTotal; ipart++) {
 
 		float mpart = P[ipart].Mass;
@@ -20,11 +21,15 @@ void Kick_Halfstep()
 
 		Total_Force(ipart, force);
 
+		P[ipart].Acc[0] = force[0] / mpart;
+		P[ipart].Acc[1] = force[1] / mpart;
+		P[ipart].Acc[2] = force[2] / mpart;
+		
 		float dt = Timestep(ipart);
-	
-		P[ipart].Vel[0] += 0.5 * dt * force[0] / mpart * driftfac;
-		P[ipart].Vel[1] += 0.5 * dt * force[1] / mpart * driftfac; 
-		P[ipart].Vel[2] += 0.5 * dt * force[2] / mpart * driftfac;
+
+		P[ipart].Vel[0] += 0.5 * dt * P[ipart].Acc[0] * driftfac;
+		P[ipart].Vel[1] += 0.5 * dt * P[ipart].Acc[1] * driftfac; 
+		P[ipart].Vel[2] += 0.5 * dt * P[ipart].Acc[2] * driftfac;
 	}
 
 	return ;

@@ -21,7 +21,7 @@ void Sort_Particles_By_Peano_Key()
 {
 	const int npart = Task.NpartTotal;
 
-	peanoKey *keys = Malloc(Sim.NpartTotalMean * sizeof(*keys));
+	peanoKey *keys = Malloc(Sim.NpartTotalMax * sizeof(*keys));
 
 	#pragma omp parallel for
 	for (int ipart = 0; ipart < npart; ipart++) {
@@ -32,9 +32,10 @@ void Sort_Particles_By_Peano_Key()
 		P[ipart].Peanokey = keys[ipart];
 	}
 
-	size_t *idx = Malloc(Sim.NpartTotalMean * sizeof(*idx));
+	size_t *idx = Malloc(Sim.NpartTotalMax * sizeof(*idx));
 	
-	Qsort_Index(Sim.NThreads, idx, keys, 1, npart, &compare_peanokeys); 
+	Qsort_Index(Sim.NThreads, idx, keys, npart, sizeof(*keys), 
+			&compare_peanokeys); 
 
 	for (int i = 0; i < npart; i++) {
 

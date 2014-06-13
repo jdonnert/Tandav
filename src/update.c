@@ -1,8 +1,9 @@
 #include "globals.h"
 #include "update.h"
+#include "timestep.h"
 
-/* provide a consistent way of updating/calling different parts of the code
- * This file should contain only function calls */
+/* provide a consistent way of updating/calling different parts 
+ * of the code from the main loop without cluttering */
 void Update(enum Update_Parameters stage) 
 {
 	switch (stage) {
@@ -11,7 +12,7 @@ void Update(enum Update_Parameters stage)
 		
 			Print_Memory_Usage();
 	
-			Sort_Particles_By_Peano_Key();
+//			Sort_Particles_By_Peano_Key();
 		
 			break;
 
@@ -21,7 +22,13 @@ void Update(enum Update_Parameters stage)
 		
 		case AFTER_DRIFT:
 		
-			Sort_Particles_By_Peano_Key();
+			Time.Current += Time.Step;
+
+			//Sort_Particles_By_Peano_Key();
+
+			break;
+
+		case BEFORE_SECOND_KICK:
 
 			break;
 		

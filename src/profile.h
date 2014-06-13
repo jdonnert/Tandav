@@ -1,3 +1,5 @@
+#define Profile(x) Profile_Info(__func__, __FILE__, __LINE__, x)
+
 void Init_Profiler();
 void Finish_Profiler();
 void Profile_Info(const char* file, const char* func, const int line, 

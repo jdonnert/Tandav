@@ -20,7 +20,7 @@ void Read_Parameter_File(const char *filename)
 			
 		while (fgets(buf, CHARBUFSIZE, fd)) {
 
-			sscanf(buf, "%s%s%s", buf1, buf2,buf3) ;
+			sscanf(buf, "%s %s %s", buf1, buf2,buf3) ;
 
 			if (buf1[0] == '%') // commented out
 				continue;
@@ -41,7 +41,7 @@ void Read_Parameter_File(const char *filename)
 				}
 			}
 
-			if (j < 0) // don't know this one
+			if (j < 0) // don't know this one, skip
 				continue;
 				
 			printf(" %20s  %s\n", buf1, buf2);
@@ -51,16 +51,16 @@ void Read_Parameter_File(const char *filename)
 			case COMMENT:
 				break;
 
-			case FLOAT:
+			case DOUBLE:
 				
 				*((double *)ParDef[j].addr) = atof(buf2);
-				
+
 				break;
 
 			case STRING:
 			
-				strncpy((char *)ParDef[j].addr, buf2, 
-						CHARBUFSIZE);
+				strncpy((char *)ParDef[j].addr, buf2, CHARBUFSIZE); 
+
 				break;
 
 			case INT:
@@ -70,8 +70,7 @@ void Read_Parameter_File(const char *filename)
 				break;
 
 			default:
-				Assert(0, "Code Error in ParDef struct: %s",
-						ParDef[j].tag);
+				Assert(0, "Code Error in ParDef struct: %s", ParDef[j].tag);
 			}
 		}
 		
@@ -127,7 +126,7 @@ void Write_Parameter_File(const char *filename)
 
 void sanity_check_input_parameters()
 {
-	if (Task.Rank)
+	if (Task.Rank != MASTER)
 		return ;
 		
 	Assert(Param.NumOutputFiles > 0, "NumOutputFiles has to be > 0");

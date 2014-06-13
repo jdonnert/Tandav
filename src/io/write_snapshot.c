@@ -9,6 +9,7 @@ void write_file(const char *, const int, const int, const MPI_Comm);
 void write_gadget_header(const int *npart, FILE *fp);
 static void write_block_header(const char *, uint32_t, FILE *);
 static void fill_data_buffer(const int, char *);
+static void set_filename(char *filename);
 
 void Write_Snapshot()
 {
@@ -20,18 +21,19 @@ void Write_Snapshot()
 	MPI_Comm mpi_comm_write;
 
 	int groupSize = Sim.NTask/nFiles; // big last file possible 
-	int groupMaster = min(nFiles-1, floor(Task.Rank/groupSize)) * groupSize;
+	int groupMaster = min(nFiles-1,floor(Task.Rank/groupSize))*groupSize;
 
 	int groupRank = Task.Rank - groupMaster;
 
-	MPI_Comm_split(MPI_COMM_WORLD, groupMaster, groupRank, &mpi_comm_write);
+	MPI_Comm_split(MPI_COMM_WORLD, groupMaster, groupRank, 
+			&mpi_comm_write);
 
 	int fileNum = groupMaster / groupSize;
 
 	char filename[CHARBUFSIZE];
 
-	sprintf(filename, "%s_%03d", Param.OutputFileBase, Time.SnapCounter);
-	
+	set_filename(filename);
+
 	if (nFiles > 1)
 		sprintf(filename, "%s.%i", filename, fileNum);
 	
@@ -193,8 +195,12 @@ void write_gadget_header(const int *npart, FILE *fp)
 		head.Massarr[i] = Sim.Mpart[i];
 	}
 
-	head.Time = Sim.CurrentTime;
+	head.Time = Time.Current;
+
+#ifdef COMOVING
 	head.Redshift = 1.0/(1.0 + head.Time);
+#endif // COMOVING
+
 	head.FlagSfr = 0;
 	head.FlagFeedback = 0;
 	head.FlagCooling = 0;
@@ -275,4 +281,26 @@ static void write_block_header(const char *name, uint32_t blocksize, FILE *fp)
 	WRITE_FORTRAN_RECORD(fmt2Size)
 
 	return ;
+}
+
+static void set_filename(char *filename)
+{
+	const int len = ceil(log10(Time.NSnap));
+
+	switch (len) {
+		case 1:
+		case 2:
+		case 3:
+			sprintf(filename, "%s_%03d", 
+					Param.OutputFileBase, Time.SnapCounter);
+			break;
+		case 4:
+			sprintf(filename, "%s_%04d", 
+					Param.OutputFileBase, Time.SnapCounter);
+			break;
+		default:
+			Assert(0, "Too many snapshots !");
+	}
+
+	return;
 }

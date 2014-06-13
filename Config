@@ -6,6 +6,8 @@
 
 GRAVITY				// gravitational interaction
 
+#NO_MEMORY_MANAGER
+
 #### CODE UNITS ####
 
 UNITS_GADGET_STD 	// kpc, 10^10 Msol, km/s

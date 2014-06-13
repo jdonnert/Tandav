@@ -8,29 +8,51 @@ void Set_New_Timesteps()
 	return ;
 }
 
-void Init_Timesteps()
+void Setup_Timesteps()
 {
-	Time.StepMax = 1;
+	Time.StepMax = Time.End - Time.Begin;
 
 	return ;
 }
 
 bool Time_Is_Up()
 {
+	if (Time.Current == Time.End)
+		return true;
 
-	return 0;
+	if (Flag.Endrun)
+		return true;
+
+	if (Runtime() >= Param.RuntimeLimit) {
+
+		Flag.WriteRestartFile = true;
+
+		return true;
+	}
+
+	return false;
 }
 
 bool Time_For_Snapshot()
 {
+	if (Flag.WriteSnapshot)
+		return true;
+	
+	if (Time.Current == Time.NextSnap) {
+	
+		Time.NextSnap += Time.BetSnap;
 
-	return 0;
+		return true;
+	}
+
+	return false;
 }
 
 float Timestep(const int ipart)
 {
-	//return 62 - imax(0 , ceil(log2(Time.StepMax/dt))) - 2;
-	return 1;
+	const float a = len3(P[ipart].Acc);
+	float dt = sqrt(2*Param.TimeIntAccuracy*Param.GravSoftening / a);
+	return dt;
 }
 
 

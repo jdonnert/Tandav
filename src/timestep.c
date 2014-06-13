@@ -5,6 +5,12 @@ struct TimeData Time;
 
 void Set_New_Timesteps()
 {
+	const float a = len3(P[1].Acc);
+
+	float dt = sqrt(2*Param.TimeIntAccuracy*Param.GravSoftening / a);
+
+	Time.Step = dt;
+
 	return ;
 }
 
@@ -50,9 +56,7 @@ bool Time_For_Snapshot()
 
 float Timestep(const int ipart)
 {
-	const float a = len3(P[ipart].Acc);
-	float dt = sqrt(2*Param.TimeIntAccuracy*Param.GravSoftening / a);
-	return dt;
+	return Time.Step;
 }
 
 

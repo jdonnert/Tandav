@@ -22,6 +22,8 @@ void Drift()
 		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2] * driftfac;
 	}
 	
+	Time.Current += Time.Step;
+
 	return;
 }
 

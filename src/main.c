@@ -29,10 +29,10 @@ int cnt = 0,i = 1, ipart = 1;
 		Update(AFTER_FIRST_KICK);
 
 if (cnt % 100 == 0)
-printf("%d %g %g %g %g %g %g %g %g %g  \n", cnt,
+printf("%d %g %g %g %g %g %g %g %g %g %g \n", cnt,
 		P[i].Pos[0], P[i].Pos[1], P[i].Pos[2], 
-	P[i].Vel[0], P[i].Vel[1], P[i].Vel[2], 
-		P[i].Acc[0], P[i].Acc[1], P[i].Acc[2]);
+		P[i].Vel[0], P[i].Vel[1], P[i].Vel[2], 
+		P[i].Acc[0], P[i].Acc[1], P[i].Acc[2], Time.Current);
 
 		Drift();
 

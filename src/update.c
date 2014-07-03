@@ -1,5 +1,6 @@
 #include "globals.h"
 #include "update.h"
+#include "force.h"
 #include "timestep.h"
 
 /* provide a consistent way of updating/calling different parts 
@@ -10,9 +11,15 @@ void Update(enum Update_Parameters stage)
 
 		case BEFORE_MAIN_LOOP:
 		
+			Compute_Forces();
+		
+			Set_New_Timesteps();
+
 			Print_Memory_Usage();
 	
-//			Sort_Particles_By_Peano_Key();
+			break;
+
+		case BEFORE_FIRST_KICK:
 		
 			break;
 
@@ -22,10 +29,6 @@ void Update(enum Update_Parameters stage)
 		
 		case AFTER_DRIFT:
 		
-			Time.Current += Time.Step;
-
-			//Sort_Particles_By_Peano_Key();
-
 			break;
 
 		case BEFORE_SECOND_KICK:

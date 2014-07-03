@@ -2,12 +2,12 @@
 #define TIMESTEP_H
 
 struct TimeData {
-	uint64_t Bin;
 	int SnapCounter;
+	float Step; 		// Current Timestep, Min over all Tasks
 	double StepMax;
+	double StepMin;
 	double Begin;
 	double Current;
-	double Step; 		// Current Timestep
 	double End;
 	double FirstSnap;
 	double BetSnap;

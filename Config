@@ -6,7 +6,7 @@
 
 GRAVITY				// gravitational interaction
 
-#NO_MEMORY_MANAGER
+#NO_MEMORY_MANAGER  // good for memchecker like valgrind
 
 #### CODE UNITS ####
 

@@ -4,7 +4,7 @@
 void Drift() 
 {
 #ifdef COMOVING
-	const float driftfac = Cosmo_Drift_Factor(Sim.CurrentTime);
+	const float driftfac = Cosmo_Drift_Factor(Time.Current);
 #else
 	const float driftfac = 1;
 #endif

@@ -1,6 +1,8 @@
 /* Memory management */
 #include "globals.h"
 
+#define MAXMEMOBJECTS 1024
+
 static void *Memory = NULL; 
 
 static size_t NBytesLeft = 0; // size of block at the end

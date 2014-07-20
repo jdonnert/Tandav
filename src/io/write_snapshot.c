@@ -11,22 +11,23 @@ static void write_block_header(const char *, uint32_t, FILE *);
 static void fill_data_buffer(const int, char *);
 static void set_filename(char *filename);
 
+static MPI_Comm mpi_comm_write = MPI_COMM_NULL;
+
 void Write_Snapshot()
 {
 	Profile("Write Snap");
 
 	const int nFiles = Param.NumOutputFiles;
 	const int nIOTasks = Param.NumIOTasks;
-	
-	MPI_Comm mpi_comm_write;
 
 	int groupSize = Sim.NTask/nFiles; // big last file possible 
 	int groupMaster = min(nFiles-1,floor(Task.Rank/groupSize))*groupSize;
 
 	int groupRank = Task.Rank - groupMaster;
 
-	MPI_Comm_split(MPI_COMM_WORLD, groupMaster, groupRank, 
-			&mpi_comm_write);
+	if (mpi_comm_write == MPI_COMM_NULL) // create & keep group communicator
+		MPI_Comm_split(MPI_COMM_WORLD, groupMaster, groupRank, 
+				&mpi_comm_write);
 
 	int fileNum = groupMaster / groupSize;
 
@@ -48,7 +49,7 @@ void Write_Snapshot()
 
 	Time.SnapCounter++;
 
-	rprintf("\nSnapshot written\n");
+	rprintf("done\n\n");
 	
 	Profile("Write Snap");
 
@@ -285,9 +286,10 @@ static void write_block_header(const char *name, uint32_t blocksize, FILE *fp)
 
 static void set_filename(char *filename)
 {
-	const int len = ceil(log10(Time.NSnap));
 
-	switch (len) {
+	const int ndigits = ceil(log10(Time.NSnap));
+
+	switch (ndigits) {
 		case 1:
 		case 2:
 		case 3:

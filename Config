@@ -1,4 +1,10 @@
 
+#### CODE PARAMETERS ####
+
+TIME_INT_ACCURACY 0.05 	// std 0.05, time step parameter
+GRAV_SOFTENING 0.001 	// std 0.001, gravitational softening length 
+
+
 #PERIODIC			// periodic boundary conditions
 #BOXSIZE_FROM_SNAP	// take boxsize from snap, not parameter file
 

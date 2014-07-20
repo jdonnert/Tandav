@@ -17,9 +17,9 @@ Boxsize0		4000
 Boxsize1		4000 
 Boxsize2		4000 
 TimeBegin		0 
-TimeEnd		10 
+TimeEnd			100 856 
 TimeOfFirstSnaphot		0 
-TimeBetSnapshots		0.001 
+TimeBetSnapshots		0.107119
 
 %% Cosmology %%
 Omega0		1 
@@ -27,5 +27,5 @@ OmegaLambda		0.7
 OmegaBaryon		1 
 HubbleParam		0.7 
 
-TimeIntAccuracy		0.1
+TimeIntAccuracy		0.001
 GravSoftening		0.001 

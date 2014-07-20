@@ -50,10 +50,6 @@ static const parameter ParDef[] = {
 	{"OmegaBaryon", "1", &Cosmo.OmegaBaryon, DOUBLE},
 	{"HubbleParam", "0.7", &Cosmo.HubbleParam, DOUBLE},
 
-	{"\n%% Time Integration %%\n", "", NULL, COMMENT},
-	{"TimeIntAccuracy", "0.1", &Param.TimeIntAccuracy, DOUBLE},
-	{"GravSoftening", "1", &Param.GravSoftening, DOUBLE}
-
 	/* Add yours below */
 };
 

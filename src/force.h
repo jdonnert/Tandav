@@ -1,1 +1,1 @@
-void Total_Force(const int, float *);
+void Compute_Forces();

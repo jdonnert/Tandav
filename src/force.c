@@ -1,36 +1,43 @@
 /* Collect all forces on particle ipart */
 #include "globals.h"
 #include "force.h"
+#include "timestep.h"
 
-static void Force_Gravity_Simple(const int ipart, float force[3]);
+static void force_Gravity_Simple(const int ipart, float force[3]);
 
-void Total_Force(const int ipart, float total_force[3])
+void Compute_Forces()
 {
-	total_force[0] = total_force[1] = total_force[2] = 0;
+	Profile("Forces");
 
-	float force[3] = { 0 };
-
+	for (int ipart = 0; ipart < Task.NpartTotal; ipart++){
+	
+		float force[3] = { 0 };
+	
 #ifdef GRAVITY
-	Force_Gravity_Simple(ipart, force);
+		force_Gravity_Simple(ipart, force);
 #endif // GRAVITY
+	
+		float last_acc = len3(P[ipart].Force) / P[ipart].Mass;
+		float acc =  len3(force) / P[ipart].Mass;
 
-	total_force[0] += force[0];
-	total_force[1] += force[1];
-	total_force[2] += force[2];
+		P[ipart].Surge = (acc - last_acc) / Time.Step;
+		
+		P[ipart].Force[0] = force[0];
+		P[ipart].Force[1] = force[1];
+		P[ipart].Force[2] = force[2];
+	}
 
-#ifdef OUTPUT_FORCE
-	P[ipart].Force[0] = total_force[0];
-	P[ipart].Force[1] = total_force[1];
-	P[ipart].Force[2] = total_force[2];
-#endif // OUTPUT_FORCE
+	Profile("Forces");
 
 	return ;
 }
 
-static void Force_Gravity_Simple(const int ipart, float *force)
+static void force_Gravity_Simple(const int ipart, float *force)
 {
 	const double m_i = P[ipart].Mass;
 
+	Profile("Gravity Simple");
+	
 	for (int jpart = 0; jpart < Task.NpartTotal; jpart++ ) {
 	
 		if (jpart == ipart)
@@ -50,6 +57,8 @@ static void Force_Gravity_Simple(const int ipart, float *force)
 		force[1] += -fmag * dy/r;
 		force[2] += -fmag * dz/r;
 	}
+	
+	Profile("Gravity Simple");
 
 	return ;
 }

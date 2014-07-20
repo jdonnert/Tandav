@@ -7,7 +7,7 @@
 #define CHARBUFSIZE 256L 	// Maximum No. of chars in every char buffer
 #define NPARTYPE 6L 		// No of particle types
 #define MEM_ALIGNMENT 64L	// byte memory alignment
-#define PARTALLOCFACTOR 1.2	// Mem overhead to account for dynamic inbalance
+#define PARTALLOCFACTOR 1.2	// Mem overhead for dynamic inbalance
 #define MASTER 0			// Rank of MPI master task
 
 /* VARIABLES */
@@ -40,8 +40,6 @@ extern struct Parameters_From_File {
 	int MaxMemSize;				// Memory Ceiling in 1024^2 Bytes
 	int NumOutputFiles;			// Number of files per snapshot
 	double RuntimeLimit;			// Runtime Limit
-	double TimeIntAccuracy;		// Accuracy of Time integration
-	double GravSoftening;		// Gravitational softening parameter
 	int CommBufSize;			// in 1024 Bytes
 } Param;
 
@@ -49,21 +47,20 @@ extern struct Simulation_Flags { // a primitive signal implementation
 	bool Fullstep;				// Current step if Fullstep
 	bool WriteSnapshot;			// write a snapshot
 	bool WriteRestartFile;		// write a restart file upon exit
-	bool Endrun;					// stops the runs regulary
+	bool Endrun;				// stops the runs regulary
 } Flag;
 
 extern struct Particle_Data {
 	float Pos[3];
 	float Vel[3];
-	float Acc[3];
+	float Force[3];
+	float Surge;				// d^3x/dt^3
+	float Mass;
 	uint32_t ID;
 	int Type;
-	float Mass;
-	int TimeBin;
+	uint64_t TimeBin;
 	peanoKey Peanokey;
-#ifdef OUTPUT_FORCE
-	float Force[3];
-#endif // OUTPUT_FORCE
+	/* add below */
 } *P;
 
 #endif // GLOBALS_H

@@ -492,6 +492,7 @@ void test_sort()
 		deltasum0/CLOCKS_PER_SEC/Sim.NThreads, 
 		deltasum1/CLOCKS_PER_SEC, 	deltasum1/deltasum0*Sim.NThreads );
 	fflush(stdout);
+
 	/* in-place sort */
 
 	for (int j = 0; j < N; j++) 

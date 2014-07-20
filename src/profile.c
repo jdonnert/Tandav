@@ -55,13 +55,13 @@ void Profile_Info(const char* file, const char* func, const int line,
 		Prof[i].ThisLast = Prof[i].Tend - Prof[i].Tbeg;
 
 		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Min, 1, MPI_DOUBLE, 
-				MPI_MIN, 0, MPI_COMM_WORLD);
+				MPI_MIN, MASTER, MPI_COMM_WORLD);
 
 		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Max, 1, MPI_DOUBLE, 
-				MPI_MAX, 0, MPI_COMM_WORLD);
+				MPI_MAX, MASTER, MPI_COMM_WORLD);
 
 		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Mean, 1, MPI_DOUBLE, 
-				MPI_SUM, 0, MPI_COMM_WORLD);
+				MPI_SUM, MASTER, MPI_COMM_WORLD);
 		
 		Prof[i].Mean /= Sim.NTask;
 
@@ -75,21 +75,19 @@ void Profile_Info(const char* file, const char* func, const int line,
 
 void Profile_Report()
 {
-	if (Task.Rank)
+	if (Task.Rank != MASTER)
 		return; 
 
-	double now = measure_time();
+	const double now = measure_time();
 
 	printf("\nProfiler: All sections, total runtime of %g min\n"
-		"    Name          Total    Tot Imbal       Max       "
+		"                Name       Total     Tot Imbal        Max       "
 		"Mean      Min        Imbal\n", (now-Prof[0].Tbeg)/60);
 
-	for (int i = 1; i < NProfObjs; i++ )
-		printf("%12s    %8.1g   %8.1g      %8.1g  %8.1g  %8.1g   "
-				"%8.1g\n",
-				Prof[i].Name, Prof[i].Total/60, 
-				Prof[i].Imbalance/60, Prof[i].Max/60, 
-				Prof[i].Min/60, Prof[i].Mean/60, 
+	for (int i = 0; i < NProfObjs; i++ )
+		printf("%20s    %8.1f   %8.1f      %8.1f  %8.1f  %8.1f   %8.1f\n",
+				Prof[i].Name, Prof[i].Total/60, Prof[i].Imbalance/60, 
+				Prof[i].Max/60, Prof[i].Min/60, Prof[i].Mean/60, 
 				(Prof[i].Max-Prof[i].Min)/60);
 
 	return ;
@@ -97,12 +95,12 @@ void Profile_Report()
 
 void Profile_Report_Last()
 {
-	if (Task.Rank)
+	if (Task.Rank != MASTER)
 		return ; 
 
 	const double now = measure_time();
 
-	const int i = NProfObjs-1;
+	const int i = NProfObjs - 1;
 
 	printf("Profiler: Last section, total runtime of %g min\n"
 			"Name	  	Total	Min	Max	Mean\n"

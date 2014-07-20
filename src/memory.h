@@ -1,5 +1,3 @@
-#define MAXMEMOBJECTS 1024
-
 #ifndef NO_MEMORY_MANAGER
 #define Malloc(x) Malloc_info( __func__, __FILE__, __LINE__, x)
 #define Realloc(x,y) Realloc_info(__func__, __FILE__, __LINE__, x, y)

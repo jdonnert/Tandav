@@ -7,7 +7,7 @@ struct TimeData {
 	double StepMax;
 	double StepMin;
 	double Begin;
-	double Current;
+	double Current;		// if COMOVING is set, this is "a"
 	double End;
 	double FirstSnap;
 	double BetSnap;

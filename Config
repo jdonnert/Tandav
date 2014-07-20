@@ -1,23 +1,21 @@
 
 #### CODE PARAMETERS ####
 
-TIME_INT_ACCURACY 0.05 	// std 0.05, time step parameter
-GRAV_SOFTENING 0.001 	// std 0.001, gravitational softening length 
-
-
-#PERIODIC			// periodic boundary conditions
-#BOXSIZE_FROM_SNAP	// take boxsize from snap, not parameter file
-
-#COMOVING			// time integration in comoving coordinates
+MEMORY_MANAGER  
 
 GRAVITY				// gravitational interaction
+GRAV_SOFTENING 0.001 	// std 0.001, gravitational softening length 
 
-#NO_MEMORY_MANAGER  // good for memchecker like valgrind
+#COMOVING			// time integration in comoving coordinates
+TIME_INT_ACCURACY 0.05 	// std 0.05, time step parameter
+
+#PERIODIC			// periodic boundary conditions
 
 #### CODE UNITS ####
 
-UNITS_GADGET_STD 	// kpc, 10^10 Msol, km/s
-#UNITS_CGS
+LENGTH2CGS 3.0856802e+21
+MASS2CGS 1.9890000e+43
+VELOCITY2CGS 1.0e+05
 
 #### OUTPUT OPTIONS ####
 

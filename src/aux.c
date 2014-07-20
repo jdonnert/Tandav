@@ -30,7 +30,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		
 		new_npartTotal += new_npart[type];
 		
-        	Assert(new_npart[type] >= 0, "Can't alloc negative particles,"
+        Assert(new_npart[type] >= 0, "Can't alloc negative particles,"
 			" type %d, delta %d, current %d,\n"
 			"requested from %s, %s(), line %d", 
 			type, dNpart[type], Task.Npart[type], file, func, line);

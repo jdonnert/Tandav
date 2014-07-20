@@ -28,16 +28,17 @@
 #define KPC2CGS 3.08567758e21 // [cm]
 #define YR2SEC 31556926
 
-/* models */
+/* model constants */
 #define TCMB 2.728 		// [K] Temperature of the CMB
 #define BCMB 3.24516e-6 	// [G] Magnetic field equivalent of Tcmb
-#define H_FRACTION 0.76 		// Hydrogen fraction
-#define HE_FRACTION (1-H_fraction) 	// Helium fraction
-#define UMOL (4.0/(5.0*H_fraction+3.0)) // Mean mol. weight in H
+#define HYDROGEN_FRACTION 0.76 		// Hydrogen mass fraction
+#define HELIUM_FRACTION (1-HYDROGEN_FRACTION) 	// Helium mass fraction
+#define UMOL (4.0/(5.0*HYDROGEN_FRACTION+3.0)) // Mean mol. weight in H
 #define ADIABATIC_INDEX_MONOATOMIC_GAS (5.0/3.0)
 
-
 const struct Constants_In_Code_Units {
-	double Gamma;
+	double Adiabatic_Index;
 	double Gravity;
+	double Hydrogen_Fraction;
+	double Helium_Fraction;
 } Const; 

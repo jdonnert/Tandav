@@ -29,25 +29,15 @@ int main(int argc, char *argv[])
 		if (Time_Is_Up())
 			break;
 
-		Update(BEFORE_FIRST_KICK);
-
 		Kick_Halfstep();
 
-		Update(AFTER_FIRST_KICK);
-
 		Drift();
-		
-		Update(AFTER_DRIFT);
 		
 		Compute_Forces();
 
 		Set_New_Timesteps();
 	
-		Update(BEFORE_SECOND_KICK);
-
 		Kick_Halfstep();
-   
-		Update(AFTER_SECOND_KICK);
 	}
 
 	if (Flag.WriteRestartFile) 

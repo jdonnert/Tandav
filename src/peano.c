@@ -6,9 +6,6 @@
 peanoKey Compute_Peano_Key(const float, const float, const float, 
 		const double *);
 
-static void print_int_bits(const uint32_t val);
-static void print_int_bits64(const uint64_t val);
-
 int compare_peanokeys(const void * a, const void *b)
 {
 	const peanoKey *x = (const peanoKey*)a;
@@ -74,8 +71,8 @@ void Sort_Particles_By_Peano_Key()
  * Skilling 2004, AIP 707, 381: "Programming the Hilbert Curve"
  * Note: There is a bug in the code of the paper. See also:
  * Campbell+03 'Dynamic Octree Load Balancing Using Space-Filling Curves' */
-peanoKey Compute_Peano_Key(const float x, const float y, 
-		const float z, const double *boxsize)
+peanoKey Compute_Peano_Key(const float x, const float y, const float z, 
+		const double *boxsize)
 {
 	const uint32_t m = 0x80000000; // = 1UL << 31;
 
@@ -143,29 +140,16 @@ peanoKey Compute_Peano_Key(const float x, const float y,
 	return key;
 }
 
-static void print_int_bits(const uint32_t val)
-{
-	//printf("%u  ", val);
-
-	for (int i = 31; i >= 0; i--)
-		printf("%zu", (val & (1ULL << i) ) >> i);
-	
-	fflush(stdout);
-
-	return ;
-}
-
 static void print_int_bits64(const uint64_t val)
 {
-	//printf("%u  ", val);
-
 	for (int i = 63; i >= 0; i--)
-		printf("%zu", (val & (1ULL << i) ) >> i);
+		printf("%llu", (val & (1ULL << i) ) >> i);
 	
 	fflush(stdout);
 
 	return ;
 }
+
 void test_peanokey()
 {
 	const double box[3] = { 1.0, 1.0, 1 };
@@ -184,10 +168,9 @@ void test_peanokey()
 
 		peanoKey stdkey =  Compute_Peano_Key(a[0], a[1], a[2], box);
 
-		printf("%g %g %g %zu \n", a[0], a[1], a[2], stdkey);
+		printf("%g %g %g %llu \n", a[0], a[1], a[2], stdkey);
 
-		//print_int_bits(stdkey); printf("\n");
-		//print_int_bits(sklkey);
+		print_int_bits64(stdkey); printf("\n");
 
 	}
 	return ;

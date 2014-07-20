@@ -1,20 +1,8 @@
 /* Code units, we have them as macro and constant */
 
-#ifdef UNITS_GADGET_STD
-#define LENGTH2CGS 3.0856802e+21
-#define MASS2CGS 1.9890000e+43
-#define VELOCITY2CGS 1.0e+05
-#endif // UNITS_GADGET_STD
-
-#ifdef UNITS_CGS
-#define LENGTH2CGS 1
-#define MASS2CGS 1
-#define VELOCITY2CGS 1
-#endif // UNITS_CGS
-
 #define TIME2CGS (LENGTH2CGS/VELOCITY2CGS)
 
-const struct Units_In_Cgs {
+const struct Units {
 	double Length;
 	double Mass;
 	double Velocity;
@@ -22,6 +10,16 @@ const struct Units_In_Cgs {
 	double Energy;
 } Unit;
 
-/* Conversion functions */
-double Density_Cgs(const int ipart);
-double Temperature_Cgs(const int ipart);
+/* Conversion functions to code units */
+double Pressure(const int ipart);
+double Internal_Energy(const int ipart); // U
+double Temperature(const int ipart);
+
+/* Conversion functions to cgs */
+double Position_Cgs(const float x);
+double Velocity_Cgs(const float v);
+double Mass_Cgs(const float mass);
+double Density_Cgs(const float rho);
+double Number_Density_Cgs(const float rho);
+double Pressure_Cgs(const float pres);
+double Thermal_Energy_Density_Cgs(const int ipart);

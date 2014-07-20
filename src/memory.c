@@ -65,7 +65,6 @@ void *Realloc_info(const char* file, const char* func, const int line,
 {
 	if (ptr == NULL) 
 		return Malloc_info(file, func, line, new_size);
-	
 
 	if ( (new_size % MEM_ALIGNMENT) > 0)
 		new_size = (new_size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
@@ -106,7 +105,7 @@ void *Realloc_info(const char* file, const char* func, const int line,
 void Free_info(const char* file, const char* func, const int line, void *ptr) 
 {
 	Warn(ptr == NULL, "You tried to free a NULL pointer in file "
-		"%s, function %s():%d\n", file, func, line);
+		"%s, function %s() : %d\n", file, func, line);
 
 	const int i = find_memory_block_from_ptr(ptr);
 

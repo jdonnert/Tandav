@@ -7,7 +7,7 @@
 #include <gsl/gsl_heapsort.h>
 
 #define PARALLEL_THRES_QSORT 15000 // use serial sort below this limit
-#define PARALLEL_THRES_HEAPS 15000
+#define PARALLEL_THRES_HEAPSORT 15000
 
 #define INSERT_THRES 8 // insertion sort threshold
 
@@ -184,7 +184,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 		const int nData, const size_t datasize, 
 		int (*cmp) (const void *, const void *))
 {
-	if (nData < PARALLEL_THRES_HEAPS) { // serial GSL is faster
+	if (nData < PARALLEL_THRES_HEAPSORT) { // serial GSL is faster
 	
 		gsl_heapsort_index(perm, data, nData, datasize, cmp); 
 		

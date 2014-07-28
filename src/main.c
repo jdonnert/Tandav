@@ -13,8 +13,11 @@ static void preamble(int argc, char *argv[]);
 /* This exposes the time integration */
 int main(int argc, char *argv[])
 {
-	preamble(argc, argv);	
+	preamble(argc, argv);
 
+test_sort();
+
+/*
 	Read_and_Init();
 
 	Setup();
@@ -42,7 +45,7 @@ int main(int argc, char *argv[])
 
 	if (Flag.WriteRestartFile) 
 		Write_Restart_File();
-	
+*/	
 	Finish();
 
 	return EXIT_SUCCESS;

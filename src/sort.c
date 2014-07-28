@@ -71,6 +71,8 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 	/* initial stack node is just the whole array */
 	stack_node_char shared_stack[desNumPar];
 
+	memset(shared_stack, 0, desNumPar*sizeof(*shared_stack));
+
 	shared_stack[0].lo = (char *)data_ptr; 
 	shared_stack[0].hi = &((char *)data_ptr)[size * (nData - 1)];
 
@@ -170,11 +172,12 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
  * We use the same algorithm as above to divide and conquer.
  * In the first stage we sort 1 partition per thread.
  * The work is inserted in the shared stack with a delta that shrinks 
- * from N partitions / 2 to 1.
- * The second stage is a threaded qsort on the subpartitions down,
+ * from N partitions / 2 to 1. Some partitions can be empty, when a 
+ * previous partition is too small to split.
+ * The second stage is a threaded qsort on the subpartitions down
  * to INSERT_THRES followed by insertion sort on the nearly 
  * ordered subpartition. 
- * Here we are swaping ONLY the permutation array *perm and
+ * Here we are swapping ONLY the permutation array *perm and
  * are comparing ONLY to the data array indexed by *perm */
 
 void Qsort_Index(const int nThreads, size_t *perm, void *const data, 
@@ -187,13 +190,16 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 		
 		return ;
 	}
-	
+
 	for (size_t i = 0; i < nData; i++ ) 
 		perm[i] = i; 
 
 	const int desNumPar = min(nThreads, floor(nData/INSERT_THRES));
 
-	stack_node_size_t shared_stack[desNumPar];   
+	stack_node_size_t shared_stack[desNumPar]; 
+
+	for (int i = 0; i < desNumPar; i++ ) // init !
+		shared_stack[i].lo = shared_stack[i].hi = perm;
 
 	shared_stack[0].lo = perm;  
 	shared_stack[0].hi = &perm[nData - 1];
@@ -201,27 +207,30 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 #pragma omp parallel shared(shared_stack) num_threads(nThreads)
 	{
 
-	int delta = desNumPar;
+	int delta = desNumPar << 1; // twice the distance of entries in shared_stack
 
 	/* First stage: subpartitions, roughly NThreads */
 	
-	for (int i = 0; i < log2(desNumPar); i++) { 
-
-		delta >>= 1; 
+	while ( delta > 2) { 
+			
+		delta >>= 1; // we compensated for this before
 
 		#pragma omp for schedule(static,1)
-		for (int j = 0; j < desNumPar; j += delta<<1) { 
+		for (int i = 0; i < desNumPar; i += delta) { 
 
-			size_t *lo = shared_stack[j].lo; 
-			size_t *hi = shared_stack[j].hi;
+			size_t *lo = shared_stack[i].lo; 
+			size_t *hi = shared_stack[i].hi;
 
+			if (hi - lo < 2) 
+				continue;
+			
 	  		size_t *mid = lo + ((hi - lo) >> 1); // pivot & presort
 
 			if (COMPARE_DATA(mid,lo,datasize) < 0) 
 				SWAP_SIZE_T (mid, lo);
 	
 			if (COMPARE_DATA(hi,mid,datasize) < 0)  
-				SWAP_SIZE_T (mid, hi);
+				SWAP_SIZE_T (hi, mid);
 			else
 	    		goto jump_over;
 	  	
@@ -229,7 +238,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 				SWAP_SIZE_T (mid, lo);
 			
 			jump_over:;
-	
+
 			size_t *left  = lo + 1;
 	  		size_t *right = hi - 1;
 
@@ -262,167 +271,164 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 			} while (left <= right);
 
-			shared_stack[j].lo = lo; // Push to replace old position
-			shared_stack[j].hi = right;
+			shared_stack[i].lo = lo; // Push to replace old position
+			shared_stack[i].hi = right;
 	
-			shared_stack[j+delta].lo = left; // Push for next thread
-			shared_stack[j+delta].hi = hi;
+			shared_stack[i + (delta>>1)].lo = left; // Push for next thread
+			shared_stack[i + (delta>>1)].hi = hi;
 		} // j
-    } // i
+    } // while
 
-	/* Second stage, every thread: Qsort on subpartitions */
-	
-	#pragma omp for schedule(static,1)
-	for (int i = 0; i < desNumPar; i++) {
-	
-		stack_node_size_t stack[STACK_SIZE] = { { NULL, NULL } }; 
+	/* Second stage, every thread: Qsort on subpartition *beg to *end */
 
-		int next = 0; 
+	size_t *beg = shared_stack[Task.ThreadID].lo;
+	size_t *end = shared_stack[Task.ThreadID].hi;
 
-		stack[next].lo = shared_stack[i].lo;
-		stack[next].hi = shared_stack[i].hi;
+	stack_node_size_t stack[STACK_SIZE] = { { NULL, NULL } }; 
 
-		size_t partition_size = stack[0].hi - stack[0].lo + 1;
+	int next = 0; 
 
-		if (partition_size < INSERT_THRES)
-			goto insertion_sort;
+	stack[next].lo = beg;
+	stack[next].hi = end;
+
+	size_t partition_size = stack[0].hi - stack[0].lo + 1;
+
+	if (partition_size < INSERT_THRES)
+		goto insertion_sort;
 			
-		for (;;)  { 
+	for (;;)  { 
 
-			size_t *lo = stack[next].lo;  // now pop from private stack
-			size_t *hi = stack[next--].hi;
+		size_t *lo = stack[next].lo;  // pop from private stack
+		size_t *hi = stack[next--].hi;
 
-	  		size_t *mid = lo + ((hi - lo) >> 1); 
+  		size_t *mid = lo + ((hi - lo) >> 1); 
 		
-			if (COMPARE_DATA(mid,lo,datasize) < 0) 
-				SWAP_SIZE_T (mid, lo);
+		if (COMPARE_DATA(mid,lo,datasize) < 0) 
+			SWAP_SIZE_T (mid, lo);
+
+		if (COMPARE_DATA(hi,mid,datasize) < 0)  
+			SWAP_SIZE_T (mid, hi);
+		else
+	    	goto hop_over;
+  	
+		if (COMPARE_DATA(mid,lo,datasize) < 0) 
+			SWAP_SIZE_T (mid, lo);
 	
-			if (COMPARE_DATA(hi,mid,datasize) < 0)  
-				SWAP_SIZE_T (mid, hi);
-			else
-		    	goto hop_over;
-	  	
-			if (COMPARE_DATA(mid,lo,datasize) < 0) 
-				SWAP_SIZE_T (mid, lo);
+		hop_over:;
+
+	  	size_t *left  = lo + 1;
+  		size_t *right = hi - 1;
+
+	  	do { // collapse the walls
 		
-			hop_over:;
-	
-		  	size_t *left  = lo + 1;
-	  		size_t *right = hi - 1;
+			while (COMPARE_DATA(left,mid,datasize) < 0) 
+				left++;
 
-		  	do { // collapse the walls
-			
-				while (COMPARE_DATA(left,mid,datasize) < 0) 
-					left++;
+			while (COMPARE_DATA(mid,right,datasize) < 0)
+				right--;
 
-				while (COMPARE_DATA(mid,right,datasize) < 0)
-					right--;
-
-	    		if (left < right) { 
-						
-					SWAP_SIZE_T (left, right);
+    		if (left < right) { 
 					
-					if (mid == left)
-			   			mid = right;
-					else if (mid == right)
-		   				mid = left;
-		  
-					left++;
-					right--;
-		
-				} else if (left == right) {
-		  			
-					left++;
-					right--;
-		 
-					break;
-				}
-
-			} while (left <= right);
-
-			if (right - lo < hi - left) { // push smaller partition first 
+				SWAP_SIZE_T (left, right);
 				
-				if (right - lo + 1 > INSERT_THRES) { // push
+				if (mid == left)
+		   			mid = right;
+				else if (mid == right)
+	   				mid = left;
+	  
+				left++;
+				right--;
 	
-					stack[++next].lo = lo;
-					stack[next].hi = right;
-				}
-			
-				if (hi - left + 1 > INSERT_THRES) {
-
-					stack[++next].lo = left;
-					stack[next].hi = hi;
-				}
-
-			} else {
-				
-				if (hi - left + 1 > INSERT_THRES) {
-
-					stack[++next].lo = left;
-					stack[next].hi = hi;
-				}
-
-				if (right - lo + 1 > INSERT_THRES) { // push
-	
-					stack[++next].lo = lo;
-					stack[next].hi = right;
-				}
-			}
-			
-			if (next < 0) // stack empty
+			} else if (left == right) {
+	  			
+				left++;
+				right--;
+	 
 				break;
-
-		} // for()
-    
-		/* Third stage, every thread: insertion sort on one partition */
-
-		insertion_sort:;
-
-		size_t *beg = shared_stack[i].lo;
-		size_t *end = shared_stack[i].hi;
-
-		size_t *trail = beg;
-		size_t *run = NULL;
-	
-		const size_t *runMax = min(end, beg + INSERT_THRES);
-
-		for (run = beg + 1; run < runMax; run++) // smallest element first
-			if (COMPARE_DATA(run, trail, datasize) < 0)
-				trail = run;
-
-		if (trail != beg)
-			SWAP_SIZE_T(trail, beg);
-
-		run = beg + 1;
-
-		while (++run <= end) { // insertion sort left to right
-	
-			trail = run - 1;
-
-			while (COMPARE_DATA(run, trail, datasize) < 0)
-				trail--;
-
-			trail++;
-
-			if (trail != run)  {
-
-				size_t save = *run;
-
-				size_t *hi = run;
-				size_t *lo = hi - 1;
-
-				while (lo >= trail) 
-					*hi-- = *lo--;
-
-				*hi = save;
 			}
-		} // while
-	} // i
+
+		} while (left <= right);
+
+		if (right - lo < hi - left) { // push smaller partition first 
+			
+			if (right - lo + 1 > INSERT_THRES) { // push
+
+				stack[++next].lo = lo;
+				stack[next].hi = right;
+			}
+		
+			if (hi - left + 1 > INSERT_THRES) {
+
+				stack[++next].lo = left;
+				stack[next].hi = hi;
+			}
+
+		} else {
+			
+			if (hi - left + 1 > INSERT_THRES) {
+
+				stack[++next].lo = left;
+				stack[next].hi = hi;
+			}
+
+			if (right - lo + 1 > INSERT_THRES) { // push
+
+				stack[++next].lo = lo;
+				stack[next].hi = right;
+			}
+		}
+		
+		if (next < 0) // stack empty
+			break;
+
+	} // for()
+   
+	/* Third stage, every thread: insertion sort on its partition */
+
+	insertion_sort:;
+				   
+	size_t *trail = beg;
+	size_t *run = NULL;
+
+	const size_t *runMax = min(end, beg + INSERT_THRES);
+
+	for (run = beg+1; run <= runMax; run++) // smallest element first
+		if (COMPARE_DATA(run, trail, datasize) < 0)
+			trail = run;
+
+	if (trail != beg)
+		SWAP_SIZE_T(trail, beg);
+
+	run = beg + 1;
+
+	while (++run <= end) { // insertion sort left to right
+
+		trail = run - 1;
+
+		while (COMPARE_DATA(run, trail, datasize) < 0)
+			trail--;
+
+		trail++;
+
+		if (trail != run)  {
+
+			size_t save = *run;
+
+			size_t *hi = run;
+			size_t *lo = hi - 1;
+
+			while (lo >= trail) 
+				*hi-- = *lo--;
+
+			*hi = save;
+		}
+	} // while
 
 	} // omp parallel
 	
 	return;
 }
+
 
 /* testing */
 int test_compare(const void * a, const void *b) 
@@ -435,8 +441,8 @@ int test_compare(const void * a, const void *b)
 
 void test_sort()
 {
-	const size_t N = 900000;
-	const size_t Nit = 10;
+	const size_t N = 123456;
+	const size_t Nit = 100;
 	int good;
 
 	double *x = malloc( N * sizeof(*x) );

@@ -17,8 +17,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 	for (int i = 0; i < NPARTYPE; i++)
 		Assert(Task.Npart[i] + dNpart[i] <= Sim.NpartMax[i], 
 			"Too many particles type %d on this task. \n"
-			"Have %d, want %d, max %d \n "
-			"Current PARTALLOCFACTOR = %g", 
+			"Have %d, want %d, max %d \nCurrent PARTALLOCFACTOR = %g", 
 			i,Task.Npart[i], dNpart[i], Sim.NpartMax[i], PARTALLOCFACTOR);
 
 	int offset[NPARTYPE] = { 0 }, new_npartTotal = 0;

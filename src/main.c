@@ -9,6 +9,8 @@
 #include "io/io.h"
 
 static void preamble(int argc, char *argv[]);
+static bool time_For_Snapshot();
+static bool time_Is_Up();
 
 /* This exposes the time integration */
 int main(int argc, char *argv[])
@@ -22,11 +24,11 @@ int main(int argc, char *argv[])
 	Update(BEFORE_MAIN_LOOP);
 	
 	for (;;) { // Quinn+97, Springel05
-	
-		if (Time_For_Snapshot())
+		
+		if (time_For_Snapshot())
 			Write_Snapshot();
 
-		if (Time_Is_Up())
+		if (time_Is_Up())
 			break;
 
 		Kick_Halfstep();
@@ -95,3 +97,47 @@ static void preamble(int argc, char *argv[])
 
 	return ;
 }	
+
+static bool time_Is_Up()
+{
+	if (Time.IntCurrent == Time.IntEnd) {
+		
+		rprintf("EndTime reached: %g \n", Time.End);
+		
+		return true;
+
+	}
+
+	if (Flag.Endrun) 
+		return true;
+	
+
+	if (Runtime() >= Param.RuntimeLimit) {
+
+		rprintf("Runtime limit reached: %g\n", Param.RuntimeLimit);
+
+		Flag.WriteRestartFile = true;
+
+		return true;
+	}
+
+	return false;
+}
+
+static bool time_For_Snapshot()
+{
+	if (Flag.WriteSnapshot)
+		return true;
+ 	
+	if (Time.Current + Time.Step > Time.NextSnap) { // not exact
+	
+		Time.NextSnap += Time.BetSnap;
+
+		rprintf("Snapshot at t=%g, Next Snapshot at t=%g \n", 
+				Time.Current, Time.NextSnap);
+
+		return true;
+	}
+
+	return false;
+}

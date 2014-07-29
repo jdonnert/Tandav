@@ -1,7 +1,7 @@
 #include "globals.h"
 #include "timestep.h"
 
-static int timestep2timebin(const float dt);
+static int timestep2timebin(const double dt);
 static void print_timebins();
 
 static float cosmological_timestep(const int ipart);
@@ -9,7 +9,6 @@ static float kepler_timestep(const int ipart);
 static float pseudo_symmetric_kepler_timestep(const int ipart);
 
 struct TimeData Time;
-
 
 void Set_New_Timesteps()
 {
@@ -28,13 +27,15 @@ void Set_New_Timesteps()
 		//dt = fmin(dt, dt_cosmo);
 		
 		//dt = 8.56948 / 1000.;
-if(ipart == 0)
-	dt=8;
-		double dt_kepler = kepler_timestep(ipart);
 		
-		dt = fmin(dt, dt_kepler);
+		double dt_kepler = kepler_timestep(ipart);
+		double dt_kepler2 = pseudo_symmetric_kepler_timestep(ipart);
+		if (ipart == 1)
+		printf("%g %g \n", dt_kepler, dt_kepler2);
+		dt = fmin(dt, dt_kepler2);
 		
 		/* Add above */
+	
 		Assert(dt > Time.StepMin, 
 				"Timestep too small ! Ipart=%d, dt=%g, dt_cosmo=%g",
 				ipart, dt, dt_cosmo);
@@ -50,12 +51,13 @@ if(ipart == 0)
 	MPI_Allreduce(&local_bin_min, &global_bin_min, 1, MPI_INT, MPI_MIN, 
 			MPI_COMM_WORLD);
 
-	Time.IntStep = 1ULL << global_bin_min;
+	Time.IntStep = min(1ULL << global_bin_min, Time.IntEnd - Time.IntCurrent);
+
 	Time.Step = Timebin2Timestep(global_bin_min);
 	
 	Flag.Fullstep = false;
 
-	print_timebins();
+	//print_timebins();
 
 	if (Time.IntCurrent == Time.IntSyncPoint) {
 		
@@ -66,14 +68,15 @@ if(ipart == 0)
 		MPI_Allreduce(&local_bin_max, &global_bin_max, 1, MPI_INT, MPI_MAX,
 			MPI_COMM_WORLD);
 		
-		Time.IntSyncPoint = Time.IntCurrent + 1ULL << global_bin_max;
-	
+		Time.IntSyncPoint = Imin(Time.End, 
+				Time.IntCurrent + 1ULL << global_bin_max);
+
 		rprintf("Next sync point at %g \n", 
 				Integer2PhysicalTime(Time.IntSyncPoint));
 	}
 
 	Profile("Timesteps");
-Flag.Endrun = true;
+
 	return ;
 }
 
@@ -140,53 +143,17 @@ static float pseudo_symmetric_kepler_timestep(const int ipart)
 	return dt;
 }
 
-
 void Setup_Timesteps()
 {
-	Time.IntBeg = 0;
-	Time.IntEnd = 0xFFFFFFFFFFFFFFFF;
+	Time.IntBeg = 0x0000000000000000;
+	Time.IntEnd = 0x8000000000000000;
+
 	Time.IntCurrent = Time.IntBeg;
 
 	Time.StepMax = Time.End - Time.Begin;
-	Time.StepMin = Time.StepMax / (1ULL << 63);
+	Time.StepMin =  Time.StepMax / (1ULL << 63);
 
 	return ;
-}
-
-bool Time_Is_Up()
-{
-	if (Time.IntCurrent == Time.IntEnd)
-		return true;
-
-	if (Flag.Endrun)
-		return true;
-
-	if (Runtime() >= Param.RuntimeLimit) {
-
-		Flag.WriteRestartFile = true;
-
-		return true;
-	}
-
-	return false;
-}
-
-bool Time_For_Snapshot()
-{
-	if (Flag.WriteSnapshot)
-		return true;
- 	
-	if (Time.Current + Time.Step > Time.NextSnap) {
-	
-		Time.NextSnap += Time.BetSnap;
-
-		rprintf("Snapshot at t=%g, Next Snapshot at t=%g \n", 
-				Time.Current, Time.NextSnap);
-
-		return true;
-	}
-
-	return false;
 }
 
 /* Give the physical timestep from timebin
@@ -196,10 +163,9 @@ double Timebin2Timestep(const int TimeBin)
 	return Time.StepMin * (1ULL << TimeBin);
 }
 
-
 double Integer2PhysicalTime(const uint64_t IntTime)
 {
-	return Time.Begin +  IntTime * Time.StepMin;
+	return Time.Begin + IntTime * Time.StepMin;
 }
 
 /* Convert a timestep to a power 2 based timebin 
@@ -231,8 +197,8 @@ static void print_timebins()
 		if (npart_global[i] != 0 && imax < 0)
 			imax = i;	
 
-	rprintf("Timesteps: shortest = %d , longest = %d\n"
-			"   Bin       nGas           nDM         dt\n", imax, imin);
+	rprintf("Timesteps: longest = %d \n"
+			"   Bin       nGas           nDM         dt\n", imax);
 
 	for (int i = imax; i >= imin; i--)
 			rprintf("   %2d    %7d        %7d       %g \n", 

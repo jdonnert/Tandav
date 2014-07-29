@@ -16,15 +16,13 @@ struct TimeData {
 	uint64_t IntStep;		// current time step on integer timeline
 	uint64_t IntSyncPoint;  // next sync point on integer timeline
 	double Step;			// physical time step
-	double StepMin;			// smallest physical timestep
-	double StepMax;			// largest physical timestep
+	long double StepMin;	// smallest physical timestep
+	long double StepMax;	// largest physical timestep
 } Time;
 
 void Set_New_Timesteps();
 void Setup_Timesteps();
 double Timebin2Timestep(const int);
 double Integer2PhysicalTime(uint64_t);
-bool Time_For_Snapshot();
-bool Time_Is_Up();
 
 #endif // TIMESTEP_H

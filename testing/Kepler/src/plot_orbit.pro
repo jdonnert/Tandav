@@ -57,7 +57,7 @@ pro plot_orbit
 
 	oplot, [0,0], [0,0], psym=1
 
-	nsnap = 933
+	nsnap = 1000
 
 	E = make_array(nsnap, /double)
 	x = make_array(nsnap, /double)
@@ -87,7 +87,6 @@ pro plot_orbit
 
 		E[i] =  0.5 * M[1] * (vx[i]^2+vy[i]^2+vz[i]^2) $
 			- gadget.grav* M[1]*M[0]/ sqrt(x[i]^2+y[i]^2+z[i]^2)
-
 	end
 
 	oplot, x, y, col=color(1), psym=3
@@ -96,7 +95,7 @@ pro plot_orbit
 
 	t = findgen(nsnap)/(nsnap-1) *head.time
 	
-	plot, t/Torbit, abs( (E-E[0]) / E[0] ), /ylog,  yrange=[1e-3,1]
+	plot, t/Torbit,( (E-E[0]) / E[0] ),  yrange=[-0.1,0.1]
 
 	stop
 

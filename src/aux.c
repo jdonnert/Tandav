@@ -9,7 +9,6 @@ int Imax(const int x, const int y)
 {
   return x ^ ((x ^ y) & -(x < y));
 }
- 
 
 /* Reallocates the Particle structures. Takes the relative change
  * as argument, not the total number. Add or Remove via sign of nPart.

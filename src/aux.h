@@ -10,3 +10,6 @@ void Warn_Info(const char *, const char *, int, int64_t, const char *, ...);
 
 float Particle_Mass(const int ipart);
 int Particle_Type(const int ipart);
+
+int Imax(const int x, const int y);
+int Imin(const int x, const int y);

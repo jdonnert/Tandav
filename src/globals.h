@@ -58,7 +58,7 @@ extern struct Particle_Data {
 	float Mass;
 	uint32_t ID;
 	int Type;
-	uint64_t TimeBin;
+	uint32_t TimeBin;
 	peanoKey Peanokey;
 	/* add below */
 } *P;

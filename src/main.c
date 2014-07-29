@@ -15,15 +15,12 @@ int main(int argc, char *argv[])
 {
 	preamble(argc, argv);
 
-test_sort();
-
-/*
 	Read_and_Init();
 
 	Setup();
 			
 	Update(BEFORE_MAIN_LOOP);
-
+	
 	for (;;) { // Quinn+97, Springel05
 	
 		if (Time_For_Snapshot())
@@ -45,7 +42,7 @@ test_sort();
 
 	if (Flag.WriteRestartFile) 
 		Write_Restart_File();
-*/	
+
 	Finish();
 
 	return EXIT_SUCCESS;

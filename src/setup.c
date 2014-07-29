@@ -26,8 +26,8 @@ static void setup_timeline()
 
 	Assert(Time.NSnap > 0,"Timeline does not seem to produce any outputs");
 
-	rprintf("Timeline: start time = %g, end time = %g,"
-			" Number of Snaps = %d \n", 
+	rprintf("Simulation timeline: start time = %g, end time = %g,"
+			" Number of Snaps = %d \n\n", 
 			Time.Begin, Time.End, Time.NSnap);
 
 	return ;

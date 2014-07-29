@@ -19,7 +19,7 @@ Boxsize2		4000
 TimeBegin		0 
 TimeEnd			100 856 
 TimeOfFirstSnaphot		0 
-TimeBetSnapshots		0.107119
+TimeBetSnapshots		0.8
 
 %% Cosmology %%
 Omega0		1 

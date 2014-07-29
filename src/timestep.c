@@ -1,35 +1,38 @@
 #include "globals.h"
 #include "timestep.h"
 
-struct TimeData Time;
-
-static uint64_t timestep2timebin(const float dt);
+static int timestep2timebin(const float dt);
 static void print_timebins();
 
 static float cosmological_timestep(const int ipart);
 static float kepler_timestep(const int ipart);
 static float pseudo_symmetric_kepler_timestep(const int ipart);
 
+struct TimeData Time;
+
+
 void Set_New_Timesteps()
 {
 	Profile("Timesteps");
 
-	float dt_min = FLT_MAX; 
+	int local_bin_min = 65, local_bin_max = 0;
 
-#pragma omp parallel for reduction(min:dt_min) // OpenMP 3.1
+	#pragma omp parallel for \
+		reduction(min:local_bin_min) reduction(max:local_bin_max)
 	for (int ipart = 0; ipart < Task.NpartTotal; ipart++) {
 
-		float dt = Time.StepMax;
+		double dt = DBL_MAX;
 
-		float dt_cosmo = cosmological_timestep(ipart); 
+		double dt_cosmo = cosmological_timestep(ipart); 
 		
-		dt = fmin(dt, dt_cosmo);
+		//dt = fmin(dt, dt_cosmo);
 		
 		//dt = 8.56948 / 1000.;
-
-		//float dt_kepler = pseudo_symmetric_kepler_timestep(ipart);
-
-		//dt = dt_kepler;//fmin(dt, dt_kepler);
+if(ipart == 0)
+	dt=8;
+		double dt_kepler = kepler_timestep(ipart);
+		
+		dt = fmin(dt, dt_kepler);
 		
 		/* Add above */
 		Assert(dt > Time.StepMin, 
@@ -38,15 +41,39 @@ void Set_New_Timesteps()
 
 		P[ipart].TimeBin = timestep2timebin(dt);
 		
-		dt_min = fmin(dt_min, dt);
+		local_bin_min = Imin(local_bin_min, P[ipart].TimeBin);
+		local_bin_max = Imax(local_bin_max, P[ipart].TimeBin);
+	}
+	
+	int global_bin_min = 65;
+	
+	MPI_Allreduce(&local_bin_min, &global_bin_min, 1, MPI_INT, MPI_MIN, 
+			MPI_COMM_WORLD);
+
+	Time.IntStep = 1ULL << global_bin_min;
+	Time.Step = Timebin2Timestep(global_bin_min);
+	
+	Flag.Fullstep = false;
+
+	print_timebins();
+
+	if (Time.IntCurrent == Time.IntSyncPoint) {
+		
+		Flag.Fullstep = true;
+
+		int global_bin_max = 0;
+
+		MPI_Allreduce(&local_bin_max, &global_bin_max, 1, MPI_INT, MPI_MAX,
+			MPI_COMM_WORLD);
+		
+		Time.IntSyncPoint = Time.IntCurrent + 1ULL << global_bin_max;
+	
+		rprintf("Next sync point at %g \n", 
+				Integer2PhysicalTime(Time.IntSyncPoint));
 	}
 
-	MPI_Allreduce(&dt_min, &Time.Step, 1, MPI_FLOAT, MPI_MIN, MPI_COMM_WORLD);
-	
-	//print_timebins();
-
 	Profile("Timesteps");
-
+Flag.Endrun = true;
 	return ;
 }
 
@@ -77,7 +104,7 @@ static float kepler_timestep(const int ipart)
 	double r = sqrt( dx*dx + dy*dy + dz*dz );
 
 	float phi = Const.Gravity * P[ipart].Mass / r;
-	
+
  	float acc_phys = len3(P[ipart].Force) / P[ipart].Mass;
 
 	float dt_kepler = TIME_INT_ACCURACY * sqrt(phi) / acc_phys;
@@ -116,16 +143,19 @@ static float pseudo_symmetric_kepler_timestep(const int ipart)
 
 void Setup_Timesteps()
 {
-	Time.StepMax = Time.End - Time.Begin;
+	Time.IntBeg = 0;
+	Time.IntEnd = 0xFFFFFFFFFFFFFFFF;
+	Time.IntCurrent = Time.IntBeg;
 
-	Time.StepMin = Time.StepMax / ((uint64_t) 1 << 63);
+	Time.StepMax = Time.End - Time.Begin;
+	Time.StepMin = Time.StepMax / (1ULL << 63);
 
 	return ;
 }
 
 bool Time_Is_Up()
 {
-	if (Time.Current + Time.Step > Time.End)
+	if (Time.IntCurrent == Time.IntEnd)
 		return true;
 
 	if (Flag.Endrun)
@@ -159,18 +189,24 @@ bool Time_For_Snapshot()
 	return false;
 }
 
-/* Give the physical timestep of particle ipart 
- * Use Time.Step for the system step */
-float Timestep(const int ipart)
+/* Give the physical timestep from timebin
+ * Use Time.Step for the current system step */
+double Timebin2Timestep(const int TimeBin)
 {
-	return Time.StepMin * (1 << P[ipart].TimeBin);
+	return Time.StepMin * (1ULL << TimeBin);
+}
+
+
+double Integer2PhysicalTime(const uint64_t IntTime)
+{
+	return Time.Begin +  IntTime * Time.StepMin;
 }
 
 /* Convert a timestep to a power 2 based timebin 
  * it is assumed that dt >= StepMin */
-static uint64_t timestep2timebin(const float dt)
+static int timestep2timebin(const double dt)
 {
-	return floor( log2(dt / Time.StepMin) );
+	return 63 - ceil( log2( (Time.End - Time.Begin)/dt ) );
 }
 
 static void print_timebins()
@@ -182,12 +218,31 @@ static void print_timebins()
 
 	int npart_global[64] = { 0 };
 
-	MPI_Reduce(npart, npart_global, 64, MPI_SUM, MPI_INT, MASTER, 
+	MPI_Reduce(npart, npart_global, 64, MPI_INT, MPI_SUM, MASTER, 
 			MPI_COMM_WORLD);
-
-	rprintf("");
-	rprintf("");
 	
+	int imin = -1, imax = -1;
+
+	for (int i = 0; i < 64; i++)
+		if (npart_global[i] != 0 && imin < 0) 
+			imin = i;
+
+	for (int i = 63; i > -1; i--)
+		if (npart_global[i] != 0 && imax < 0)
+			imax = i;	
+
+	rprintf("Timesteps: shortest = %d , longest = %d\n"
+			"   Bin       nGas           nDM         dt\n", imax, imin);
+
+	for (int i = imax; i >= imin; i--)
+			rprintf("   %2d    %7d        %7d       %g \n", 
+					i, 0, npart_global[i], Timebin2Timestep(i));
+
+
+	rprintf("\n");
+
+	MPI_Barrier(MPI_COMM_WORLD);
+
 	return ;
 }
 

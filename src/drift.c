@@ -11,7 +11,7 @@ void Drift()
 
 	const float dt = Time.Step;
 
-#pragma omp parallel for 
+	#pragma omp parallel for 
 	for (int ipart = 0; ipart < Task.NpartTotal; ipart++) {
 
 		if (ipart == 0)
@@ -22,7 +22,8 @@ void Drift()
 		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2] * driftfac;
 	}
 	
-	Time.Current += dt; // we have advanced the system !
+	Time.IntCurrent += Time.IntStep;
+	Time.Current = Integer2PhysicalTime(Time.IntCurrent); 
 
 	return;
 }

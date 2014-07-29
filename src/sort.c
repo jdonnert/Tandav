@@ -76,17 +76,17 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 	shared_stack[0].lo = (char *)data_ptr; 
 	shared_stack[0].hi = &((char *)data_ptr)[size * (nData - 1)];
 
-#pragma omp parallel shared(shared_stack) num_threads(nThreads)
+	#pragma omp parallel shared(shared_stack) num_threads(nThreads)
 	{
 
-	int delta = desNumPar;
+	int delta = desNumPar << 1;
 
-	for (int i = 0; i < log2(desNumPar); i++) {
+	while (delta > 2) {
 
 		delta >>= 1;
 
 		#pragma omp for schedule (static,1)
-		for (int j = 0; j < desNumPar; j += delta<<1) {
+		for (int j = 0; j < desNumPar; j += delta) {
 
 			char *lo = shared_stack[j].lo; // pop from stack
 			char *hi = shared_stack[j].hi;
@@ -147,10 +147,10 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 			shared_stack[j].lo = lo;
 			shared_stack[j].hi = right_ptr;
 	
-			shared_stack[j+delta].lo = left_ptr;
-			shared_stack[j+delta].hi = hi;
+			shared_stack[j + (delta>>1)].lo = left_ptr;
+			shared_stack[j + (delta>>1)].hi = hi;
 		} // j
-    } // i
+    } // while
 
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < desNumPar; i++) { // serial sort on subpartitions
@@ -441,8 +441,8 @@ int test_compare(const void * a, const void *b)
 
 void test_sort()
 {
-	const size_t N = 123456;
-	const size_t Nit = 100;
+	const size_t N = 1234567;
+	const size_t Nit = 10;
 	int good;
 
 	double *x = malloc( N * sizeof(*x) );

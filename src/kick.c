@@ -6,8 +6,8 @@
 /* update velocities from forces */
 void Kick_Halfstep() 
 {
-#ifdef COMOVING
-	const float driftfac = Cosmo_Kick_Factor(Sim.CurrentTime);
+#ifdef COMOVING 
+	const float driftfac = Cosmo_Kick_Factor(Sim.CurrentTime); // Quinn+97
 #else
 	const float driftfac = 1;
 #endif // COMOVING

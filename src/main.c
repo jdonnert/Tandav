@@ -23,9 +23,7 @@ int main(int argc, char *argv[])
 			
 	Update(BEFORE_MAIN_LOOP);
 		
-	Kick_Halfstep();
-	
-	for (;;) { // Quinn+97, Springel05
+	for (;;) { 
 		
 		Set_New_Timesteps();
 

@@ -7,7 +7,7 @@ GRAVITY				// gravitational interaction
 GRAV_SOFTENING 1 	// std 0.001, gravitational softening length 
 
 #COMOVING			// time integration in comoving coordinates
-TIME_INT_ACCURACY 0.05	// std 0.05, time step parameter
+TIME_INT_ACCURACY 0.03	// std 0.05, time step parameter
 
 #PERIODIC			// periodic boundary conditions
 

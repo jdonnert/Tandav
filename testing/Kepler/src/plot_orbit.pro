@@ -95,7 +95,7 @@ pro plot_orbit
 
 	t = findgen(nsnap)/(nsnap-1) *head.time
 	
-	plot, t/Torbit,( (E-E[3]) / E[3] ), yrange=[-0.02,0.02], xrange=[0.1,10]
+	plot, t/Torbit,abs((E-E[0])/ E[0] ), /ylog,yrange=[1e-5,0.02], xrange=[0.1,10]
 
 	stop
 

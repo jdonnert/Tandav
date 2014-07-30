@@ -12,7 +12,7 @@ void Compute_Forces()
 	for (int ipart = 0; ipart < Task.NpartTotal; ipart++){
 	
 		float force[3] = { 0 };
-	
+
 #ifdef GRAVITY
 		force_Gravity_Simple(ipart, force);
 #endif // GRAVITY
@@ -20,8 +20,6 @@ void Compute_Forces()
 		float last_acc = len3(P[ipart].Force) / P[ipart].Mass;
 		float acc =  len3(force) / P[ipart].Mass;
 
-		P[ipart].Surge = (acc - last_acc) / Time.Step;
-		
 		P[ipart].Force[0] = force[0];
 		P[ipart].Force[1] = force[1];
 		P[ipart].Force[2] = force[2];

@@ -15,9 +15,9 @@ void Read_and_Init()
 {
 	Read_Parameter_File(Param.File);
 	
-	Init_Memory_Management();
-
  	Init_Profiler();
+
+	Init_Memory_Management();
 
 	switch (Param.StartFlag) {
 
@@ -37,7 +37,7 @@ void Read_and_Init()
 			
 			Assert(0, "Start Flag not handled");
 	}
-
+	
 	return ;
 }
 

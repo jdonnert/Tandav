@@ -57,7 +57,7 @@ pro plot_orbit
 
 	oplot, [0,0], [0,0], psym=1
 
-	nsnap = 1000
+	nsnap = 800
 
 	E = make_array(nsnap, /double)
 	x = make_array(nsnap, /double)
@@ -95,7 +95,7 @@ pro plot_orbit
 
 	t = findgen(nsnap)/(nsnap-1) *head.time
 	
-	plot, t/Torbit,( (E-E[0]) / E[0] ),  yrange=[-0.1,0.1]
+	plot, t/Torbit,( (E-E[3]) / E[3] ), yrange=[-0.02,0.02], xrange=[0.1,10]
 
 	stop
 

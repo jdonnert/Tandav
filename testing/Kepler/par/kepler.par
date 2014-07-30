@@ -3,7 +3,7 @@
 
 %% Files %%
 InputFile		IC_Kepler
-OutputFileBase		snap 
+OutputFileBase		data/snap 
 NumIOTasks		1 
 NumOutputFiles		1 
 
@@ -17,9 +17,9 @@ Boxsize0		4000
 Boxsize1		4000 
 Boxsize2		4000 
 TimeBegin		0 
-TimeEnd			100
+TimeEnd			86
 TimeOfFirstSnaphot		0 
-TimeBetSnapshots		0.1
+TimeBetSnapshots	 	0.1
 
 %% Cosmology %%
 Omega0		1 
@@ -27,5 +27,5 @@ OmegaLambda		0.7
 OmegaBaryon		1 
 HubbleParam		0.7 
 
-TimeIntAccuracy		0.001
-GravSoftening		0.001 
+TimeIntAccuracy		0.01
+GravSoftening		0.1 

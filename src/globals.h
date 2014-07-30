@@ -31,6 +31,8 @@ extern struct Global_Simulation_Properties {
 	double Boxsize[3];			// Now in 3D !
 } Sim;
 
+int *ActiveParticleList, NActiveParticles;
+
 extern struct Parameters_From_File {
 	char File[CHARBUFSIZE]; 	// parameter file name
 	char InputFile[CHARBUFSIZE];
@@ -54,7 +56,6 @@ extern struct Particle_Data {
 	float Pos[3];
 	float Vel[3];
 	float Force[3];
-	float Surge;				// d^3x/dt^3
 	float Mass;
 	uint32_t ID;
 	int Type;

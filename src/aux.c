@@ -1,11 +1,22 @@
 #include "globals.h"
 
-int Imin(const int x, const int y)
+/* Min/Max functions for signed/unsigned 64 bit integers */
+int64_t Imin(const int64_t x, const int64_t y)
 {
   return y ^ ((x ^ y) & -(x < y));
 }
  
-int Imax(const int x, const int y)
+int64_t Imax(const int64_t x, const int64_t y)
+{
+  return x ^ ((x ^ y) & -(x < y));
+}
+
+uint64_t Umin(const uint64_t x, const uint64_t y)
+{
+  return y ^ ((x ^ y) & -(x < y));
+}
+ 
+uint64_t Umax(const uint64_t x, const uint64_t y)
 {
   return x ^ ((x ^ y) & -(x < y));
 }

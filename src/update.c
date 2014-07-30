@@ -13,10 +13,8 @@ void Update(enum Update_Parameters stage)
 		
 			Compute_Forces();
 		
-			Set_New_Timesteps();
-
 			Print_Memory_Usage();
-	
+
 			break;
 
 		case BEFORE_FIRST_KICK:

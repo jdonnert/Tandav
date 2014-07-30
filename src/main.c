@@ -25,20 +25,20 @@ int main(int argc, char *argv[])
 	
 	for (;;) { // Quinn+97, Springel05
 		
+		Set_New_Timesteps();
+
+		Kick_Halfstep();
+
+		Drift();
+		
 		if (time_For_Snapshot())
 			Write_Snapshot();
 
 		if (time_Is_Up())
 			break;
 
-		Kick_Halfstep();
-
-		Drift();
-		
 		Compute_Forces();
 
-		Set_New_Timesteps();
-	
 		Kick_Halfstep();
 	}
 
@@ -105,12 +105,10 @@ static bool time_Is_Up()
 		rprintf("EndTime reached: %g \n", Time.End);
 		
 		return true;
-
 	}
 
 	if (Flag.Endrun) 
 		return true;
-	
 
 	if (Runtime() >= Param.RuntimeLimit) {
 

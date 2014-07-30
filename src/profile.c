@@ -1,6 +1,6 @@
 #include "globals.h"
 
-#define MAXPROFILEITEMS 999		// Max number of profiling marks
+#define MAXPROFILEITEMS 99		// Max number of profiling marks
 
 static struct Profiling_Object {
 	char Name[CHARBUFSIZE];
@@ -42,17 +42,19 @@ void Profile_Info(const char* file, const char* func, const int line,
 
 	if (i == NProfObjs) { // new item start profiling
 		
+		Prof[i].Tbeg = measure_time();
+
 		strncpy(Prof[i].Name, name, CHARBUFSIZE);
 
 		NProfObjs++;
-
-		Prof[i].Tbeg = measure_time();
 
 	} else { // existing item, stop & reduce
 		
 		Prof[i].Tend = measure_time();
 	
 		Prof[i].ThisLast = Prof[i].Tend - Prof[i].Tbeg;
+		
+		MPI_Barrier(MPI_COMM_WORLD);
 
 		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Min, 1, MPI_DOUBLE, 
 				MPI_MIN, MASTER, MPI_COMM_WORLD);
@@ -78,18 +80,21 @@ void Profile_Report()
 	if (Task.Rank != MASTER)
 		return; 
 
-	const double now = measure_time();
+	const double runtime = Runtime();
+
+	double scale = 1000; // sec
+	if (runtime > 60)
+		scale *= 60; // min
 
 	printf("\nProfiler: All sections, total runtime of %g min\n"
 		"                Name       Total     Tot Imbal        Max       "
-		"Mean      Min        Imbal\n", (now-Prof[0].Tbeg)/60);
+		"Mean      Min        Imbal\n", runtime);
 
 	for (int i = 0; i < NProfObjs; i++ )
 		printf("%20s    %8.1f   %8.1f      %8.1f  %8.1f  %8.1f   %8.1f\n",
-				Prof[i].Name, Prof[i].Total/60, Prof[i].Imbalance/60, 
-				Prof[i].Max/60, Prof[i].Min/60, Prof[i].Mean/60, 
-				(Prof[i].Max-Prof[i].Min)/60);
-
+				Prof[i].Name, Prof[i].Total/scale, Prof[i].Imbalance/scale, 
+				Prof[i].Max/scale, Prof[i].Min/scale, Prof[i].Mean/scale, 
+				(Prof[i].Max-Prof[i].Min)/scale);
 	return ;
 }
 
@@ -105,13 +110,13 @@ void Profile_Report_Last()
 	printf("Profiler: Last section, total runtime of %g min\n"
 			"Name	  	Total	Min	Max	Mean\n"
 			"%s		: %g	%g	%g	%g\n", 
-			(now-Prof[0].Tbeg)/60, Prof[i].Name, Prof[i].Total,
+			(now-Prof[0].Tbeg), Prof[i].Name, Prof[i].Total,
 			Prof[i].Max, Prof[i].Min, Prof[i].Mean);
 
 	return ;
 }
 
-float Runtime()
+double Runtime()
 {
 	const double now = measure_time();
 
@@ -133,7 +138,7 @@ static inline int find_index_from_name(const char *name)
 
 	return i; // may return i=NProfObjs, i.e. new item
 }
-
+/* in ms */
 static double measure_time()
 {
 	return MPI_Wtime();

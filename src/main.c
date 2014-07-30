@@ -22,6 +22,8 @@ int main(int argc, char *argv[])
 	Setup();
 			
 	Update(BEFORE_MAIN_LOOP);
+		
+	Kick_Halfstep();
 	
 	for (;;) { // Quinn+97, Springel05
 		

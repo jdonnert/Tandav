@@ -1,18 +1,21 @@
 #include "globals.h"
 #include "timestep.h"
 
+#define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
+
 static void make_active_particle_list(const int);
 static int timestep2timebin(const double dt);
 static void print_timebins();
 
 static float cosmological_timestep(const int ipart);
-static float kepler_timestep(const int ipart);
-static float pseudo_symmetric_kepler_timestep(const int ipart);
 
 struct TimeData Time;
 
 static int MaxActiveBin = 63;
 
+/* All active particles get a new step that is smaller than or equal to 
+ * the largest active bin. We also update the active particle list 
+ * and set the fullstep signal */
 void Set_New_Timesteps()
 {
 	Profile("Timesteps");
@@ -53,8 +56,7 @@ void Set_New_Timesteps()
 	
 	Time.Step = Timebin2Timestep(global_bin_min);
 
-	MaxActiveBin = __builtin_ctzll(Time.IntCurrent + Time.IntStep); 
-		// count trailing zeros
+	MaxActiveBin = COUNT_TRAILING_ZEROS(Time.IntCurrent + Time.IntStep); 
 	
 	make_active_particle_list(MaxActiveBin);
 
@@ -83,73 +85,8 @@ void Set_New_Timesteps()
 	return ;
 }
 
-static void make_active_particle_list(const int maxActiveBin)
-{
-	int i = 0;
-
-	for (int ipart = 0; ipart < Task.NpartTotal; ipart++) 
-		if (P[ipart].TimeBin <= maxActiveBin)
-			ActiveParticleList[i++] = ipart; // all lower bits = 0
-
-	NActiveParticles = i;
-	
-	return ;
-}
-
-/* Cosmological N-body step, Dehnen & Read 2011, eq (21) */
-static float cosmological_timestep(const int ipart)
-{
-	const float acc = len3(P[ipart].Force) / P[ipart].Mass;
-	
-	float dt = TIME_INT_ACCURACY * sqrt( GRAV_SOFTENING / acc); 
-		
-	return dt;
-}
-
-/* Timestep for the Kepler problem,  Dehnen & Read 2011, (eq 20)*/
-static float kepler_timestep(const int ipart)
-{
-	double dx = P[0].Pos[0] - P[1].Pos[0];
-	double dy = P[0].Pos[1] - P[1].Pos[1];
-	double dz = P[0].Pos[2] - P[1].Pos[2];
-
-	double r = sqrt( dx*dx + dy*dy + dz*dz );
-
-	float phi = Const.Gravity * P[ipart].Mass / r;
-
- 	float acc_phys = len3(P[ipart].Force) / P[ipart].Mass;
-
-	float dt_kepler = TIME_INT_ACCURACY * sqrt(phi) / acc_phys;
-
-	return dt_kepler;
-}
-
-static float pseudo_symmetric_kepler_timestep(const int ipart)
-{
-	double dx = P[0].Pos[0] - P[1].Pos[0];
-	double dy = P[0].Pos[1] - P[1].Pos[1];
-	double dz = P[0].Pos[2] - P[1].Pos[2];
-
-	double r = sqrt( dx*dx + dy*dy + dz*dz );
-
-	double mu = P[0].Mass + P[1].Mass;
-
-	float dt = TIME_INT_ACCURACY *  sqrt(r*r*r/mu);
-
-	double dvx = P[0].Vel[0] + P[1].Vel[0];
-	double dvy = P[0].Vel[1] + P[1].Vel[1];
-	double dvz = P[0].Vel[2] + P[1].Vel[2];
-
-	float vdotr =  sqrt(dvx*dx + dvy*dy + dvz*dz);
-
-	float deriv = 1.5 * dt * vdotr / r/r; 
-
-	if (Time.Current != Time.Begin)
-		dt /= (1 - 0.5 * deriv );
-
-	return dt;
-}
-
+/* The timeline is represented by a 64 bit integer, where an increment of
+ * one corresponds to the whole integration time devided by 2^63 */
 void Setup_Time_Integration()
 {
 	Time.NextSnap = Time.FirstSnap;
@@ -180,6 +117,31 @@ void Setup_Time_Integration()
 
 	return ;
 }
+
+static void make_active_particle_list(const int maxActiveBin)
+{
+	int i = 0;
+
+	for (int ipart = 0; ipart < Task.NpartTotal; ipart++) 
+		if (P[ipart].TimeBin <= maxActiveBin)
+			ActiveParticleList[i++] = ipart; // all lower bits = 0
+
+	NActiveParticles = i;
+	
+	return ;
+}
+
+/* Cosmological N-body step, Dehnen & Read 2011, eq (21) */
+static float cosmological_timestep(const int ipart)
+{
+	const float acc = len3(P[ipart].Force) / P[ipart].Mass;
+	
+	float dt = TIME_INT_ACCURACY * sqrt( GRAV_SOFTENING / acc); 
+		
+	return dt;
+}
+
+
 
 /* Give the physical timestep from timebin
  * Use Time.Step for the current system step */

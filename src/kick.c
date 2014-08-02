@@ -3,7 +3,9 @@
 #include "force.h"
 #include "timestep.h"
 
-/* update velocities from forces */
+/* This is the Kick part of the KDK scheme. We update velocities from forces,
+ * but kick only for half a timestep */
+
 void Kick_Halfstep() 
 {
 #ifdef COMOVING 
@@ -11,21 +13,19 @@ void Kick_Halfstep()
 #else
 	const float driftfac = 1;
 #endif // COMOVING
-	
+
 	#pragma omp parallel for 
 	for (int i = 0; i < NActiveParticles; i++) {
 
 		int ipart = ActiveParticleList[i];
+		
+		float dt = 0.5 * Timebin2Timestep(P[ipart].TimeBin);
 
 		float mpart = P[ipart].Mass;
 
-		float force[3] = { 0 };
-		
-		float dt = Time.Step;
-
-		P[ipart].Vel[0] += 0.5 * dt * P[ipart].Force[0]/mpart * driftfac;
-		P[ipart].Vel[1] += 0.5 * dt * P[ipart].Force[1]/mpart * driftfac; 
-		P[ipart].Vel[2] += 0.5 * dt * P[ipart].Force[2]/mpart * driftfac;
+		P[ipart].Vel[0] += dt * P[ipart].Force[0]/mpart * driftfac;
+		P[ipart].Vel[1] += dt * P[ipart].Force[1]/mpart * driftfac; 
+		P[ipart].Vel[2] += dt * P[ipart].Force[2]/mpart * driftfac;
 	}
 
 	return ;

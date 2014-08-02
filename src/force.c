@@ -17,9 +17,6 @@ void Compute_Forces()
 		force_Gravity_Simple(ipart, force);
 #endif // GRAVITY
 	
-		float last_acc = len3(P[ipart].Force) / P[ipart].Mass;
-		float acc =  len3(force) / P[ipart].Mass;
-
 		P[ipart].Force[0] = force[0];
 		P[ipart].Force[1] = force[1];
 		P[ipart].Force[2] = force[2];

@@ -1,3 +1,2 @@
-void Drift();
-void Second_Order_Drift();
-
+void Drift_To_Synch_Point();
+void Drift_To_Snaptime();

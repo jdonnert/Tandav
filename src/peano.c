@@ -3,9 +3,6 @@
 #include "sort.h"
 
 /* Here we compute the peano keys and reorder the particles */
-peanoKey Compute_Peano_Key(const float, const float, const float, 
-		const double *);
-
 int compare_peanokeys(const void * a, const void *b)
 {
 	const peanoKey *x = (const peanoKey*)a;
@@ -23,8 +20,8 @@ void Sort_Particles_By_Peano_Key()
 	#pragma omp parallel for
 	for (int ipart = 0; ipart < npart; ipart++) {
 
-		keys[ipart] = Compute_Peano_Key( P[ipart].Pos[0], P[ipart].Pos[1], 
-				 						 P[ipart].Pos[2], Sim.Boxsize);
+		keys[ipart] = Peano_Key( P[ipart].Pos[0], P[ipart].Pos[1], 
+				 				 P[ipart].Pos[2], Sim.Boxsize);
 
 		P[ipart].Peanokey = keys[ipart];
 	}
@@ -71,7 +68,7 @@ void Sort_Particles_By_Peano_Key()
  * Skilling 2004, AIP 707, 381: "Programming the Hilbert Curve"
  * Note: There is a bug in the code of the paper. See also:
  * Campbell+03 'Dynamic Octree Load Balancing Using Space-Filling Curves' */
-peanoKey Compute_Peano_Key(const float x, const float y, const float z, 
+peanoKey Peano_Key(const float x, const float y, const float z, 
 		const double *boxsize)
 {
 	const uint32_t m = 0x80000000; // = 1UL << 31;
@@ -140,11 +137,13 @@ peanoKey Compute_Peano_Key(const float x, const float y, const float z,
 	return key;
 }
 
-static void print_int_bits64(const uint64_t val)
+void print_int_bits64(const uint64_t val)
 {
 	for (int i = 63; i >= 0; i--)
 		printf("%llu", (val & (1ULL << i) ) >> i);
 	
+	printf("\n");
+
 	fflush(stdout);
 
 	return ;
@@ -166,7 +165,7 @@ void test_peanokey()
 		a[1] = (j + 0.5) * delta / box[1];
 		a[2] = (k + 0.5) * delta / box[2];
 
-		peanoKey stdkey =  Compute_Peano_Key(a[0], a[1], a[2], box);
+		peanoKey stdkey =  Peano_Key(a[0], a[1], a[2], box);
 
 		printf("%g %g %g %llu \n", a[0], a[1], a[2], stdkey);
 

@@ -9,8 +9,8 @@ struct Cosmology_Infos {
 	double BaryonFraction;	// Cosmic baryon fraction
 } Cosmo; 
 
-double Cosmo_Drift_Factor(float a);
-double Cosmo_Kick_Factor(float a);
+double Cosmo_Drift_Factor(double a);
+double Cosmo_Kick_Factor(double a);
 void Init_Cosmology ();
-float Hubble_Function (float a);
-float Critical_Density (float a);
+double Hubble_Function (double a);
+double Critical_Density (double a);

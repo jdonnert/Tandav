@@ -5,6 +5,7 @@
 
 /* provide a consistent way of updating/calling different parts 
  * of the code from the main loop without cluttering */
+
 void Update(enum Update_Parameters stage) 
 {
 	switch (stage) {
@@ -24,8 +25,12 @@ void Update(enum Update_Parameters stage)
 		case AFTER_FIRST_KICK:
 		
 			break;
+
+		case BEFORE_SNAPSHOT:
+
+			break;
 		
-		case AFTER_DRIFT:
+		case BEFORE_FORCES:
 		
 			break;
 
@@ -43,3 +48,5 @@ void Update(enum Update_Parameters stage)
 
 	return;
 }
+
+

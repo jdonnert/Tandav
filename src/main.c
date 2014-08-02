@@ -12,7 +12,8 @@ static void preamble(int argc, char *argv[]);
 static bool time_For_Snapshot();
 static bool time_Is_Up();
 
-/* This exposes the time integration */
+/* This exposes the time integration of the code. Everything else is found
+ * in Update() */
 int main(int argc, char *argv[])
 {
 	preamble(argc, argv);
@@ -29,20 +30,28 @@ int main(int argc, char *argv[])
 
 		Kick_Halfstep();
 
-		Drift();
-		
-		if (time_For_Snapshot())
+		if (time_For_Snapshot()) {
+			
+			Drift_To_Snaptime();
+			
 			Write_Snapshot();
+		}
+ 		
+		Drift_To_Sync_Point();
 
-		if (time_Is_Up())
-			break;
+		Make_Active_Particle_List();
+		
+		Update(BEFORE_FORCES);
 
 		Compute_Forces();
 
 		Kick_Halfstep();
+		
+		if (time_Is_Up())
+			break;
 	}
 
-	if (Flag.WriteRestartFile) 
+	if (Sig.WriteRestartFile) 
 		Write_Restart_File();
 
 	Finish();
@@ -87,7 +96,7 @@ static void preamble(int argc, char *argv[])
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);
 	
-	if (argc > 2)
+	if (argc > 2) // Start Flag given
 		Param.StartFlag = atoi(argv[2]);
 
 	if (Param.StartFlag == 10) 
@@ -107,14 +116,18 @@ static bool time_Is_Up()
 		return true;
 	}
 
-	if (Flag.Endrun) 
+	if (Sig.Endrun) {
+	
+		rprintf("Endrun upon Sig.Endrun, t=%g", Time.Current);
+
 		return true;
+	}
 
 	if (Runtime() >= Param.RuntimeLimit) {
 
 		rprintf("Runtime limit reached: %g\n", Param.RuntimeLimit);
 
-		Flag.WriteRestartFile = true;
+		Sig.WriteRestartFile = true;
 
 		return true;
 	}
@@ -124,15 +137,17 @@ static bool time_Is_Up()
 
 static bool time_For_Snapshot()
 {
-	if (Flag.WriteSnapshot)
-		return true;
- 	
-	if (Time.Current + Time.Step > Time.NextSnap) { // not exact
+	if (Sig.WriteSnapshot) {
 	
-		Time.NextSnap += Time.BetSnap;
+		rprintf("Snapshot from signal at t=%g \n", Time.Current);
 
-		rprintf("Snapshot at t=%g, Next Snapshot at t=%g \n", 
-				Time.Current, Time.NextSnap);
+		return true;
+	}
+
+	if (Time.Current + Time.Step >= Time.NextSnap) { 
+	
+		rprintf("Snapshot No. %d at t=%g, Next at t=%g \n", 
+				Time.SnapCounter+1, Time.NextSnap, Time.NextSnap+Time.BetSnap);
 
 		return true;
 	}

@@ -3,6 +3,8 @@
 
 #include "proto.h"
 
+typedef float Float;
+
 /* CODE PARAMETERS */
 #define CHARBUFSIZE 256L 	// Maximum No. of chars in every char buffer
 #define NPARTYPE 6L 		// No of particle types
@@ -41,22 +43,23 @@ extern struct Parameters_From_File {
 	int NumIOTasks;				// written in parallel
 	int MaxMemSize;				// Memory Ceiling in 1024^2 Bytes
 	int NumOutputFiles;			// Number of files per snapshot
-	double RuntimeLimit;			// Runtime Limit
+	double RuntimeLimit;		
 	int CommBufSize;			// in 1024 Bytes
 } Param;
 
-extern struct Simulation_Flags { // a primitive signal implementation
-	bool Fullstep;				// Current step if Fullstep
-	bool WriteSnapshot;			// write a snapshot
+extern struct Simulation_Signals { // communicate an event across the code
+	bool Fullstep;				// Current step is fullstep
+	bool WriteSnapshot;			// write a snapshot this iteration
 	bool WriteRestartFile;		// write a restart file upon exit
-	bool Endrun;				// stops the runs regulary
-} Flag;
+	bool Endrun;				// stops the runs regularly
+	bool Synchronize_Drift;		// drift to next sync point on integer timeline
+} Sig;
 
 extern struct Particle_Data {
-	float Pos[3];
-	float Vel[3];
-	float Force[3];
-	float Mass;
+	Float Pos[3];
+	Float Vel[3];
+	Float Force[3];
+	Float Mass;
 	uint32_t ID;
 	int Type;
 	uint32_t TimeBin;

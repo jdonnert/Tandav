@@ -4,6 +4,8 @@ pro plot_orbit
 
 	common globals, gadget, cosmo
 
+	grav = 43019D 
+
 	M = [1d15, 1d10] *Msol / Gadget.mass
 
 	e = 0.9 ; eccentricity
@@ -17,7 +19,7 @@ pro plot_orbit
 
 	r = sqrt( pos[0,1]^2 + pos[1,1]^2 + pos[2,1]^2 )
 	
-	v = sqrt( gadget.grav * M[0] * (1 + e) / r ) ; Keplers eq.
+	v = sqrt(grav * M[0] * (1 + e) / r ) ; Keplers eq.
 	vel = [ [0,0,0], [0,v,0] ] ; L = r x v in y direction
 
 	L = [ pos[1,1]*vel[2,1] - vel[1,1]*pos[2,1], $
@@ -25,16 +27,16 @@ pro plot_orbit
 		  pos[0,1]*vel[1,1] - vel[0,1]*pos[1,1]  ]
 	L2 = L[0]^2  + L[1]^2 + L[2]^2 ; square of angular momentum L = r x vel
 		
-	C  = e/L2 * gadget.grav*M[0]
-	a = L2 / (gadget.grav*M[0]*(1-e^2))
+	C  = e/L2 * grav*M[0]
+	a = L2 / (grav*M[0]*(1-e^2))
 
-	Torbit = 2*!pi * sqrt(A^3 / (gadget.grav*M[0]))
+	Torbit = 2*!pi * sqrt(A^3 / (grav*M[0]))
 
 	print, 'Torbit=', Torbit
 
-	En = - gadget.grav * M[0] /2 /a * M[1]
+	En = - grav * M[0] /2 /a * M[1]
 
-	nstep = 1000
+	nstep = 860
 
 	x = make_array(nstep, /double)
 	y = make_array(nstep, /double)
@@ -57,7 +59,7 @@ pro plot_orbit
 
 	oplot, [0,0], [0,0], psym=1
 
-	nsnap = 800
+	nsnap = 640
 
 	E = make_array(nsnap, /double)
 	x = make_array(nsnap, /double)
@@ -70,7 +72,7 @@ pro plot_orbit
 
 	for i = 0, nsnap-1 do begin
 	
-		fname = 'snap_'+strn(i, len=3, padc='0')
+		fname = 'data/snap_'+strn(i, len=3, padc='0')
 
 		pos = gadget.readsnap(fname, 'POS', head=head)
 		vel = gadget.readsnap(fname, 'VEL')
@@ -86,7 +88,7 @@ pro plot_orbit
 		;oplot, [1,1]*x[i], [1,1]*y[i], psym=3, col=color(0)
 
 		E[i] =  0.5 * M[1] * (vx[i]^2+vy[i]^2+vz[i]^2) $
-			- gadget.grav* M[1]*M[0]/ sqrt(x[i]^2+y[i]^2+z[i]^2)
+			- grav* M[1]*M[0]/ sqrt(x[i]^2+y[i]^2+z[i]^2)
 	end
 
 	oplot, x, y, col=color(1), psym=3
@@ -95,7 +97,8 @@ pro plot_orbit
 
 	t = findgen(nsnap)/(nsnap-1) *head.time
 	
-	plot, t/Torbit,abs((E-E[0])/ E[0] ), /ylog,yrange=[1e-5,0.02], xrange=[0.1,10]
+	plot, t/Torbit,abs((E-E[0])/ E[0] ), /ylog,yrange=[1e-5,0.02], $
+		xrange=[0.1,100]
 
 	stop
 

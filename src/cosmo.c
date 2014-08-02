@@ -2,22 +2,22 @@
 
 struct Cosmology_Infos Cosmo = { 0 };
 
-double Cosmo_Drift_Factor(float a)
+double Cosmo_Drift_Factor(double a)
 {
 	return 1;
 }
 
-double Cosmo_Kick_Factor(float a)
+double Cosmo_Kick_Factor(double a)
 {
 	return 1;
 }
 
-float Hubble_Function(float a) // i.e. Mo, van den Bosch, White 2010
+double Hubble_Function(double a) // i.e. Mo, van den Bosch, White 2010
 {
 	return  1;
 }
 
-float Critical_Density(float a)
+double Critical_Density(double a)
 {
 	return 1;
 }

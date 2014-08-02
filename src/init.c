@@ -1,10 +1,11 @@
 /* Initialise global variables */
 #include "globals.h"
 #include "io/io.h"
+#include "domain.h"
 
 struct Global_Simulation_Properties Sim;
 struct Parameters_From_File Param; 
-struct Simulation_Flags Flag;
+struct Simulation_Signals Sig;
 
 #pragma omp threadprivate(Task)
 struct Local_Task_Properties Task = { 0 };
@@ -18,6 +19,8 @@ void Read_and_Init()
  	Init_Profiler();
 
 	Init_Memory_Management();
+
+	Init_Domain_Decomposition();
 
 	switch (Param.StartFlag) {
 

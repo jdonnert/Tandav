@@ -3,6 +3,8 @@
 pro make_ICs
 	
 	common globals, gadget, cosmo
+	
+	grav = 43019 
 
 	M = [1e15,1e9] / 1e10
 	print, M
@@ -18,7 +20,7 @@ pro make_ICs
 
 	r = sqrt( pos[0,1]^2 + pos[1,1]^2 + pos[2,1]^2 )
 	
-	v = sqrt( gadget.grav * M[0] * (1 + e) / r ) ; Keplers eq.
+	v = sqrt( grav * M[0] * (1 + e) / r ) ; Keplers eq.
 
 	vel = [ [0,0,0], [0,v,0] ] ; L = r x v in y direction
 
@@ -30,8 +32,9 @@ pro make_ICs
 
 	;L2 = (pos[0,1]*vel[2,1])^2 
 
-	C  = e/L2 * gadget.grav*M[0]
-	a = L2 / (gadget.grav*M[0]*(1-e^2))
+
+	C  = e/L2 * grav*M[0]
+	a = L2 / (grav*M[0]*(1-e^2))
 
 	nstep = 1000
 

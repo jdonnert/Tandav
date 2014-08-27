@@ -14,7 +14,7 @@ void Kick_Halfstep()
 	const float driftfac = 1;
 #endif // COMOVING
 
-	#pragma omp parallel for 
+	#pragma omp for 
 	for (int i = 0; i < NActiveParticles; i++) {
 
 		int ipart = ActiveParticleList[i];

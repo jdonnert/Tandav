@@ -96,7 +96,7 @@ void Read_Parameter_File(const char *filename)
 
 void Write_Parameter_File(const char *filename)
 {
-	if (!Task.Rank) {
+	if (Task.IsMaster) {
 
 		printf("\nWriting Parameter file: %s \n", filename);
 
@@ -126,7 +126,7 @@ void Write_Parameter_File(const char *filename)
 
 void sanity_check_input_parameters()
 {
-	if (Task.Rank != MASTER)
+	if (Task.IsMaster)
 		return ;
 		
 	Assert(Param.NumOutputFiles > 0, "NumOutputFiles has to be > 0");

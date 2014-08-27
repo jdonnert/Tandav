@@ -10,11 +10,14 @@ typedef float Float;
 #define NPARTYPE 6L 		// No of particle types
 #define MEM_ALIGNMENT 64L	// byte memory alignment
 #define PARTALLOCFACTOR 1.2	// Mem overhead for dynamic inbalance
-#define MASTER 0			// Rank of MPI master task
+#define MASTER 0			// Global master MPI thread
 
 /* VARIABLES */
+
 extern struct Local_Task_Properties {		
-	int Rank;				// MPI Rank of this processor
+	bool IsMaster;			// 
+	int Rank;				// combined OMP & MPI Rank of this processor
+	int MPI_Rank;			// MPI Rank of this processor
 	int ThreadID;			// OpenMP ID of this thread
 	int NpartTotal;			// Sum of Npart
 	int Npart[NPARTYPE];	// Number of particles on this processor
@@ -23,6 +26,8 @@ extern struct Local_Task_Properties {
 #pragma omp threadprivate(Task)
 
 extern struct Global_Simulation_Properties {	
+	int Master;					// MPI Master Rank
+	int NRank;					// NTask * NThreads
 	int NTask;					// Number of MPI tasks
 	int NThreads;				// Number of OpenMP threads
 	uint64_t NpartTotal;		// total global number of particles
@@ -33,7 +38,7 @@ extern struct Global_Simulation_Properties {
 	double Boxsize[3];			// Now in 3D !
 } Sim;
 
-int *ActiveParticleList, NActiveParticles;
+int * restrict ActiveParticleList, NActiveParticles;
 
 extern struct Parameters_From_File {
 	char File[CHARBUFSIZE]; 	// parameter file name
@@ -59,6 +64,7 @@ extern struct Particle_Data {
 	Float Pos[3];
 	Float Vel[3];
 	Float Force[3];
+	Float Potential;
 	Float Mass;
 	uint32_t ID;
 	int Type;

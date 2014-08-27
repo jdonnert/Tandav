@@ -14,6 +14,7 @@ static bool time_Is_Up();
 
 /* This exposes the time integration of the code. Everything else is found
  * in Update() */
+
 int main(int argc, char *argv[])
 {
 	preamble(argc, argv);
@@ -21,60 +22,85 @@ int main(int argc, char *argv[])
 	Read_and_Init();
 
 	Setup();
-			
-	Update(BEFORE_MAIN_LOOP);
-		
-	for (;;) { 
-		
-		Set_New_Timesteps();
 
-		Kick_Halfstep();
+#pragma omp parallel
+   	{
+		Update(BEFORE_MAIN_LOOP);
+		
+		for (;;) { // run, Forest, run !
+		
+			Set_New_Timesteps();
 
-		if (time_For_Snapshot()) {
+			Kick_Halfstep();
+
+			if (time_For_Snapshot()) {
 			
-			Drift_To_Snaptime();
-			
-			Write_Snapshot();
-		}
+				Drift_To_Snaptime();
+				
+				Write_Snapshot();
+			}
  		
-		Drift_To_Sync_Point();
+			Drift_To_Sync_Point();
 
-		Make_Active_Particle_List();
+			Make_Active_Particle_List();
 		
-		Update(BEFORE_FORCES);
+			Update(BEFORE_FORCES);
 
-		Compute_Forces();
+			Compute_Forces();
 
-		Kick_Halfstep();
+			Kick_Halfstep();
 		
-		if (time_Is_Up())
-			break;
-	}
+			if (time_Is_Up())
+				break;
+		}
 
-	if (Sig.WriteRestartFile) 
-		Write_Restart_File();
+		if (Sig.WriteRestartFile) 
+			Write_Restart_File();
+
+	} // omp parallel
 
 	Finish();
 
 	return EXIT_SUCCESS;
 }
 
+/* Here we do OpenMP and MPI init 
+ * Because of Thread Parallelism, every thread has a rank 
+ * Task.Rank which is a combination of MPI rank and ThreadID. */
+
 static void preamble(int argc, char *argv[])
 {
-	MPI_Init(&argc, &argv);
-	MPI_Comm_rank(MPI_COMM_WORLD, &Task.Rank);
+	int provided;
+
+	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+
+	Assert(provided == MPI_THREAD_MULTIPLE, 
+			"MPI thread multiple not supported, have %d", provided);
+
+	MPI_Comm_rank(MPI_COMM_WORLD, &Task.MPI_Rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &Sim.NTask);
+
+	//MPI_Is_thread_main(&Task.IsMaster);
 
 #pragma omp parallel
    	{
-   	Task.ThreadID = omp_get_thread_num();
-   	Sim.NThreads = omp_get_num_threads();
+   		Task.ThreadID = omp_get_thread_num();
+   		Sim.NThreads = omp_get_num_threads();
 		
-	Task.Seed[2] = 1441981 * Task.ThreadID; // init thread safe std rng
-   	erand48(Task.Seed); // remove leading 0 in some implementations
-   	}
+		Sim.NRank = Sim.NTask  * Sim.NThreads;
+		
+		Task.Rank = Task.MPI_Rank * Sim.NThreads + Task.ThreadID;
 
-	if (Task.Rank == MASTER) {
+		Task.Seed[2] = 1441981 * Task.ThreadID; // init thread safe std rng
+	   	erand48(Task.Seed); // remove leading 0 in some implementations
+   	}
+	
+	if (Task.MPI_Rank == 0 && Task.ThreadID == 0)
+		Task.IsMaster = true;
+
+	Sim.Master = MASTER;
+
+	if (Task.IsMaster) {
 
 		printf("# Tandav #\n\n");
 

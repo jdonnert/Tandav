@@ -1,6 +1,6 @@
 #include "globals.h"
 
-/* Min/Max functions for signed/unsigned 64 bit integers */
+/* branch free Min/Max functions for signed/unsigned 64 bit integers */
 int64_t Imin(const int64_t x, const int64_t y)
 {
   return y ^ ((x ^ y) & -(x < y));

@@ -16,11 +16,15 @@ static struct Profiling_Object {
 
 static int NProfObjs = 0;
 
+#pragma omp threadprivate(Prof, NProfObjs)
+
 static inline int find_index_from_name(const char *name);
 static double measure_time();
 
 void Init_Profiler()
 {
+	memset(Prof, 0, sizeof(*Prof) * MAXPROFILEITEMS);
+
 	Profile("Whole Run");
 
 	return ;
@@ -38,38 +42,30 @@ void Finish_Profiler()
 void Profile_Info(const char* file, const char* func, const int line, 
 		const char *name)
 {
-	int i = find_index_from_name(name);
+	const int i = find_index_from_name(name);
 
 	if (i == NProfObjs) { // new item start profiling
-		
-		Prof[i].Tbeg = measure_time();
 
 		strncpy(Prof[i].Name, name, CHARBUFSIZE);
 
 		NProfObjs++;
+	}		
+	
+	if (Prof[i].Tbeg != 0) { // stop
 
-	} else { // existing item, stop & reduce
-		
 		Prof[i].Tend = measure_time();
 	
 		Prof[i].ThisLast = Prof[i].Tend - Prof[i].Tbeg;
+
+		Prof[i].Total += Prof[i].ThisLast;
+
+		Prof[i].Tbeg = 0;
 		
-		MPI_Barrier(MPI_COMM_WORLD);
+	} else { // restart
 
-		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Min, 1, MPI_DOUBLE, 
-				MPI_MIN, MASTER, MPI_COMM_WORLD);
-
-		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Max, 1, MPI_DOUBLE, 
-				MPI_MAX, MASTER, MPI_COMM_WORLD);
-
-		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Mean, 1, MPI_DOUBLE, 
-				MPI_SUM, MASTER, MPI_COMM_WORLD);
+		Prof[i].Tbeg = measure_time();
 		
-		Prof[i].Mean /= Sim.NTask;
-
-		Prof[i].Total += Prof[i].Max;
-
-		Prof[i].Imbalance += Prof[i].Max - Prof[i].Min;
+		Prof[i].Tend = Prof[i].ThisLast = 0;
 	}
 
 	return ;
@@ -77,21 +73,37 @@ void Profile_Info(const char* file, const char* func, const int line,
 
 void Profile_Report()
 {
-	if (Task.Rank != MASTER)
-		return; 
+	for (int i = 0; i < NProfObjs; i++) { // Needs rewrite
+	
+		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Min, 1, MPI_DOUBLE, 
+			MPI_MIN, Sim.Master, MPI_COMM_WORLD);
+
+		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Max, 1, MPI_DOUBLE, 
+			MPI_MAX, Sim.Master, MPI_COMM_WORLD);
+
+		MPI_Reduce(&Prof[i].ThisLast, &Prof[i].Mean, 1, MPI_DOUBLE, 
+			MPI_SUM, Sim.Master, MPI_COMM_WORLD);
+
+		Prof[i].Mean /= Sim.NTask;
+
+		Prof[i].Total += Prof[i].Max;
+
+		Prof[i].Imbalance += Prof[i].Max - Prof[i].Min;
+	}
 
 	const double runtime = Runtime();
 
 	double scale = 1000; // sec
+
 	if (runtime > 60)
 		scale *= 60; // min
 
-	printf("\nProfiler: All sections, total runtime of %g min\n"
+	rprintf("\nProfiler: All sections, total runtime of %g min\n"
 		"                Name       Total     Tot Imbal        Max       "
 		"Mean      Min        Imbal\n", runtime);
 
 	for (int i = 0; i < NProfObjs; i++ )
-		printf("%20s    %8.1f   %8.1f      %8.1f  %8.1f  %8.1f   %8.1f\n",
+		rprintf("%20s    %8.1f   %8.1f      %8.1f  %8.1f  %8.1f   %8.1f\n",
 				Prof[i].Name, Prof[i].Total/scale, Prof[i].Imbalance/scale, 
 				Prof[i].Max/scale, Prof[i].Min/scale, Prof[i].Mean/scale, 
 				(Prof[i].Max-Prof[i].Min)/scale);
@@ -100,14 +112,14 @@ void Profile_Report()
 
 void Profile_Report_Last()
 {
-	if (Task.Rank != MASTER)
+	if (! Task.IsMaster)
 		return ; 
 
 	const double now = measure_time();
 
 	const int i = NProfObjs - 1;
 
-	printf("Profiler: Last section, total runtime of %g min\n"
+	rprintf("Profiler: Last section, total runtime of %g min\n"
 			"Name	  	Total	Min	Max	Mean\n"
 			"%s		: %g	%g	%g	%g\n", 
 			(now-Prof[0].Tbeg), Prof[i].Name, Prof[i].Total,
@@ -133,7 +145,7 @@ static inline int find_index_from_name(const char *name)
 	int i = 0;
 
 	for (i = 0; i < NProfObjs; i++)
-		if (!strncmp(name, Prof[i].Name, CHARBUFSIZE))
+		if (strncmp(name, Prof[i].Name, CHARBUFSIZE) == 0)
 			break;
 
 	return i; // may return i=NProfObjs, i.e. new item

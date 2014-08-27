@@ -36,13 +36,12 @@ void Write_Snapshot()
 	set_filename(filename);
 
 	if (nFiles > 1)
-		sprintf(filename, "%s.%i", filename, fileNum);
+		sprintf(filename, "%s.%04i", filename, fileNum);
 	
 	for (int i = 0; i < nFiles; i+=nIOTasks) {
 
 		if (fileNum < i+nIOTasks && fileNum >= i) 
-			write_file(filename, groupRank, groupSize, 
-					mpi_comm_write);
+			write_file(filename, groupRank, groupSize, mpi_comm_write);
 		
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
@@ -56,8 +55,7 @@ void Write_Snapshot()
 	return ;
 }
 
-void 
-write_file(const char *filename, const int groupRank, const int groupSize,
+void write_file(const char *filename, const int groupRank, const int groupSize,
 		const MPI_Comm mpi_comm_write)
 {
 	const int groupMaster = 0;  
@@ -110,8 +108,7 @@ write_file(const char *filename, const int groupRank, const int groupSize,
 	
 		fill_data_buffer(i, dataBuf);
 
-		size_t nBytesSend = Block[i].Nbytes * 
-				npart_in_block(i, Task.Npart);
+		size_t nBytesSend = Block[i].Nbytes * npart_in_block(i, Task.Npart);
 		
 		size_t xferSizes[groupSize]; // get size of data
 
@@ -124,8 +121,7 @@ write_file(const char *filename, const int groupRank, const int groupSize,
 			uint32_t blocksize = npart_in_block(i, nPartFile)
 				* Block[i].Nbytes; 
 
-			printf("%18s %8d MB\n", Block[i].Name, 
-					blocksize/1024/1024);
+			printf("%18s %8d MB\n", Block[i].Name, blocksize/1024/1024);
 		
 			write_block_header(Block[i].Label, blocksize, fp); 
 			
@@ -133,19 +129,16 @@ write_file(const char *filename, const int groupRank, const int groupSize,
 
 			MPI_Request request; MPI_Status status;
 			
-			size_t swap = 0; // to alternate between mem areas
+			int swap = 0; // to alternate between mem areas
 			size_t halfBufSize = 0.5 * dataBufSize;
 
 			/* recv & write */
 			for (int task = 0; task < groupSize-1; task++) { 
 
-				char * restrict writeBuf = dataBuf + 
-					swap * halfBufSize;
-				char * restrict commBuf = dataBuf + 
-					(1 - swap) * halfBufSize;
+				char * restrict writeBuf = dataBuf + swap * halfBufSize;
+				char * restrict commBuf = dataBuf + (1 - swap) * halfBufSize;
 		
-				MPI_Irecv(commBuf, xferSizes[task+1], MPI_BYTE,
-						task+1, task+1, 
+				MPI_Irecv(commBuf, xferSizes[task+1], MPI_BYTE,	task+1, task+1,
 						mpi_comm_write, &request); 
 
 				fwrite(writeBuf, xferSizes[task], 1, fp);
@@ -156,8 +149,7 @@ write_file(const char *filename, const int groupRank, const int groupSize,
 			}
 
 			/* last one in group */
-			fwrite(dataBuf+swap*halfBufSize, 
-					xferSizes[groupSize-1], 1, fp);
+			fwrite(dataBuf+swap*halfBufSize, xferSizes[groupSize-1], 1, fp);
 
 			WRITE_FORTRAN_RECORD(blocksize) 
 
@@ -286,22 +278,24 @@ static void write_block_header(const char *name, uint32_t blocksize, FILE *fp)
 
 static void set_filename(char *filename)
 {
-
 	const int ndigits = ceil(log10(Time.NSnap));
 
 	switch (ndigits) {
-		case 1:
-		case 2:
-		case 3:
-			sprintf(filename, "%s_%03d", 
-					Param.OutputFileBase, Time.SnapCounter);
-			break;
+		
 		case 4:
 			sprintf(filename, "%s_%04d", 
 					Param.OutputFileBase, Time.SnapCounter);
 			break;
+
+		case 5:
+			sprintf(filename, "%s_%05d", 
+					Param.OutputFileBase, Time.SnapCounter);
+			break;
+		
 		default:
-			Assert(0, "Too many snapshots !");
+			sprintf(filename, "%s_%03d", 
+					Param.OutputFileBase, Time.SnapCounter);
+			break;
 	}
 
 	return;

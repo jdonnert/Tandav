@@ -56,7 +56,7 @@ void Drift_To_Snaptime()
 	const float driftfac = 1;
 #endif
 
-	#pragma omp parallel for 
+	#pragma omp for 
 	for (int ipart = 0; ipart < Task.NpartTotal; ipart++) {
 
 		if (ipart == 0)

@@ -72,7 +72,7 @@ INCLFILES = config.h globals.h tree.h cosmo.h unit.h aux.h macro.h proto.h \
 OBJS = $(addprefix $(SRCDIR),$(OBJFILES))
 INCS = $(addprefix $(SRCDIR),$(INCLFILES))
 
-CFLAGS = -fopenmp -std=c99  $(OPTIMIZE) $(GSL_INCL) $(MPI_INCL) $(FFT_INCL)
+CFLAGS = -fopenmp -std=c99 -fstrict-aliasing $(OPTIMIZE) $(GSL_INCL) $(MPI_INCL) $(FFT_INCL)
 
 LIBS = -lm -lgsl -lgslcblas $(MPI_LIBS) $(GSL_LIBS) $(FFTW_LIBS)
 

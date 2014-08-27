@@ -59,7 +59,7 @@ pro plot_orbit
 
 	oplot, [0,0], [0,0], psym=1
 
-	nsnap = 640
+	nsnap = 20000
 
 	E = make_array(nsnap, /double)
 	x = make_array(nsnap, /double)
@@ -72,7 +72,7 @@ pro plot_orbit
 
 	for i = 0, nsnap-1 do begin
 	
-		fname = 'data/snap_'+strn(i, len=3, padc='0')
+		fname = 'data/snap_'+strn(i, len=4, padc='0')
 
 		pos = gadget.readsnap(fname, 'POS', head=head)
 		vel = gadget.readsnap(fname, 'VEL')
@@ -98,7 +98,7 @@ pro plot_orbit
 	t = findgen(nsnap)/(nsnap-1) *head.time
 	
 	plot, t/Torbit,abs((E-E[0])/ E[0] ), /ylog,yrange=[1e-5,0.02], $
-		xrange=[0.1,100]
+		xrange=[0.1,500]
 
 	stop
 

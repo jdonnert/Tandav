@@ -29,7 +29,9 @@ void Set_New_Timesteps()
 		
 		float dt = FLT_MAX;
 
+#ifdef GRAVITY
 		float dt_cosmo = cosmological_timestep(ipart); 
+#endif
 		
 		dt = fmin(dt, dt_cosmo);
 

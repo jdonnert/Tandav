@@ -1,0 +1,116 @@
+pro make_ICs
+
+	common  globals, tandav, cosmo
+
+	seed = 14041981
+
+	npart = 1e4
+
+	mass = 1d15 ; code units 
+	a_hernq = 924D 		
+
+	mpart = mass / npart
+
+	; positions
+
+	pos = make_array(3, npart, /double, val=0)
+	
+	sqrt_q = sqrt(randomu(seed, npart))
+
+	r = a_hernq  * sqrt_q / (1-sqrt_q)
+
+	theta = acos(2 * randomu(seed, npart) - 1)
+	phi = 2*!pi * randomu(seed, npart) 
+
+	pos[0,*] = r * sin(theta) * cos(phi)
+	pos[1,*] = r * sin(theta) * sin(phi)
+	pos[2,*] = r * cos(theta) 
+
+	plot, pos[0,*], pos[1,*], /iso, psym=3, $
+		xrange=[-1e5,1e5], yrange=[-1e5,1e5]
+
+	; velocities
+
+	vel = make_array(3, npart, /double, val=0)
+
+	for i = 0, npart-1 do begin
+
+		r = sqrt(pos[0,i]^2 + pos[1,i]^2 + pos[2,i]^2)
+
+		pot = hernquist_potential(r, a_hernq, mass)
+
+		vmax = sqrt(-2*pot)
+		Emax = -pot
+		qmax = 4*!pi*vmax^2/mass $
+			* hernquist_distribution_function(Emax, a_hernq, mass)
+
+		while 1 do begin ; rejection sampling
+	
+			lower_bound = qmax * randomu(seed)
+
+			v = vmax * randomu(seed)
+
+			Etot = 0.5*v^2 + pot
+
+			q = 4*!pi * v^2/mass $
+				* hernquist_distribution_function(-Etot, a_hernq, mass)
+
+			if q ge lower_bound then $
+				break
+		end
+
+		theta = acos(2 * randomu(seed) - 1)
+		phi =  2 * !pi * randomu(seed)
+
+		vel[0,i] = v * sin(theta) * cos(phi)
+		vel[0,i] = v * sin(theta) * sin(phi)
+		vel[0,i] = v * cos(theta)
+	end
+	
+	stop
+
+
+	; output
+
+	head = tandav.MakeHead()
+
+	head.npart[1] = npart
+	head.massarr[1] = mpart
+	head.time = 0
+	head.redshift = 0
+	head.num_files = 1
+	head.boxsize = 1d15
+
+	fname = './IC_Hernquist_Halo'
+
+	print, 'IC File', fname
+
+	tandav.WriteHead, fname, head
+	
+	tandav.AddBlock, fname, pos, 'POS'
+	tandav.AddBlock, fname, vel, 'VEL'
+
+	return
+end
+
+function hernquist_potential, r, a, mass
+
+	common  globals, tandav, cosmo
+
+	return, -tandav.Grav * mass / (r+a)
+end
+
+function hernquist_distribution_function, E, a, mass
+
+	common  globals, tandav, cosmo
+	
+	prefac = 1D / (sqrt(2) * (2*!pi)^3 * (tandav.Grav*mass*a)^(1.5) )
+
+	q2 = a * E / (tandav.Grav * mass)
+
+	fE = prefac * mass * sqrt(q2) / (1-q2)^2 $
+		*( (1 - 2*q2) * (8*q2*q2 - 8*q2 - 3) $
+		+ (3*asin(sqrt(q2)))/sqrt(q2*(1-q2)) )
+
+	return, fE
+end

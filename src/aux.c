@@ -1,6 +1,7 @@
 #include "globals.h"
 
 /* branch free Min/Max functions for signed/unsigned 64 bit integers */
+
 int64_t Imin(const int64_t x, const int64_t y)
 {
   return y ^ ((x ^ y) & -(x < y));
@@ -29,6 +30,7 @@ uint64_t Umax(const uint64_t x, const uint64_t y)
  * Note that actually no real allocation is taking place, because
  * that would fragment memory. Instead needs to stay with in the
  * limit set by PARTALLOCFACTOR */
+
 void Reallocate_P_Info(const char *func, const char *file, int line, 
 		int dNpart[NPARTYPE], size_t offset_out[NPARTYPE])
 {
@@ -109,6 +111,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 
 /* Error Handling, we use variable arguments to be able
  * to print more informative error messages */
+
 void Assert_Info(const char *func, const char *file, int line,
 		int64_t expr, const char *errmsg, ...)
 {

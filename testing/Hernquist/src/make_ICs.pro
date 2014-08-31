@@ -67,9 +67,6 @@ pro make_ICs
 		vel[0,i] = v * cos(theta)
 	end
 	
-	stop
-
-
 	; output
 
 	head = tandav.MakeHead()
@@ -87,8 +84,8 @@ pro make_ICs
 
 	tandav.WriteHead, fname, head
 	
-	tandav.AddBlock, fname, pos, 'POS'
-	tandav.AddBlock, fname, vel, 'VEL'
+	tandav.AddBlock, fname, float(pos), 'POS'
+	tandav.AddBlock, fname, float(vel), 'VEL'
 
 	return
 end

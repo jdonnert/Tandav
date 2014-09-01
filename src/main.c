@@ -19,43 +19,44 @@ int main(int argc, char *argv[])
 {
 	preamble(argc, argv);
 
+#pragma omp parallel
+   	{
+
 	Read_and_Init();
 
 	Setup();
 
-#pragma omp parallel
-   	{
-		Update(BEFORE_MAIN_LOOP);
+	Update(BEFORE_MAIN_LOOP);
 		
-		for (;;) { // run, Forest, run !
+	for (;;) { // run, Forest, run !
 		
-			Set_New_Timesteps();
+		Set_New_Timesteps();
 
-			Kick_Halfstep();
+		Kick_Halfstep();
 
-			if (time_For_Snapshot()) {
+		if (time_For_Snapshot()) {
+		
+			Drift_To_Snaptime();
 			
-				Drift_To_Snaptime();
-				
-				Write_Snapshot();
-			}
- 		
-			Drift_To_Sync_Point();
-
-			Make_Active_Particle_List();
-		
-			Update(BEFORE_FORCES);
-
-			Compute_Forces();
-
-			Kick_Halfstep();
-		
-			if (time_Is_Up())
-				break;
+			Write_Snapshot();
 		}
+ 		
+		Drift_To_Sync_Point();
 
-		if (Sig.WriteRestartFile) 
-			Write_Restart_File();
+		Make_Active_Particle_List();
+	
+		Update(BEFORE_FORCES);
+
+		Compute_Forces();
+
+		Kick_Halfstep();
+	
+		if (time_Is_Up())
+			break;
+	}
+
+	if (Sig.WriteRestartFile) 
+		Write_Restart_File();
 
 	} // omp parallel
 
@@ -64,9 +65,12 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 }
 
-/* Here we do OpenMP and MPI init 
+/* Here we do OpenMP and MPI init: 
  * Because of Thread Parallelism, every thread has a rank 
- * Task.Rank which is a combination of MPI rank and ThreadID. */
+ * Task.Rank which is a combination of MPI rank and ThreadID. On 
+ * every MPI rank there is a main thread on which
+ * Task.IsThreadMain is true. Every thread is treated as its own
+ * MPI task, including communication, still loops allow work-sharing */
 
 static void preamble(int argc, char *argv[])
 {
@@ -80,7 +84,7 @@ static void preamble(int argc, char *argv[])
 	MPI_Comm_rank(MPI_COMM_WORLD, &Task.MPI_Rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &Sim.NTask);
 
-	//MPI_Is_thread_main(&Task.IsMaster);
+	MPI_Is_thread_main(&Task.IsThreadMain);
 
 #pragma omp parallel
    	{
@@ -93,12 +97,10 @@ static void preamble(int argc, char *argv[])
 
 		Task.Seed[2] = 1441981 * Task.ThreadID; // init thread safe std rng
 	   	erand48(Task.Seed); // remove leading 0 in some implementations
-   	}
 	
-	if (Task.MPI_Rank == 0 && Task.ThreadID == 0)
-		Task.IsMaster = true;
-
-	Sim.Master = MASTER;
+		if (Task.MPI_Rank == MASTER && Task.ThreadID == MASTER)
+			Task.IsMaster = true;
+   	}
 
 	if (Task.IsMaster) {
 
@@ -109,7 +111,7 @@ static void preamble(int argc, char *argv[])
 		
 		Print_compile_time_settings();
 
-		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P));
+		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
 
 		Assert(argc >= 2 && argc < 4, 
 			"Wrong number of arguments, let me help you: \n\n" 
@@ -117,7 +119,7 @@ static void preamble(int argc, char *argv[])
 			"	  0  : Read IC file and start simulation (default) \n"
 			"	  1  : Read restart files and resume  \n"
 			"	  2  : Read snapshot file and continue \n"
-			"	  10 : Dump a valid parameter file for this Config\n");
+			"	 10  : Dump a valid parameter file for this Config\n");
 	}
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);
@@ -135,17 +137,17 @@ static void preamble(int argc, char *argv[])
 
 static bool time_Is_Up()
 {
+	if (Sig.Endrun) {
+	
+		rprintf("Encountered Signal: Endrun, t=%g", Time.Current);
+
+		return true;
+	}
+	
 	if (Time.IntCurrent == Time.IntEnd) {
 		
 		rprintf("EndTime reached: %g \n", Time.End);
 		
-		return true;
-	}
-
-	if (Sig.Endrun) {
-	
-		rprintf("Endrun upon Sig.Endrun, t=%g", Time.Current);
-
 		return true;
 	}
 
@@ -164,8 +166,10 @@ static bool time_Is_Up()
 static bool time_For_Snapshot()
 {
 	if (Sig.WriteSnapshot) {
+
+		Sig.WriteSnapshot = false;
 	
-		rprintf("Snapshot from signal at t=%g \n", Time.Current);
+		rprintf("Encountered Signal: Write Snapshot  t=%g \n", Time.Current);
 
 		return true;
 	}

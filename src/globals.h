@@ -6,6 +6,7 @@
 typedef float Float;
 
 /* CODE PARAMETERS */
+
 #define CHARBUFSIZE 256L 	// Maximum No. of chars in every char buffer
 #define NPARTYPE 6L 		// No of particle types
 #define MEM_ALIGNMENT 64L	// byte memory alignment
@@ -15,7 +16,8 @@ typedef float Float;
 /* VARIABLES */
 
 extern struct Local_Task_Properties {		
-	bool IsMaster;			// 
+	bool IsMaster;			// == true on global master rank 
+	int IsThreadMain;		// == true on local thread masters
 	int Rank;				// combined OMP & MPI Rank of this processor
 	int MPI_Rank;			// MPI Rank of this processor
 	int ThreadID;			// OpenMP ID of this thread

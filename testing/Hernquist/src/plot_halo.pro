@@ -22,14 +22,13 @@ pro velocity_distribution_function
 	E = -1D * pot
 	fE = hernquist_distribution_function(E, a_hernq, mass)
 
-	plot, E/tandav.grav*a_hernq/Mass, fE*(tandav.grav*mass*a_hernq)^(1.5),  $
-		/ylog, xstyle=1
+	plot, E/tandav.grav*a_hernq/Mass, fE, /ylog, xstyle=1, xrange=[0,2]
 
 	; snap
 
 	fname = 'IC_Hernquist_Halo'
 
-	pos = tandav.readsnap(fname, 'POS')
+	pos = tandav.readsnap(fname, 'POS', head=head)
 	vel = tandav.readsnap(fname, 'VEL')
 
 	r = sqrt(pos[0,*]^2 + pos[1,*]^2 + pos[2,*]^2)
@@ -38,13 +37,14 @@ pro velocity_distribution_function
 
 	v = sqrt(vel[0,*]^2 + vel[1,*]^2 + vel[2,*]^2)
 
-	Etot = 0.5 * v^2 + pot
+	Etot = 0.5 *  v^2 + pot
 	one = Etot * 0 + 1
 
-	tmp = bin_arr(one, pos=-Etot , bin_pos=bin_pos, nbins=500, cnt=cnt)
+	tmp = bin_arr(one, pos=abs(Etot) , bin_pos=bin_pos, nbins=100, cnt=cnt, /log)
 
-	oplot, bin_pos,  cnt/mass, psym=10
-	stop
+	oplot, bin_pos/tandav.grav*a_hernq/Mass,  (bin_pos)^2*cnt/mass/1d41, psym=10
+stop
+	
 	return
 end
 

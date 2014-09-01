@@ -3,6 +3,11 @@
 
 #define MAXMEMOBJECTS 1024
 
+void merge_free_memory_blocks(int);
+int find_memory_block_from_ptr(void *);
+int find_free_block_from_size(const size_t);
+size_t get_system_memory_size();
+
 static void *Memory = NULL; 
 
 static size_t NBytesLeft = 0; // size of block at the end
@@ -18,10 +23,6 @@ static struct memory_block_infos {
 	bool InUse;
 } MemBlock[MAXMEMOBJECTS];
 
-void merge_free_memory_blocks(int);
-int find_memory_block_from_ptr(void *);
-int find_free_block_from_size(const size_t);
-size_t get_system_memory_size();
 
 void *Malloc_info(const char* file, const char* func, const int line, 
 		size_t size)
@@ -123,21 +124,21 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 
 void Init_Memory_Management()
 {
-	MemSize = Param.MaxMemSize * 1024L * 1024L; // parameter is in MBytes
+	MemSize = Param.MaxMemSize / Sim.NThreads * 1024L * 1024L; //  in MBytes
 
 	size_t nBytesMax = get_system_memory_size();
 
 	size_t minNbytes = 0, maxNbytes = 0;
 
-	MPI_Reduce(&nBytesMax, &maxNbytes, 1, MPI_LONG_LONG, MPI_MAX, 0, 
+	MPI_Reduce(&nBytesMax, &maxNbytes, 1, MPI_LONG_LONG, MPI_MAX, MASTER, 
 			MPI_COMM_WORLD);
-	MPI_Reduce(&nBytesMax, &minNbytes, 1, MPI_LONG_LONG, MPI_MIN, 0, 
+	MPI_Reduce(&nBytesMax, &minNbytes, 1, MPI_LONG_LONG, MPI_MIN, MASTER, 
 			MPI_COMM_WORLD);
 
 	rprintf("Init Memory Manager\n"
-			"   Max Usable Memory   %zu bytes = %zu MB\n" 
-			"   Min Usable Memory   %zu bytes = %zu MB\n"
-			"   Requested  Memory   %zu bytes = %zu MB\n", 
+			"   Max Usable Memory per thread %zu bytes = %zu MB\n" 
+			"   Min Usable Memory per thread %zu bytes = %zu MB\n"
+			"   Requested  Memory per thread %zu bytes = %zu MB\n", 
 			maxNbytes, maxNbytes/1024/1024, minNbytes, 
 			minNbytes/1024/1024, MemSize, MemSize/1024/1024);
 

@@ -4,7 +4,7 @@ pro make_ICs
 
 	seed = 14041981
 
-	npart = 1e4
+	npart = 1e6
 
 	mass = 1d15 ; code units 
 	a_hernq = 924D 		

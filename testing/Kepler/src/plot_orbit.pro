@@ -2,11 +2,11 @@ pro plot_orbit
 
 	@set_cgs
 
-	common globals, gadget, cosmo
+	common globals, tandav, cosmo
 
 	grav = 43019D 
 
-	M = [1d15, 1d10] *Msol / Gadget.mass
+	M = [1d15, 1d10] *Msol / Tandav.mass
 
 	e = 0.9 ; eccentricity
 
@@ -20,6 +20,7 @@ pro plot_orbit
 	r = sqrt( pos[0,1]^2 + pos[1,1]^2 + pos[2,1]^2 )
 	
 	v = sqrt(grav * M[0] * (1 + e) / r ) ; Keplers eq.
+
 	vel = [ [0,0,0], [0,v,0] ] ; L = r x v in y direction
 
 	L = [ pos[1,1]*vel[2,1] - vel[1,1]*pos[2,1], $
@@ -59,7 +60,7 @@ pro plot_orbit
 
 	oplot, [0,0], [0,0], psym=1
 
-	nsnap = 20000
+	nsnap = 8000
 
 	E = make_array(nsnap, /double)
 	x = make_array(nsnap, /double)
@@ -74,8 +75,8 @@ pro plot_orbit
 	
 		fname = 'data/snap_'+strn(i, len=4, padc='0')
 
-		pos = gadget.readsnap(fname, 'POS', head=head)
-		vel = gadget.readsnap(fname, 'VEL')
+		pos = tandav.readsnap(fname, 'POS', head=head)
+		vel = tandav.readsnap(fname, 'VEL')
 	
 		vx[i] = vel[0,1]
 		vy[i] = vel[1,1]

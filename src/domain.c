@@ -44,15 +44,13 @@ void Domain_Decomposition()
 
 void Init_Domain_Decomposition()
 {
-	int nTask = Sim.NTask, nThreads = Sim.NThreads;
+	/*int nTask = Sim.NTask, nThreads = Sim.NThreads;
 	
-	size_t nBytes = (1ULL << DOMAIN_CEILING) * Sim.NTask * sizeof(Bunchlist); 
+	size_t nBytes = (1ULL << DOMAIN_CEILING) * Sim.NRank * sizeof(Bunchlist); 
 
 	Bunchlist = Malloc(nBytes);
 
 	memset(Bunchlist, 0, nBytes);
-
-	/* Init the first bunches */
 
 	const uint32_t nBunches = 1UL << (int) ceil(log2(nTask));
 	const uint32_t nSide = log2(nBunches);
@@ -81,7 +79,7 @@ void Init_Domain_Decomposition()
 		
 		Bunchlist[i].Key = Peano_Key(x,y,z, Sim.Boxsize);
 	}
-
+*/
 	return;
 }
 static void fill_bunchlist()

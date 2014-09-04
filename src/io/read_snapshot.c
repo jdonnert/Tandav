@@ -200,12 +200,13 @@ static void read_file (char *filename, const bool swapEndian,
 		
 			Assert(blocksize > 0 || !Block[i].PartBitMask, 
 					"Can't find required block '%s'", Block[i].Label);
-
-			printf("%18s %8d MB\n", Block[i].Name, blocksize/1024/1024);
+			
+			if (blocksize > 0)
+				printf("%18s %8d MB\n", Block[i].Name, blocksize/1024/1024);
 
 			fflush(stdout);
 		}
-
+		
 		MPI_Bcast(&blocksize, 1, MPI_INT, 0, mpi_comm_read);
 
 		if (blocksize == 0) 
@@ -252,7 +253,6 @@ static void read_file (char *filename, const bool swapEndian,
 	
 	Free(RecvBuf); Free(ReadBuf);
 
-	printf("i=%d m=%g type=%d \n", 0, P[0].Mass,P[0].Type);
 	return ;
 }
 
@@ -330,10 +330,10 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 		
 		Sim.NpartTotal += Sim.Npart[i];
 
-		Sim.NpartMax[i] = ceil((double)Sim.Npart[i]/Sim.NTask*PARTALLOCFACTOR);
+		Task.NpartMax[i] = ceil((double)Sim.Npart[i]/Sim.NRank*PARTALLOCFACTOR);
 	}
 
-	Sim.NpartTotalMax = ceil(Sim.NpartTotal/Sim.NTask * PARTALLOCFACTOR);
+	Task.NpartTotalMax = ceil(Sim.NpartTotal/Sim.NRank * PARTALLOCFACTOR);
 
 #ifdef PERIODIC
 	Assert(Sim.Boxsize >= 0, "Boxsize in header not > 0, but %g", Sim.Boxsize);
@@ -345,8 +345,8 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 		sum += Sim.Mpart[i];
 
 	printf("Total Particle Numbers (Masses) in Snapshot Header:	\n"
-		"Gas   %9llu (%1.5f), DM   %9llu (%1.5f), Disk %9llu (%1.5f)\n"
-		"Bulge %9llu (%1.5f), Star %9llu (%1.5f), Bndy %9llu (%1.5f)\n",
+		"Gas   %9llu (%g), DM   %9llu (%g), Disk %9llu (%g)\n"
+		"Bulge %9llu (%g), Star %9llu (%g), Bndy %9llu (%g)\n",
 		(long long unsigned int) Sim.Npart[0], Sim.Mpart[0], 
 		(long long unsigned int) Sim.Npart[1], Sim.Mpart[1], 
 		(long long unsigned int) Sim.Npart[2], Sim.Mpart[2], 
@@ -355,7 +355,7 @@ static void read_header_data(FILE *fp, const bool swapEndian, int nFiles)
 		(long long unsigned int) Sim.Npart[5], Sim.Mpart[5]);
 	
 	Warn(head.NumFiles != nFiles, "NumFiles in Header (%d) doesnt match "
-			"number of files for readin (%d) \n\n", head.NumFiles, nFiles);
+			"number of files found (%d) \n\n", head.NumFiles, nFiles);
 
 	return ;
 }
@@ -402,16 +402,20 @@ static int find_block(FILE *fp, const char label[4], const bool swapEndian)
 		safe_fread(&blocksize, 4 * sizeof(char), 1, fp, swapEndian);
 
         SKIP_FORTRAN_RECORD;
-			
+
         if (strncmp(label, blocklabel, 4) == 0) 
 			break; // found it
-			
-		fseek(fp, blocksize, 1); // skip to end of block
 		
-		blocksize = 8;
+		if (!feof(fp)) {
+		
+			fseek(fp, blocksize, SEEK_CUR); // skip to end of block
+		
+		} else {
 
-		if (feof(fp)) 
-			break; // block not in this file
+			blocksize = 8;
+
+			break;
+		}
 	}
 
 	return blocksize - 8; // remove 8 bytes from Fortran header

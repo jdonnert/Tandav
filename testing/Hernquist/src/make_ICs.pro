@@ -2,11 +2,13 @@ pro make_ICs
 
 	common  globals, tandav, cosmo
 
+	msol = 1.989d33
+
 	seed = 14041981
 
-	npart = 1e6
+	npart = 5e3
 
-	mass = 1d15 ; code units 
+	mass = 1d15 * Msol / tandav.mass ; code units 
 	a_hernq = 924D 		
 
 	mpart = mass / npart
@@ -71,7 +73,8 @@ pro make_ICs
 
 	head = tandav.MakeHead()
 
-	head.npart[1] = npart
+	head.npart[1] = LONG(npart)
+	head.parttotal = head.npart
 	head.massarr[1] = mpart
 	head.time = 0
 	head.redshift = 0
@@ -86,6 +89,7 @@ pro make_ICs
 	
 	tandav.AddBlock, fname, float(pos), 'POS'
 	tandav.AddBlock, fname, float(vel), 'VEL'
+	tandav.AddBlock, fname, ulong(indgen(npart)+1), 'ID'
 
 	return
 end

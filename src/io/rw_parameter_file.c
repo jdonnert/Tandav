@@ -10,7 +10,7 @@ void Read_Parameter_File(const char *filename)
 		 buf3[CHARBUFSIZE];
 	bool tagDone[9999] = { false };
 	
-	if (!Task.Rank) {
+	if (Task.IsMaster) {
 
 		FILE *fd = fopen(filename, "r");
 
@@ -83,13 +83,10 @@ void Read_Parameter_File(const char *filename)
 				"Value for tag '%s' missing in parameter file '%s'.\n",
 				ParDef[i].tag, filename );
 
+		sanity_check_input_parameters();
 	}
-
-	sanity_check_input_parameters();
 	
-	MPI_Barrier(MPI_COMM_WORLD);
-
-	MPI_Bcast(&Param, sizeof(Param), MPI_BYTE, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&Param, sizeof(Param), MPI_BYTE, MASTER, MPI_COMM_WORLD);
 
 	return ;
 }

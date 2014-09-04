@@ -1,7 +1,6 @@
 pro softening
 
-	common globals, gadget, cosmo
-	@set_cgs
+	common globals, tandav, cosmo
 
 	N = 1024
 	rmin = 1e-4

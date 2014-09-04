@@ -22,9 +22,8 @@ void Set_New_Timesteps()
 
 	int local_bin_min = N_INT_BINS-1, local_bin_max = 0;
 
-	#pragma omp for 
 	for (int i = 0; i < NActiveParticles; i++) {
-		
+
 		int ipart = ActiveParticleList[i];
 		
 		float dt = FLT_MAX;
@@ -34,7 +33,7 @@ void Set_New_Timesteps()
 #endif
 		
 		dt = fmin(dt, dt_cosmo);
-
+		
 		Assert(dt >= Time.StepMin, "Timestep too small !"
 				" Ipart=%d, dt=%g, dt_cosmo=%g", ipart, dt, dt_cosmo);
 
@@ -55,7 +54,7 @@ void Set_New_Timesteps()
 	
 	Time.Step = Timebin2Timestep(global_bin_min);
 
-	//print_timebins();
+	print_timebins();
 	
 	Sig.Fullstep = false;
 
@@ -67,7 +66,7 @@ void Set_New_Timesteps()
 
 		MPI_Allreduce(&local_bin_max, &global_bin_max, 1, MPI_INT, MPI_MAX,
 			MPI_COMM_WORLD);
-		
+
 		Time.IntFullStep = Umin(Time.IntEnd,  
 				Time.IntCurrent + (1ULL << global_bin_max) );
 
@@ -89,8 +88,9 @@ void Setup_Time_Integration()
 
 	Time.NSnap = (Time.End - Time.Begin) / Time.BetSnap;
 
-	rprintf("Simulation timeline: start = %g, end = %g, NSnap = %d \n\n", 
-			Time.Begin, Time.End, Time.NSnap);
+	rprintf("Simulation timeline: \n"
+			"   start = %g, end = %g, delta = %g, NSnap = %d \n\n", 
+			Time.Begin, Time.End, Time.BetSnap, Time.NSnap);
 
 	Assert(Time.NSnap > 0, "Timeline does not seem to produce any outputs");
 
@@ -99,12 +99,12 @@ void Setup_Time_Integration()
 
 	Time.IntCurrent = Time.IntBeg;
 
-	Time.StepMax = Time.End - Time.Begin;
+	Time.StepMax = (Time.End - Time.Begin);
 	Time.StepMin =  Time.StepMax / (1ULL << (N_INT_BINS - 1) );
 
 	Time.MaxActiveBin = N_INT_BINS - 1;
 
-	size_t nBytes = Sim.NpartTotalMax * sizeof(*ActiveParticleList);
+	size_t nBytes = Task.NpartTotalMax * sizeof(*ActiveParticleList);
 	
 	ActiveParticleList = Malloc(nBytes);
 
@@ -112,7 +112,7 @@ void Setup_Time_Integration()
 
 	for (int i = 0; i < NActiveParticles; i++)
 		ActiveParticleList[i] = i;
-
+	
 	return ;
 }
 
@@ -189,13 +189,17 @@ static void print_timebins()
 		if (npart_global[i] != 0 && imax < 0)
 			imax = i;	
 
-	rprintf("Timesteps at time %g \n"
-			"   Bin       nGas           nDM   A           dt\n", 
-			Time.Current);
+	rprintf("Timesteps at time %g, NActive %d \n"
+			"   Bin       nGas           nDM A  dt\n", 
+			Time.Current, NActiveParticles);
 
-	for (int i = imax; i >= imin; i--)
-		rprintf("   %2d    %7d        %7d   %d        %g \n", 
-			i, 0, npart_global[i], Time.MaxActiveBin/i, Timebin2Timestep(i));
+	for (int i = imax; i > Time.MaxActiveBin; i--)
+		rprintf("   %2d    %7d        %7d %s  %g \n", 
+			i, 0, npart_global[i], " ", Timebin2Timestep(i));
+
+	for (int i = Time.MaxActiveBin; i >= imin; i--)
+		rprintf("   %2d    %7d        %7d %s  %g \n", 
+			i, 0, npart_global[i], "X", Timebin2Timestep(i));
 
 	rprintf("\n");
 

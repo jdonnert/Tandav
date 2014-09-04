@@ -19,13 +19,10 @@ int main(int argc, char *argv[])
 {
 	preamble(argc, argv);
 
-#pragma omp parallel
-   	{
-
 	Read_and_Init();
 
 	Setup();
-
+	
 	Update(BEFORE_MAIN_LOOP);
 		
 	for (;;) { // run, Forest, run !
@@ -44,7 +41,7 @@ int main(int argc, char *argv[])
 		Drift_To_Sync_Point();
 
 		Make_Active_Particle_List();
-	
+
 		Update(BEFORE_FORCES);
 
 		Compute_Forces();
@@ -53,12 +50,11 @@ int main(int argc, char *argv[])
 	
 		if (time_Is_Up())
 			break;
-	}
 
 	if (Sig.WriteRestartFile) 
 		Write_Restart_File();
 
-	} // omp parallel
+	}
 
 	Finish();
 
@@ -91,9 +87,9 @@ static void preamble(int argc, char *argv[])
    		Task.ThreadID = omp_get_thread_num();
    		Sim.NThreads = omp_get_num_threads();
 		
-		Sim.NRank = Sim.NTask  * Sim.NThreads;
+		Sim.NRank = Sim.NTask ; // * Sim.NThreads;
 		
-		Task.Rank = Task.MPI_Rank * Sim.NThreads + Task.ThreadID;
+		Task.Rank = Task.MPI_Rank ;//* Sim.NThreads + Task.ThreadID;
 
 		Task.Seed[2] = 1441981 * Task.ThreadID; // init thread safe std rng
 	   	erand48(Task.Seed); // remove leading 0 in some implementations

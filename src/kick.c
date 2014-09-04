@@ -13,8 +13,7 @@ void Kick_Halfstep()
 #else
 	const float driftfac = 1;
 #endif // COMOVING
-
-	#pragma omp for 
+	
 	for (int i = 0; i < NActiveParticles; i++) {
 
 		int ipart = ActiveParticleList[i];
@@ -27,7 +26,7 @@ void Kick_Halfstep()
 		P[ipart].Vel[1] += dt * P[ipart].Force[1]/mpart * driftfac; 
 		P[ipart].Vel[2] += dt * P[ipart].Force[2]/mpart * driftfac;
 	}
-
+	
 	return ;
 }
 

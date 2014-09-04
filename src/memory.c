@@ -23,7 +23,6 @@ static struct memory_block_infos {
 	bool InUse;
 } MemBlock[MAXMEMOBJECTS];
 
-
 void *Malloc_info(const char* file, const char* func, const int line, 
 		size_t size)
 {
@@ -57,7 +56,7 @@ void *Malloc_info(const char* file, const char* func, const int line,
 	}
 
 	memset(MemBlock[i].Start, 0, MemBlock[i].Size);
-
+	
 	return MemBlock[i].Start;
 }
 
@@ -124,7 +123,7 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 
 void Init_Memory_Management()
 {
-	MemSize = Param.MaxMemSize / Sim.NThreads * 1024L * 1024L; //  in MBytes
+	MemSize = Param.MaxMemSize * 1024L * 1024L; //  in MBytes
 
 	size_t nBytesMax = get_system_memory_size();
 
@@ -136,9 +135,9 @@ void Init_Memory_Management()
 			MPI_COMM_WORLD);
 
 	rprintf("Init Memory Manager\n"
-			"   Max Usable Memory per thread %zu bytes = %zu MB\n" 
-			"   Min Usable Memory per thread %zu bytes = %zu MB\n"
-			"   Requested  Memory per thread %zu bytes = %zu MB\n", 
+			"   Max Usable Memory per task %zu bytes = %zu MB\n" 
+			"   Min Usable Memory per task %zu bytes = %zu MB\n"
+			"   Requested  Memory per task %zu bytes = %zu MB\n", 
 			maxNbytes, maxNbytes/1024/1024, minNbytes, 
 			minNbytes/1024/1024, MemSize, MemSize/1024/1024);
 
@@ -167,8 +166,8 @@ void Print_Memory_Usage()
 			maxIdx = i;
 
 	if (Task.Rank == maxIdx) {
-		printf("\nMemory Manager: "
-			"Reporting Task %d with %zu MB free memory\n"
+
+		printf("\nMemory Manager: Reporting Rank %d with %zu MB free memory\n"
 			"   No  Used      Address       Size    Cumulative"
 			"                 Function  File:Line\n", 
 			Task.Rank, NBytesLeft/1024L/1024L);
@@ -190,7 +189,7 @@ void Print_Memory_Usage()
 
 		printf("\n"); fflush(stdout);
 	}
-
+	
 	MPI_Barrier(MPI_COMM_WORLD);
 	
 	return;

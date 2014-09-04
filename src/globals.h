@@ -15,14 +15,18 @@ typedef float Float;
 
 /* VARIABLES */
 
+int * restrict ActiveParticleList, NActiveParticles;
+
 extern struct Local_Task_Properties {		
 	bool IsMaster;			// == true on global master rank 
 	int IsThreadMain;		// == true on local thread masters
-	int Rank;				// combined OMP & MPI Rank of this processor
-	int MPI_Rank;			// MPI Rank of this processor
+	int Rank;				// combined OMP & MPI Rank of this thread
+	int MPI_Rank;			// MPI Rank of this thread
 	int ThreadID;			// OpenMP ID of this thread
 	int NpartTotal;			// Sum of Npart
 	int Npart[NPARTYPE];	// Number of particles on this processor
+	uint64_t NpartTotalMax;		// per task taking into account imbalance.
+	uint64_t NpartMax[NPARTYPE];// Use this if array size scales with Npart
 	unsigned short Seed[3];	// Thread safe urand48() seed
 } Task;
 #pragma omp threadprivate(Task)
@@ -34,13 +38,9 @@ extern struct Global_Simulation_Properties {
 	int NThreads;				// Number of OpenMP threads
 	uint64_t NpartTotal;		// total global number of particles
 	uint64_t Npart[NPARTYPE]; 	// global number of particles
-	uint64_t NpartTotalMax;		// per task taking into account imbalance.
-	uint64_t NpartMax[NPARTYPE];// Use this if array size scales with Npart
 	double Mpart[NPARTYPE]; 	// Global Masses  from header
 	double Boxsize[3];			// Now in 3D !
 } Sim;
-
-int * restrict ActiveParticleList, NActiveParticles;
 
 extern struct Parameters_From_File {
 	char File[CHARBUFSIZE]; 	// parameter file name

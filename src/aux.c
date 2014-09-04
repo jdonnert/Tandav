@@ -35,13 +35,13 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		int dNpart[NPARTYPE], size_t offset_out[NPARTYPE])
 {
 	if (P == NULL)
-		P = Malloc(Sim.NpartTotalMax*sizeof(*P));
+		P = Malloc(Task.NpartTotalMax*sizeof(*P));
 
 	for (int i = 0; i < NPARTYPE; i++)
-		Assert(Task.Npart[i] + dNpart[i] <= Sim.NpartMax[i], 
+		Assert(Task.Npart[i] + dNpart[i] <= Task.NpartMax[i], 
 			"Too many particles type %d on this task. \n"
 			"Have %d, want %d, max %d \nCurrent PARTALLOCFACTOR = %g", 
-			i,Task.Npart[i], dNpart[i], Sim.NpartMax[i], PARTALLOCFACTOR);
+			i,Task.Npart[i], dNpart[i], Task.NpartMax[i], PARTALLOCFACTOR);
 
 	int offset[NPARTYPE] = { 0 }, new_npartTotal = 0;
 	int new_npart[NPARTYPE] = { 0 };
@@ -123,8 +123,9 @@ void Assert_Info(const char *func, const char *file, int line,
 	va_start(varArgList, errmsg);
 
 	/* we fucked up, tell them */
-    fprintf(stderr, "\nERROR Task %d, Thread %d: file %s, line %d,"
-			" %s()\n\n", Task.Rank, Task.ThreadID, file, line, func);
+	fprintf(stderr, "\nERROR Task %d, MPI Rank %d Thread %d: \n"
+			"   In file %s, function %s(), line %d :\n\n	", 
+			Task.Rank, Task.MPI_Rank, Task.ThreadID, file, func, line);
 
 	vfprintf(stderr, errmsg, varArgList); 
 	
@@ -152,8 +153,9 @@ void Warn_Info(const char *func, const char *file, int line,
 	va_start(varArgList, errmsg);
 
 	/* Houston, we got a problem here */
-    fprintf(stderr, "\nWARNING Task %d, Thread %d: In file %s, function %s(),"
-			" line %d :\n\n	", Task.Rank, Task.ThreadID, file, func, line);
+    fprintf(stderr, "\nWARNING Task %d, MPI Rank %d Thread %d: "
+			"In file %s, function %s(), line %d :\n\n	", 
+			Task.Rank, Task.MPI_Rank, Task.ThreadID, file, func, line);
 
 	vfprintf(stderr, errmsg, varArgList); 
 	

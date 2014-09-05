@@ -25,6 +25,10 @@ pro density_profile, snap=snap
 
 	pos = tandav.readsnap(fname, 'POS', head=head)
 
+	pos[0,*] -= median(pos[0,*])
+	pos[1,*] -= median(pos[1,*])
+	pos[2,*] -= median(pos[2,*])
+
 	r = sqrt(pos[0,*]^2 + pos[1,*]^2 + pos[2,*]^2)
 
 	one = r * 0 + 1

@@ -131,16 +131,7 @@ void Make_Active_Particle_List()
 	return ;
 }
 
-/* Cosmological N-body step, Dehnen & Read 2011, eq (21) */
 
-static float cosmological_timestep(const int ipart)
-{
-	const float acc = len3(P[ipart].Force) / P[ipart].Mass;
-	
-	float dt = TIME_INT_ACCURACY * sqrt( GRAV_SOFTENING / acc); 
-		
-	return dt;
-}
 
 /* Give the physical timestep from timebin
  * Use Time.Step for the current system step */
@@ -209,3 +200,13 @@ static void print_timebins()
 #undef N_INT_BINS
 #undef COUNT_TRAILING_ZEROS
 
+/* Cosmological N-body step, Dehnen & Read 2011, eq (21) */
+
+static float cosmological_timestep(const int ipart)
+{
+	const float acc = len3(P[ipart].Force) / P[ipart].Mass;
+	
+	float dt = TIME_INT_ACCURACY * sqrt( GRAV_SOFTENING / acc); 
+		
+	return dt;
+}

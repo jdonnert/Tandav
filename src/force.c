@@ -70,7 +70,7 @@ static void force_Gravity_Simple(const int ipart, Float *force,
 			phi *= (7*u2 - 21*u*u2 + 28*u2*u3 - 15*u3*u3 + 8*u3*u3*u - 3)/h; 
 		
 		} else {
-			
+			 
 			fmag /= p2(r);
 
 			phi /= r;

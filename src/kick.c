@@ -20,11 +20,9 @@ void Kick_Halfstep()
 		
 		float dt = 0.5 * Timebin2Timestep(P[ipart].TimeBin);
 
-		float mpart = P[ipart].Mass;
-
-		P[ipart].Vel[0] += dt * P[ipart].Force[0]/mpart * driftfac;
-		P[ipart].Vel[1] += dt * P[ipart].Force[1]/mpart * driftfac; 
-		P[ipart].Vel[2] += dt * P[ipart].Force[2]/mpart * driftfac;
+		P[ipart].Vel[0] += dt * P[ipart].Acc[0] * driftfac;
+		P[ipart].Vel[1] += dt * P[ipart].Acc[1] * driftfac; 
+		P[ipart].Vel[2] += dt * P[ipart].Acc[2] * driftfac;
 	}
 	
 	return ;

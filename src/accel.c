@@ -1,6 +1,6 @@
 /* Collect all forces on particle ipart */
 #include "globals.h"
-#include "force.h"
+#include "accel.h"
 #include "timestep.h"
 
 static void force_Gravity_Simple(const int ipart, Float force[3], 
@@ -8,7 +8,7 @@ static void force_Gravity_Simple(const int ipart, Float force[3],
 
 void Compute_Forces()
 {
-	Profile("Forces");
+	Profile("Accelerations");
 
 	rprintf("Computing Forces ... ");
 	
@@ -24,21 +24,21 @@ void Compute_Forces()
 		force_Gravity_Simple(ipart, force, &potential);
 #endif // GRAVITY
 	
-		P[ipart].Force[0] = force[0];
-		P[ipart].Force[1] = force[1];
-		P[ipart].Force[2] = force[2];
+		P[ipart].Acc[0] = force[0] / P[ipart].Mass;
+		P[ipart].Acc[1] = force[1] / P[ipart].Mass;
+		P[ipart].Acc[2] = force[2] / P[ipart].Mass;
 
 		P[ipart].Potential = potential;
 	}
 	
 	rprintf("done\n");
 
-	Profile("Forces");
+	Profile("Accelerations");
 
 	return ;
 }
 
-const double h = 3 / GRAV_SOFTENING; // Plummer equivalent softening
+const static double h = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
 
 static void force_Gravity_Simple(const int ipart, Float *force, 
 		Float *potential)
@@ -54,32 +54,40 @@ static void force_Gravity_Simple(const int ipart, Float *force,
 		double dy = P[ipart].Pos[1] - P[jpart].Pos[1];
 		double dz = P[ipart].Pos[2] - P[jpart].Pos[2];
 
-		double r = sqrt( dx*dx + dy*dy + dz*dz );
+		double r =  sqrt(dx*dx + dy*dy + dz*dz + p2(GRAV_SOFTENING) );
 
-		double fmag = Const.Gravity * mpart * P[ipart].Mass;
-		double phi = Const.Gravity * mpart;
-
-		if (r < h) { // WC2 kernel softening
-
+	/*	if (r < h) {
+		
 			double u = r/h;
 			double u2 = u*u;
 			double u3 = u2*u;
-
-			fmag *= (14*u - 84*u3 + 140*u*u3 - 90*u2*u3 + 21*u3*u3) / p2(h);
 			
-			phi *= (7*u2 - 21*u*u2 + 28*u2*u3 - 15*u3*u3 + 8*u3*u3*u - 3)/h; 
-		
-		} else {
-			 
-			fmag /= p2(r);
+			r = h / sqrt((14*u - 84*u3 + 140*u2*u2 - 90*u3*u2 + 21*u3*u3 ));
+			double poly = u*(14 + u*u * (-84 + u * (140 + u * (-90 + 21*u)) ))
+		} 
+	*/
+		double fmag = Const.Gravity * mpart * P[ipart].Mass / p2(r);
 
-			phi /= r;
-		}
-		
 		force[0] += -fmag * dx/r;
 		force[1] += -fmag * dy/r;
 		force[2] += -fmag * dz/r;
 
+		r = sqrt(dx*dx + dy*dy + dz*dz);
+
+	//printf("%g %g %g %g \n", 
+//			sqrt(r2), rinv, fmag, 
+//			sqrt(p2(force[0]) + p2(force[1]) + p2(force[2])));
+
+	/*	if (r < h) { // WC2 kernel softening
+
+			
+			fmag *= (14*u3 - 84*u2*u3 + 140*u3*u3 - 90*u*u3*u3 + 21*u2*u3*u3);
+			
+			phi *= (7*u3 - 21*u2*u2 + 28*u3*u3 - 15*u3*u3*u + 8*u3*u3*u2 - 3*u);
+		}
+	*/	
+		double phi = Const.Gravity * mpart /r;
+		
 		*potential += phi;
 	}
 

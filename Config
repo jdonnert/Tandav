@@ -4,10 +4,10 @@
 MEMORY_MANAGER  
 
 GRAVITY				// gravitational interaction
-GRAV_SOFTENING 5 	// gravitational softening length 
+GRAV_SOFTENING 50 	// gravitational softening length 
 
 #COMOVING			// time integration in comoving coordinates
-TIME_INT_ACCURACY 0.05	// std 0.05, time step parameter
+TIME_INT_ACCURACY 0.1	// std 0.05, time step parameter
 
 #PERIODIC			// periodic boundary conditions
 
@@ -23,4 +23,3 @@ VELOCITY2CGS 1.0e+05
 #OUTPUT_PEANO_KEY   // add peano key of particle "PKEY"
 
 #### DOMAIN DECOMPOSITION ####
-DOMAIN_CEILING 2   // maximum number of domain splits possible

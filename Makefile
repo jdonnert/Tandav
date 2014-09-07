@@ -60,13 +60,13 @@ SRCDIR = src/
 # do not add a ".c" file here, or "make clean" will send it into the abyss
 OBJFILES = main.o aux.o cosmo.o domain.o update.o print_settings.o drift.o \
 		init.o kick.o setup.o timestep.o tree.o unit.o memory.o profile.o \
-		sort.o finish.o peano.o force.o constants.o \
+		sort.o finish.o peano.o accel.o constants.o \
 	   	io/io.o io/read_snapshot.o io/write_snapshot.o io/rw_parameter_file.o \
 		io/write_restart_file.o io/read_restart_file.o
 
 INCLFILES = config.h globals.h tree.h cosmo.h unit.h aux.h macro.h proto.h \
 	    memory.h profile.h io/io.h constants.h kick.h setup.h update.h \
-		drift.h tree.h timestep.h peano.h force.h \
+		drift.h tree.h timestep.h peano.h accel.h \
 		../Makefile ../Config
 
 OBJS = $(addprefix $(SRCDIR),$(OBJFILES))

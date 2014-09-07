@@ -25,9 +25,8 @@ void Drift_To_Sync_Point()
 		Sig.Synchronize_Drift = false;
 	}
 
-	for (int i = 0; i < NActiveParticles; i++) {
-
-		int ipart = ActiveParticleList[i];
+	#pragma omp parallel for
+	for (int ipart = 0; ipart < Task.NpartTotal; ipart++) {
 
 	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0] * driftfac;
 		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1] * driftfac;

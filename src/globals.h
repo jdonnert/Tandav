@@ -63,15 +63,15 @@ extern struct Simulation_Signals { // communicate an event across the code
 } Sig;
 
 extern struct Particle_Data {
+	int Type;
+	int TimeBin;
+	peanoKey Peanokey;
 	Float Pos[3];
 	Float Vel[3];
-	Float Force[3];
+	Float Acc[3];
 	Float Potential;
 	Float Mass;
 	uint32_t ID;
-	int Type;
-	uint32_t TimeBin;
-	peanoKey Peanokey;
 	/* add below */
 } *P;
 

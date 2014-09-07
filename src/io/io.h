@@ -106,6 +106,9 @@ static const struct io_block_def Block[] = {
 #ifdef OUTPUT_FORCE
   	,{"FRCE", "Forces", VAR_P, P_OFFSET(Force), P_FIELD_SIZEOF(Force), 0xFF}
 #endif
+#ifdef OUPUT_GRAV_POTENTIAL
+  	,{"POT ", "GravPot", VAR_P, P_OFFSET(Potential), P_FIELD_SIZEOF(Potential), 0xFF}
+#endif
 #ifdef OUTPUT_PEANO_KEY
   	,{"PKEY","Peanokey",VAR_P,P_OFFSET(Peanokey),P_FIELD_SIZEOF(peanoKey),0xFF}
 #endif

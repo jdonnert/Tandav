@@ -12,7 +12,7 @@ static void *Memory = NULL;
 
 static size_t NBytesLeft = 0; // size of block at the end
 static size_t MemSize = 0;
-static int NMemBlocks = 0; // all blocks, also empty ones
+static int NMem_Blocks = 0; // all blocks, also empty ones
 
 static struct memory_block_infos {
 	void * Start;
@@ -20,8 +20,8 @@ static struct memory_block_infos {
 	char File[CHARBUFSIZE];
 	char Func[CHARBUFSIZE];
 	int Line;
-	bool InUse;
-} MemBlock[MAXMEMOBJECTS];
+	bool In_Use;
+} Mem_Block[MAXMEMOBJECTS];
 
 void *Malloc_info(const char* file, const char* func, const int line, 
 		size_t size)
@@ -33,31 +33,31 @@ void *Malloc_info(const char* file, const char* func, const int line,
 
 	const int i = find_free_block_from_size(size);
 
-	strncpy(MemBlock[i].File, file, CHARBUFSIZE);
-	strncpy(MemBlock[i].Func, func, CHARBUFSIZE);
-	MemBlock[i].Line = line;
+	strncpy(Mem_Block[i].File, file, CHARBUFSIZE);
+	strncpy(Mem_Block[i].Func, func, CHARBUFSIZE);
+	Mem_Block[i].Line = line;
 
-	if (i == NMemBlocks) { // couldn't find a free gap, add new at the end
+	if (i == NMem_Blocks) { // couldn't find a free gap, add new at the end
 	
 		Assert_Info(file, func, line, NBytesLeft >= size, 
 			"Can't allocate Memory, "
 			"%zu bytes wanted, %zu bytes left, %zu bytes total", 
 			size, NBytesLeft, MemSize);
 		
-		MemBlock[i].Start = Memory + MemSize - NBytesLeft;
+		Mem_Block[i].Start = Memory + MemSize - NBytesLeft;
 	
-		MemBlock[i].Size = size;
+		Mem_Block[i].Size = size;
 
-		MemBlock[i].InUse = true;
+		Mem_Block[i].In_Use = true;
 		
-		NMemBlocks++;
+		NMem_Blocks++;
 
 		NBytesLeft -= size;
 	}
 
-	memset(MemBlock[i].Start, 0, MemBlock[i].Size);
+	memset(Mem_Block[i].Start, 0, Mem_Block[i].Size);
 	
-	return MemBlock[i].Start;
+	return Mem_Block[i].Start;
 }
 
 void *Realloc_info(const char* file, const char* func, const int line, 
@@ -72,34 +72,34 @@ void *Realloc_info(const char* file, const char* func, const int line,
 	const int i = find_memory_block_from_ptr(ptr);
 	int i_return = i; 
 
-	if (i == NMemBlocks-1) { // enlarge last block
+	if (i == NMem_Blocks-1) { // enlarge last block
 
-		const int delta = new_size - MemBlock[i].Size;
+		const int delta = new_size - Mem_Block[i].Size;
 
 		Assert_Info(file, func,line, delta < NBytesLeft,
 				"Not enough memory for %zu MB. Increase MaxMemSize", 
 				delta/1024/1024);
 
-		MemBlock[i].Size += delta;
+		Mem_Block[i].Size += delta;
 
 		NBytesLeft -= delta;
 
-	} else if (new_size < MemBlock[i].Size) { // move old to new and free
+	} else if (new_size < Mem_Block[i].Size) { // move old to new and free
 
-		printf("%zu %zu \n",  new_size, MemBlock[i].Size);
+		printf("%zu %zu \n",  new_size, Mem_Block[i].Size);
 		
 		void *dest = Malloc_info(file, func, line, new_size);
-		void *src = MemBlock[i].Start;
-		size_t nBytes = MemBlock[i].Size;
+		void *src = Mem_Block[i].Start;
+		size_t nBytes = Mem_Block[i].Size;
 
 		memcpy(dest, src, nBytes);
 
-		Free(MemBlock[i].Start);
+		Free(Mem_Block[i].Start);
 
-		i_return = NMemBlocks-1;
+		i_return = NMem_Blocks-1;
 	}
 
-	return MemBlock[i_return].Start;
+	return Mem_Block[i_return].Start;
 }
 
 void Free_info(const char* file, const char* func, const int line, void *ptr) 
@@ -109,12 +109,12 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 
 	const int i = find_memory_block_from_ptr(ptr);
 
-	memset(MemBlock[i].Start, 0, MemBlock[i].Size);
+	memset(Mem_Block[i].Start, 0, Mem_Block[i].Size);
 
-	MemBlock[i].InUse = false;
-	strncpy(MemBlock[i].File, "", CHARBUFSIZE);
-	strncpy(MemBlock[i].Func, "", CHARBUFSIZE);
-	MemBlock[i].Line = 0;
+	Mem_Block[i].In_Use = false;
+	strncpy(Mem_Block[i].File, "", CHARBUFSIZE);
+	strncpy(Mem_Block[i].Func, "", CHARBUFSIZE);
+	Mem_Block[i].Line = 0;
 
 	merge_free_memory_blocks(i);
 
@@ -154,37 +154,37 @@ void Init_Memory_Management()
 
 void Print_Memory_Usage()
 {
-	size_t nBytesLeftGlobal[Sim.NTask];
+	size_t nBytes_Left_Global[Sim.NTask];
 
-	MPI_Allgather(&NBytesLeft, 1, MPI_BYTE, nBytesLeftGlobal, 
-			sizeof(*nBytesLeftGlobal), MPI_BYTE, MPI_COMM_WORLD);
+	MPI_Allgather(&NBytesLeft, 1, MPI_BYTE, nBytes_Left_Global, 
+			sizeof(*nBytes_Left_Global), MPI_BYTE, MPI_COMM_WORLD);
 	
-	int maxIdx = 0;
+	int max_Idx = 0;
 
 	for (int i = 0; i < Sim.NTask; i++)
-		if (nBytesLeftGlobal[i] > nBytesLeftGlobal[maxIdx])
-			maxIdx = i;
+		if (nBytes_Left_Global[i] > nBytes_Left_Global[max_Idx])
+			max_Idx = i;
 
-	if (Task.Rank == maxIdx) {
+	if (Task.Rank == max_Idx) {
 
 		printf("\nMemory Manager: Reporting Rank %d with %zu MB free memory\n"
 			"   No  Used      Address       Size    Cumulative"
 			"                 Function  File:Line\n", 
 			Task.Rank, NBytesLeft/1024L/1024L);
 
-		size_t memCumulative = 0;
+		size_t mem_Cumulative = 0;
 
-		for (int i = 0; i < NMemBlocks; i++) {
+		for (int i = 0; i < NMem_Blocks; i++) {
 			
-			memCumulative += MemBlock[i].Size;
+			mem_Cumulative += Mem_Block[i].Size;
 
 			printf("    %d   %d    %11p    %7zu	 %8zu"
 				"  %21s()  %s:%d\n",
-				i,MemBlock[i].InUse, MemBlock[i].Start, 
-				MemBlock[i].Size/1024/1024, 
-				memCumulative/1024/1024, 
-				MemBlock[i].File, MemBlock[i].Func, 
-				MemBlock[i].Line);
+				i,Mem_Block[i].In_Use, Mem_Block[i].Start, 
+				Mem_Block[i].Size/1024/1024, 
+				mem_Cumulative/1024/1024, 
+				Mem_Block[i].File, Mem_Block[i].Func, 
+				Mem_Block[i].Line);
 		}
 
 		printf("\n"); fflush(stdout);
@@ -199,12 +199,12 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 {
 	*total = *largest = *smallest = 0;
 
-	for (int i = 0; i < NMemBlocks; i++) {
+	for (int i = 0; i < NMem_Blocks; i++) {
 		
-		if (MemBlock[i].InUse)
+		if (Mem_Block[i].In_Use)
 			continue;
 
-		int size = MemBlock[i].Size;
+		int size = Mem_Block[i].Size;
 
 		*total += size;
 		
@@ -230,11 +230,11 @@ int find_memory_block_from_ptr(void *ptr)
 {
 	int i = 0;
 
-	for (i = 0; i < NMemBlocks; i++) 
-		if (ptr == MemBlock[i].Start)
+	for (i = 0; i < NMem_Blocks; i++) 
+		if (ptr == Mem_Block[i].Start)
 			break;
 
-	Assert(i < NMemBlocks,
+	Assert(i < NMem_Blocks,
 		"Could not find memory block belonging to %p", ptr);
 
 	return i;
@@ -244,8 +244,8 @@ int find_free_block_from_size(const size_t size)
 {
 	int i = 0;
 
-	for (i = 0; i < NMemBlocks; i++)
-		if ((MemBlock[i].Start == NULL) && (MemBlock[i].Size <= size))
+	for (i = 0; i < NMem_Blocks; i++)
+		if ((Mem_Block[i].Start == NULL) && (Mem_Block[i].Size <= size))
 			break;
 
 	return i;
@@ -254,40 +254,40 @@ int find_free_block_from_size(const size_t size)
 /* merge memory blocks to minimize fragmentation */
 void merge_free_memory_blocks(int i) 
 {
-	if (i == NMemBlocks-1) { // Last, merge right into free
+	if (i == NMem_Blocks-1) { // Last, merge right into free
 
-		NMemBlocks--;
-		NBytesLeft += MemBlock[i].Size;
+		NMem_Blocks--;
+		NBytesLeft += Mem_Block[i].Size;
 		
-		MemBlock[i].Start = NULL;
-		MemBlock[i].Size = 0;
+		Mem_Block[i].Start = NULL;
+		Mem_Block[i].Size = 0;
 		
-		if (i != 0 && !MemBlock[i-1].InUse)
+		if (i != 0 && !Mem_Block[i-1].In_Use)
 			merge_free_memory_blocks(i-1); // merge left into free
 
-	} else if (!MemBlock[i+1].InUse) { // merge right
+	} else if (!Mem_Block[i+1].In_Use) { // merge right
 		
-		MemBlock[i].Size += MemBlock[i+1].Size;
+		Mem_Block[i].Size += Mem_Block[i+1].Size;
 
-		void *src = &MemBlock[i+2].Start;
-		void *dest = &MemBlock[i+1].Start;
-		size_t nBytes = (NMemBlocks - (i+1)) * sizeof(*MemBlock);
+		void *src = &Mem_Block[i+2].Start;
+		void *dest = &Mem_Block[i+1].Start;
+		size_t nBytes = (NMem_Blocks - (i+1)) * sizeof(*Mem_Block);
 
 		memmove(dest, src, nBytes);
 		
-		NMemBlocks--;
+		NMem_Blocks--;
 	
-	} else if (i != 0 && ! MemBlock[i-1].InUse) { // merge left
+	} else if (i != 0 && ! Mem_Block[i-1].In_Use) { // merge left
 
-		MemBlock[i-1].Size += MemBlock[i].Size;
+		Mem_Block[i-1].Size += Mem_Block[i].Size;
 
-		void *src = &MemBlock[i+1].Start;
-		void *dest = &MemBlock[i].Start;
-		size_t nBytes = (NMemBlocks - (i+1)) * sizeof(*MemBlock);
+		void *src = &Mem_Block[i+1].Start;
+		void *dest = &Mem_Block[i].Start;
+		size_t nBytes = (NMem_Blocks - (i+1)) * sizeof(*Mem_Block);
 
 		memmove(dest, src, nBytes);
 		
-		NMemBlocks--;
+		NMem_Blocks--;
 	}
 	
 	return ;

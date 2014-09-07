@@ -4,10 +4,10 @@
 MEMORY_MANAGER  
 
 GRAVITY				// gravitational interaction
-GRAV_SOFTENING 50 	// gravitational softening length 
+GRAV_SOFTENING 10 	// gravitational softening length 
 
 #COMOVING			// time integration in comoving coordinates
-TIME_INT_ACCURACY 0.1	// std 0.05, time step parameter
+TIME_INT_ACCURACY 0.2	// std 0.2, time step parameter
 
 #PERIODIC			// periodic boundary conditions
 

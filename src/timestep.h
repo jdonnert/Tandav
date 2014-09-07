@@ -7,21 +7,21 @@ struct TimeData {
 	double Begin;
 	double Current;		// if COMOVING is set, this is "a"
 	double End;
-	int SnapCounter;
+	int Snap_Counter;
 	int NSnap;
-	double FirstSnap;
-	double BetSnap;
-	double NextSnap;
-	intime_t IntBeg;		// beginning of integer timeline
-	intime_t IntCurrent;	// current point on integer timeline
-	intime_t IntNext;		// next point on interger timeline
-	intime_t IntEnd;		// end of integer timeline
-	intime_t IntStep;		// current time step on integer timeline
-	intime_t IntFullStep;   // next full step on integer timeline
+	double First_Snap;
+	double Bet_Snap;
+	double Next_Snap;
+	intime_t Int_Beg;		// beginning of integer timeline
+	intime_t Int_Current;	// current point on integer timeline
+	intime_t Int_Next;		// next point on interger timeline
+	intime_t Int_End;		// end of integer timeline
+	intime_t Int_Step;		// current time step on integer timeline
+	intime_t Int_Full_Step; // next full step on integer timeline
 	double Step;			// physical time step
-	double StepMin;			// smallest physical timestep
-	double StepMax;			// largest physical timestep
-	int MaxActiveBin;		// largest currently active timebin
+	double Step_Min;		// smallest physical timestep
+	double Step_Max;		// largest physical timestep
+	int Max_Active_Bin;		// largest currently active timebin
 } Time;
 
 void Set_New_Timesteps();
@@ -29,6 +29,6 @@ void Make_Active_Particle_List();
 
 void Setup_Time_Integration();
 double Timebin2Timestep(const int);
-double Integer2PhysicalTime(intime_t);
+double Integer2Physical_Time(intime_t);
 
 #endif // TIMESTEP_H

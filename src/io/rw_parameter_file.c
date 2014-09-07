@@ -93,7 +93,7 @@ void Read_Parameter_File(const char *filename)
 
 void Write_Parameter_File(const char *filename)
 {
-	if (Task.IsMaster) {
+	if (Task.Is_Master) {
 
 		printf("\nWriting Parameter file: %s \n", filename);
 
@@ -123,24 +123,21 @@ void Write_Parameter_File(const char *filename)
 
 void sanity_check_input_parameters()
 {
-	if (Task.IsMaster)
-		return ;
-		
-	Assert(Param.NumOutputFiles > 0, "NumOutputFiles has to be > 0");
+	Assert(Param.Num_Output_Files > 0, "NumOutputFiles has to be > 0");
 	
-	Assert(Param.NumIOTasks > 0, "NumIOTasks has to be > 0");
+	Assert(Param.Num_IO_Tasks > 0, "NumIOTasks has to be > 0");
 	
-	Assert(Param.NumIOTasks <= Sim.NTask, 
+	Assert(Param.Num_IO_Tasks <= Sim.NTask, 
 		"NTask (=%d) can't be smaller than No_IOTasks (=%d)", 
-		Sim.NTask,  Param.NumOutputFiles);
+		Sim.NTask,  Param.Num_Output_Files);
 	
-	Assert(Param.NumIOTasks <= Param.NumOutputFiles, 
-		"NumIOTasks (=%d) can't be smaller than NumOutputFiles (=%d)", 
-		Param.NumIOTasks,  Param.NumOutputFiles);
+	Assert(Param.Num_IO_Tasks <= Param.Num_Output_Files, 
+		"Num_IO_Tasks (=%d) can't be smaller than Num_Output_Files (=%d)", 
+		Param.Num_IO_Tasks,  Param.Num_Output_Files);
 	
-	Param.NumIOTasks = min(Param.NumIOTasks, Sim.NTask);
+	Param.Num_IO_Tasks = min(Param.Num_IO_Tasks, Sim.NTask);
 	
-	Param.NumOutputFiles = min(Param.NumOutputFiles, Sim.NTask);
+	Param.Num_Output_Files = min(Param.Num_Output_Files, Sim.NTask);
 
 	return ;
 }

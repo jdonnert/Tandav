@@ -22,7 +22,7 @@ void Read_and_Init()
 
 	Init_Domain_Decomposition();
 
-	switch (Param.StartFlag) {
+	switch (Param.Start_Flag) {
 
 		case 0: 
 

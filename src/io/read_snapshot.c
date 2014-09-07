@@ -2,7 +2,7 @@
 #include "../proto.h"
 #include "io.h"
 
-#define SKIP_FORTRAN_RECORD safe_fread(&Fortran_Record, 4, 1, fp, swapEndian);
+#define SKIP_FORTRAN_RECORD safe_fread(&Fortran_Record, 4, 1, fp, swap_Endian);
 static int32_t Fortran_Record; // holds the 4 byte Fortran data
 
 static int safe_fread(void * restrict, size_t, size_t, FILE *, bool);
@@ -20,15 +20,15 @@ void Read_Snapshot(char *input_name)
 {
 	const int nRank = Sim.NRank;
 	
-	int nIOTasks = Param.NumIOTasks;
+	int nIOTasks = Param.Num_IO_Tasks;
 
 	int nFiles = 0;
-	bool swapEndian = false;
+	bool swap_Endian = false;
 	char filename[CHARBUFSIZE] = "";
 
 	Profile("Read Snap");
 
-	if (Task.IsMaster) {
+	if (Task.Is_Master) {
 
 		nFiles = find_files(input_name);
 		
@@ -42,24 +42,24 @@ void Read_Snapshot(char *input_name)
 
 		FILE *fp = fopen(filename, "r");
 
-		swapEndian = find_endianess(fp);
+		swap_Endian = find_endianess(fp);
 
-		read_header_data(fp, swapEndian, nFiles); // fills Sim
+		read_header_data(fp, swap_Endian, nFiles); // fills Sim
 		
 		fclose(fp);
 	}
 	
 	MPI_Bcast(&nFiles, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
-	MPI_Bcast(&swapEndian, sizeof(swapEndian), MPI_BYTE, 0,MPI_COMM_WORLD);
+	MPI_Bcast(&swap_Endian, sizeof(swap_Endian), MPI_BYTE, 0,MPI_COMM_WORLD);
 
 	MPI_Bcast(&Sim, sizeof(Sim), MPI_BYTE, 0, MPI_COMM_WORLD);
 	
-	int restFiles = nFiles;
+	int rest_Files = nFiles;
 
-	while (restFiles > 0) {
+	while (rest_Files > 0) {
 
-		nIOTasks = fmin(nIOTasks,restFiles);
+		nIOTasks = fmin(nIOTasks,rest_Files);
 		
 		int groupSize = ceil( (float)nRank / (float)nIOTasks );
 		int groupMaster = round(Task.Rank / groupSize) * groupSize;
@@ -67,9 +67,9 @@ void Read_Snapshot(char *input_name)
 
 		strncpy(filename, input_name, CHARBUFSIZE);
 
-		if (restFiles >= nRank) { // read in nIO blocks, no communication
+		if (rest_Files >= nRank) { // read in nIO blocks, no communication
 		
-			int fileNum = nFiles - 1 - (Task.Rank + (restFiles - nRank)); 
+			int fileNum = nFiles - 1 - (Task.Rank + (rest_Files - nRank)); 
 			
 			if (nFiles > 1)
 				sprintf(filename, "%s.%i", filename, fileNum);
@@ -77,12 +77,12 @@ void Read_Snapshot(char *input_name)
 			for (int i = 0; i < groupSize; i++) {
 
 				if (Task.Rank == groupMaster + i)
-					read_file(filename, swapEndian, 0, 1, MPI_COMM_SELF);
+					read_file(filename, swap_Endian, 0, 1, MPI_COMM_SELF);
 
 				MPI_Barrier(MPI_COMM_WORLD);
 			}
 
-			restFiles -= nRank;
+			rest_Files -= nRank;
 
 		} else { // parallel read on groupMasters and distribute to group
 	
@@ -91,16 +91,16 @@ void Read_Snapshot(char *input_name)
 			MPI_Comm_split(MPI_COMM_WORLD, groupMaster, groupRank, 
 					&mpi_comm_read);
 		
-			int fileNum = nFiles - 1 - (restFiles - nIOTasks 
+			int fileNum = nFiles - 1 - (rest_Files - nIOTasks 
 					+ groupMaster / groupSize);
 
 			if (nFiles > 1)
 				sprintf(filename, "%s.%i", filename, fileNum);
 
-			read_file(filename, swapEndian, groupRank, groupSize, 
+			read_file(filename, swap_Endian, groupRank, groupSize, 
 					mpi_comm_read);
 			
-			restFiles -= nIOTasks; 
+			rest_Files -= nIOTasks; 
 			
 			MPI_Comm_free(&mpi_comm_read);
 		} 
@@ -117,10 +117,12 @@ void Read_Snapshot(char *input_name)
 	return ;
 }
 
-/* reads file on master and distributes it to an MPI communicator 
- * spanning groupSize with local rank groupRank */
+/* 
+ * reads file on master and distributes it to an MPI communicator 
+ * spanning groupSize with local rank groupRank 
+ */
 
-static void read_file (char *filename, const bool swapEndian, 
+static void read_file (char *filename, const bool swap_Endian, 
 		const int groupRank, const int groupSize, MPI_Comm mpi_comm_read)
 {
 	const int groupMaster = 0;  
@@ -137,11 +139,11 @@ static void read_file (char *filename, const bool swapEndian,
 	 	
 		Assert(fp != NULL, "File not found %s", filename);
 
-		find_block(fp, "HEAD", swapEndian);
+		find_block(fp, "HEAD", swap_Endian);
 
 		SKIP_FORTRAN_RECORD;
 		
-		safe_fread(nPartFile, sizeof(*nPartFile), 6, fp, swapEndian);
+		safe_fread(nPartFile, sizeof(*nPartFile), 6, fp, swap_Endian);
 		
 		SKIP_FORTRAN_RECORD;
 		
@@ -196,7 +198,7 @@ static void read_file (char *filename, const bool swapEndian,
 
 		if (groupRank == groupMaster) { // find blocksize
 
-			blocksize = find_block(fp, Block[i].Label, swapEndian);
+			blocksize = find_block(fp, Block[i].Label, swap_Endian);
 		
 			Assert(blocksize > 0 || !Block[i].PartBitMask, 
 					"Can't find required block '%s'", Block[i].Label);
@@ -222,7 +224,7 @@ static void read_file (char *filename, const bool swapEndian,
 
 			SKIP_FORTRAN_RECORD
 			
-			safe_fread(ReadBuf, blocksize, 1, fp, swapEndian );
+			safe_fread(ReadBuf, blocksize, 1, fp, swap_Endian );
 			
 			SKIP_FORTRAN_RECORD
 		} 
@@ -256,8 +258,10 @@ static void read_file (char *filename, const bool swapEndian,
 	return ;
 }
 
-/* This moves data from the comm buffer to P. Its generic but slow, 
- * but here we should be limited by the I/O of the drive anyway */
+/* 
+ * This moves data from the comm buffer to P. Its generic but slow, 
+ * but here we should be limited by the I/O of the drive anyway 
+ * */
 
 static void empty_comm_buffer (char *DataBuf, const int iBlock, 
 		const int nPartTotal, const int *nPart, const size_t *offsets)
@@ -292,13 +296,13 @@ static void empty_comm_buffer (char *DataBuf, const int iBlock,
 	return ;
 }
 
-static void read_header_data(FILE *fp, const bool swapEndian, int nFiles) 
+static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles) 
 { 
-	const bool swap = swapEndian;
+	const bool swap = swap_Endian;
 	
 	struct gadget_header head;
 
-	int32_t blocksize = find_block(fp, "HEAD", swapEndian);
+	int32_t blocksize = find_block(fp, "HEAD", swap_Endian);
 
 	Assert(blocksize == 256, "Format 2 Header corrupted");
 
@@ -386,7 +390,7 @@ static void generate_masses_from_header()
 	return;
 }
 
-static int find_block(FILE *fp, const char label[4], const bool swapEndian)
+static int find_block(FILE *fp, const char label[4], const bool swap_Endian)
 {
 	int32_t blocksize = 8;
 
@@ -398,8 +402,8 @@ static int find_block(FILE *fp, const char label[4], const bool swapEndian)
 		
 		SKIP_FORTRAN_RECORD;
 		
-		safe_fread(blocklabel, 4 * sizeof(char), 1, fp, swapEndian);
-		safe_fread(&blocksize, 4 * sizeof(char), 1, fp, swapEndian);
+		safe_fread(blocklabel, 4 * sizeof(char), 1, fp, swap_Endian);
+		safe_fread(&blocksize, 4 * sizeof(char), 1, fp, swap_Endian);
 
         SKIP_FORTRAN_RECORD;
 
@@ -432,13 +436,13 @@ static bool find_endianess(FILE *fp)
 
 	Assert(nRead == 1, "Couldn't read Fortran test record for Endianess");
 
-	bool swapEndian = false;
+	bool swap_Endian = false;
 	
 	if (testRecord == 134217728) { // first block is always 8 bytes
 
 		printf("\nEnabling Endian Swapping\n");
 
-		swapEndian = true;
+		swap_Endian = true;
 	}
 
 	rewind(fp);
@@ -447,7 +451,7 @@ static bool find_endianess(FILE *fp)
 
 	Assert(Fortran_Record == 8, "Binary Fortran File Format Broken");
 
-	return swapEndian;
+	return swap_Endian;
 }
 
 static int find_files(char *filename)
@@ -486,11 +490,13 @@ static int find_files(char *filename)
 	return nFiles;
 }
 
-/* this fread wrapper checks for eof, corruption and swaps endianess 
- * if swapEndian == true */
+/* 
+ * this fread wrapper checks for eof, corruption and swaps endianess 
+ * if swap_Endian == true 
+ */
 
 static int safe_fread(void * restrict data, size_t size, size_t nWanted, 
-		FILE *stream, bool swapEndian)
+		FILE *stream, bool swap_Endian)
 {
 	size_t nRead = fread(data, size, nWanted, stream);
 
@@ -499,7 +505,7 @@ static int safe_fread(void * restrict data, size_t size, size_t nWanted,
 		
 	Assert(nRead == nWanted, "Read %zu bytes, but %zu wanted", nRead, nWanted);
 
-	if (swapEndian && !feof(stream)) { // swap endianess
+	if (swap_Endian && !feof(stream)) { // swap endianess
 
 		char buf[16] = { " " };
 

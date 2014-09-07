@@ -17,8 +17,8 @@ void Write_Snapshot()
 {
 	Profile("Write Snap");
 
-	const int nFiles = Param.NumOutputFiles;
-	const int nIOTasks = Param.NumIOTasks;
+	const int nFiles = Param.Num_Output_Files;
+	const int nIOTasks = Param.Num_IO_Tasks;
 
 	int groupSize = Sim.NTask/nFiles; // big last file possible 
 	int groupMaster = min(nFiles-1,floor(Task.Rank/groupSize))*groupSize;
@@ -46,7 +46,7 @@ void Write_Snapshot()
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 
-	Time.SnapCounter++;
+	Time.Snap_Counter++;
 
 	rprintf("done\n\n");
 	
@@ -67,7 +67,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 
 	int nPartLargest = 0; // largest part number to transfer
 
-	MPI_Reduce(&Task.NpartTotal, &nPartLargest, 1, MPI_INT, MPI_MAX, 
+	MPI_Reduce(&Task.Npart_Total, &nPartLargest, 1, MPI_INT, MPI_MAX, 
 			groupMaster, mpi_comm_write);
 
 	int nPartTotalFile = 0; // total number of particles in file
@@ -233,7 +233,7 @@ static void fill_data_buffer(const int i, char *dataBuf)
 
 			src = (char *) P + offset;
 			
-			for (int i = 0; i < Task.NpartTotal; i++) {
+			for (int i = 0; i < Task.Npart_Total; i++) {
 			
 				memcpy(dest, src, nBytes);
 
@@ -247,8 +247,7 @@ static void fill_data_buffer(const int i, char *dataBuf)
 			break;
 
 		default:
-			Assert(0, "Block Target not handled : %d", 
-					Block[i].Target);
+			Assert(0, "Block Target not handled : %d", Block[i].Target);
 	}
 
 	return ;
@@ -282,20 +281,20 @@ static void set_filename(char *filename)
 
 	switch (ndigits) {
 		
-		case 4:
-			sprintf(filename, "%s_%04d", 
-					Param.OutputFileBase, Time.SnapCounter);
-			break;
+	case 4:
+		sprintf(filename, "%s_%04d", 
+				Param.OutputFileBase, Time.SnapCounter);
+		break;
 
-		case 5:
-			sprintf(filename, "%s_%05d", 
-					Param.OutputFileBase, Time.SnapCounter);
-			break;
+	case 5:
+		sprintf(filename, "%s_%05d", 
+			Param.OutputFileBase, Time.SnapCounter);
+		break;
 		
-		default:
-			sprintf(filename, "%s_%03d", 
-					Param.OutputFileBase, Time.SnapCounter);
-			break;
+	default:
+		sprintf(filename, "%s_%03d", 
+				Param.OutputFileBase, Time.SnapCounter);
+		break;
 	}
 
 	return;

@@ -22,7 +22,7 @@ unsigned int npart_in_block(const int i, const int *nPart)
 	unsigned int result = 0;
 	
 	for (int j = 0; j < NPARTYPE; j++)
-		result += nPart[j] * ((1 << j & Block[i].PartBitMask) >> j);
+		result += nPart[j] * ((1 << j & Block[i].Part_Bit_Mask) >> j);
 
 	return result;
 }

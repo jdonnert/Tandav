@@ -1,6 +1,6 @@
 #include "globals.h"
 #include "update.h"
-#include "force.h"
+#include "accel.h"
 #include "timestep.h"
 
 /* provide a consistent way of updating/calling different parts 
@@ -10,40 +10,40 @@ void Update(enum Update_Parameters stage)
 {
 	switch (stage) {
 
-		case BEFORE_MAIN_LOOP:
+	case BEFORE_MAIN_LOOP:
 		
-			Compute_Forces();
+		Compute_Forces();
 		
-			Print_Memory_Usage();
+		Print_Memory_Usage();
 
-			break;
+		break;
 
-		case BEFORE_FIRST_KICK:
+	case BEFORE_FIRST_KICK:
+	
+		break;
+
+	case AFTER_FIRST_KICK:
 		
-			break;
+		break;
 
-		case AFTER_FIRST_KICK:
+	case BEFORE_SNAPSHOT:
+
+		break;
 		
-			break;
-
-		case BEFORE_SNAPSHOT:
-
-			break;
+	case BEFORE_FORCES:
 		
-		case BEFORE_FORCES:
-		
-			break;
+		break;
 
-		case BEFORE_SECOND_KICK:
+	case BEFORE_SECOND_KICK:
 
-			break;
+		break;
 		
-		case AFTER_SECOND_KICK:
+	case AFTER_SECOND_KICK:
 
-			break;
+		break;
 		
-		default:
-			Assert(0, "Update Stage %d not handled", stage);
+	default:
+		Assert(0, "Update Stage %d not handled", stage);
 	}
 
 	return;

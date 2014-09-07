@@ -1,7 +1,9 @@
-/* Simple parallel quicksort, check wikipedia
+/* 
+ * Simple parallel quicksort, check wikipedia
  * Shamelessly hacked from glibc, thereby GPL2 
  * Jon Bentley and M. Douglas McIlroy; Software - Practice and Experience; 
- * Vol. 23 (11), 1249-1265, 1993. */
+ * Vol. 23 (11), 1249-1265, 1993. 
+ */
 
 #include "globals.h"
 #include <gsl/gsl_heapsort.h>
@@ -168,7 +170,8 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 	return ;
 }
 
-/* This is an OpenMP parallel external sort.
+/* 
+ * This is an OpenMP parallel external sort.
  * We use the same algorithm as above to divide and conquer.
  * In the first stage we sort 1 partition per thread.
  * The work is inserted in the shared stack with a delta that shrinks 
@@ -178,7 +181,8 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
  * to INSERT_THRES followed by insertion sort on the nearly 
  * ordered subpartition. 
  * Here we are swapping ONLY the permutation array *perm and
- * are comparing ONLY to the data array indexed by *perm */
+ * are comparing ONLY to the data array indexed by *perm 
+ */
 
 void Qsort_Index(const int nThreads, size_t *perm, void *const data, 
 		const int nData, const size_t datasize, 

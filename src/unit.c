@@ -1,4 +1,6 @@
-/* Conversion from code to CGSM or code units */
+/* 
+ * Conversion from code to CGSM or code units 
+ */
 
 #include "globals.h"
 
@@ -10,38 +12,16 @@ const struct Units Unit = {
 	MASS2CGS*p2(VELOCITY2CGS) // energy
 };
 
-/* Get derived quantities in code units */
-double Pressure(const int ipart)
-{
-	return 1; //Gas[ipart].Entropy * pow(Gas[ipart].Rho, Const.Adiabatic_Index);
-}
+/* 
+ * These functions convert internal units to physical cgsm units 
+ */
 
-double Internal_Energy(const int ipart)
-{
-	float density = 1; //Gas[ipart].Density;
-
-#ifdef COMOVOING
-	density /= p3(Time.Current);
-#endif
-	
-	double u = 1 // Gas[ipart].Entropy / (Const.Adiabatic_Index-1) 
-		* pow(density, (Const.Adiabatic_Index-1));
-
-	return u;
-}
-
-double Temperature(const int ipart)
-{
-	return 1;
-}
-
-/* These functions convert internal units to physical cgsm units */
 double Position_Cgs(const float x)
 {
 	double x_cgs = x * Unit.Length;
 
 #ifdef COMOVING
-	x_cgs *= Current.Time / Cosmo.HubbleParam; 
+	x_cgs *= Current.Time / Cosmo.Hubble_Param; 
 #endif
 
 	return x_cgs;
@@ -63,7 +43,7 @@ double Mass_Cgs(const float mass)
 	double mass_cgs = mass * Unit.Mass;
 
 #ifdef COMOVING
-	mass_cgs /= Cosmo.HubbleParam; 
+	mass_cgs /= Cosmo.Hubble_Param; 
 #endif
 
 	return mass_cgs;
@@ -91,7 +71,7 @@ double Pressure_Cgs(const float press)
 
 #ifdef COMOVING
 	press_cgs *= pow(Time.Current, -3*Const.Adiabatic_Index) 
-		/ p2(Cosmo.HubbleParam);
+		/ p2(Cosmo.Hubble_Param);
 #endif
 
 	return press_cgs;

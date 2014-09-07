@@ -5,7 +5,7 @@
 #include "timestep.h"
 #include "setup.h"
 #include "peano.h"
-#include "force.h"
+#include "accel.h"
 #include "io/io.h"
 
 static void preamble(int argc, char *argv[]);
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
 		if (time_Is_Up())
 			break;
 
-	if (Sig.WriteRestartFile) 
+	if (Sig.Write_Restart_File) 
 		Write_Restart_File();
 
 	}
@@ -84,18 +84,18 @@ static void preamble(int argc, char *argv[])
 
 #pragma omp parallel
    	{
-   		Task.ThreadID = omp_get_thread_num();
+   		Task.Thread_ID = omp_get_thread_num();
    		Sim.NThreads = omp_get_num_threads();
 		
 		Sim.NRank = Sim.NTask ; // * Sim.NThreads;
 		
 		Task.Rank = Task.MPI_Rank ;//* Sim.NThreads + Task.ThreadID;
 
-		Task.Seed[2] = 1441981 * Task.ThreadID; // init thread safe std rng
+		Task.Seed[2] = 1441981 * Task.Thread_ID; // init thread safe std rng
 	   	erand48(Task.Seed); // remove leading 0 in some implementations
 	
-		if (Task.MPI_Rank == MASTER && Task.ThreadID == MASTER)
-			Task.IsMaster = true;
+		if (Task.MPI_Rank == MASTER && Task.Thread_ID == MASTER)
+			Task.Is_Master = true;
    	}
 
 	if (Task.IsMaster) {
@@ -121,9 +121,9 @@ static void preamble(int argc, char *argv[])
 	strncpy(Param.File, argv[1], CHARBUFSIZE);
 	
 	if (argc > 2) // Start Flag given
-		Param.StartFlag = atoi(argv[2]);
+		Param.Start_Flag = atoi(argv[2]);
 
-	if (Param.StartFlag == 10) 
+	if (Param.Start_Flag == 10) 
 		Write_Parameter_File(Param.File); // dead end
 
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -140,7 +140,7 @@ static bool time_Is_Up()
 		return true;
 	}
 	
-	if (Time.IntCurrent == Time.IntEnd) {
+	if (Time.Int_Current == Time.Int_End) {
 		
 		rprintf("EndTime reached: %g \n", Time.End);
 		
@@ -149,9 +149,9 @@ static bool time_Is_Up()
 
 	if (Runtime() >= Param.RuntimeLimit) {
 
-		rprintf("Runtime limit reached: %g\n", Param.RuntimeLimit);
+		rprintf("Runtime limit reached: %g\n", Param.Runtime_Limit);
 
-		Sig.WriteRestartFile = true;
+		Sig.Write_Restart_File = true;
 
 		return true;
 	}
@@ -161,19 +161,20 @@ static bool time_Is_Up()
 
 static bool time_For_Snapshot()
 {
-	if (Sig.WriteSnapshot) {
+	if (Sig.Write_Snapshot) {
 
-		Sig.WriteSnapshot = false;
+		Sig.Write_Snapshot = false;
 	
 		rprintf("Encountered Signal: Write Snapshot  t=%g \n", Time.Current);
 
 		return true;
 	}
 
-	if (Time.Current + Time.Step >= Time.NextSnap) { 
+	if (Time.Current + Time.Step >= Time.Next_Snap) { 
 	
 		rprintf("Snapshot No. %d at t=%g, Next at t=%g \n", 
-				Time.SnapCounter+1, Time.NextSnap, Time.NextSnap+Time.BetSnap);
+				Time.Snap_Counter+1, Time.Next_Snap, 
+				Time.Next_Snap + Time.Bet_Snap);
 
 		return true;
 	}

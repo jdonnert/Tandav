@@ -20,7 +20,7 @@ void Drift_To_Sync_Point()
 
 	if (Sig.Synchronize_Drift) { // drift the rest to next integer time 
 	
-		dt = Integer2PhysicalTime(Time.IntNext) - Time.Current;
+		dt = Integer2Physical_Time(Time.IntNext) - Time.Current;
 
 		Sig.Synchronize_Drift = false;
 	}
@@ -51,21 +51,21 @@ void Drift_To_Snaptime()
 	const double dt = Time.NextSnap - Time.Current; // only drift this far
 
 #ifdef COMOVING
-	const float driftfac = Cosmo_Drift_Factor(Time.Current);
+	const float drift_fac = Cosmo_Drift_Factor(Time.Current);
 #else
-	const float driftfac = 1;
+	const float drift_fac = 1;
 #endif
 
 	for (int ipart = 0; ipart < Task.NpartTotal; ipart++) {
 
-	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0] * driftfac;
-		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1] * driftfac;
-		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2] * driftfac;
+	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0] * drift_fac;
+		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1] * drift_fac;
+		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2] * drift_fac;
 	}
 
 	Time.Current += dt;
 	
-	Time.NextSnap += Time.BetSnap;
+	Time.Next_Snap += Time.Bet_Snap;
 
 	Sig.Synchronize_Drift = true; // signal Drift() to do the rest only
 

@@ -15,18 +15,18 @@ typedef float Float;
 
 /* VARIABLES */
 
-int * restrict ActiveParticleList, NActiveParticles;
+int * restrict Active_Particle_List, NActive_Particles;
 
 extern struct Local_Task_Properties {		
-	bool IsMaster;			// == true on global master rank 
-	int IsThreadMain;		// == true on local thread masters
+	bool Is_Master;			// == true on global master rank 
+	int Is_Thread_Main;		// == true on local thread masters
 	int Rank;				// combined OMP & MPI Rank of this thread
 	int MPI_Rank;			// MPI Rank of this thread
-	int ThreadID;			// OpenMP ID of this thread
-	int NpartTotal;			// Sum of Npart
+	int Thread_ID;			// OpenMP ID of this thread
+	int Npart_Total;			// Sum of Npart
 	int Npart[NPARTYPE];	// Number of particles on this processor
-	uint64_t NpartTotalMax;		// per task taking into account imbalance.
-	uint64_t NpartMax[NPARTYPE];// Use this if array size scales with Npart
+	uint64_t Npart_Total_Max;	// per task taking into account imbalance.
+	uint64_t Npart_Max[NPARTYPE];// Use this if array size scales with Npart
 	unsigned short Seed[3];	// Thread safe urand48() seed
 } Task;
 #pragma omp threadprivate(Task)
@@ -36,7 +36,7 @@ extern struct Global_Simulation_Properties {
 	int NRank;					// NTask * NThreads
 	int NTask;					// Number of MPI tasks
 	int NThreads;				// Number of OpenMP threads
-	uint64_t NpartTotal;		// total global number of particles
+	uint64_t Npart_Total;		// total global number of particles
 	uint64_t Npart[NPARTYPE]; 	// global number of particles
 	double Mpart[NPARTYPE]; 	// Global Masses  from header
 	double Boxsize[3];			// Now in 3D !
@@ -44,27 +44,27 @@ extern struct Global_Simulation_Properties {
 
 extern struct Parameters_From_File {
 	char File[CHARBUFSIZE]; 	// parameter file name
-	char InputFile[CHARBUFSIZE];
-	char OutputFileBase[CHARBUFSIZE];
-	int StartFlag;				// invokation mode
-	int NumIOTasks;				// written in parallel
-	int MaxMemSize;				// Memory Ceiling in 1024^2 Bytes
-	int NumOutputFiles;			// Number of files per snapshot
-	double RuntimeLimit;		
-	int CommBufSize;			// in 1024 Bytes
+	char Input_File[CHARBUFSIZE];
+	char Output_File_Base[CHARBUFSIZE];
+	int Start_Flag;				// invokation mode
+	int Num_IO_Tasks;			// written in parallel
+	int Max_Mem_Size;			// Memory Ceiling in 1024^2 Bytes
+	int Num_Output_Files;		// Number of files per snapshot
+	double Runtime_Limit;		
+	int Comm_Buf_Size;			// in 1024 Bytes
 } Param;
 
 extern struct Simulation_Signals { // communicate an event across the code
 	bool Fullstep;				// Current step is fullstep
-	bool WriteSnapshot;			// write a snapshot this iteration
-	bool WriteRestartFile;		// write a restart file upon exit
+	bool Write_Snapshot;		// write a snapshot this iteration
+	bool Write_Restart_File;	// write a restart file upon exit
 	bool Endrun;				// stops the runs regularly
 	bool Synchronize_Drift;		// drift to next sync point on integer timeline
 } Sig;
 
 extern struct Particle_Data {
 	int Type;
-	int TimeBin;
+	int Time_Bin;
 	peanoKey Peanokey;
 	Float Pos[3];
 	Float Vel[3];

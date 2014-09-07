@@ -1,4 +1,6 @@
-/* OpenMP parallel sorting functions */
+/* 
+ * OpenMP parallel sorting functions 
+ */
 
 void Qsort(const int nThreads, void *const pbase, int nElements, size_t size, 
 		int (*cmp) (const void *, const void *));

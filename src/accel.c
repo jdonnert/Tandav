@@ -12,10 +12,10 @@ void Compute_Forces()
 
 	rprintf("Computing Forces ... ");
 	
-#pragma omp parallel for 
-	for (int i = 0; i < NActiveParticles; i++) {
+	#pragma omp parallel for 
+	for (int i = 0; i < N_Active_Particles; i++) {
 		
-		int ipart = ActiveParticleList[i];
+		int ipart = Active_Particle_List[i];
 		
 		Float force[3] = { 0 };
 		Float potential = 0;
@@ -43,7 +43,7 @@ const static double h = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
 static void force_Gravity_Simple(const int ipart, Float *force, 
 		Float *potential)
 {
-	for (int jpart = 0; jpart < Sim.NpartTotal; jpart++) {
+	for (int jpart = 0; jpart < Sim.Npart_Total; jpart++) {
 	
 		if (jpart == ipart)
 			continue;
@@ -54,25 +54,26 @@ static void force_Gravity_Simple(const int ipart, Float *force,
 		double dy = P[ipart].Pos[1] - P[jpart].Pos[1];
 		double dz = P[ipart].Pos[2] - P[jpart].Pos[2];
 
-		double r =  sqrt(dx*dx + dy*dy + dz*dz + p2(GRAV_SOFTENING) );
+		//double r =  sqrt(dx*dx + dy*dy + dz*dz + p2(GRAV_SOFTENING) );
+	
+		double r = sqrt(dx*dx + dy*dy + dz*dz);
 
-	/*	if (r < h) {
+		double rinv = 1/r;
+
+		if (r < h) {
 		
 			double u = r/h;
-			double u2 = u*u;
-			double u3 = u2*u;
 			
-			r = h / sqrt((14*u - 84*u3 + 140*u2*u2 - 90*u3*u2 + 21*u3*u3 ));
-			double poly = u*(14 + u*u * (-84 + u * (140 + u * (-90 + 21*u)) ))
+			rinv = sqrt(u*(14 + u*u * (-84 + u * (140 + u * (-90 + 21*u)))))/h;
 		} 
-	*/
-		double fmag = Const.Gravity * mpart * P[ipart].Mass / p2(r);
+	
+		double fmag = Const.Gravity * mpart * P[ipart].Mass * p2(rinv);
 
-		force[0] += -fmag * dx/r;
-		force[1] += -fmag * dy/r;
-		force[2] += -fmag * dz/r;
+		force[0] += -fmag * dx * rinv;
+		force[1] += -fmag * dy * rinv;
+		force[2] += -fmag * dz * rinv;
 
-		r = sqrt(dx*dx + dy*dy + dz*dz);
+		//r = sqrt(dx*dx + dy*dy + dz*dz);
 
 	//printf("%g %g %g %g \n", 
 //			sqrt(r2), rinv, fmag, 
@@ -86,7 +87,7 @@ static void force_Gravity_Simple(const int ipart, Float *force,
 			phi *= (7*u3 - 21*u2*u2 + 28*u3*u3 - 15*u3*u3*u + 8*u3*u3*u2 - 3*u);
 		}
 	*/	
-		double phi = Const.Gravity * mpart /r;
+		double phi = Const.Gravity * mpart *rinv;
 		
 		*potential += phi;
 	}

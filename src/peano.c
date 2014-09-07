@@ -2,7 +2,10 @@
 #include "peano.h"
 #include "sort.h"
 
-/* Here we compute the peano keys and reorder the particles */
+/* 
+ * Here we compute the peano keys and reorder the particles
+ */
+
 int compare_peanokeys(const void * a, const void *b)
 {
 	const peanoKey *x = (const peanoKey*)a;
@@ -13,9 +16,9 @@ int compare_peanokeys(const void * a, const void *b)
 
 void Sort_Particles_By_Peano_Key()
 {
-	const int npart = Task.NpartTotal;
+	const int npart = Task.Npart_Total;
 
-	peanoKey *keys = Malloc(Task.NpartTotalMax * sizeof(*keys));
+	peanoKey *keys = Malloc(Task.Npart_Total_Max * sizeof(*keys));
 
 	#pragma omp parallel for
 	for (int ipart = 0; ipart < npart; ipart++) {
@@ -26,7 +29,7 @@ void Sort_Particles_By_Peano_Key()
 		P[ipart].Peanokey = keys[ipart];
 	}
 
-	size_t *idx = Malloc(Task.NpartTotalMax * sizeof(*idx));
+	size_t *idx = Malloc(Task.Npart_Total_Max * sizeof(*idx));
 	
 	Qsort_Index(Sim.NThreads, idx, keys, npart, sizeof(*keys), 
 			&compare_peanokeys); 
@@ -63,11 +66,14 @@ void Sort_Particles_By_Peano_Key()
 }
 
 
-/* Construct 64 bit Peano-Hilbert distance in 3D 
+/* 
+ * Construct 64 bit Peano-Hilbert distance in 3D 
  * Yes it's arcane, run as fast as you can.
  * Skilling 2004, AIP 707, 381: "Programming the Hilbert Curve"
  * Note: There is a bug in the code of the paper. See also:
- * Campbell+03 'Dynamic Octree Load Balancing Using Space-Filling Curves' */
+ * Campbell+03 'Dynamic Octree Load Balancing Using Space-Filling Curves' 
+ */
+
 peanoKey Peano_Key(const float x, const float y, const float z, 
 		const double *boxsize)
 {

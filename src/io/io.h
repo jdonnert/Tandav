@@ -25,15 +25,15 @@ typedef struct {
 static const parameter ParDef[] = { 
 
 	{"\n%% Files %%\n", "", NULL, COMMENT},
-	{"InputFile", "IC_file", &Param.InputFile, STRING},
-	{"OutputFileBase", "snap", &Param.OutputFileBase, STRING},
-	{"NumIOTasks", "1", &Param.NumIOTasks, INT},
-	{"NumOutputFiles", "1", &Param.NumOutputFiles, INT},
+	{"InputFile", "IC_file", &Param.Input_File, STRING},
+	{"OutputFileBase", "snap", &Param.Output_File_Base, STRING},
+	{"NumIOTasks", "1", &Param.Num_IO_Tasks, INT},
+	{"NumOutputFiles", "1", &Param.Num_Output_Files, INT},
 
 	{"\n%% Code Parameters %%\n", "", NULL, COMMENT},
-	{"MaxMemSize", "1000", &Param.MaxMemSize, INT},
-	{"TimeLimitCPU", "20864", &Param.RuntimeLimit, INT},
-	{"CommBufSize", "1000", &Param.CommBufSize, INT},
+	{"MaxMemSize", "1000", &Param.Max_Mem_Size, INT},
+	{"TimeLimitCPU", "20864", &Param.Runtime_Limit, INT},
+	{"CommBufSize", "1000", &Param.Comm_Buf_Size, INT},
 
 	{"\n%% Simulation Characteristics %%\n", "", NULL, COMMENT},
 	{"Boxsize0", "4000", &Sim.Boxsize[0], DOUBLE},
@@ -41,14 +41,14 @@ static const parameter ParDef[] = {
 	{"Boxsize2", "4000", &Sim.Boxsize[2], DOUBLE},
 	{"TimeBegin", "0", &Time.Begin, DOUBLE},
 	{"TimeEnd", "10", &Time.End, DOUBLE},
-	{"TimeOfFirstSnaphot", "0", &Time.FirstSnap, DOUBLE},
-	{"TimeBetSnapshots", "0", &Time.BetSnap, DOUBLE},
+	{"TimeOfFirstSnaphot", "0", &Time.First_Snap, DOUBLE},
+	{"TimeBetSnapshots", "0", &Time.Bet_Snap, DOUBLE},
 
 	{"\n%% Cosmology %%\n", "", NULL, COMMENT},
 	{"Omega0", "1", &Cosmo.Omega0, DOUBLE},
-	{"OmegaLambda", "0.7", &Cosmo.OmegaLambda, DOUBLE},
-	{"OmegaBaryon", "1", &Cosmo.OmegaBaryon, DOUBLE},
-	{"HubbleParam", "0.7", &Cosmo.HubbleParam, DOUBLE},
+	{"OmegaLambda", "0.7", &Cosmo.Omega_Lambda, DOUBLE},
+	{"OmegaBaryon", "1", &Cosmo.Omega_Baryon, DOUBLE},
+	{"HubbleParam", "0.7", &Cosmo.Hubble_Param, DOUBLE},
 
 	/* Add yours below */
 };
@@ -64,18 +64,18 @@ struct gadget_header { // standard gadget header, filled to 256 byte
 	double Massarr[6];
 	double Time;
 	double Redshift;
-	int32_t FlagSfr;
-	int32_t FlagFeedback;
+	int32_t Flag_Sfr;
+	int32_t Flag_Feedback;
 	uint32_t Nall[6];
-	int32_t FlagCooling;
-	int32_t NumFiles;
+	int32_t Flag_Cooling;
+	int32_t Num_Files;
 	double Boxsize;
 	double Omega0;
-	double OmegaLambda;
-	double HubbleParam;
-	int32_t FlagAge;
-	int32_t FlagMetals;
-	uint32_t NallHighWord[6];
+	double Omega_Lambda;
+	double Hubble_Param;
+	int32_t Flag_Age;
+	int32_t Flag_Metals;
+	uint32_t Nall_High_Word[6];
 	char fill_bytes[59];
 };
 
@@ -91,7 +91,7 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 	} Target;		// identify global var
 	size_t Offset;		// offset in underlying struct
 	size_t Nbytes; 	// sizeof target field
-	int PartBitMask;// == 1 at bit i+1, if required for type i
+	int Part_Bit__Mask;// == 1 at bit i+1, if required for type i
 };
 
 #define P_OFFSET(member) offsetof(struct Particle_Data, member)
@@ -107,7 +107,8 @@ static const struct io_block_def Block[] = {
   	,{"FRCE", "Forces", VAR_P, P_OFFSET(Force), P_FIELD_SIZEOF(Force), 0xFF}
 #endif
 #ifdef OUPUT_GRAV_POTENTIAL
-  	,{"POT ", "GravPot", VAR_P, P_OFFSET(Potential), P_FIELD_SIZEOF(Potential), 0xFF}
+  	,{"POT ", "Grav Potential", VAR_P, P_OFFSET(Potential), 
+		P_FIELD_SIZEOF(Potential), 0xFF}
 #endif
 #ifdef OUTPUT_PEANO_KEY
   	,{"PKEY","Peanokey",VAR_P,P_OFFSET(Peanokey),P_FIELD_SIZEOF(peanoKey),0xFF}

@@ -22,35 +22,34 @@ uint64_t Umax(const uint64_t x, const uint64_t y)
   return x ^ ((x ^ y) & -(x < y));
 }
 
-/* Reallocates the Particle structures. Takes the relative change
+/* 
+ * Reallocates the Particle structures. Takes the relative change
  * as argument, not the total number. Add or Remove via sign of nPart.
  * Also updates Task.Npart and Task.NPartTotal. 
  * Expands P so that space for nPart[type] is at offset[type]
  * Contracts P so that the last nPart[type] particles are removed 
  * Note that actually no real allocation is taking place, because
  * that would fragment memory. Instead needs to stay with in the
- * limit set by PARTALLOCFACTOR */
+ * limit set by PARTALLOCFACTOR 
+ */
 
 void Reallocate_P_Info(const char *func, const char *file, int line, 
 		int dNpart[NPARTYPE], size_t offset_out[NPARTYPE])
 {
-	if (P == NULL)
-		P = Malloc(Task.NpartTotalMax*sizeof(*P));
-
 	for (int i = 0; i < NPARTYPE; i++)
-		Assert(Task.Npart[i] + dNpart[i] <= Task.NpartMax[i], 
+		Assert(Task.Npart[i] + dNpart[i] <= Task.Npart_Max[i], 
 			"Too many particles type %d on this task. \n"
 			"Have %d, want %d, max %d \nCurrent PARTALLOCFACTOR = %g", 
-			i,Task.Npart[i], dNpart[i], Task.NpartMax[i], PARTALLOCFACTOR);
+			i,Task.Npart[i], dNpart[i], Task.Npart_Max[i], PARTALLOCFACTOR);
 
-	int offset[NPARTYPE] = { 0 }, new_npartTotal = 0;
+	int offset[NPARTYPE] = { 0 }, new_npart_total = 0;
 	int new_npart[NPARTYPE] = { 0 };
 	
 	for (int type = 0; type < NPARTYPE; type++) { // calc offset
 
 		new_npart[type] = Task.Npart[type] + dNpart[type];
 		
-		new_npartTotal += new_npart[type];
+		new_npart_total += new_npart[type];
 		
         Assert(new_npart[type] >= 0, "Can't alloc negative particles,"
 			" type %d, delta %d, current %d,\n"
@@ -66,7 +65,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		offset[type] -= max(0, dNpart[type]); // correct for dNpart>0
 	}
  
-	int nMove = Task.NpartTotal; // move particles left
+	int nMove = Task.Npart_Total; // move particles left
 	
 	for (int type = 0; type < NPARTYPE; type++) { 
 
@@ -83,7 +82,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 
 	//size_t nBytes = sizeof(*P) * new_npartTotal * PARTALLOCFACTOR;
 
-	nMove = Task.NpartTotal; // move particles right
+	nMove = Task.Npart_Total; // move particles right
 
 	for (int type = 0; type < NPARTYPE-1; type++) { 
 
@@ -98,7 +97,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		memmove(&P[dest], &P[src], nMove*sizeof(*P));
 	} 
 
-	Task.NpartTotal = new_npartTotal;
+	Task.Npart_Total = new_npart_total;
 	
 	for (int type = 0; type < NPARTYPE; type++) // book keeping
 		Task.Npart[type] = new_npart[type];
@@ -125,7 +124,7 @@ void Assert_Info(const char *func, const char *file, int line,
 	/* we fucked up, tell them */
 	fprintf(stderr, "\nERROR Task %d, MPI Rank %d Thread %d: \n"
 			"   In file %s, function %s(), line %d :\n\n	", 
-			Task.Rank, Task.MPI_Rank, Task.ThreadID, file, func, line);
+			Task.Rank, Task.MPI_Rank, Task.Thread_ID, file, func, line);
 
 	vfprintf(stderr, errmsg, varArgList); 
 	
@@ -155,7 +154,7 @@ void Warn_Info(const char *func, const char *file, int line,
 	/* Houston, we got a problem here */
     fprintf(stderr, "\nWARNING Task %d, MPI Rank %d Thread %d: "
 			"In file %s, function %s(), line %d :\n\n	", 
-			Task.Rank, Task.MPI_Rank, Task.ThreadID, file, func, line);
+			Task.Rank, Task.MPI_Rank, Task.Thread_ID, file, func, line);
 
 	vfprintf(stderr, errmsg, varArgList); 
 	

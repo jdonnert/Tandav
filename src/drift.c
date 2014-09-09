@@ -56,7 +56,7 @@ void Drift_To_Snaptime()
 	const float drift_fac = 1;
 #endif
 
-	for (int ipart = 0; ipart < Task.NpartTotal; ipart++) {
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
 	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0] * drift_fac;
 		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1] * drift_fac;

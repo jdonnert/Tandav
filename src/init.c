@@ -22,6 +22,8 @@ void Read_and_Init()
 
 	Init_Domain_Decomposition();
 
+	P = Malloc(Task.Npart_TotalMax*sizeof(*P));
+
 	switch (Param.Start_Flag) {
 
 		case 0: 

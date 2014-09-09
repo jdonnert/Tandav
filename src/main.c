@@ -80,7 +80,7 @@ static void preamble(int argc, char *argv[])
 	MPI_Comm_rank(MPI_COMM_WORLD, &Task.MPI_Rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &Sim.NTask);
 
-	MPI_Is_thread_main(&Task.IsThreadMain);
+	MPI_Is_thread_main(&Task.Is_Thread_Main);
 
 #pragma omp parallel
    	{
@@ -98,7 +98,7 @@ static void preamble(int argc, char *argv[])
 			Task.Is_Master = true;
    	}
 
-	if (Task.IsMaster) {
+	if (Task.Is_Master) {
 
 		printf("# Tandav #\n\n");
 
@@ -147,7 +147,7 @@ static bool time_Is_Up()
 		return true;
 	}
 
-	if (Runtime() >= Param.RuntimeLimit) {
+	if (Runtime() >= Param.Runtime_Limit) {
 
 		rprintf("Runtime limit reached: %g\n", Param.Runtime_Limit);
 

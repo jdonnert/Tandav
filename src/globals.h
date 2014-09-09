@@ -4,6 +4,7 @@
 #include "proto.h"
 
 typedef float Float;
+typedef uint32_t IDtype;
 
 /* CODE PARAMETERS */
 
@@ -23,7 +24,7 @@ extern struct Local_Task_Properties {
 	int Rank;				// combined OMP & MPI Rank of this thread
 	int MPI_Rank;			// MPI Rank of this thread
 	int Thread_ID;			// OpenMP ID of this thread
-	int Npart_Total;			// Sum of Npart
+	int Npart_Total;		// Sum of Npart
 	int Npart[NPARTYPE];	// Number of particles on this processor
 	uint64_t Npart_Total_Max;	// per task taking into account imbalance.
 	uint64_t Npart_Max[NPARTYPE];// Use this if array size scales with Npart
@@ -71,7 +72,7 @@ extern struct Particle_Data {
 	Float Acc[3];
 	Float Potential;
 	Float Mass;
-	uint32_t ID;
+	IDtype ID;
 	/* add below */
 } *P;
 

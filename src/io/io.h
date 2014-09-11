@@ -91,7 +91,7 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 	} Target;		// identify global var
 	size_t Offset;		// offset in underlying struct
 	size_t Nbytes; 	// sizeof target field
-	int Part_Bit__Mask;// == 1 at bit i+1, if required for type i
+	int Part_Bit_Mask;// == 1 at bit i+1, if required for type i
 };
 
 #define P_OFFSET(member) offsetof(struct Particle_Data, member)

@@ -33,12 +33,12 @@ void Set_New_Timesteps()
 		
 		dt = fmin(dt, dt_cosmo);
 		
-		Assert(dt >= Time.StepMin, "Timestep too small or not finite !"
+		Assert(dt >= Time.Step_Min, "Timestep too small or not finite !"
 				" Ipart=%d, dt=%g", ipart, dt);
 
 		int want = timestep2timebin(dt);
 
-		int allowed = Imax(Time.MaxActiveBin, P[ipart].Time_Bin);
+		int allowed = Imax(Time.Max_Active_Bin, P[ipart].Time_Bin);
 
 		P[ipart].Time_Bin = Imin(want, allowed);
 
@@ -81,7 +81,7 @@ void Set_New_Timesteps()
 				Time.Int_Current + (1ULL << global_bin_max) );
 
 		rprintf("Next full step at t = %g, bin = %d \n\n", 
-				Integer2Physical_Time(Time.Int_FullStep), global_bin_max);
+				Integer2Physical_Time(Time.Int_Full_Step), global_bin_max);
 	}
 
 	Profile("Timesteps");
@@ -176,8 +176,8 @@ static void print_timebins()
 {
 	int npart[N_INT_BINS] = { 0 };
 	
-	for (int ipart = 0; ipart < Task.NpartTotal; ipart++)
-		npart[P[ipart].TimeBin]++;
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
+		npart[P[ipart].Time_Bin]++;
 
 	int npart_global[N_INT_BINS] = { 0 };
 
@@ -196,13 +196,13 @@ static void print_timebins()
 
 	rprintf("Timesteps at time %g, NActive %d \n"
 			"   Bin       nGas        nDM A  dt\n", 
-			Time.Current, NActiveParticles);
+			Time.Current, NActive_Particles);
 
-	for (int i = imax; i > Time.MaxActiveBin; i--)
+	for (int i = imax; i > Time.Max_Active_Bin; i--)
 		rprintf("   %2d    %7d     %7d %s  %g \n", 
 			i, 0, npart_global[i], " ", Timebin2Timestep(i));
 
-	for (int i = Time.MaxActiveBin; i >= imin; i--)
+	for (int i = Time.Max_Active_Bin; i >= imin; i--)
 		rprintf("   %2d    %7d     %7d %s  %g \n", 
 			i, 0, npart_global[i], "X", Timebin2Timestep(i));
 

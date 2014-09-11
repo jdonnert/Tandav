@@ -21,7 +21,7 @@
 	  char __tmp = *__a;			\
 	  *__a++ = *__b;				\
 	  *__b++ = __tmp;				\
-	} while (--__size > 0);			\
+	  } while (--__size > 0);	    \
     } while (0)
 	
 #define SWAP_SIZE_T(a,b)				\
@@ -51,11 +51,13 @@ typedef struct
 } stack_node_size_t;
 
 
-/* A shared stack keeps the partition pointers. We assign one thread per 
+/* 
+ * A shared stack keeps the partition pointers. We assign one thread per 
  * partition until there is a partition for every thread. 
  * Then we continue serial on every partition. There is little
  * need for synchronisation, which is done intrinsically by the for(j) loop.
- * Once the array is presorted the standard qsort lib routine excels */
+ * Once the array is presorted the standard qsort lib routine excels 
+ */
 
 void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size, 
 		int (*cmp) (const void *, const void *))
@@ -285,8 +287,8 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 	/* Second stage, every thread: Qsort on subpartition *beg to *end */
 
-	size_t *beg = shared_stack[Task.ThreadID].lo;
-	size_t *end = shared_stack[Task.ThreadID].hi;
+	size_t *beg = shared_stack[Task.Thread_ID].lo;
+	size_t *end = shared_stack[Task.Thread_ID].hi;
 
 	stack_node_size_t stack[STACK_SIZE] = { { NULL, NULL } }; 
 

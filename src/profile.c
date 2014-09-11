@@ -112,7 +112,7 @@ void Profile_Report()
 
 void Profile_Report_Last()
 {
-	if (! Task.IsMaster)
+	if (! Task.Is_Master)
 		return ; 
 
 	const double now = measure_time();

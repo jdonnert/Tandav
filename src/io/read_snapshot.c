@@ -200,7 +200,7 @@ static void read_file (char *filename, const bool swap_Endian,
 
 			blocksize = find_block(fp, Block[i].Label, swap_Endian);
 		
-			Assert(blocksize > 0 || !Block[i].PartBitMask, 
+			Assert(blocksize > 0 || !Block[i].Part_Bit_Mask, 
 					"Can't find required block '%s'", Block[i].Label);
 			
 			if (blocksize > 0)
@@ -312,32 +312,33 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 	safe_fread(head.Massarr,sizeof(*head.Massarr), 6, fp, swap);
 	safe_fread(&head.Time, sizeof(head.Time), 1, fp, swap);
 	safe_fread(&head.Redshift, sizeof(head.Redshift), 1, fp, swap);
-	safe_fread(&head.FlagSfr, sizeof(head.FlagSfr), 1, fp, swap);
-	safe_fread(&head.FlagFeedback, sizeof(head.FlagFeedback), 1, fp,swap);
+	safe_fread(&head.Flag_Sfr, sizeof(head.Flag_Sfr), 1, fp, swap);
+	safe_fread(&head.Flag_Feedback, sizeof(head.Flag_Feedback), 1, fp,swap);
 	safe_fread(head.Nall, sizeof(*head.Nall), 6, fp, swap);
-	safe_fread(&head.FlagCooling, sizeof(head.FlagCooling), 1, fp,swap);
-	safe_fread(&head.NumFiles, sizeof(head.NumFiles), 1, fp, swap);
+	safe_fread(&head.Flag_Cooling, sizeof(head.Flag_Cooling), 1, fp,swap);
+	safe_fread(&head.Num_Files, sizeof(head.Num_Files), 1, fp, swap);
 	safe_fread(&head.Boxsize, sizeof(head.Boxsize), 1, fp, swap);
 	safe_fread(&head.Omega0, sizeof(head.Omega0), 1, fp, swap);
-	safe_fread(&head.OmegaLambda, sizeof(head.OmegaLambda), 1, fp, swap);
-	safe_fread(&head.HubbleParam, sizeof(head.HubbleParam), 1, fp, swap);
-	safe_fread(&head.FlagAge, sizeof(head.FlagAge), 1, fp, swap);
-	safe_fread(&head.FlagMetals, sizeof(head.FlagMetals), 1, fp,swap);
-	safe_fread(head.NallHighWord, sizeof(*head.NallHighWord), 6, fp,swap);
+	safe_fread(&head.Omega_Lambda, sizeof(head.Omega_Lambda), 1, fp, swap);
+	safe_fread(&head.Hubble_Param, sizeof(head.Hubble_Param), 1, fp, swap);
+	safe_fread(&head.Flag_Age, sizeof(head.Flag_Age), 1, fp, swap);
+	safe_fread(&head.Flag_Metals, sizeof(head.Flag_Metals), 1, fp,swap);
+	safe_fread(head.Nall_High_Word, sizeof(*head.Nall_High_Word), 6, fp,swap);
 
-	for (int i = Sim.NpartTotal = 0; i < NPARTYPE; i++) {
+	for (int i = Sim.Npart_Total = 0; i < NPARTYPE; i++) {
 
 		Sim.Mpart[i] = head.Massarr[i];
 
 		Sim.Npart[i] = (uint64_t)head.Nall[i] 
-					+ ( ((uint64_t)head.NallHighWord[i]) << 32);
+					+ ( ((uint64_t)head.Nall_High_Word[i]) << 32);
 		
-		Sim.NpartTotal += Sim.Npart[i];
+		Sim.Npart_Total += Sim.Npart[i];
 
-		Task.NpartMax[i] = ceil((double)Sim.Npart[i]/Sim.NRank*PARTALLOCFACTOR);
+		Task.Npart_Max[i] = ceil((double)Sim.Npart[i]/Sim.NRank 
+				* PARTALLOCFACTOR);
 	}
 
-	Task.NpartTotalMax = ceil(Sim.NpartTotal/Sim.NRank * PARTALLOCFACTOR);
+	Task.Npart_Total_Max = ceil(Sim.Npart_Total/Sim.NRank * PARTALLOCFACTOR);
 
 #ifdef PERIODIC
 	Assert(Sim.Boxsize >= 0, "Boxsize in header not > 0, but %g", Sim.Boxsize);
@@ -358,8 +359,8 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 		(long long unsigned int) Sim.Npart[4], Sim.Mpart[4], 
 		(long long unsigned int) Sim.Npart[5], Sim.Mpart[5]);
 	
-	Warn(head.NumFiles != nFiles, "NumFiles in Header (%d) doesnt match "
-			"number of files found (%d) \n\n", head.NumFiles, nFiles);
+	Warn(head.Num_Files != nFiles, "NumFiles in Header (%d) doesnt match "
+			"number of files found (%d) \n\n", head.Num_Files, nFiles);
 
 	return ;
 }

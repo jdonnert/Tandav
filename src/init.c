@@ -19,16 +19,16 @@ void Read_and_Init()
  	Init_Profiler();
 
 	Init_Memory_Management();
+	
+	P = Malloc(Task.Npart_Total_Max*sizeof(*P));
 
 	Init_Domain_Decomposition();
-
-	P = Malloc(Task.Npart_TotalMax*sizeof(*P));
 
 	switch (Param.Start_Flag) {
 
 		case 0: 
 
-			Read_Snapshot(Param.InputFile);
+			Read_Snapshot(Param.Input_File);
 			
 			break;
 

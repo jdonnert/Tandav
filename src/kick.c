@@ -9,9 +9,9 @@
 void Kick_Halfstep() 
 {
 #ifdef COMOVING 
-	const float kick_fac = Cosmo_Kick_Factor(Sim.CurrentTime); // Quinn+97
+	const float kick_factor = Cosmo_Kick_Factor(Sim.Current_Time); // Quinn+97
 #else
-	const float kick_fac = 1;
+	const float kick_factor = 1;
 #endif // COMOVING
 	
 	#pragma omp parallel for
@@ -19,11 +19,11 @@ void Kick_Halfstep()
 
 		int ipart = Active_Particle_List[i];
 		
-		float dt = 0.5 * Timebin2Timestep(P[ipart].TimeBin);
+		float dt = 0.5 * Timebin2Timestep(P[ipart].Time_Bin);
 
-		P[ipart].Vel[0] += dt * P[ipart].Acc[0] * kick_fac;
-		P[ipart].Vel[1] += dt * P[ipart].Acc[1] * kick_fac; 
-		P[ipart].Vel[2] += dt * P[ipart].Acc[2] * kick_fac;
+		P[ipart].Vel[0] += dt * P[ipart].Acc[0] * kick_factor;
+		P[ipart].Vel[1] += dt * P[ipart].Acc[1] * kick_factor; 
+		P[ipart].Vel[2] += dt * P[ipart].Acc[2] * kick_factor;
 	}
 	
 	return ;

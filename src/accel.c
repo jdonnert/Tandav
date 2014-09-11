@@ -13,7 +13,7 @@ void Compute_Forces()
 	rprintf("Computing Forces ... ");
 	
 	#pragma omp parallel for 
-	for (int i = 0; i < N_Active_Particles; i++) {
+	for (int i = 0; i < NActive_Particles; i++) {
 		
 		int ipart = Active_Particle_List[i];
 		

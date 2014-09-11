@@ -20,22 +20,22 @@ void Drift_To_Sync_Point()
 
 	if (Sig.Synchronize_Drift) { // drift the rest to next integer time 
 	
-		dt = Integer2Physical_Time(Time.IntNext) - Time.Current;
+		dt = Integer2Physical_Time(Time.Int_Next) - Time.Current;
 
 		Sig.Synchronize_Drift = false;
 	}
 
 	#pragma omp parallel for
-	for (int ipart = 0; ipart < Task.NpartTotal; ipart++) {
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
 	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0] * driftfac;
 		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1] * driftfac;
 		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2] * driftfac;
 	}
 	
-	Time.IntCurrent += Time.IntStep;
+	Time.Int_Current += Time.Int_Step;
 
-	Time.Current = Integer2PhysicalTime(Time.IntCurrent);
+	Time.Current = Integer2Physical_Time(Time.Int_Current);
 
 	rprintf("done \n");
 
@@ -48,7 +48,7 @@ void Drift_To_Sync_Point()
 
 void Drift_To_Snaptime()
 {
-	const double dt = Time.NextSnap - Time.Current; // only drift this far
+	const double dt = Time.Next_Snap - Time.Current; // only drift this far
 
 #ifdef COMOVING
 	const float drift_fac = Cosmo_Drift_Factor(Time.Current);

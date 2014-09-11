@@ -100,7 +100,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 	if (groupRank == groupMaster)
 		dataBufSize *= 2*nPartLargest; // master stores comm&write buf 
 	else
-		dataBufSize *= Task.NpartTotal; // slaves buffer local data
+		dataBufSize *= Task.Npart_Total; // slaves buffer local data
 	
 	char *dataBuf = Malloc(dataBufSize); 
 		
@@ -183,7 +183,7 @@ void write_gadget_header(const int *npart, FILE *fp)
 		head.Npart[i] = npart[i];
 
 		head.Nall[i] = (int32_t)(Sim.Npart[i]);
-		head.NallHighWord[i] = (int32_t) (Sim.Npart[i] >> 32);
+		head.Nall_High_Word[i] = (int32_t) (Sim.Npart[i] >> 32);
 
 		head.Massarr[i] = Sim.Mpart[i];
 	}
@@ -194,16 +194,16 @@ void write_gadget_header(const int *npart, FILE *fp)
 	head.Redshift = 1.0/(1.0 + head.Time);
 #endif // COMOVING
 
-	head.FlagSfr = 0;
-	head.FlagFeedback = 0;
-	head.FlagCooling = 0;
-	head.NumFiles = Param.NumOutputFiles;
+	head.Flag_Sfr = 0;
+	head.Flag_Feedback = 0;
+	head.Flag_Cooling = 0;
+	head.Num_Files = Param.Num_Output_Files;
 	head.Boxsize = Sim.Boxsize[0]; // fall back 
 	head.Omega0 = Cosmo.Omega0;
-	head.OmegaLambda = Cosmo.OmegaLambda;
-	head.HubbleParam = Cosmo.HubbleParam;
-	head.FlagAge = 0;
-	head.FlagMetals = 0;
+	head.Omega_Lambda = Cosmo.Omega_Lambda;
+	head.Hubble_Param = Cosmo.Hubble_Param;
+	head.Flag_Age = 0;
+	head.Flag_Metals = 0;
 
 	write_block_header("HEAD", blocksize, fp);
 		

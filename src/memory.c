@@ -10,8 +10,8 @@ size_t get_system_memory_size();
 
 static void *Memory = NULL; 
 
-static size_t NBytesLeft = 0; // size of block at the end
-static size_t MemSize = 0;
+static size_t NBytes_Left = 0; // size of block at the end
+static size_t Mem_Size = 0;
 static int NMem_Blocks = 0; // all blocks, also empty ones
 
 static struct memory_block_infos {
@@ -39,12 +39,12 @@ void *Malloc_info(const char* file, const char* func, const int line,
 
 	if (i == NMem_Blocks) { // couldn't find a free gap, add new at the end
 	
-		Assert_Info(file, func, line, NBytesLeft >= size, 
+		Assert_Info(file, func, line, NBytes_Left >= size, 
 			"Can't allocate Memory, "
 			"%zu bytes wanted, %zu bytes left, %zu bytes total", 
-			size, NBytesLeft, MemSize);
+			size, NBytes_Left, Mem_Size);
 		
-		Mem_Block[i].Start = Memory + MemSize - NBytesLeft;
+		Mem_Block[i].Start = Memory + Mem_Size - NBytes_Left;
 	
 		Mem_Block[i].Size = size;
 
@@ -52,7 +52,7 @@ void *Malloc_info(const char* file, const char* func, const int line,
 		
 		NMem_Blocks++;
 
-		NBytesLeft -= size;
+		NBytes_Left -= size;
 	}
 
 	memset(Mem_Block[i].Start, 0, Mem_Block[i].Size);
@@ -76,13 +76,13 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 		const int delta = new_size - Mem_Block[i].Size;
 
-		Assert_Info(file, func,line, delta < NBytesLeft,
-				"Not enough memory for %zu MB. Increase MaxMemSize", 
+		Assert_Info(file, func,line, delta < NBytes_Left,
+				"Not enough memory for %zu MB. Increase MaxMem_Size", 
 				delta/1024/1024);
 
 		Mem_Block[i].Size += delta;
 
-		NBytesLeft -= delta;
+		NBytes_Left -= delta;
 
 	} else if (new_size < Mem_Block[i].Size) { // move old to new and free
 
@@ -123,7 +123,7 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 
 void Init_Memory_Management()
 {
-	MemSize = Param.MaxMemSize * 1024L * 1024L; //  in MBytes
+	Mem_Size = Param.Max_Mem_Size * 1024L * 1024L; //  in MBytes
 
 	size_t nBytesMax = get_system_memory_size();
 
@@ -139,15 +139,15 @@ void Init_Memory_Management()
 			"   Min Usable Memory per task %zu bytes = %zu MB\n"
 			"   Requested  Memory per task %zu bytes = %zu MB\n", 
 			maxNbytes, maxNbytes/1024/1024, minNbytes, 
-			minNbytes/1024/1024, MemSize, MemSize/1024/1024);
+			minNbytes/1024/1024, Mem_Size, Mem_Size/1024/1024);
 
-	int fail = posix_memalign(&Memory, MEM_ALIGNMENT, MemSize);
+	int fail = posix_memalign(&Memory, MEM_ALIGNMENT, Mem_Size);
 
-	Assert(!fail, "Couldn't allocate Memory. MaxMemSize too large ?");
+	Assert(!fail, "Couldn't allocate Memory. MaxMem_Size too large ?");
 
-	NBytesLeft = MemSize;
+	NBytes_Left = Mem_Size;
 
-	memset(Memory, 0, NBytesLeft);
+	memset(Memory, 0, NBytes_Left);
 
 	return;
 }
@@ -156,7 +156,7 @@ void Print_Memory_Usage()
 {
 	size_t nBytes_Left_Global[Sim.NTask];
 
-	MPI_Allgather(&NBytesLeft, 1, MPI_BYTE, nBytes_Left_Global, 
+	MPI_Allgather(&NBytes_Left, 1, MPI_BYTE, nBytes_Left_Global, 
 			sizeof(*nBytes_Left_Global), MPI_BYTE, MPI_COMM_WORLD);
 	
 	int max_Idx = 0;
@@ -170,7 +170,7 @@ void Print_Memory_Usage()
 		printf("\nMemory Manager: Reporting Rank %d with %zu MB free memory\n"
 			"   No  Used      Address       Size    Cumulative"
 			"                 Function  File:Line\n", 
-			Task.Rank, NBytesLeft/1024L/1024L);
+			Task.Rank, NBytes_Left/1024L/1024L);
 
 		size_t mem_Cumulative = 0;
 
@@ -218,7 +218,7 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 void Finish_Memory_Management()
 {
 	rprintf("\nMemory Manager: Freeing %d MB of Memory \n", 
-			Param.MaxMemSize);
+			Param.Max_Mem_Size);
 
 	if (Memory != NULL)
 		free(Memory);
@@ -257,7 +257,7 @@ void merge_free_memory_blocks(int i)
 	if (i == NMem_Blocks-1) { // Last, merge right into free
 
 		NMem_Blocks--;
-		NBytesLeft += Mem_Block[i].Size;
+		NBytes_Left += Mem_Block[i].Size;
 		
 		Mem_Block[i].Start = NULL;
 		Mem_Block[i].Size = 0;

@@ -2,10 +2,15 @@
 #include "timestep.h"
 
 #define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
+
 #define N_INT_BINS (sizeof(intime_t) * CHAR_BIT) // the number of bins in the 
 	// integer time line is also the number of bits in intime_t
 
+static int max_active_time_bin();
+static void set_particle_timebins(int *bin_max, int *bin_min);
+static void set_global_timestep(const int, const int);
 static int timestep2timebin(const double dt);
+static void make_active_particle_list();
 static void print_timebins();
 
 static float cosmological_timestep(const int ipart);
@@ -20,77 +25,135 @@ struct TimeData Time = { 0 };
 void Set_New_Timesteps()
 {
 	Profile("Timesteps");
-
-	int local_bin_min = N_INT_BINS-1, local_bin_max = 0;
-	
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-
-		float dt = FLT_MAX;
-
-#ifdef GRAVITY
-		float dt_cosmo = cosmological_timestep(ipart); 
+#ifndef COMOVING
+	rprintf("\nStep <%d> t = %g \n\n", Time.Step_Counter++, Time.Current);
+#else
+	rprintf("\nStep <%d> a = %g \n\n", Time.Step_Counter++, Time.Current);
 #endif
-		
-		dt = fmin(dt, dt_cosmo);
-		
-		Assert(dt >= Time.Step_Min, "Timestep too small or not finite !"
-				" Ipart=%d, dt=%g", ipart, dt);
+	
+	#pragma omp master
+	Time.Max_Active_Bin = max_active_time_bin();
 
-		int want = timestep2timebin(dt);
+	#pragma omp barrier
 
-		int allowed = Imax(Time.Max_Active_Bin, P[ipart].Time_Bin);
+	int local_bin_min = N_INT_BINS-1; 
+	int local_bin_max = 0;
 
-		P[ipart].Time_Bin = Imin(want, allowed);
-
-		local_bin_min = Imin(local_bin_min, P[ipart].Time_Bin);
-		local_bin_max = Imax(local_bin_max, P[ipart].Time_Bin);
-	}
+	set_particle_timebins(&local_bin_max, &local_bin_min);
 
 	int global_bin_min = N_INT_BINS-1;
+	int global_bin_max = 0;
 	
 	#pragma omp master
 	MPI_Allreduce(&local_bin_min, &global_bin_min, 1, MPI_INT, MPI_MIN, 
 			MPI_COMM_WORLD);
 
-	#pragma omp wait
-	
-	Time.Int_Step = Umin(1ULL << global_bin_min, 
-			Time.Int_End - Time.Int_Current);
-
-	Time.Int_Next += Time.Int_Step;
-	
-	Time.Step = Timebin2Timestep(global_bin_min);
-
-	print_timebins();
-	
-	Sig.Fullstep = false;
-
-	if (Time.Int_Current == Time.Int_Full_Step) {
-		
-		Sig.Fullstep = true;
-
-		int global_bin_max = 0;
-
-		#pragma omp master
-		MPI_Allreduce(&local_bin_max, &global_bin_max, 1, MPI_INT, MPI_MAX,
+	#pragma omp master
+	MPI_Allreduce(&local_bin_max, &global_bin_max, 1, MPI_INT, MPI_MAX,
 			MPI_COMM_WORLD);
 
-		#pragma omp wait
+	#pragma omp barrier
 
-		Time.Int_Full_Step = Umin(Time.Int_End,  
-				Time.Int_Current + (1ULL << global_bin_max) );
+	set_global_timestep(global_bin_max, global_bin_min);
 
-		rprintf("Next full step at t = %g, bin = %d \n\n", 
-				Integer2Physical_Time(Time.Int_Full_Step), global_bin_max);
-	}
+	make_active_particle_list();
+
+	#pragma omp master
+	print_timebins();
 
 	Profile("Timesteps");
 
 	return ;
 }
 
+/*
+ * The highest active time bin is the last set bit in the current
+ * integer time.
+ */
+
+static int max_active_time_bin()
+{
+	if (Int_Time.Current == Int_Time.Beg)
+		 return N_INT_BINS-1;
+
+	return COUNT_TRAILING_ZEROS(Int_Time.Current); 
+}
+
 /* 
- * The timeline is represented by a 64 bit integer, where an increment of one 
+ * Find smallest allowed timestep for local particles 
+ * and return local max & min of these bins
+ */
+
+static void set_particle_timebins(int *bin_max, int *bin_min)
+{
+	int local_bin_min = N_INT_BINS-1; 
+	int local_bin_max = 0;
+	
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+		
+		float dt = FLT_MAX;
+
+#ifdef GRAVITY
+		float dt_cosmo = cosmological_timestep(ipart); 
+		
+		dt = fmin(dt, dt_cosmo);
+#endif
+		// add yours here
+
+		dt = fmin(dt, Time.Step_Max);
+		
+		Assert(dt >= Time.Step_Min, "Timestep too small or not finite !"
+				" Ipart=%d, dt=%g", ipart, dt);
+
+		int want = timestep2timebin(dt);
+
+		int allowed = MAX(Time.Max_Active_Bin, P[ipart].Time_Bin);
+
+		P[ipart].Time_Bin = MIN(want, allowed);
+
+		local_bin_min = MIN(local_bin_min, P[ipart].Time_Bin);
+
+		local_bin_max = MAX(local_bin_max, P[ipart].Time_Bin);
+	}
+
+	*bin_min = local_bin_min;
+	*bin_max = local_bin_max;
+
+	return ;
+}
+
+/*
+ * set global timestep and handle fullstep
+ */
+
+static void set_global_timestep(const int global_bin_max, 
+		const int global_bin_min)
+{
+	Time.Step = Timebin2Timestep(global_bin_min);
+	
+	Int_Time.Step = (intime_t) 1 << global_bin_min;
+	Int_Time.Step = Umin(Int_Time.Step, Int_Time.End - Int_Time.Current);
+	
+	Int_Time.Next += Int_Time.Step;
+	
+	Sig.Fullstep = false;
+
+	if (Int_Time.Current == Int_Time.Full_Step) {
+		
+		Sig.Fullstep = true;
+
+		Int_Time.Full_Step = Umin(Int_Time.End,  
+				Int_Time.Current + ((intime_t) 1 << global_bin_max) );
+
+		rprintf("Next full step at t = %g, bin = %d \n\n", 
+				Integer2Physical_Time(Int_Time.Full_Step), global_bin_max);
+	}
+
+	return ;
+}
+
+/* 
+ * The timeline is represented by an integer, where an increment of one 
  * corresponds to the whole integration time divided by 2^(N_INT_BINS-1) 
  */
 
@@ -106,13 +169,13 @@ void Setup_Time_Integration()
 
 	Assert(Time.NSnap > 0, "Timeline does not seem to produce any outputs");
 
-	Time.Int_Beg = 0;
-	Time.Int_End = 1ULL << (N_INT_BINS - 1);
+	Int_Time.Beg = (intime_t) 0;
+	Int_Time.End = (intime_t) 1 << (N_INT_BINS - 1);
 
-	Time.Int_Current = Time.Int_Beg;
+	Int_Time.Current = Int_Time.Beg;
 
 	Time.Step_Max = (Time.End - Time.Begin);
-	Time.Step_Min =  Time.Step_Max / (1ULL << (N_INT_BINS - 1) );
+	Time.Step_Min =  Time.Step_Max / ((intime_t) 1 << (N_INT_BINS - 1) );
 
 	Time.Max_Active_Bin = N_INT_BINS - 1;
 
@@ -122,16 +185,14 @@ void Setup_Time_Integration()
 
 	NActive_Particles = Task.Npart_Total;
 
-	for (int i = 0; i < NActive_Particles; i++)
+	for (int i = 0; i < NActive_Particles; i++) 
 		Active_Particle_List[i] = i;
-	
+
 	return ;
 }
 
-void Make_Active_Particle_List()
+static void make_active_particle_list()
 {
-	Time.Max_Active_Bin = COUNT_TRAILING_ZEROS(Time.Int_Current); 
-	
 	int i = 0;
 
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
@@ -142,26 +203,30 @@ void Make_Active_Particle_List()
 
 	NActive_Particles = i;
 
+	Assert(NActive_Particles > 0, "No Active Particles, instead %d", i);	
+
 	return ;
 }
 
-
-
-/* Give the physical timestep from timebin
- * Use Time.Step for the current system step */
+/* 
+ * Give the physical timestep from timebin and vice versa
+ * Use Time.Step for the current system step 
+ */
 
 double Timebin2Timestep(const int TimeBin)
 {
-	return Time.Step_Min * (1ULL << TimeBin);
+	return Time.Step_Min * ((intime_t) 1 << TimeBin);
 }
 
-double Integer2PhysicalTime(const intime_t Integer_Time)
+double Integer2Physical_Time(const intime_t Integer_Time)
 {
 	return Time.Begin + Integer_Time * Time.Step_Min;
 }
 
-/* Convert a timestep to a power 2 based timebin *
- * via ceil(log2(StepMax/dt)) */
+/* 
+ * Convert a timestep to a power 2 based timebin 
+ * via ceil(log2(StepMax/dt)) 
+ */
 
 static int timestep2timebin(const double dt)
 {
@@ -194,16 +259,16 @@ static void print_timebins()
 		if (npart_global[i] != 0 && imax < 0)
 			imax = i;	
 
-	rprintf("Timesteps at time %g, NActive %d \n"
+	rprintf("Systemstep %g, NActive %d \n"
 			"   Bin       nGas        nDM A  dt\n", 
-			Time.Current, NActive_Particles);
+			Time.Step, NActive_Particles );
 
 	for (int i = imax; i > Time.Max_Active_Bin; i--)
-		rprintf("   %2d    %7d     %7d %s  %g \n", 
+		rprintf("   %2d    %7d     %7d %s  %0g \n", 
 			i, 0, npart_global[i], " ", Timebin2Timestep(i));
 
 	for (int i = Time.Max_Active_Bin; i >= imin; i--)
-		rprintf("   %2d    %7d     %7d %s  %g \n", 
+		rprintf("   %2d    %7d     %7d %s  %0g \n", 
 			i, 0, npart_global[i], "X", Timebin2Timestep(i));
 
 	rprintf("\n");
@@ -220,9 +285,9 @@ static void print_timebins()
 
 static float cosmological_timestep(const int ipart)
 {
-	const float acc = len3(P[ipart].Acc);
+	const float acc = ALENGTH3(P[ipart].Acc);
 	
-	float dt = TIME_INT_ACCURACY * sqrt( 2*GRAV_SOFTENING / acc); 
+	float dt = TIME_INT_ACCURACY * sqrt(2*GRAV_SOFTENING / acc); 
 		
 	return dt;
 }

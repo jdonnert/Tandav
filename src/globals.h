@@ -4,7 +4,7 @@
 #include "proto.h"
 
 typedef float Float;
-typedef uint32_t IDtype;
+typedef uint32_t ID_t;
 
 /* CODE PARAMETERS */
 
@@ -43,6 +43,14 @@ extern struct Global_Simulation_Properties {
 	double Boxsize[3];			// Now in 3D !
 } Sim;
 
+extern struct Simulation_Signals { // communicate an event across the code
+	bool Fullstep;				// Current step is fullstep
+	bool Write_Snapshot;		// write a snapshot this iteration
+	bool Write_Restart_File;	// write a restart file upon exit
+	bool Endrun;				// stops the runs regularly
+	bool Synchronize_Drift;		// drift to next point on integer timeline
+} Sig;
+
 extern struct Parameters_From_File {
 	char File[CHARBUFSIZE]; 	// parameter file name
 	char Input_File[CHARBUFSIZE];
@@ -51,17 +59,9 @@ extern struct Parameters_From_File {
 	int Num_IO_Tasks;			// written in parallel
 	int Max_Mem_Size;			// Memory Ceiling in 1024^2 Bytes
 	int Num_Output_Files;		// Number of files per snapshot
-	double Runtime_Limit;		
 	int Comm_Buf_Size;			// in 1024 Bytes
+	double Runtime_Limit;		// in sec
 } Param;
-
-extern struct Simulation_Signals { // communicate an event across the code
-	bool Fullstep;				// Current step is fullstep
-	bool Write_Snapshot;		// write a snapshot this iteration
-	bool Write_Restart_File;	// write a restart file upon exit
-	bool Endrun;				// stops the runs regularly
-	bool Synchronize_Drift;		// drift to next sync point on integer timeline
-} Sig;
 
 extern struct Particle_Data {
 	int Type;
@@ -72,8 +72,7 @@ extern struct Particle_Data {
 	Float Acc[3];
 	Float Potential;
 	Float Mass;
-	IDtype ID;
-	/* add below */
+	ID_t ID; // add below 
 } *P;
 
 #endif // GLOBALS_H

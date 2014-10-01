@@ -14,6 +14,7 @@ static void read_file(char *, const bool, const int, const int, MPI_Comm);
 static void empty_comm_buffer(char *, const int, const int, const int *, 
 		const size_t *);
 
+static void allocate_particle_structures();
 static void generate_masses_from_header();
 
 void Read_Snapshot(char *input_name)
@@ -54,6 +55,8 @@ void Read_Snapshot(char *input_name)
 	MPI_Bcast(&swap_Endian, sizeof(swap_Endian), MPI_BYTE, 0,MPI_COMM_WORLD);
 
 	MPI_Bcast(&Sim, sizeof(Sim), MPI_BYTE, 0, MPI_COMM_WORLD);
+
+	allocate_particle_structures();
 	
 	int rest_Files = nFiles;
 
@@ -263,20 +266,20 @@ static void read_file (char *filename, const bool swap_Endian,
  * but here we should be limited by the I/O of the drive anyway 
  * */
 
-static void empty_comm_buffer (char *DataBuf, const int iBlock, 
+static void empty_comm_buffer (char *DataBuf, const int i, 
 		const int nPartTotal, const int *nPart, const size_t *offsets)
 {
-	const size_t nBytes = Block[iBlock].Nbytes;
 	const size_t sizeof_P = sizeof(*P);
+	const size_t nBytes = Block[i].Nbytes;
 
 	char * restrict src = DataBuf; 
 	char * restrict dest = NULL;
 
-	switch (Block[iBlock].Target) { // ptr fun for the whole family
+	switch (Block[i].Target) { // ptr fun for the whole family
 
 		case VAR_P:
 
-			dest = (char *)P + Block[iBlock].Offset;
+			dest = (char *)P + offsets[0]*sizeof_P + Block[i].Offset;
 			
 			for (int i = 0; i < nPartTotal; i++) {  
 
@@ -338,8 +341,6 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 				* PARTALLOCFACTOR);
 	}
 
-	Task.Npart_Total_Max = ceil(Sim.Npart_Total/Sim.NRank * PARTALLOCFACTOR);
-
 #ifdef PERIODIC
 	Assert(Sim.Boxsize >= 0, "Boxsize in header not > 0, but %g", Sim.Boxsize);
 #endif	
@@ -347,20 +348,40 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 	size_t sum = 0;
 
 	for (int i=0; i<NPARTYPE; i++)
-		sum += Sim.Mpart[i];
+		sum += Sim.Npart[i];
 
 	printf("Total Particle Numbers (Masses) in Snapshot Header:	\n"
-		"Gas   %9llu (%g), DM   %9llu (%g), Disk %9llu (%g)\n"
-		"Bulge %9llu (%g), Star %9llu (%g), Bndy %9llu (%g)\n",
+		"   Gas   %9llu (%g), DM   %9llu (%g), Disk %9llu (%g)\n"
+		"   Bulge %9llu (%g), Star %9llu (%g), Bndy %9llu (%g)\n"
+		"   Sum %10zu \n",
 		(long long unsigned int) Sim.Npart[0], Sim.Mpart[0], 
 		(long long unsigned int) Sim.Npart[1], Sim.Mpart[1], 
 		(long long unsigned int) Sim.Npart[2], Sim.Mpart[2], 
 		(long long unsigned int) Sim.Npart[3], Sim.Mpart[3], 
 		(long long unsigned int) Sim.Npart[4], Sim.Mpart[4], 
-		(long long unsigned int) Sim.Npart[5], Sim.Mpart[5]);
+		(long long unsigned int) Sim.Npart[5], Sim.Mpart[5], sum);
 	
 	Warn(head.Num_Files != nFiles, "NumFiles in Header (%d) doesnt match "
 			"number of files found (%d) \n\n", head.Num_Files, nFiles);
+
+	return ;
+}
+
+static void allocate_particle_structures()
+{
+	const double npart_per_task = (double) Sim.Npart_Total / (double) Sim.NRank;
+
+	Task.Npart_Total_Max = ceil(npart_per_task * PARTALLOCFACTOR);
+
+	for (int i = 0; i < NPARTYPE; i++)
+		Task.Npart_Max[i] = ceil((double)Sim.Npart[i] / (double)Sim.NRank);
+
+	rprintf("\nReserving space for %zu particles per task, factor %g\n", 
+			Task.Npart_Total_Max, PARTALLOCFACTOR);
+
+	P = Malloc(Task.Npart_Total_Max * sizeof(*P)); // add below
+
+	//G = Malloc(Task.Npart_Max[0] * sizeof(*G));
 
 	return ;
 }

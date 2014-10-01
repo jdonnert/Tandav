@@ -70,7 +70,7 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 	}
 
 	/* partition number and size */
-	const int desNumPar = max(1, 2 * (min(nThreads/2, nData/INSERT_THRES/2)));
+	const int desNumPar = MAX(1, 2 * MIN(nThreads/2, nData/INSERT_THRES/2));
 	
 	/* initial stack node is just the whole array */
 	stack_node_char shared_stack[desNumPar];
@@ -200,7 +200,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 	for (size_t i = 0; i < nData; i++ ) 
 		perm[i] = i; 
 
-	const int desNumPar = min(nThreads, floor(nData/INSERT_THRES));
+	const int desNumPar = MIN(nThreads, floor(nData/INSERT_THRES));
 
 	stack_node_size_t shared_stack[desNumPar]; 
 
@@ -396,7 +396,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 	size_t *trail = beg;
 	size_t *run = NULL;
 
-	const size_t *runMax = min(end, beg + INSERT_THRES);
+	const size_t *runMax = MIN(end, beg + INSERT_THRES);
 
 	for (run = beg+1; run <= runMax; run++) // smallest element first
 		if (COMPARE_DATA(run, trail, datasize) < 0)

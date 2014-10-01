@@ -1,10 +1,12 @@
 #include "globals.h"
 #include "timestep.h"
 
-/* This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 
+/* 
+ * This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 
  * As a snapshot time may not fall onto an integertime, we have to 
  * drift to the snapshot time, write the snapshot and then drift the 
- * remaining time to the next integertime */
+ * remaining time to the next integertime 
+ */
 
 void Drift_To_Sync_Point() 
 {
@@ -19,32 +21,38 @@ void Drift_To_Sync_Point()
 	double dt = Time.Step;
 
 	if (Sig.Synchronize_Drift) { // drift the rest to next integer time 
-	
-		dt = Integer2Physical_Time(Time.Int_Next) - Time.Current;
+		
+		dt = Integer2Physical_Time(Int_Time.Next) - Time.Current;
 
 		Sig.Synchronize_Drift = false;
 	}
 
 	#pragma omp parallel for
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+	for (int i = 0; i < NActive_Particles; i++) {
+		
+		int ipart = Active_Particle_List[i];
+
+		double dt = Timebin2Timestep(P[ipart].Time_Bin);
 
 	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0] * driftfac;
 		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1] * driftfac;
 		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2] * driftfac;
 	}
 	
-	Time.Int_Current += Time.Int_Step;
+	Int_Time.Current += Int_Time.Step;
 
-	Time.Current = Integer2Physical_Time(Time.Int_Current);
+	Time.Current = Integer2Physical_Time(Int_Time.Current);
 
 	rprintf("done \n");
 
 	return;
 }
 
-/* drift the system forward only to the snaptime 
+/* 
+ * drift the system forward only to the snaptime 
  * the system is then not synchronized with the 
- * integer timeline */
+ * integer timeline 
+ */
 
 void Drift_To_Snaptime()
 {
@@ -56,7 +64,11 @@ void Drift_To_Snaptime()
 	const float drift_fac = 1;
 #endif
 
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+	#pragma omp parallel for
+	//for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+	for (int i = 0; i < NActive_Particles; i++) {
+		
+		int ipart = Active_Particle_List[i];
 
 	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0] * drift_fac;
 		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1] * drift_fac;

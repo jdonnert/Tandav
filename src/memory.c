@@ -26,7 +26,7 @@ static struct memory_block_infos {
 void *Malloc_info(const char* file, const char* func, const int line, 
 		size_t size)
 {
-	size = max(MEM_ALIGNMENT, size); // don't break alignment
+	size = MAX(MEM_ALIGNMENT, size); // don't break alignment
 
 	if ( (size % MEM_ALIGNMENT) > 0) // make sure we stay aligned
 		size = (size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
@@ -208,8 +208,8 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 
 		*total += size;
 		
-		*smallest = min(*smallest, size);
-		*largest = max(*largest, size);
+		*smallest = MIN(*smallest, size);
+		*largest = MAX(*largest, size);
 	}
 
 	return ;

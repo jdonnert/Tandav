@@ -21,7 +21,7 @@ void Write_Snapshot()
 	const int nIOTasks = Param.Num_IO_Tasks;
 
 	int groupSize = Sim.NTask/nFiles; // big last file possible 
-	int groupMaster = min(nFiles-1,floor(Task.Rank/groupSize))*groupSize;
+	int groupMaster = MIN(nFiles-1,floor(Task.Rank/groupSize))*groupSize;
 
 	int groupRank = Task.Rank - groupMaster;
 
@@ -283,17 +283,17 @@ static void set_filename(char *filename)
 		
 	case 4:
 		sprintf(filename, "%s_%04d", 
-				Param.OutputFileBase, Time.SnapCounter);
+				Param.Output_File_Base, Time.Snap_Counter);
 		break;
 
 	case 5:
 		sprintf(filename, "%s_%05d", 
-			Param.OutputFileBase, Time.SnapCounter);
+			Param.Output_File_Base, Time.Snap_Counter);
 		break;
 		
 	default:
 		sprintf(filename, "%s_%03d", 
-				Param.OutputFileBase, Time.SnapCounter);
+				Param.Output_File_Base, Time.Snap_Counter);
 		break;
 	}
 

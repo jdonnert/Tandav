@@ -88,10 +88,10 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 		VAR_S, 
 		VAR_BH, 
 		VAR_BND
-	} Target;		// identify global var
+	} Target;			// identify global var
 	size_t Offset;		// offset in underlying struct
-	size_t Nbytes; 	// sizeof target field
-	int Part_Bit_Mask;// == 1 at bit i+1, if required for type i
+	size_t Nbytes; 		// sizeof target field
+	int Part_Bit_Mask;	// == 1 at bit i+1, if required for type i
 };
 
 #define P_OFFSET(member) offsetof(struct Particle_Data, member)
@@ -103,8 +103,8 @@ static const struct io_block_def Block[] = {
   	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_FIELD_SIZEOF(Vel),0xFF},
   	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_FIELD_SIZEOF(ID), 0xFF},
   	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_FIELD_SIZEOF(Mass), 0x00}
-#ifdef OUTPUT_FORCE
-  	,{"FRCE", "Forces", VAR_P, P_OFFSET(Force), P_FIELD_SIZEOF(Force), 0xFF}
+#ifdef OUTPUT_ACCELERATION
+  	,{"FRCE", "Forces", VAR_P, P_OFFSET(Acc), P_FIELD_SIZEOF(Acc), 0xFF}
 #endif
 #ifdef OUPUT_GRAV_POTENTIAL
   	,{"POT ", "Grav Potential", VAR_P, P_OFFSET(Potential), 
@@ -114,7 +114,7 @@ static const struct io_block_def Block[] = {
   	,{"PKEY","Peanokey",VAR_P,P_OFFSET(Peanokey),P_FIELD_SIZEOF(peanoKey),0xFF}
 #endif
 
-	/* Add yours below */
+	// Add yours below 
 };
 
 #undef P_OFFSET

@@ -4,7 +4,7 @@ pro make_ICs
 
 	msol = 1.989d33
 
-	seed = 14041981
+	seed = 14041981L
 
 	npart = 1e4
 
@@ -65,8 +65,8 @@ pro make_ICs
 		phi =  2 * !pi * randomu(seed)
 
 		vel[0,i] = v * sin(theta) * cos(phi)
-		vel[0,i] = v * sin(theta) * sin(phi)
-		vel[0,i] = v * cos(theta)
+		vel[1,i] = v * sin(theta) * sin(phi)
+		vel[2,i] = v * cos(theta)
 	end
 	
 	; output

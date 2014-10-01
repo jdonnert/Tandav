@@ -12,6 +12,8 @@ struct Local_Task_Properties Task = { 0 };
 
 struct Particle_Data *P = NULL;
 
+static void init_particles();
+
 void Read_and_Init() 
 {
 	Read_Parameter_File(Param.File);
@@ -19,30 +21,40 @@ void Read_and_Init()
  	Init_Profiler();
 
 	Init_Memory_Management();
-	
-	P = Malloc(Task.Npart_Total_Max*sizeof(*P));
+
+	init_particles();
 
 	Init_Domain_Decomposition();
 
 	switch (Param.Start_Flag) {
 
-		case 0: 
+	case 0: 
 
-			Read_Snapshot(Param.Input_File);
-			
-			break;
+		Read_Snapshot(Param.Input_File);
+		
+		break;
 
-		case 1: 
+	case 1: 
 			
-			Read_Restart_File();
+		Read_Restart_File();
 			
-			break;
+		break;
 
-		default: 
+	default: 
 			
-			Assert(0, "Start Flag not handled");
+		Assert(0, "Start Flag not handled");
+
+		break;
 	}
 	
 	return ;
 }
 
+static void init_particles()
+{
+	size_t nBytes = Task.Npart_Total_Max*sizeof(*P);
+
+	P = Malloc(nBytes);
+
+	return ;
+}

@@ -1,6 +1,8 @@
 #include "globals.h"
 
-/* branch free Min/Max functions for signed/unsigned 64 bit integers */
+/* 
+ * branch free Min/Max functions for signed/unsigned 64 bit integers 
+ */
 
 int64_t Imin(const int64_t x, const int64_t y)
 {
@@ -62,7 +64,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		for (int i=0; i <= type; i++) 
 			offset[type] += new_npart[i];
 
-		offset[type] -= max(0, dNpart[type]); // correct for dNpart>0
+		offset[type] -= MAX(0, dNpart[type]); // correct for dNpart>0
 	}
  
 	int nMove = Task.Npart_Total; // move particles left
@@ -79,8 +81,6 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 
 		memmove(&P[dest], &P[src], nMove*sizeof(*P));
 	}
-
-	//size_t nBytes = sizeof(*P) * new_npartTotal * PARTALLOCFACTOR;
 
 	nMove = Task.Npart_Total; // move particles right
 
@@ -99,7 +99,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 
 	Task.Npart_Total = new_npart_total;
 	
-	for (int type = 0; type < NPARTYPE; type++) // book keeping
+	for (int type = 0; type < NPARTYPE; type++) // book-keeping
 		Task.Npart[type] = new_npart[type];
 
 	if (offset_out != NULL) // return ptrs to freed space
@@ -123,7 +123,7 @@ void Assert_Info(const char *func, const char *file, int line,
 
 	/* we fucked up, tell them */
 	fprintf(stderr, "\nERROR Task %d, MPI Rank %d Thread %d: \n"
-			"   In file %s, function %s(), line %d :\n\n	", 
+			"      In file %s, function %s(), line %d :\n\n	", 
 			Task.Rank, Task.MPI_Rank, Task.Thread_ID, file, func, line);
 
 	vfprintf(stderr, errmsg, varArgList); 
@@ -153,7 +153,7 @@ void Warn_Info(const char *func, const char *file, int line,
 
 	/* Houston, we got a problem here */
     fprintf(stderr, "\nWARNING Task %d, MPI Rank %d Thread %d: "
-			"In file %s, function %s(), line %d :\n\n	", 
+			"        In file %s, function %s(), line %d :\n\n	", 
 			Task.Rank, Task.MPI_Rank, Task.Thread_ID, file, func, line);
 
 	vfprintf(stderr, errmsg, varArgList); 

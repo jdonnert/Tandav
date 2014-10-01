@@ -1,7 +1,6 @@
-
 #### CODE PARAMETERS ####
 
-MEMORY_MANAGER  
+#PERIODIC			// periodic boundary conditions
 
 GRAVITY				// gravitational interaction
 GRAV_SOFTENING 10 	// gravitational softening length 
@@ -9,17 +8,20 @@ GRAV_SOFTENING 10 	// gravitational softening length
 #COMOVING			// time integration in comoving coordinates
 TIME_INT_ACCURACY 0.2	// std 0.2, time step parameter
 
-#PERIODIC			// periodic boundary conditions
-
-#### CODE UNITS ####
-
-LENGTH2CGS 3.0856802e+21
-MASS2CGS 1.9890000e+43
-VELOCITY2CGS 1.0e+05
-
 #### OUTPUT OPTIONS ####
 
 #OUTPUT_FORCE		// add total force on particle to snapshot: "FRCE"
 #OUTPUT_PEANO_KEY   // add peano key of particle "PKEY"
 
 #### DOMAIN DECOMPOSITION ####
+
+#### CODE UNITS ####
+
+LENGTH2CGS 3.0856802e+21	// 1 kpc
+MASS2CGS 1.9890000e+43		// 10^10 Msol
+VELOCITY2CGS 1.0e+05		// km/s
+
+#### ALWAYS RECOMMENDED ####
+
+MEMORY_MANAGER  
+

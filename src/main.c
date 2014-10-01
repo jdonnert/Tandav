@@ -9,11 +9,13 @@
 #include "io/io.h"
 
 static void preamble(int argc, char *argv[]);
-static bool time_For_Snapshot();
-static bool time_Is_Up();
+static bool time_for_snapshot();
+static bool time_is_up();
 
-/* This exposes the time integration of the code. Everything else is found
- * in Update() */
+/* 
+ * This exposes the time integration of the code. Everything else is found
+ * in Update(). 
+ */
 
 int main(int argc, char *argv[])
 {
@@ -26,47 +28,42 @@ int main(int argc, char *argv[])
 	Update(BEFORE_MAIN_LOOP);
 		
 	for (;;) { // run, Forest, run !
-		
+
 		Set_New_Timesteps();
 
 		Kick_Halfstep();
 
-		if (time_For_Snapshot()) {
-		
-			Drift_To_Snaptime();
-			
+		if (time_for_snapshot()) 
 			Write_Snapshot();
-		}
  		
 		Drift_To_Sync_Point();
-
-		Make_Active_Particle_List();
-
+		
 		Update(BEFORE_FORCES);
 
-		Compute_Forces();
+		Compute_Acceleration();
 
 		Kick_Halfstep();
 	
-		if (time_Is_Up())
+		if (time_is_up())
 			break;
+	}
 
 	if (Sig.Write_Restart_File) 
 		Write_Restart_File();
-
-	}
 
 	Finish();
 
 	return EXIT_SUCCESS;
 }
 
-/* Here we do OpenMP and MPI init: 
+/* 
+ * Here we do OpenMP and MPI init: 
  * Because of Thread Parallelism, every thread has a rank 
  * Task.Rank which is a combination of MPI rank and ThreadID. On 
  * every MPI rank there is a main thread on which
- * Task.IsThreadMain is true. Every thread is treated as its own
- * MPI task, including communication, still loops allow work-sharing */
+ * Task.Is_Thread_Main is true. Every thread is treated as its own
+ * MPI task, including communication, still loops allow work-sharing
+ */
 
 static void preamble(int argc, char *argv[])
 {
@@ -131,7 +128,7 @@ static void preamble(int argc, char *argv[])
 	return ;
 }	
 
-static bool time_Is_Up()
+static bool time_is_up()
 {
 	if (Sig.Endrun) {
 	
@@ -140,7 +137,7 @@ static bool time_Is_Up()
 		return true;
 	}
 	
-	if (Time.Int_Current == Time.Int_End) {
+	if (Int_Time.Current == Int_Time.End) {
 		
 		rprintf("EndTime reached: %g \n", Time.End);
 		
@@ -149,7 +146,7 @@ static bool time_Is_Up()
 
 	if (Runtime() >= Param.Runtime_Limit) {
 
-		rprintf("Runtime limit reached: %g\n", Param.Runtime_Limit);
+		rprintf("Runtime limit reached: %g min\n", Param.Runtime_Limit/60);
 
 		Sig.Write_Restart_File = true;
 
@@ -159,7 +156,7 @@ static bool time_Is_Up()
 	return false;
 }
 
-static bool time_For_Snapshot()
+static bool time_for_snapshot()
 {
 	if (Sig.Write_Snapshot) {
 
@@ -172,9 +169,13 @@ static bool time_For_Snapshot()
 
 	if (Time.Current + Time.Step >= Time.Next_Snap) { 
 	
+		Drift_To_Snaptime();
+
 		rprintf("Snapshot No. %d at t=%g, Next at t=%g \n", 
 				Time.Snap_Counter+1, Time.Next_Snap, 
 				Time.Next_Snap + Time.Bet_Snap);
+
+		Time.Next_Snap += Time.Bet_Snap;
 
 		return true;
 	}

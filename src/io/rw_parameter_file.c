@@ -10,7 +10,7 @@ void Read_Parameter_File(const char *filename)
 		 buf3[CHARBUFSIZE];
 	bool tagDone[9999] = { false };
 	
-	if (Task.IsMaster) {
+	if (Task.Is_Master) {
 
 		FILE *fd = fopen(filename, "r");
 
@@ -135,9 +135,9 @@ void sanity_check_input_parameters()
 		"Num_IO_Tasks (=%d) can't be smaller than Num_Output_Files (=%d)", 
 		Param.Num_IO_Tasks,  Param.Num_Output_Files);
 	
-	Param.Num_IO_Tasks = min(Param.Num_IO_Tasks, Sim.NTask);
+	Param.Num_IO_Tasks = MIN(Param.Num_IO_Tasks, Sim.NTask);
 	
-	Param.Num_Output_Files = min(Param.Num_Output_Files, Sim.NTask);
+	Param.Num_Output_Files = MIN(Param.Num_Output_Files, Sim.NTask);
 
 	return ;
 }

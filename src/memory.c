@@ -1,7 +1,7 @@
 /* Memory management */
 #include "globals.h"
 
-#define MAXMEMOBJECTS 1024
+#define MAXMEMOBJECTS 1024L
 
 void merge_free_memory_blocks(int);
 int find_memory_block_from_ptr(void *);
@@ -167,10 +167,11 @@ void Print_Memory_Usage()
 
 	if (Task.Rank == max_Idx) {
 
-		printf("\nMemory Manager: Reporting Rank %d with %zu MB free memory\n"
-			"   No  Used      Address       Size    Cumulative"
-			"                 Function  File:Line\n", 
-			Task.Rank, NBytes_Left/1024L/1024L);
+		printf("\nMemory Manager: Reporting Blocks of Rank %d "
+				"with %g MB free memory\n"
+			"   No  Used      Address     Size (MB)   Cumulative"
+			"                             Function  File:Line\n", 
+			Task.Rank, (double) NBytes_Left/1024/1024);
 
 		size_t mem_Cumulative = 0;
 
@@ -178,11 +179,11 @@ void Print_Memory_Usage()
 			
 			mem_Cumulative += Mem_Block[i].Size;
 
-			printf("    %d   %d    %11p    %7zu	 %8zu"
-				"  %21s()  %s:%d\n",
+			printf("    %d   %d    %11p  %6f    %6f"
+				"  %35s()  %s:%d\n",
 				i,Mem_Block[i].In_Use, Mem_Block[i].Start, 
-				Mem_Block[i].Size/1024/1024, 
-				mem_Cumulative/1024/1024, 
+				(double) Mem_Block[i].Size/1024/1024, 
+				(double) mem_Cumulative/1024/1024, 
 				Mem_Block[i].File, Mem_Block[i].Func, 
 				Mem_Block[i].Line);
 		}

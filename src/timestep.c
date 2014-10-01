@@ -264,11 +264,11 @@ static void print_timebins()
 			Time.Step, NActive_Particles );
 
 	for (int i = imax; i > Time.Max_Active_Bin; i--)
-		rprintf("   %2d    %7d     %7d %s  %0g \n", 
+		rprintf("   %2d    %7d     %7d %s  %16.12f \n", 
 			i, 0, npart_global[i], " ", Timebin2Timestep(i));
 
 	for (int i = Time.Max_Active_Bin; i >= imin; i--)
-		rprintf("   %2d    %7d     %7d %s  %0g \n", 
+		rprintf("   %2d    %7d     %7d %s  %16.12f \n", 
 			i, 0, npart_global[i], "X", Timebin2Timestep(i));
 
 	rprintf("\n");

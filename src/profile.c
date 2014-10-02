@@ -119,7 +119,7 @@ void Profile_Report(FILE *stream)
 
 	double scale = 1; // sec
 
-	if (runtime > 60) { // switch to minutes ?
+	if (runtime > 1) { // switch to minutes ?
 
 		scale *= 60; // min
 
@@ -131,12 +131,12 @@ void Profile_Report(FILE *stream)
 
 		fprintf(stream, "\nProfiler: All sections, total runtime of %g sec\n"
 		"                Name       Total  Tot Imbal           Max      "
-		"Mean      Min      Imbal\n", runtime);
+		"Mean      Min      Imbal\n", runtime*60);
 	}
 
 	for (int i = 0; i < NProfObjs; i++ )
 		fprintf(stream, 
-				"%20s    %8.1f   %8.1f      %8.1f  %8.1f  %8.1f   %8.1f\n",
+				"%20s    %8.3f   %8.3f      %8.3f  %8.3f  %8.3f   %8.3f\n",
 				Prof[i].Name, Prof[i].Total/scale, Prof[i].Imbalance/scale, 
 				Prof[i].Max/scale, Prof[i].Min/scale, Prof[i].Mean/scale, 
 				(Prof[i].Max-Prof[i].Min)/scale);

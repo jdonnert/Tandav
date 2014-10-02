@@ -29,7 +29,7 @@ endif
 
 ifeq ($(SYSTYPE),mach64.ira.inaf.it)
 CC       =  mpicc
-OPTIMIZE =  -g -O3  -march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp  \
+OPTIMIZE =  -g -O2  -march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp  \
 			-minline-all-stringops -fprefetch-loop-arrays --param prefetch-latency=300 -funroll-all-loops 
 MPI_LIBS = -L/homes/donnert/Libs/lib
 MPI_INCL = -I/homes/donnert/Libs/include

@@ -1,5 +1,6 @@
 
 ;for i =0,25 do begin & density_profile, snap=i & wait, 0.2 & end
+;for i =0,25 do begin & potential_profile, snap=i & wait, 0.2 & end
 
 pro density_profile, snap=snap
 
@@ -87,6 +88,66 @@ pro potential_profile, snap=snap
 	gpot = tandav.readsnap(fname, "GPOT")
 
 	oplot, r, -gpot, psym=3, color=7839259
+
+	return 
+end
+
+pro conservation
+
+	common globals, tandav, cosmo
+
+	nsnap = 300
+
+	R = make_array(nsnap, val=0D)
+	E = make_array(nsnap, val=0D)
+	P = make_array(nsnap, val=0D)
+	AngP = make_array(3, nsnap, val=0D)
+	time = make_array(nsnap, val=0D)
+
+	for snap = 0, nsnap-1 do begin
+	
+		fname = 'gadget/snap_'+strn(snap, len=3, padc='0')
+
+		pos = tandav.readsnap(fname, 'POS', head=head)
+		vel = tandav.readsnap(fname, 'VEL', head=head)
+		pot = tandav.readsnap(fname, 'POT')
+
+		v = length(vel)
+
+		mpart = head.massarr[1]
+
+		R[snap] = sqrt(total(pos[0,*])^2 + total(pos[1,*])^2 + total(pos[2,*])^2)
+
+		E[snap] = total(0.5 * mpart * v^2 + pot)
+		
+		P[snap] = mpart * total(v)
+
+		AngP[0, snap] = mpart * total(pos[1,*]*vel[2,*] - pos[2,*]*vel[1,*])
+		AngP[1, snap] = mpart * total(pos[2,*]*vel[0,*] - pos[0,*]*vel[2,*])
+		AngP[2, snap] = mpart * total(pos[0,*]*vel[1,*] - pos[1,*]*vel[0,*])
+
+		time[snap] = head.time
+		
+	end
+
+	imax = fix(nsnap/5)
+
+	plot, time, (R-R[0])/R[0], yrange=[-0.05, 0.05]
+		
+	oplot, time, (E-mean(E[0:imax]))/mean(E[0:imax]), col=11759733
+
+	oplot, time, (P-P[0])/P[0], color=7839259
+
+	oplot, time, (AngP[0,*]-AngP[0,0])/AngP[0,0], linestyle=0, color=155609
+	oplot, time, (AngP[1,*]-AngP[1,0])/AngP[1,0], linestyle=1, color=155609
+	oplot, time, (AngP[2,*]-AngP[2,0])/AngP[2,0], linestyle=2, color=155609
+
+	xyouts, 1, -0.05, "R"
+	xyouts, 2, -0.05, "E", col=11759733
+	xyouts, 3, -0.05, "P", col=7839259
+	xyouts, 4, -0.05, "AngP", col=155609
+
+	stop
 
 	return 
 end

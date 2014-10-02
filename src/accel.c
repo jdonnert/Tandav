@@ -1,5 +1,5 @@
 /* 
- * Collect all forces on particle ipart 
+ * Collect all accelerations on particle ipart 
  */
 
 #include "globals.h"
@@ -21,19 +21,26 @@ void Compute_Acceleration()
 		int ipart = Active_Particle_List[i];
 	
 		Float accel[3] = { 0 };
-		Float potential = 0;
 
 #ifdef GRAVITY
-		accel_gravity_simple(ipart, accel, &potential);
+		Float grav_accel[3] = { 0 };
+		Float grav_potential = 0;
+
+		accel_gravity_simple(ipart, grav_accel, &grav_potential);
+
+		accel[0] += grav_accel[0];
+		accel[1] += grav_accel[1];
+		accel[2] += grav_accel[2];
+
+#ifdef GRAVITY_POTENTIAL
+		P[ipart].Grav_Pot = grav_potential;
+#endif // GRAVITY_POTENTIAL
+
 #endif // GRAVITY
 	
 		P[ipart].Acc[0] = accel[0];
 		P[ipart].Acc[1] = accel[1];
 		P[ipart].Acc[2] = accel[2]; 
-
-#ifdef GRAVITY_POTENTIAL
-		P[ipart].Grav_Pot = potential;
-#endif
 	}
 	
 	rprintf("done\n");

@@ -19,9 +19,9 @@ Boxsize1		0
 Boxsize2		0 
 
 TimeBegin		0 
-TimeEnd		0.5
+TimeEnd			15
 TimeOfFirstSnaphot		0 
-TimeBetSnapshots		0.01
+TimeBetSnapshots		0.05
 
 %% Cosmology %%
 Omega0			1 

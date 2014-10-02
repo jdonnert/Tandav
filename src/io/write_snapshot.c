@@ -95,7 +95,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 		write_gadget_header(nPartFile, fp);
 	} 
 	
-	size_t dataBufSize = largest_block_member_nbytes(); 
+	size_t dataBufSize = Largest_Block_Member_Nbytes(); 
 	
 	if (groupRank == groupMaster)
 		dataBufSize *= 2*nPartLargest; // master stores comm&write buf 
@@ -108,7 +108,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 	
 		fill_data_buffer(i, dataBuf);
 
-		size_t nBytesSend = Block[i].Nbytes * npart_in_block(i, Task.Npart);
+		size_t nBytesSend = Block[i].Nbytes * Npart_In_Block(i, Task.Npart);
 		
 		size_t xferSizes[groupSize]; // get size of data
 
@@ -118,16 +118,20 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 	
 		if (groupRank == groupMaster) { // master does all the work
 
-			uint32_t blocksize = npart_in_block(i, nPartFile)
+			uint32_t blocksize = Npart_In_Block(i, nPartFile)
 				* Block[i].Nbytes; 
+
+
+			printf("%d %d %d \n", blocksize, Npart_In_Block(i, nPartFile), Block[i].Nbytes);
 
 			printf("%18s %8d MB\n", Block[i].Name, blocksize/1024/1024);
 		
 			write_block_header(Block[i].Label, blocksize, fp); 
-			
+
 			WRITE_FORTRAN_RECORD(blocksize)
 
-			MPI_Request request; MPI_Status status;
+			MPI_Request request; 
+			MPI_Status status;
 			
 			int swap = 0; // to alternate between mem areas
 			size_t halfBufSize = 0.5 * dataBufSize;
@@ -243,7 +247,19 @@ static void fill_data_buffer(const int i, char *dataBuf)
 			
 			break;
 
-		case VAR_G:
+		case VAR_GAS:
+			break;
+
+		case VAR_DM:
+			break;
+
+		case VAR_STAR:
+			break;
+
+		case VAR_DISK:
+			break;
+
+		case VAR_BND:
 			break;
 
 		default:

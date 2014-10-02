@@ -3,15 +3,17 @@
 #PERIODIC			// periodic boundary conditions
 
 GRAVITY				// gravitational interaction
-GRAV_SOFTENING 10 	// gravitational softening length 
+GRAVITY_POTENTIAL	// compute gravitational potential
+GRAV_SOFTENING 15 	// gravitational softening length 
 
 #COMOVING			// time integration in comoving coordinates
 TIME_INT_ACCURACY 0.2	// std 0.2, time step parameter
 
 #### OUTPUT OPTIONS ####
 
-#OUTPUT_FORCE		// add total force on particle to snapshot: "FRCE"
-#OUTPUT_PEANO_KEY   // add peano key of particle "PKEY"
+OUTPUT_ACCELERATION // total acceleration ACC
+OUTPUT_GRAV_POTENTIAL // gravitational potential GPOT
+#OUTPUT_PEANO_KEY   // peano key of particle "PKEY"
 
 #### DOMAIN DECOMPOSITION ####
 

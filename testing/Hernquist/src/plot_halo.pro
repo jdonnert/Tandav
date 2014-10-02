@@ -1,3 +1,6 @@
+
+;for i =0,25 do begin & density_profile, snap=i & wait, 0.2 & end
+
 pro density_profile, snap=snap
 
 	common globals, tandav, cosmo
@@ -46,6 +49,46 @@ pro density_profile, snap=snap
 	oplot, bin_pos, rho, psym=10
 
 	return
+end
+
+pro potential_profile, snap=snap
+
+	common globals, tandav, cosmo
+
+	mass = 1d5 
+	a_hernq = 924D 		
+
+	rmin = 1d
+	rmax = 1d6
+
+	N = 1000L
+
+	di = alog10(rmax/rmin) / (N-1)
+
+	r = rmin * 10D^(lindgen(N)*di)
+
+	pot_analytic = hernquist_potential(r, a_hernq, mass)
+
+	plot, r, -pot_analytic, /ylog, /xlog, xrange=[rmin, rmax]
+
+	if not keyword_set(snap) then $
+		snap = 0
+
+	fname = 'snap_'+strn(snap, len=3, padc='0')
+
+	pos = tandav.readsnap(fname, 'POS', head=head)
+
+	pos[0,*] -= median(pos[0,*])
+	pos[1,*] -= median(pos[1,*])
+	pos[2,*] -= median(pos[2,*])
+
+	r = sqrt(pos[0,*]^2 + pos[1,*]^2 + pos[2,*]^2)
+
+	gpot = tandav.readsnap(fname, "GPAT", /DEBUG)
+
+	oplot, r, -gpot, psym=3
+
+	return 
 end
 
 pro velocity_distribution_function

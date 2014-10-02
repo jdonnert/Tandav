@@ -24,7 +24,8 @@
 #include "constants.h"		// physical constants
 #include "aux.h" 			// auxiliary functions 
 #include "memory.h"			// memory management
-#include "profile.h"		// time measurement & logging
+#include "profile.h"		// time measurement
+#include "log.h"			// run logging
 #include "sort.h" 			// sort functions
 #include "peano.h" 			
 

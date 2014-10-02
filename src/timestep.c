@@ -58,7 +58,6 @@ void Set_New_Timesteps()
 
 	make_active_particle_list();
 
-	#pragma omp master
 	print_timebins();
 
 	Profile("Timesteps");
@@ -239,6 +238,9 @@ static int timestep2timebin(const double dt)
 
 static void print_timebins()
 {
+	#pragma omp master 
+	{
+
 	int npart[N_INT_BINS] = { 0 };
 	
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
@@ -259,9 +261,14 @@ static void print_timebins()
 		if (npart_global[i] != 0 && imax < 0)
 			imax = i;	
 
-	rprintf("Systemstep %g, NActive %d \n"
+	char fullstep[CHARBUFSIZE] = {" "};
+
+	if (Sig.Fullstep)
+		sprintf(fullstep,", Fullstep");
+
+	rprintf("Systemstep %g, NActive %d %s\n"
 			"   Bin       nGas        nDM A  dt\n", 
-			Time.Step, NActive_Particles );
+			Time.Step, NActive_Particles, fullstep );
 
 	for (int i = imax; i > Time.Max_Active_Bin; i--)
 		rprintf("   %2d    %7d     %7d %s  %16.12f \n", 
@@ -272,6 +279,8 @@ static void print_timebins()
 			i, 0, npart_global[i], "X", Timebin2Timestep(i));
 
 	rprintf("\n");
+	
+	} // omp master
 
 	return ;
 }

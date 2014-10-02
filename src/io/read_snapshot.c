@@ -182,7 +182,7 @@ static void read_file (char *filename, const bool swap_Endian,
 	for (j = 0; j < NPARTYPE; j++) 
 		nPartGetTotal += nPartGet[j];
 	
-	size_t nBytes = nPartGetTotal * largest_block_member_nbytes();
+	size_t nBytes = nPartGetTotal * Largest_Block_Member_Nbytes();
 
 	char *RecvBuf = Malloc(nBytes);
 
@@ -190,7 +190,7 @@ static void read_file (char *filename, const bool swap_Endian,
 
 	if (groupRank == groupMaster) {
 	
-		nBytes = nTotRead * largest_block_member_nbytes(); 
+		nBytes = nTotRead * Largest_Block_Member_Nbytes(); 
 		
 		ReadBuf = Malloc(nBytes); 
 	}
@@ -203,7 +203,7 @@ static void read_file (char *filename, const bool swap_Endian,
 
 			blocksize = find_block(fp, Block[i].Label, swap_Endian);
 		
-			Assert(blocksize > 0 || !Block[i].Part_Bit_Mask, 
+			Assert(blocksize > 0 || !Block[i].IC_Required, 
 					"Can't find required block '%s'", Block[i].Label);
 			
 			if (blocksize > 0)
@@ -219,7 +219,7 @@ static void read_file (char *filename, const bool swap_Endian,
 		
 		if (groupRank == groupMaster) { // read on master
 			
-			nBytes = npart_in_block(i, nPartFile) * Block[i].Nbytes;
+			nBytes = Npart_In_Block(i, nPartFile) * Block[i].Nbytes;
 			
 			Assert(nBytes == blocksize, 
 				"File and Code blocksize inconsistent '%s', %zu != %d byte", 
@@ -232,7 +232,7 @@ static void read_file (char *filename, const bool swap_Endian,
 			SKIP_FORTRAN_RECORD
 		} 
 
-		int nBytesGetBlock = npart_in_block(i, nPartGet) * Block[i].Nbytes;
+		int nBytesGetBlock = Npart_In_Block(i, nPartGet) * Block[i].Nbytes;
 		
 		int nBytesSend[groupSize];
 

@@ -27,12 +27,13 @@ static const parameter ParDef[] = {
 	{"\n%% Files %%\n", "", NULL, COMMENT},
 	{"InputFile", "IC_file", &Param.Input_File, STRING},
 	{"OutputFileBase", "snap", &Param.Output_File_Base, STRING},
+	{"LogFileDir", "./log", &Param.Log_File_Dir, STRING},
 	{"NumIOTasks", "1", &Param.Num_IO_Tasks, INT},
 	{"NumOutputFiles", "1", &Param.Num_Output_Files, INT},
 
 	{"\n%% Code Parameters %%\n", "", NULL, COMMENT},
 	{"MaxMemSize", "1000", &Param.Max_Mem_Size, INT},
-	{"TimeLimitCPU", "20864", &Param.Runtime_Limit, INT},
+	{"TimeLimitCPU", "20864", &Param.Runtime_Limit, DOUBLE},
 	{"CommBufSize", "1000", &Param.Comm_Buf_Size, INT},
 
 	{"\n%% Simulation Characteristics %%\n", "", NULL, COMMENT},
@@ -56,8 +57,8 @@ static const parameter ParDef[] = {
 static const int NTags = ARRAY_SIZE(ParDef);
 
 /* Snapshot I/O */
-unsigned int largest_block_member_nbytes();
-unsigned int npart_in_block(const int, const int *);
+unsigned int Largest_Block_Member_Nbytes();
+unsigned int Npart_In_Block(const int, const int *);
 
 struct gadget_header { // standard gadget header, filled to 256 byte
 	uint32_t Npart[6];
@@ -84,36 +85,34 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 	char Name[CHARBUFSIZE];
 	enum target_variable {
 		VAR_P, 
-		VAR_G, 
-		VAR_S, 
-		VAR_BH, 
+		VAR_GAS, 
+		VAR_DM, 
+		VAR_STAR,
+		VAR_DISK, 
 		VAR_BND
 	} Target;			// identify global var
 	size_t Offset;		// offset in underlying struct
 	size_t Nbytes; 		// sizeof target field
-	int Part_Bit_Mask;	// == 1 at bit i+1, if required for type i
+	bool IC_Required;	// needed on readin from ICs ?
 };
 
 #define P_OFFSET(member) offsetof(struct Particle_Data, member)
-#define P_FIELD_SIZEOF(member) sizeof(((struct Particle_Data *)0)->member)
+#define P_SIZEOF(member) sizeof(((struct Particle_Data *)0)->member)
 
 static const struct io_block_def Block[] = {
-
-  	{"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_FIELD_SIZEOF(Pos), 0xFF},
-  	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_FIELD_SIZEOF(Vel),0xFF},
-  	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_FIELD_SIZEOF(ID), 0xFF},
-  	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_FIELD_SIZEOF(Mass), 0x00}
+  	{"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_SIZEOF(Pos), true},
+  	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_SIZEOF(Vel),true},
+  	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_SIZEOF(ID), true},
+  	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_SIZEOF(Mass), false}
 #ifdef OUTPUT_ACCELERATION
-  	,{"FRCE", "Forces", VAR_P, P_OFFSET(Acc), P_FIELD_SIZEOF(Acc), 0xFF}
+  	,{"ACC", "Acceleration", VAR_P, P_OFFSET(Acc), P_SIZEOF(Acc), false}
 #endif
-#ifdef OUPUT_GRAV_POTENTIAL
-  	,{"POT ", "Grav Potential", VAR_P, P_OFFSET(Potential), 
-		P_FIELD_SIZEOF(Potential), 0xFF}
+#ifdef OUTPUT_GRAV_POTENTIAL
+  	,{"GPOT","Grav Potential",VAR_P,P_OFFSET(Grav_Pot),P_SIZEOF(Grav_Pot), false}
 #endif
 #ifdef OUTPUT_PEANO_KEY
-  	,{"PKEY","Peanokey",VAR_P,P_OFFSET(Peanokey),P_FIELD_SIZEOF(peanoKey),0xFF}
+  	,{"PKEY","Peanokey",VAR_P,P_OFFSET(Peanokey),P_SIZEOF(peanoKey), false}
 #endif
-
 	// Add yours below 
 };
 

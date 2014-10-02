@@ -1,11 +1,7 @@
 #include "../globals.h"
-#include "../proto.h"
 #include "io.h"
 
-unsigned int largest_block_member_nbytes();
-unsigned int npart_in_block(const int, const int *);
-
-unsigned int largest_block_member_nbytes()
+unsigned int Largest_Block_Member_Nbytes()
 {
 	int imax = 0;
 
@@ -16,13 +12,22 @@ unsigned int largest_block_member_nbytes()
 	return Block[imax].Nbytes;
 } 
 
-/* Finds the number of particles for block i, branch free */
-unsigned int npart_in_block(const int i, const int *nPart)
-{
-	unsigned int result = 0;
-	
-	for (int j = 0; j < NPARTYPE; j++)
-		result += nPart[j] * ((1 << j & Block[i].Part_Bit_Mask) >> j);
+/* 
+ * Finds the number of particles for block i 
+ */
 
-	return result;
+unsigned int Npart_In_Block(const int i, const int *nPart)
+{
+	unsigned int list[NPARTYPE + 1] = { 0 };
+
+	for (int i = 0; i < NPARTYPE; i++) {
+		
+		list[0] += nPart[i];	
+
+		list[i+1] = nPart[i];
+	}
+	
+	int j = (int) Block[i].Target;
+	
+	return list[j];
 }

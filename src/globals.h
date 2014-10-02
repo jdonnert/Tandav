@@ -33,7 +33,7 @@ extern struct Local_Task_Properties {
 #pragma omp threadprivate(Task)
 
 extern struct Global_Simulation_Properties {	
-	int Master;					// MPI Master Rank
+	int Master;					// Global Rank Master
 	int NRank;					// NTask * NThreads
 	int NTask;					// Number of MPI tasks
 	int NThreads;				// Number of OpenMP threads
@@ -55,6 +55,7 @@ extern struct Parameters_From_File {
 	char File[CHARBUFSIZE]; 	// parameter file name
 	char Input_File[CHARBUFSIZE];
 	char Output_File_Base[CHARBUFSIZE];
+	char Log_File_Dir[CHARBUFSIZE];
 	int Start_Flag;				// invokation mode
 	int Num_IO_Tasks;			// written in parallel
 	int Max_Mem_Size;			// Memory Ceiling in 1024^2 Bytes
@@ -70,8 +71,10 @@ extern struct Particle_Data {
 	Float Pos[3];
 	Float Vel[3];
 	Float Acc[3];
-	Float Potential;
 	Float Mass;
+#ifdef GRAVITY_POTENTIAL
+	Float Grav_Pot;
+#endif
 	ID_t ID; // add below 
 } *P;
 

@@ -44,6 +44,8 @@ int main(int argc, char *argv[])
 
 		Kick_Halfstep();
 	
+		Update(AFTER_SECOND_KICK);
+
 		if (time_is_up())
 			break;
 	}

@@ -31,7 +31,9 @@ void Compute_Acceleration()
 		P[ipart].Acc[1] = accel[1];
 		P[ipart].Acc[2] = accel[2]; 
 
-		P[ipart].Potential = potential;
+#ifdef GRAVITY_POTENTIAL
+		P[ipart].Grav_Pot = potential;
+#endif
 	}
 	
 	rprintf("done\n");
@@ -55,8 +57,6 @@ static void accel_gravity_simple(const int ipart, Float *force,
 		double dy = P[ipart].Pos[1] - P[jpart].Pos[1];
 		double dz = P[ipart].Pos[2] - P[jpart].Pos[2];
 
-		//double r =  sqrt(dx*dx + dy*dy + dz*dz + p2(GRAV_SOFTENING) );
-	
 		double r = sqrt(dx*dx + dy*dy + dz*dz);
 
 		double rinv = 1/r;
@@ -64,8 +64,10 @@ static void accel_gravity_simple(const int ipart, Float *force,
 		if (r < h) {
 	
 			double u = r/h;
+			double u2 = u*u;
+			double u3 = u2*u;
 			
-			rinv = sqrt(u*(14 + u*u * (-84 + u * (140 + u * (-90 + 21*u)))))/h;
+			rinv = sqrt(14*u- 84*u3 + 140 * u2*u2 - 90*u2*u3 + 21*u3*u3 )/h;
 		} 
 	
 		double fmag = Const.Gravity * P[jpart].Mass * p2(rinv);
@@ -74,22 +76,18 @@ static void accel_gravity_simple(const int ipart, Float *force,
 		force[1] += -fmag * dy * rinv;
 		force[2] += -fmag * dz * rinv;
 
-		//r = sqrt(dx*dx + dy*dy + dz*dz);
+#ifdef GRAVITY_POTENTIAL
+		if (r < h) {// WC2 kernel softening
 
-	//printf("%g %g %g %g \n", 
-//			sqrt(r2), rinv, fmag, 
-//			sqrt(p2(force[0]) + p2(force[1]) + p2(force[2])));
+			double u = r/h;
+			double u2 = u*u;
+			double u3 = u2*u;
 
-	/*	if (r < h) { // WC2 kernel softening
-
-			
-			fmag *= (14*u3 - 84*u2*u3 + 140*u3*u3 - 90*u*u3*u3 + 21*u2*u3*u3);
-			
-			phi *= (7*u3 - 21*u2*u2 + 28*u3*u3 - 15*u3*u3*u + 8*u3*u3*u2 - 3*u);
+			rinv = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3)/h;
 		}
-	*/	
-		
+
 		*potential += Const.Gravity * P[jpart].Mass *rinv;
+#endif
 	}
 
 	return ;

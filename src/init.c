@@ -1,4 +1,7 @@
-/* Initialise global variables */
+/* 
+ * Initialise global variables 
+ */
+
 #include "globals.h"
 #include "io/io.h"
 #include "domain.h"
@@ -21,6 +24,8 @@ void Read_and_Init()
  	Init_Profiler();
 
 	Init_Memory_Management();
+
+	Init_Logs();
 
 	init_particles();
 

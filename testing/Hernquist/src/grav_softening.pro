@@ -36,8 +36,6 @@ pro softening
 	plot, r, -poten, /ylog, /xlog, xtitle='r [cm]', $
 		ytitle=textoidl('\phi [g cm^2/s^2]')
 
-	stop
-
 	return 
 end
 
@@ -55,16 +53,16 @@ function force_WC2, M0, M1, r, eps
 
 	grav_const = 6.6720000e-08
 
-	h = 3/eps; 
+	h = 3D/eps; 
 
-	u = r/h
+	u = double(r/h)
 
 	if r gt h then $
-		u = 1 
+		return,  grav_const * M0 * M1 / r^2
 
-	force_law = (14*u^3 - 84*u^5 + 140*u^6 - 90*u^7 + 21*u^8)/ r^2
+	rinv2 = (14*u - 84*u^3 + 140*u^4 - 90*u^5 + 21*u^6) / h^2
 
-	return, grav_const * M0 * M1  * force_law
+	return, grav_const * M0 * M1  * rinv2
 end
 
 function potential_WC2, M, r ,eps
@@ -73,14 +71,14 @@ function potential_WC2, M, r ,eps
 
 	h = 3/eps 
 
-	if r gt h then $
+	if r ge h then $
 		return, -grav_const * M  / r
 
 	u = double(r/h)
 
-	wc_poly = (7*u^3 - 21*u^5 + 28*u^6 - 15*u^7 + 3*u^8 - 3D*u)
+	rinv = (7*u^2 - 21*u^4 + 28*u^5 - 15*u^6 + 3*u^7 - 3D) / h
 
-	if u le 1 then print, u, r, h,wc_poly
+	print, u, r, h,rinv 
 
-	return,  grav_const * M / r * wc_poly
+	return,  grav_const * M * rinv
 end

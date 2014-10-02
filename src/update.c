@@ -48,6 +48,8 @@ void Update(enum Update_Parameters stage)
 		
 	case AFTER_SECOND_KICK:
 
+		Write_Logs();
+
 		break;
 		
 	default:

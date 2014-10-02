@@ -84,9 +84,9 @@ pro potential_profile, snap=snap
 
 	r = sqrt(pos[0,*]^2 + pos[1,*]^2 + pos[2,*]^2)
 
-	gpot = tandav.readsnap(fname, "GPAT", /DEBUG)
+	gpot = tandav.readsnap(fname, "GPOT")
 
-	oplot, r, -gpot, psym=3
+	oplot, r, -gpot, psym=3, color=7839259
 
 	return 
 end

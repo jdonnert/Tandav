@@ -121,9 +121,6 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 			uint32_t blocksize = Npart_In_Block(i, nPartFile)
 				* Block[i].Nbytes; 
 
-
-			printf("%d %d %d \n", blocksize, Npart_In_Block(i, nPartFile), Block[i].Nbytes);
-
 			printf("%18s %8d MB\n", Block[i].Name, blocksize/1024/1024);
 		
 			write_block_header(Block[i].Label, blocksize, fp); 

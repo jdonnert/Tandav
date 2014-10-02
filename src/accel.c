@@ -86,7 +86,7 @@ static void accel_gravity_simple(const int ipart, Float *force,
 			rinv = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3)/h;
 		}
 
-		*potential += Const.Gravity * P[jpart].Mass *rinv;
+		*potential += -Const.Gravity * P[jpart].Mass *rinv;
 #endif
 	}
 

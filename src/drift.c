@@ -18,15 +18,21 @@ void Drift_To_Sync_Point()
 
 	rprintf("Drift ...");
 
-	double dt = fmin(Time.Step, // drift the rest to next integer time
-			Integer2Physical_Time(Int_Time.Next) - Time.Current );
+	double dt_rest = DBL_MAX;
+
+	if (Sig.Synchronize_Drift) {
+	
+		Sig.Synchronize_Drift = false;
+
+		dt_rest = Integer2Physical_Time(Int_Time.Next) - Time.Current;
+	}
 
 	#pragma omp parallel for
 	for (int i = 0; i < NActive_Particles; i++) {
 		
 		int ipart = Active_Particle_List[i];
 
-		double dt = Timebin2Timestep(P[ipart].Time_Bin);
+		double dt = fmin(dt_rest, Timebin2Timestep(P[ipart].Time_Bin));
 
 	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0] * driftfac;
 		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1] * driftfac;
@@ -71,6 +77,8 @@ void Drift_To_Snaptime()
 	Time.Current += dt;
 	
 	Time.Next_Snap += Time.Bet_Snap;
+
+	Sig.Synchronize_Drift = true;
 
 	return ;
 }

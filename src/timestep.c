@@ -88,8 +88,6 @@ static void set_particle_timebins(int *bin_max, int *bin_min)
 	int local_bin_min = N_INT_BINS-1; 
 	int local_bin_max = 0;
 	
-	//#pragma omp parallel for reduction(min:local_bin_min) \
-//		reduction(max:local_bin_max)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 		
 		float dt = FLT_MAX;

@@ -6,8 +6,8 @@
 #include "accel.h"
 #include "timestep.h"
 
-static void accel_gravity_simple(const int ipart, Float force[3], 
-		Float *potential);
+static void accel_gravity_simple(const int ipart, double force[3], 
+		double *potential);
 
 void Compute_Acceleration()
 {
@@ -20,11 +20,11 @@ void Compute_Acceleration()
 		
 		int ipart = Active_Particle_List[i];
 	
-		Float accel[3] = { 0 };
+		double accel[3] = { 0 };
 
 #ifdef GRAVITY
-		Float grav_accel[3] = { 0 };
-		Float grav_potential = 0;
+		double grav_accel[3] = { 0 };
+		double grav_potential = 0;
 
 		accel_gravity_simple(ipart, grav_accel, &grav_potential);
 
@@ -52,8 +52,8 @@ void Compute_Acceleration()
 
 static const double h = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
 
-static void accel_gravity_simple(const int ipart, Float *force, 
-		Float *potential)
+static void accel_gravity_simple(const int ipart, double *force, 
+		double *potential)
 {
 	for (int jpart = 0; jpart < Sim.Npart_Total; jpart++) {
 

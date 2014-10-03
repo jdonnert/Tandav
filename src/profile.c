@@ -13,7 +13,7 @@ static struct Profiling_Object {
 	double Max;			// Max Time spend here by a CPU
 	double Mean;		// Mean Time spend here by all CPUs
 	double Imbalance;	// Time wasted waiting for the slowest CPU
-} Prof[MAXPROFILEITEMS] = { 0 };
+} Prof[MAXPROFILEITEMS];
 
 static int NProfObjs = 0;
 static double Last_Report_Call = 0;

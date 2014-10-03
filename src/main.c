@@ -171,7 +171,7 @@ static bool time_for_snapshot()
 
 	if (Time.Current + Time.Step >= Time.Next_Snap) { 
 	
-		Drift_To_Snaptime();
+		//Drift_To_Snaptime();
 
 		rprintf("Snapshot No. %d at t=%g, Next at t=%g \n", 
 				Time.Snap_Counter+1, Time.Next_Snap, 

@@ -96,7 +96,7 @@ pro conservation
 
 	common globals, tandav, cosmo
 
-	nsnap = 300
+	nsnap = 299
 
 	R = make_array(nsnap, val=0D)
 	E = make_array(nsnap, val=0D)
@@ -106,11 +106,11 @@ pro conservation
 
 	for snap = 0, nsnap-1 do begin
 	
-		fname = 'gadget/snap_'+strn(snap, len=3, padc='0')
+		fname = 'snap_'+strn(snap, len=3, padc='0')
 
 		pos = tandav.readsnap(fname, 'POS', head=head)
 		vel = tandav.readsnap(fname, 'VEL', head=head)
-		pot = tandav.readsnap(fname, 'POT')
+		pot = tandav.readsnap(fname, 'GPOT')
 
 		v = length(vel)
 
@@ -130,11 +130,9 @@ pro conservation
 		
 	end
 
-	imax = fix(nsnap/5)
-
 	plot, time, (R-R[0])/R[0], yrange=[-0.05, 0.05]
 		
-	oplot, time, (E-mean(E[0:imax]))/mean(E[0:imax]), col=11759733
+	oplot, time, (E-E[0])/E[0], col=11759733
 
 	oplot, time, (P-P[0])/P[0], color=7839259
 
@@ -148,6 +146,14 @@ pro conservation
 	xyouts, 4, -0.05, "AngP", col=155609
 
 	stop
+
+	plot, time, R
+	plot, time, E
+	plot, time, P
+	plot, time, abs(AngP[1,*])
+	oplot, time, abs(AngP[0,*])
+	oplot, time, abs(AngP[2,*])
+
 
 	return 
 end

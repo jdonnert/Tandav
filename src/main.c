@@ -27,6 +27,7 @@ int main(int argc, char *argv[])
 	
 	Update(BEFORE_MAIN_LOOP);
 		
+	//#pragma omp parallel
 	for (;;) { // run, Forest, run !
 
 		Set_New_Timesteps();
@@ -164,7 +165,8 @@ static bool time_for_snapshot()
 
 		Sig.Write_Snapshot = false;
 	
-		rprintf("Encountered Signal: Write Snapshot  t=%g \n", Time.Current);
+		rprintf("Encountered Signal: Write Snapshot %d at t=%g \n", 
+				Time.Snap_Counter, Time.Current);
 
 		return true;
 	}

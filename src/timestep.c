@@ -25,11 +25,6 @@ struct TimeData Time = { 0 };
 void Set_New_Timesteps()
 {
 	Profile("Timesteps");
-#ifndef COMOVING
-	rprintf("\nStep <%d> t = %g \n\n", Time.Step_Counter++, Time.Current);
-#else
-	rprintf("\nStep <%d> a = %g \n\n", Time.Step_Counter++, Time.Current);
-#endif
 	
 	#pragma omp master
 	Time.Max_Active_Bin = max_active_time_bin();
@@ -45,18 +40,31 @@ void Set_New_Timesteps()
 	int global_bin_max = 0;
 	
 	#pragma omp master
+	{
+
 	MPI_Allreduce(&local_bin_min, &global_bin_min, 1, MPI_INT, MPI_MIN, 
 			MPI_COMM_WORLD);
 
-	#pragma omp master
 	MPI_Allreduce(&local_bin_max, &global_bin_max, 1, MPI_INT, MPI_MAX,
 			MPI_COMM_WORLD);
+	
+	set_global_timestep(global_bin_max, global_bin_min);
+
+	} // omp master
 
 	#pragma omp barrier
 
-	set_global_timestep(global_bin_max, global_bin_min);
-
 	make_active_particle_list();
+
+#ifndef COMOVING
+	rprintf("\nStep <%d> t = %g -> %g\n", 
+			Time.Step_Counter++, Time.Current, 
+			Integer2Physical_Time(Int_Time.Next) );
+#else
+	rprintf("\nStep <%d> a = %g -> %g\n", 
+			Time.Step_Counter++, Time.Current, Int_Time.Current, 
+			Integer2Physical_Time(Int_Time.Next));
+#endif
 
 	print_timebins();
 
@@ -73,7 +81,7 @@ void Set_New_Timesteps()
 static int max_active_time_bin()
 {
 	if (Int_Time.Current == Int_Time.Beg)
-		 return N_INT_BINS-1;
+		 return N_INT_BINS - 1; // find dt for all particles first
 
 	return COUNT_TRAILING_ZEROS(Int_Time.Current); 
 }
@@ -88,6 +96,7 @@ static void set_particle_timebins(int *bin_max, int *bin_min)
 	int local_bin_min = N_INT_BINS-1; 
 	int local_bin_max = 0;
 	
+	//#pragma omp parallel for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 		
 		float dt = FLT_MAX;
@@ -115,8 +124,14 @@ static void set_particle_timebins(int *bin_max, int *bin_min)
 		local_bin_max = MAX(local_bin_max, P[ipart].Time_Bin);
 	}
 
-	*bin_min = local_bin_min;
-	*bin_max = local_bin_max;
+	
+//	#pragma omp critical // reduction
+//	{
+	*bin_min = MIN(local_bin_min, *bin_min);
+	*bin_max = MAX(local_bin_max, *bin_max);
+//	}
+	
+//	#pragma omp barrier
 
 	return ;
 }
@@ -147,6 +162,9 @@ static void set_global_timestep(const int global_bin_max,
 		rprintf("Next full step at t = %g, bin = %d \n\n", 
 				Integer2Physical_Time(Int_Time.Full_Step), global_bin_max);
 	}
+
+	if (Int_Time.Current == Int_Time.Beg) // correct beginning
+		Time.Max_Active_Bin = global_bin_min;
 
 	return ;
 }

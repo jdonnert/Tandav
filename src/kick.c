@@ -8,7 +8,7 @@
 
 void Kick_Halfstep() 
 {
-	#pragma omp parallel for
+	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
@@ -26,6 +26,8 @@ void Kick_Halfstep()
 		P[ipart].Vel[2] += dt_grav * P[ipart].Acc[2];
 	}
 	
+	#pragma omp barrier
+
 	return ;
 }
 

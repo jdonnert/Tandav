@@ -2,14 +2,9 @@
 
 #define TIMESTEP_H
 
-typedef uint64_t intime_t; // type of integer time
-
 struct TimeData {
 	double Begin;
-	double Current;			// if COMOVING is set, this is "log(a)"
-#ifdef COMOVING
-	double a;				// expansion factor
-#endif
+	double Current;			// if COMOVING is set, this is "a"
 	double End;
 	double First_Snap;
 	double Bet_Snap;

@@ -96,7 +96,7 @@ pro conservation
 
 	common globals, tandav, cosmo
 
-	nsnap = 299
+	nsnap = 300
 
 	R = make_array(nsnap, val=0D)
 	E = make_array(nsnap, val=0D)
@@ -196,7 +196,8 @@ pro velocity_distribution_function
 
 	tmp = bin_arr(one, pos=abs(Etot) , bin_pos=bin_pos, nbins=100, cnt=cnt, /log)
 
-	oplot, bin_pos/tandav.grav*a_hernq/Mass,  (bin_pos)^2*cnt/mass/2d37/head.npart[1], psym=10
+	oplot, bin_pos/tandav.grav*a_hernq/Mass,  $
+		(bin_pos)^2*cnt/mass/2d37/head.npart[1], psym=10
 	
 	return
 end

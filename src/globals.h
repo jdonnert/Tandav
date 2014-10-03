@@ -3,8 +3,9 @@
 
 #include "proto.h"
 
-typedef float Float;
-typedef uint32_t ID_t;
+typedef float Float;		// type of floating point variables in P
+typedef uint32_t ID_t;		// type of particle ID
+typedef uint64_t intime_t; 	// type of integer time 
 
 /* CODE PARAMETERS */
 
@@ -48,7 +49,6 @@ extern struct Simulation_Signals { // communicate an event across the code
 	bool Write_Snapshot;		// write a snapshot this iteration
 	bool Write_Restart_File;	// write a restart file upon exit
 	bool Endrun;				// stops the runs regularly
-	bool Synchronize_Drift;		// drift to next point on integer timeline
 } Sig;
 
 extern struct Parameters_From_File {
@@ -67,6 +67,7 @@ extern struct Parameters_From_File {
 extern struct Particle_Data {
 	int Type;
 	int Time_Bin;
+	intime_t Int_Time_Pos;
 	peanoKey Peanokey;
 	Float Pos[3];
 	Float Vel[3];

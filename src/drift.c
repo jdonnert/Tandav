@@ -10,33 +10,33 @@
 
 void Drift_To_Sync_Point() 
 {
-#ifdef COMOVING
-	const float driftfac = Cosmo_Drift_Factor(Time.Current);
-#else
-	const float driftfac = 1;
-#endif
+	Profile("Drift");
 
-	rprintf("Drift ...");
-
-	double dt_rest = DBL_MAX;
-
-	if (Sig.Synchronize_Drift) {
-	
-		Sig.Synchronize_Drift = false;
-
-		dt_rest = Integer2Physical_Time(Int_Time.Next) - Time.Current;
-	}
+	rprintf("Drift to next Sync Point ... ");
+ 
+	const double t_next = Integer2Physical_Time(Int_Time.Next);
+	const double dt_max = t_next - Time.Current;
 
 	#pragma omp parallel for
 	for (int i = 0; i < NActive_Particles; i++) {
 		
 		int ipart = Active_Particle_List[i];
 
-		double dt = fmin(dt_rest, Timebin2Timestep(P[ipart].Time_Bin));
+		//double dt = t_next - Integer2Physical_Time(P[ipart].Int_Time_Pos);
+	double dt = Timebin2Timestep(P[ipart].Time_Bin);
 
-	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0] * driftfac;
-		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1] * driftfac;
-		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2] * driftfac;
+		//dt = fmin(dt, dt_max);
+
+		//dt = fmin(dt, t_next - Time.Current);
+//	if (dt != dt2)
+//		printf("i=%d dt=%g dt2=%g cur=%g nex=%g it=%g\n", ipart, dt, dt2, Time.Current, t_next,
+//				Integer2Physical_Time(P[ipart].Int_Time_Pos));
+
+		P[ipart].Pos[0] += 	dt * P[ipart].Vel[0];
+		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1];
+		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2];
+
+		P[ipart].Int_Time_Pos = Int_Time.Next;
 	}
 	
 	Int_Time.Current += Int_Time.Step;
@@ -45,40 +45,38 @@ void Drift_To_Sync_Point()
 
 	rprintf("done \n");
 
+	Profile("Drift");
+
 	return;
 }
 
 /* 
  * drift the system forward only to the snaptime 
- * the system is then not synchronized with the 
- * integer timeline 
+ * the system is then NOT synchronized with the 
+ * integer timeline. This is corrected during the next
+ * drift.
  */
 
 void Drift_To_Snaptime()
-{
-	const double dt = Time.Next_Snap - Time.Current; // only drift this far
-
-#ifdef COMOVING
-	const float drift_fac = Cosmo_Drift_Factor(Time.Current);
-#else
-	const float drift_fac = 1;
-#endif
+{return ;
+	rprintf("Drift to next Shapshot Time ...");
 
 	#pragma omp parallel for
 	for (int i = 0; i < NActive_Particles; i++) {
 		
 		int ipart = Active_Particle_List[i];
 
-	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0] * drift_fac;
-		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1] * drift_fac;
-		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2] * drift_fac;
+		double dt = Time.Next_Snap 
+			- Integer2Physical_Time(P[ipart].Int_Time_Pos);
+
+	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0];
+		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1];
+		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2];
 	}
 
-	Time.Current += dt;
+	Time.Current = Time.Next_Snap;
 	
-	Time.Next_Snap += Time.Bet_Snap;
-
-	Sig.Synchronize_Drift = true;
+	rprintf("done \n");
 
 	return ;
 }

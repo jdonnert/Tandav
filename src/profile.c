@@ -18,38 +18,26 @@ static struct Profiling_Object {
 static int NProfObjs = 0;
 static double Last_Report_Call = 0;
 
-#pragma omp threadprivate(Prof, NProfObjs)
-
 static inline int find_index_from_name(const char *name);
 static double measure_time();
 
 void Init_Profiler()
 {
-	#pragma omp single nowait
-	{
-
 	memset(Prof, 0, sizeof(*Prof) * MAXPROFILEITEMS);
 
 	Profile("Whole Run");
 
 	Last_Report_Call = measure_time();
 		
-	} // omp single
-
 	return ;
 }
 
 void Finish_Profiler() 
 {
-	#pragma omp single nowait
-	{
-
 	Profile("Whole Run");
 
 	Profile_Report(stdout);
 	
-	} // omp single
-
 	return ;
 }
 

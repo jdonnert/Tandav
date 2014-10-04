@@ -11,21 +11,18 @@ static struct Log_File_Pointers {
 
 void Write_Logs()
 {
-	#pragma omp single
+	#pragma omp single nowait
 	{
 
 	Profile_Report_Last(Log.Profile_Steps);
 	
-	} // omp master
+	} // omp single nowait
 
 	return;
 }
 
 void Init_Logs()
 {
-	#pragma omp single
-	{
-	
 	char fname[CHARBUFSIZE] = {""};
 
 	sprintf(fname, "%s/balance", Param.Log_File_Dir);
@@ -34,20 +31,13 @@ void Init_Logs()
 
 	Assert(Log.Profile_Steps != NULL, "Can open %s for writing", fname);
 
-	} // omp master
-
 	return ;
 }
 
 
 void Finish_Logs()
 {
-	#pragma omp single
-	{
-	
 	fclose(Log.Profile_Steps);
 	
-	} // omp master
-
 	return ;
 }

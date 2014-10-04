@@ -228,7 +228,7 @@ static void make_active_particle_list()
 
 	Assert(NActive_Particles > 0, "No Active Particles, instead %d", i);	
 	
-	}
+	} // omp single
 
 	return ;
 }

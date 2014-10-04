@@ -23,6 +23,7 @@ void Update(enum Update_Parameters stage)
 
 			Write_Snapshot();
 
+			#pragma omp single
 			Time.Next_Snap += Time.Bet_Snap;
 		}
 		

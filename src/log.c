@@ -11,7 +11,7 @@ static struct Log_File_Pointers {
 
 void Write_Logs()
 {
-	#pragma omp master
+	#pragma omp single
 	{
 
 	Profile_Report_Last(Log.Profile_Steps);
@@ -23,7 +23,7 @@ void Write_Logs()
 
 void Init_Logs()
 {
-	#pragma omp master
+	#pragma omp single
 	{
 	
 	char fname[CHARBUFSIZE] = {""};
@@ -42,7 +42,7 @@ void Init_Logs()
 
 void Finish_Logs()
 {
-	#pragma omp master
+	#pragma omp single
 	{
 	
 	fclose(Log.Profile_Steps);

@@ -25,7 +25,7 @@ static double measure_time();
 
 void Init_Profiler()
 {
-	#pragma omp master
+	#pragma omp single nowait
 	{
 
 	memset(Prof, 0, sizeof(*Prof) * MAXPROFILEITEMS);
@@ -34,21 +34,21 @@ void Init_Profiler()
 
 	Last_Report_Call = measure_time();
 		
-	} // omp master
+	} // omp single
 
 	return ;
 }
 
 void Finish_Profiler() 
 {
-	#pragma omp master
+	#pragma omp single nowait
 	{
 
 	Profile("Whole Run");
 
 	Profile_Report(stdout);
 	
-	} // omp master
+	} // omp single
 
 	return ;
 }
@@ -56,7 +56,7 @@ void Finish_Profiler()
 void Profile_Info(const char* file, const char* func, const int line, 
 		const char *name)
 {
-	#pragma omp master
+	#pragma omp single nowait
 	{
 
 	const int i = find_index_from_name(name);
@@ -86,14 +86,14 @@ void Profile_Info(const char* file, const char* func, const int line,
 		Prof[i].Tend = Prof[i].ThisLast = 0;
 	}
 
-	} // omp master
+	} // omp single nowait
 
 	return ;
 }
 
 void Profile_Report(FILE *stream)
 {
-	#pragma omp master
+	#pragma omp single nowait
 	{
 
 	for (int i = 0; i < NProfObjs; i++) { 
@@ -143,7 +143,7 @@ void Profile_Report(FILE *stream)
 
 	skip:;
 
-	} // omp master
+	} // omp single nowait
 	
 
 	return ;
@@ -152,7 +152,7 @@ void Profile_Report(FILE *stream)
 
 void Profile_Report_Last(FILE *stream)
 {
-	#pragma omp master
+	#pragma omp single nowait
 	{
 
 	const double now = measure_time();
@@ -214,7 +214,7 @@ void Profile_Report_Last(FILE *stream)
 	
 	skip:;
 	
-	} // omp master
+	} // omp single nowait
 
 	return ;
 }
@@ -236,7 +236,6 @@ static inline int find_index_from_name(const char *name)
 
 	return i; // may return i=NProfObjs, i.e. new item
 }
-
 
 static double measure_time()
 {

@@ -10,8 +10,6 @@ void Kick_First_Halfstep()
 {
 	Profile("First Kick");
 	
-	rprintf("Kick ");
-
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 
@@ -30,7 +28,6 @@ void Kick_First_Halfstep()
 		P[ipart].Vel[2] += dt * P[ipart].Acc[2];
 	}
 	
-	rprintf("done\n");
 	Profile("First Kick");
 
 	return ;
@@ -39,8 +36,6 @@ void Kick_First_Halfstep()
 void Kick_Second_Halfstep() 
 {
 	Profile("Second Kick");
-
-	rprintf("Kick ");
 
 	#pragma omp  for
 	for (int i = 0; i < NActive_Particles; i++) {
@@ -62,7 +57,6 @@ void Kick_Second_Halfstep()
 		P[ipart].Int_Time_Pos = Int_Time.Next;
 	}
 	
-	rprintf("done\n");
 	Profile("Second Kick");
 
 	return ;

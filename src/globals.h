@@ -44,12 +44,7 @@ extern struct Global_Simulation_Properties {
 	double Boxsize[3];			// Now in 3D !
 } Sim;
 
-extern struct Simulation_Signals { // communicate an event across the code
-	bool Fullstep;				// Current step is fullstep
-	bool Write_Snapshot;		// write a snapshot this iteration
-	bool Write_Restart_File;	// write a restart file upon exit
-	bool Endrun;				// stops the runs regularly
-} Sig;
+
 
 extern struct Parameters_From_File {
 	char File[CHARBUFSIZE]; 	// parameter file name

@@ -154,6 +154,9 @@ void Init_Memory_Management()
 
 void Print_Memory_Usage()
 {
+	#pragma omp single nowait
+	{
+
 	size_t nBytes_Left_Global[Sim.NTask];
 
 	MPI_Allgather(&NBytes_Left, 1, MPI_BYTE, nBytes_Left_Global, 
@@ -191,8 +194,8 @@ void Print_Memory_Usage()
 		printf("\n"); fflush(stdout);
 	}
 	
-	MPI_Barrier(MPI_COMM_WORLD);
-	
+	} // omp single nowait
+
 	return;
 }
 

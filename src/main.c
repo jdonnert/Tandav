@@ -9,8 +9,6 @@
 #include "io/io.h"
 
 static void preamble(int argc, char *argv[]);
-static bool time_for_snapshot();
-static bool time_is_up();
 
 /* 
  * This exposes the time integration of the code. Everything else is found
@@ -24,17 +22,21 @@ int main(int argc, char *argv[])
 	Read_and_Init();
 
 	Setup();
+		
+	#pragma omp parallel
+	{
 	
 	Update(BEFORE_MAIN_LOOP);
-		
-	//#pragma omp parallel
+
 	for (;;) { // run, Forest, run !
+
+		#pragma omp barrier
 
 		Set_New_Timesteps();
 
-		Kick_Halfstep();
+		Kick_First_Halfstep();
 
-		if (time_for_snapshot()) 
+		if (Time_For_Snapshot()) 
 			Write_Snapshot();
  		
 		Drift_To_Sync_Point();
@@ -43,13 +45,15 @@ int main(int argc, char *argv[])
 
 		Compute_Acceleration();
 
-		Kick_Halfstep();
+		Kick_Second_Halfstep();
 	
 		Update(AFTER_SECOND_KICK);
 
-		if (time_is_up())
+		if (Time_Is_Up())
 			break;
 	}
+
+	} // omp parallel 
 
 	if (Sig.Write_Restart_File) 
 		Write_Restart_File();
@@ -131,58 +135,4 @@ static void preamble(int argc, char *argv[])
 	return ;
 }	
 
-static bool time_is_up()
-{
-	if (Sig.Endrun) {
-	
-		rprintf("Encountered Signal: Endrun, t=%g", Time.Current);
 
-		return true;
-	}
-	
-	if (Int_Time.Current == Int_Time.End) {
-		
-		rprintf("EndTime reached: %g \n", Time.End);
-		
-		return true;
-	}
-
-	if (Runtime() >= Param.Runtime_Limit) {
-
-		rprintf("Runtime limit reached: %g min\n", Param.Runtime_Limit/60);
-
-		Sig.Write_Restart_File = true;
-
-		return true;
-	}
-
-	return false;
-}
-
-static bool time_for_snapshot()
-{
-	if (Sig.Write_Snapshot) {
-
-		Sig.Write_Snapshot = false;
-	
-		rprintf("Encountered Signal: Write Snapshot %d at t=%g \n", 
-				Time.Snap_Counter, Time.Current);
-
-		return true;
-	}
-
-	if (Time.Current + Time.Step >= Time.Next_Snap) { 
-	
-		//Drift_To_Snaptime();
-
-		rprintf("Snapshot No. %d at t=%g, Next at t=%g \n", 
-				Time.Snap_Counter+1, Time.Next_Snap, 
-				Time.Next_Snap + Time.Bet_Snap);
-
-		Time.Next_Snap += Time.Bet_Snap;
-
-		return true;
-	}
-
-	return false;
-}

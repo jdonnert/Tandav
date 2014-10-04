@@ -17,6 +17,8 @@ void Update(enum Update_Parameters stage)
 		
 		Print_Memory_Usage();
 
+		#pragma omp barrier
+
 		if (Time.Begin == Time.Next_Snap) { 
 
 			Write_Snapshot();

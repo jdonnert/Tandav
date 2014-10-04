@@ -26,6 +26,7 @@
 #include "memory.h"			// memory management
 #include "profile.h"		// time measurement
 #include "log.h"			// run logging
+#include "signal.h"			// signal handlers
 #include "sort.h" 			// sort functions
 #include "peano.h" 			
 

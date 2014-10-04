@@ -6,12 +6,11 @@
 #include "io/io.h"
 #include "domain.h"
 
-struct Global_Simulation_Properties Sim;
 struct Parameters_From_File Param; 
-struct Simulation_Signals Sig;
+struct Global_Simulation_Properties Sim;
 
-#pragma omp threadprivate(Task)
 struct Local_Task_Properties Task = { 0 };
+#pragma omp threadprivate(Task)
 
 struct Particle_Data *P = NULL;
 

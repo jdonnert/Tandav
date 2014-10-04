@@ -3,6 +3,9 @@
 ;for i =0,25 do begin & potential_profile, snap=i & wait, 0.2 & end
 
 pro density_profile, snap=snap
+	
+	; we expect a little evolution here, because f(E) in the ICs 
+	; does not account for softening (Barnes 2012)
 
 	common globals, tandav, cosmo
 
@@ -96,11 +99,14 @@ pro conservation
 
 	common globals, tandav, cosmo
 
-	nsnap = 300
+	nsnap = 190
 
-	R = make_array(nsnap, val=0D)
+	X = make_array(nsnap, val=0D)
+	Y = make_array(nsnap, val=0D)
+	Z = make_array(nsnap, val=0D)
 	E = make_array(nsnap, val=0D)
 	P = make_array(nsnap, val=0D)
+
 	AngP = make_array(3, nsnap, val=0D)
 	time = make_array(nsnap, val=0D)
 
@@ -114,9 +120,12 @@ pro conservation
 
 		v = length(vel)
 
+		npart = head.npart[1]
 		mpart = head.massarr[1]
 
-		R[snap] = sqrt(total(pos[0,*])^2 + total(pos[1,*])^2 + total(pos[2,*])^2)
+		X[snap] = total(pos[0,*])/npart
+		Y[snap] = total(pos[1,*])/npart
+		Z[snap] = total(pos[2,*])/npart
 
 		E[snap] = total(0.5 * mpart * v^2 + pot)
 		
@@ -130,7 +139,9 @@ pro conservation
 		
 	end
 
-	plot, time, (R-R[0])/R[0], yrange=[-0.05, 0.05]
+	plot, time, (X-X[0])/X[0], yrange=[-0.1, 0.1]
+	oplot, time, (Y-Y[0])/Y[0]
+	oplot, time, (Z-Z[0])/Z[0]
 		
 	oplot, time, (E-E[0])/E[0], col=11759733
 

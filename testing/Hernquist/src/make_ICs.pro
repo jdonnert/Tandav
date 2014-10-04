@@ -19,6 +19,7 @@ pro make_ICs
 	
 	sqrt_q = sqrt(randomu(seed, npart))
 
+
 	r = a_hernq  * sqrt_q / (1-sqrt_q)
 
 	theta = acos(2 * randomu(seed, npart) - 1)

@@ -3,8 +3,10 @@
 
 #define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
 
-#define N_INT_BINS (sizeof(intime_t) * CHAR_BIT) // the number of bins in the 
-	// integer time line is also the number of bits in intime_t
+/* 
+ * The number of bins is given by the number of bits in an integer time 
+ */
+#define N_INT_BINS (sizeof(intime_t) * CHAR_BIT) 
 
 static int max_active_time_bin();
 static void set_particle_timebins(int *bin_max, int *bin_min);
@@ -25,22 +27,17 @@ struct TimeData Time = { 0 };
 void Set_New_Timesteps()
 {
 	Profile("Timesteps");
-	
-	#pragma omp master
-	Time.Max_Active_Bin = max_active_time_bin();
-
-	#pragma omp barrier
 
 	int local_bin_min = N_INT_BINS-1; 
 	int local_bin_max = 0;
 
 	set_particle_timebins(&local_bin_max, &local_bin_min);
-
+	
+	#pragma omp single 
+	{
+	
 	int global_bin_min = N_INT_BINS-1;
 	int global_bin_max = 0;
-	
-	#pragma omp master
-	{
 
 	MPI_Allreduce(&local_bin_min, &global_bin_min, 1, MPI_INT, MPI_MIN, 
 			MPI_COMM_WORLD);
@@ -50,18 +47,18 @@ void Set_New_Timesteps()
 	
 	set_global_timestep(global_bin_max, global_bin_min);
 
-	} // omp master
+	Time.Max_Active_Bin = max_active_time_bin();
 
-	#pragma omp barrier
+	} // omp single
 
 	make_active_particle_list();
 
 #ifndef COMOVING
-	rprintf("\nStep <%d> t = %g -> %g\n", 
+	rprintf("\nStep <%d> t = %g -> %g\n\n", 
 			Time.Step_Counter++, Time.Current, 
 			Integer2Physical_Time(Int_Time.Next) );
 #else
-	rprintf("\nStep <%d> a = %g -> %g\n", 
+	rprintf("\nStep <%d> a = %g -> %g\n\n", 
 			Time.Step_Counter++, Time.Current, Int_Time.Current, 
 			Integer2Physical_Time(Int_Time.Next));
 #endif
@@ -80,10 +77,7 @@ void Set_New_Timesteps()
 
 static int max_active_time_bin()
 {
-	if (Int_Time.Current == Int_Time.Beg)
-		 return N_INT_BINS - 1; // find dt for all particles first
-
-	return COUNT_TRAILING_ZEROS(Int_Time.Current); 
+	return COUNT_TRAILING_ZEROS(Int_Time.Next); 
 }
 
 /* 
@@ -96,8 +90,10 @@ static void set_particle_timebins(int *bin_max, int *bin_min)
 	int local_bin_min = N_INT_BINS-1; 
 	int local_bin_max = 0;
 	
-	//#pragma omp parallel for
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+	#pragma omp for
+	for (int i = 0; i < NActive_Particles; i++) {
+		
+		int ipart = Active_Particle_List[i];
 		
 		float dt = FLT_MAX;
 
@@ -125,13 +121,12 @@ static void set_particle_timebins(int *bin_max, int *bin_min)
 	}
 
 	
-//	#pragma omp critical // reduction
-//	{
+	#pragma omp critical // reduction
+	{
 	*bin_min = MIN(local_bin_min, *bin_min);
 	*bin_max = MAX(local_bin_max, *bin_max);
-//	}
-	
-//	#pragma omp barrier
+	}
+	#pragma omp barrier
 
 	return ;
 }
@@ -143,24 +138,32 @@ static void set_particle_timebins(int *bin_max, int *bin_min)
 static void set_global_timestep(const int global_bin_max, 
 		const int global_bin_min)
 {
-	Time.Step = Timebin2Timestep(global_bin_min);
+	intime_t step_bin = (intime_t) 1 << global_bin_min; // step down
+
+	intime_t step_sync = // stay synced if smallest bin becomes empty 
+		(intime_t) 1 << COUNT_TRAILING_ZEROS(Int_Time.Current); 
+
+	if (Int_Time.Current == Int_Time.Beg) // treat beginning, t=0
+		step_sync = step_bin;
 	
-	Int_Time.Step = (intime_t) 1 << global_bin_min;
-	Int_Time.Step = Umin(Int_Time.Step, Int_Time.End - Int_Time.Current);
+	intime_t step_end = Int_Time.End - Int_Time.Current; // don't overstep
+
+	Int_Time.Step = Umin(step_end, Umin(step_bin, step_sync));
 	
 	Int_Time.Next += Int_Time.Step;
-	
+
+	Time.Next = Integer2Physical_Time(Int_Time.Next);
+
+	Time.Step = Time.Next - Time.Current;
+
 	Sig.Fullstep = false;
 
-	if (Int_Time.Current == Int_Time.Full_Step) {
+	if (Int_Time.Current == Int_Time.Next_Full_Step) {
 		
 		Sig.Fullstep = true;
 
-		Int_Time.Full_Step = Umin(Int_Time.End,  
+		Int_Time.Next_Full_Step = Umin(Int_Time.End,  
 				Int_Time.Current + ((intime_t) 1 << global_bin_max) );
-
-		rprintf("Next full step at t = %g, bin = %d \n\n", 
-				Integer2Physical_Time(Int_Time.Full_Step), global_bin_max);
 	}
 
 	if (Int_Time.Current == Int_Time.Beg) // correct beginning
@@ -212,6 +215,9 @@ static void make_active_particle_list()
 {
 	int i = 0;
 
+	#pragma omp single
+	{
+
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 		
 		if (P[ipart].Time_Bin <= Time.Max_Active_Bin)
@@ -221,6 +227,8 @@ static void make_active_particle_list()
 	NActive_Particles = i;
 
 	Assert(NActive_Particles > 0, "No Active Particles, instead %d", i);	
+	
+	}
 
 	return ;
 }
@@ -284,21 +292,25 @@ static void print_timebins()
 	if (Sig.Fullstep)
 		sprintf(fullstep,", Fullstep");
 
-	rprintf("Systemstep %g, NActive %d %s\n"
+	mprintf("Systemstep %g, NActive %d %s\n"
 			"   Bin       nGas        nDM A  dt\n", 
 			Time.Step, NActive_Particles, fullstep );
 
 	for (int i = imax; i > Time.Max_Active_Bin; i--)
-		rprintf("   %2d    %7d     %7d %s  %16.12f \n", 
+		mprintf("   %2d    %7d     %7d %s  %16.12f \n", 
 			i, 0, npart_global[i], " ", Timebin2Timestep(i));
 
 	for (int i = Time.Max_Active_Bin; i >= imin; i--)
-		rprintf("   %2d    %7d     %7d %s  %16.12f \n", 
+		mprintf("   %2d    %7d     %7d %s  %16.12f \n", 
 			i, 0, npart_global[i], "X", Timebin2Timestep(i));
 
 	rprintf("\n");
 	
-	} // omp master
+	if (Sig.Fullstep)
+		rprintf("Next full step at t = %g \n\n", 
+				Integer2Physical_Time(Int_Time.Next_Full_Step));
+
+	} // omp single nowait
 
 	return ;
 }

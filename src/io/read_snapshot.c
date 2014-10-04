@@ -369,14 +369,14 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 
 static void allocate_particle_structures()
 {
-	const double npart_per_task = (double) Sim.Npart_Total / (double) Sim.NRank;
+	const double npart_per_task = (double)Sim.Npart_Total/(double) Sim.NRank;
 
 	Task.Npart_Total_Max = ceil(npart_per_task * PARTALLOCFACTOR);
 
 	for (int i = 0; i < NPARTYPE; i++)
 		Task.Npart_Max[i] = ceil((double)Sim.Npart[i] / (double)Sim.NRank);
 
-	rprintf("\nReserving space for %zu particles per task, factor %g\n", 
+	rprintf("\nReserving space for %llu particles per task, factor %g\n", 
 			Task.Npart_Total_Max, PARTALLOCFACTOR);
 
 	P = Malloc(Task.Npart_Total_Max * sizeof(*P)); // add below

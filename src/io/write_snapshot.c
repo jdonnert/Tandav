@@ -17,11 +17,14 @@ void Write_Snapshot()
 {
 	Profile("Write Snap");
 
+	#pragma omp single
+	{
+	
 	const int nFiles = Param.Num_Output_Files;
 	const int nIOTasks = Param.Num_IO_Tasks;
 
 	int groupSize = Sim.NTask/nFiles; // big last file possible 
-	int groupMaster = MIN(nFiles-1,floor(Task.Rank/groupSize))*groupSize;
+	int groupMaster = MIN(nFiles-1, floor(Task.Rank/groupSize)) * groupSize;
 
 	int groupRank = Task.Rank - groupMaster;
 
@@ -48,7 +51,9 @@ void Write_Snapshot()
 
 	Time.Snap_Counter++;
 
-	rprintf("done\n\n");
+	mprintf("done\n\n");
+	
+	} // omp single
 	
 	Profile("Write Snap");
 

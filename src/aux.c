@@ -97,14 +97,18 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		memmove(&P[dest], &P[src], nMove*sizeof(*P));
 	} 
 
+	#pragma omp parallel 
+	{
+
 	Task.Npart_Total = new_npart_total;
 	
 	for (int type = 0; type < NPARTYPE; type++) // book-keeping
 		Task.Npart[type] = new_npart[type];
+	}
 
 	if (offset_out != NULL) // return ptrs to freed space
 		memcpy(offset_out, offset, NPARTYPE*sizeof(*offset));
-
+	
 	return ;
 }
 

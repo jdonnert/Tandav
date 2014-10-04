@@ -14,39 +14,34 @@ void Drift_To_Sync_Point()
 
 	rprintf("Drift to next Sync Point ... ");
  
-	const double t_next = Integer2Physical_Time(Int_Time.Next);
-	const double dt_max = t_next - Time.Current;
-
-	#pragma omp parallel for
+	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 		
 		int ipart = Active_Particle_List[i];
 
-		//double dt = t_next - Integer2Physical_Time(P[ipart].Int_Time_Pos);
-	double dt = Timebin2Timestep(P[ipart].Time_Bin);
+		double time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
 
-		//dt = fmin(dt, dt_max);
-
-		//dt = fmin(dt, t_next - Time.Current);
-//	if (dt != dt2)
-//		printf("i=%d dt=%g dt2=%g cur=%g nex=%g it=%g\n", ipart, dt, dt2, Time.Current, t_next,
-//				Integer2Physical_Time(P[ipart].Int_Time_Pos));
-
+		double dt = Time.Next - time_part;
+		
 		P[ipart].Pos[0] += 	dt * P[ipart].Vel[0];
 		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1];
 		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2];
 
-		P[ipart].Int_Time_Pos = Int_Time.Next;
 	}
 	
+	#pragma omp single nowait
+	{
+
 	Int_Time.Current += Int_Time.Step;
 
 	Time.Current = Integer2Physical_Time(Int_Time.Current);
 
-	rprintf("done \n");
+	mprintf("done \n");
+	
+	}
 
 	Profile("Drift");
-
+	
 	return;
 }
 
@@ -58,10 +53,10 @@ void Drift_To_Sync_Point()
  */
 
 void Drift_To_Snaptime()
-{return ;
-	rprintf("Drift to next Shapshot Time ...");
+{
+	rprintf("Drift to next Shapshot Time %g \n", Time.Next_Snap);
 
-	#pragma omp parallel for
+	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 		
 		int ipart = Active_Particle_List[i];
@@ -73,10 +68,9 @@ void Drift_To_Snaptime()
 		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1];
 		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2];
 	}
-
-	Time.Current = Time.Next_Snap;
 	
-	rprintf("done \n");
+	#pragma omp single
+	Time.Current = Time.Next_Snap;
 
 	return ;
 }

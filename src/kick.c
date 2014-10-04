@@ -6,28 +6,58 @@
  * accelerations, but kick only for half a timestep 
  */
 
-void Kick_Halfstep() 
+void Kick_First_Halfstep() 
 {
+	Profile("First Kick");
+
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
-		
-		float dt_native = 0.5 * Timebin2Timestep(P[ipart].Time_Bin);
+
+		double time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
 
 #ifdef COMOVING 
-		float dt_grav = 0.5 * Cosmo_Kick_Factor(Sim.Current_Time); // Quinn+97
+		double dt = 0.5 * Cosmo_Kick_Factor(Sim.Current_Time); // Quinn+97
 #else
-		float dt_grav = dt_native;
+		double dt = 0.5 * (Time.Next - time_part);
 #endif // COMOVING
 
-		P[ipart].Vel[0] += dt_grav * P[ipart].Acc[0];
-		P[ipart].Vel[1] += dt_grav * P[ipart].Acc[1]; 
-		P[ipart].Vel[2] += dt_grav * P[ipart].Acc[2];
+		P[ipart].Vel[0] += dt * P[ipart].Acc[0];
+		P[ipart].Vel[1] += dt * P[ipart].Acc[1]; 
+		P[ipart].Vel[2] += dt * P[ipart].Acc[2];
 	}
 	
-	#pragma omp barrier
+	Profile("First Kick");
 
 	return ;
 }
 
+void Kick_Second_Halfstep() 
+{
+	Profile("Second Kick");
+
+	#pragma omp  for
+	for (int i = 0; i < NActive_Particles; i++) {
+
+		int ipart = Active_Particle_List[i];
+
+		double time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
+
+#ifdef COMOVING 
+		double dt = 0.5 * Cosmo_Kick_Factor(Sim.Current_Time); // Quinn+97
+#else
+		double dt = 0.5 * (Time.Next - time_part);
+#endif // COMOVING
+
+		P[ipart].Vel[0] += dt * P[ipart].Acc[0];
+		P[ipart].Vel[1] += dt * P[ipart].Acc[1]; 
+		P[ipart].Vel[2] += dt * P[ipart].Acc[2];
+
+		P[ipart].Int_Time_Pos = Int_Time.Next;
+	}
+	
+	Profile("Second Kick");
+
+	return ;
+}

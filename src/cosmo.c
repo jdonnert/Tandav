@@ -1,6 +1,7 @@
 #include "globals.h"
 
 struct Cosmology_Infos Cosmo = { 0 };
+#pragma omp threadprivate(Cosmo)
 
 double Cosmo_Drift_Factor(double a)
 {

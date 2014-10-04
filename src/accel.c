@@ -15,7 +15,7 @@ void Compute_Acceleration()
 
 	rprintf("Computing Accelerations... ");
 	
-	#pragma omp parallel for 
+	#pragma omp for 
 	for (int i = 0; i < NActive_Particles; i++) {
 		
 		int ipart = Active_Particle_List[i];
@@ -38,9 +38,9 @@ void Compute_Acceleration()
 
 #endif // GRAVITY
 	
-		P[ipart].Acc[0] = accel[0];
-		P[ipart].Acc[1] = accel[1];
-		P[ipart].Acc[2] = accel[2]; 
+		P[ipart].Acc[0] = (Float) accel[0];
+		P[ipart].Acc[1] = (Float) accel[1];
+		P[ipart].Acc[2] = (Float) accel[2]; 
 	}
 	
 	rprintf("done\n");

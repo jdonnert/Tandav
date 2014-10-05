@@ -29,7 +29,7 @@ void Drift_To_Sync_Point()
 
 	}
 	
-	#pragma omp single nowait
+	#pragma omp single 
 	{
 
 	Int_Time.Current += Int_Time.Step;

@@ -1,6 +1,7 @@
 #include "globals.h"
 #include "timestep.h"
 
+
 /* 
  * This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 
  * As a snapshot time may not fall onto an integertime, we have to 
@@ -13,6 +14,15 @@ void Drift_To_Sync_Point()
 	Profile("Drift");
 
 	rprintf("Drift to next Sync Point ... ");
+
+	double time_snap = 0; 
+
+	if (Sig.Drifted_To_Snaptime) {
+
+		Sig.Drifted_To_Snaptime = false;
+	
+		time_snap = Time.Current;
+	}
  
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
@@ -21,6 +31,8 @@ void Drift_To_Sync_Point()
 
 		double time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
 
+		time_part = fmax(time_part, time_snap);
+
 		double dt = Time.Next - time_part;
 		
 		P[ipart].Pos[0] += 	dt * P[ipart].Vel[0];
@@ -28,7 +40,11 @@ void Drift_To_Sync_Point()
 		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2];
 
 	}
-	
+
+#ifdef PERIODIC
+	Constrain_Particles_To_Box();
+#endif // PERIODIC
+
 	#pragma omp single 
 	{
 
@@ -68,9 +84,52 @@ void Drift_To_Snaptime()
 		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1];
 		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2];
 	}
-	
+
+#ifdef PERIODIC
+	Constrain_Particles_To_Box();
+#endif
+
 	#pragma omp single
+	{
+	
+	Sig.Drifted_To_Snaptime = true;
+		
 	Time.Current = Time.Next_Snap;
+	
+	}
 
 	return ;
+}
+
+static void Constrain_Particles_To_Box()
+{
+	const double boxsize[3] = { Sim.Boxsize[0],
+								Sim.Boxsize[1],
+								Sim.Boxsize[2]};
+
+	#pragma omp for
+	for (int i = 0; i < NActive_Particles; i++) {
+		
+		int ipart = Active_Particle_List[i];
+
+		if (P[ipart].Pos[0] < 0)
+			P[ipart] += boxsize[0];
+		
+		if (P[ipart].Pos[0] >= boxsize[0])
+			P[ipart] -= boxsize[0];
+
+		if (P[ipart].Pos[1] < 0)
+			P[ipart] += boxsize[1];
+		
+		if (P[ipart].Pos[1] >= boxsize[1])
+			P[ipart] -= boxsize[1];
+
+		if (P[ipart].Pos[2] < 0)
+			P[ipart] += boxsize[2];
+		
+		if (P[ipart].Pos[2] >= boxsize[2])
+			P[ipart] -= boxsize[2];
+	}
+
+	return
 }

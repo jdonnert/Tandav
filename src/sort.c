@@ -38,19 +38,6 @@
 
 #define STACK_SIZE (CHAR_BIT * sizeof(size_t))  
 
-typedef struct // work queue element that holds partitions
-{
-    char *lo;
-    char *hi;
-} stack_node_char;
-
-typedef struct 
-{
-    size_t *lo;
-    size_t *hi;
-} stack_node_size_t;
-
-
 /* 
  * A shared stack keeps the partition pointers. We assign one thread per 
  * partition until there is a partition for every thread. 
@@ -59,29 +46,33 @@ typedef struct
  * Once the array is presorted the standard qsort lib routine excels 
  */
 
+static struct SharedStackDataChar { // work queue, holding partitions
+    char *lo;
+    char *hi;
+} shared_stack_char[STACK_SIZE] = {{NULL,NULL}};
+
 void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size, 
 		int (*cmp) (const void *, const void *))
 {
 	if (nData < PARALLEL_THRES_QSORT || nThreads == 1) {
-
+		
+		#pragma omp single
 		qsort(data_ptr, nData, size, cmp);
 	
 		return ;
 	}
 
 	/* partition number and size */
-	const int desNumPar = MAX(1, 2 * MIN(nThreads/2, nData/INSERT_THRES/2));
+	const int desNumPar = MAX(1, 2*MIN(nThreads/2, nData/INSERT_THRES/2));
 	
 	/* initial stack node is just the whole array */
-	stack_node_char shared_stack[desNumPar];
-
-	memset(shared_stack, 0, desNumPar*sizeof(*shared_stack));
-
-	shared_stack[0].lo = (char *)data_ptr; 
-	shared_stack[0].hi = &((char *)data_ptr)[size * (nData - 1)];
-
-	#pragma omp parallel shared(shared_stack) num_threads(nThreads)
+	#pragma omp single 
 	{
+
+	shared_stack_char[0].lo = (char *)data_ptr; 
+	shared_stack_char[0].hi = &((char *)data_ptr)[size * (nData - 1)];
+
+	} // omp single
 
 	int delta = desNumPar << 1;
 
@@ -92,8 +83,8 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 		#pragma omp for schedule (static,1)
 		for (int j = 0; j < desNumPar; j += delta) {
 
-			char *lo = shared_stack[j].lo; // pop from stack
-			char *hi = shared_stack[j].hi;
+			char *lo = shared_stack_char[j].lo; // pop from stack
+			char *hi = shared_stack_char[j].hi;
 
 			/* Find pivot element from median and sort the three. 
 			 * That helps to prevent the n^2 worst case */
@@ -148,27 +139,25 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 	
 			/* Push next iterations / partitions to the shared stack */
 			
-			shared_stack[j].lo = lo;
-			shared_stack[j].hi = right_ptr;
+			shared_stack_char[j].lo = lo;
+			shared_stack_char[j].hi = right_ptr;
 	
-			shared_stack[j + (delta>>1)].lo = left_ptr;
-			shared_stack[j + (delta>>1)].hi = hi;
+			shared_stack_char[j + (delta>>1)].lo = left_ptr;
+			shared_stack_char[j + (delta>>1)].hi = hi;
 		} // j
     } // while
 
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < desNumPar; i++) { // serial sort on subpartitions
 
-		const char *hi = shared_stack[i].hi;
-		const char *lo = shared_stack[i].lo;
+		const char *hi = shared_stack_char[i].hi;
+		const char *lo = shared_stack_char[i].lo;
 
 		size_t partition_size = (hi - lo + 1) / size;
 
 		qsort((void *) lo, partition_size, size, cmp); // hard to beat
 	} // i
 
-	} // omp parallel
-	
 	return ;
 }
 
@@ -186,34 +175,41 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
  * are comparing ONLY to the data array indexed by *perm 
  */
 
+static struct SharedStackDataSizeT {
+    size_t *lo;
+    size_t *hi;
+} shared_stack_sizet[STACK_SIZE];
+
 void Qsort_Index(const int nThreads, size_t *perm, void *const data, 
 		const int nData, const size_t datasize, 
 		int (*cmp) (const void *, const void *))
 {
 	if (nData < PARALLEL_THRES_HEAPSORT) { // serial GSL is faster
 	
+		#pragma omp single
 		gsl_heapsort_index(perm, data, nData, datasize, cmp); 
 		
 		return ;
 	}
 
+	#pragma omp for
 	for (size_t i = 0; i < nData; i++ ) 
 		perm[i] = i; 
 
 	const int desNumPar = MIN(nThreads, floor(nData/INSERT_THRES));
 
-	stack_node_size_t shared_stack[desNumPar]; 
-
-	for (int i = 0; i < desNumPar; i++ ) // init !
-		shared_stack[i].lo = shared_stack[i].hi = perm;
-
-	shared_stack[0].lo = perm;  
-	shared_stack[0].hi = &perm[nData - 1];
-
-#pragma omp parallel shared(shared_stack) num_threads(nThreads)
+	#pragma omp single
 	{
 
-	int delta = desNumPar << 1; // twice the distance of entries in shared_stack
+	shared_stack_sizet[0].lo = perm;  
+	shared_stack_sizet[0].hi = &perm[nData - 1];
+
+	for (int i = 1; i < STACK_SIZE; i++) // init !
+		shared_stack_sizet[i].lo = shared_stack_sizet[i].hi = perm;
+
+	} // omp single
+
+	int delta = desNumPar << 1; //twice the distance of entries in shared stack
 
 	/* First stage: subpartitions, roughly NThreads */
 	
@@ -224,8 +220,8 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 		#pragma omp for schedule(static,1)
 		for (int i = 0; i < desNumPar; i += delta) { 
 
-			size_t *lo = shared_stack[i].lo; 
-			size_t *hi = shared_stack[i].hi;
+			size_t *lo = shared_stack_sizet[i].lo; 
+			size_t *hi = shared_stack_sizet[i].hi;
 
 			if (hi - lo < 2) 
 				continue;
@@ -277,20 +273,20 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 			} while (left <= right);
 
-			shared_stack[i].lo = lo; // Push to replace old position
-			shared_stack[i].hi = right;
+			shared_stack_sizet[i].lo = lo; // Push to replace old position
+			shared_stack_sizet[i].hi = right;
 	
-			shared_stack[i + (delta>>1)].lo = left; // Push for next thread
-			shared_stack[i + (delta>>1)].hi = hi;
+			shared_stack_sizet[i + (delta>>1)].lo = left; //Push for next
+			shared_stack_sizet[i + (delta>>1)].hi = hi;
 		} // j
     } // while
 
 	/* Second stage, every thread: Qsort on subpartition *beg to *end */
 
-	size_t *beg = shared_stack[Task.Thread_ID].lo;
-	size_t *end = shared_stack[Task.Thread_ID].hi;
+	size_t *beg = shared_stack_sizet[Task.Thread_ID].lo;
+	size_t *end = shared_stack_sizet[Task.Thread_ID].hi;
 
-	stack_node_size_t stack[STACK_SIZE] = { { NULL, NULL } }; 
+	struct SharedStackDataSizeT stack[STACK_SIZE] = { { NULL, NULL } }; 
 
 	int next = 0; 
 
@@ -430,8 +426,6 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 		}
 	} // while
 
-	} // omp parallel
-	
 	return;
 }
 

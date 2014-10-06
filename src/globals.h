@@ -44,8 +44,6 @@ extern struct Global_Simulation_Properties {
 	double Boxsize[3];			// Now in 3D !
 } Sim;
 
-
-
 extern struct Parameters_From_File {
 	char File[CHARBUFSIZE]; 	// parameter file name
 	char Input_File[CHARBUFSIZE];
@@ -62,16 +60,16 @@ extern struct Parameters_From_File {
 extern struct Particle_Data {
 	int Type;
 	int Time_Bin;
-	intime_t Int_Time_Pos;
+	intime_t Int_Time_Pos;		// position on integer timeline
 	peanoKey Peanokey;
 	Float Pos[3];
 	Float Vel[3];
 	Float Acc[3];
 	Float Mass;
+	ID_t ID; // add below 
 #ifdef GRAVITY_POTENTIAL
 	Float Grav_Pot;
 #endif
-	ID_t ID; // add below 
 } *P;
 
 #endif // GLOBALS_H

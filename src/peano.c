@@ -14,13 +14,25 @@ int compare_peanokeys(const void * a, const void *b)
 	return (int) (*x - *y);
 }
 
+peanoKey *keys = NULL;
+size_t *idx = NULL;
+
 void Sort_Particles_By_Peano_Key()
 {
 	const int npart = Task.Npart_Total;
 
-	peanoKey *keys = Malloc(Task.Npart_Total_Max * sizeof(*keys));
+	#pragma omp single
+	{
 
-	#pragma omp parallel for
+	if (keys == NULL)
+		keys = Malloc(Task.Npart_Total_Max * sizeof(*keys));
+	
+	if (idx == NULL)
+		idx = Malloc(Task.Npart_Total_Max * sizeof(*idx));
+	
+	} // omp single
+
+	#pragma omp for
 	for (int ipart = 0; ipart < npart; ipart++) {
 
 		keys[ipart] = Peano_Key( P[ipart].Pos[0], P[ipart].Pos[1], 
@@ -28,8 +40,6 @@ void Sort_Particles_By_Peano_Key()
 
 		P[ipart].Peanokey = keys[ipart];
 	}
-
-	size_t *idx = Malloc(Task.Npart_Total_Max * sizeof(*idx));
 	
 	Qsort_Index(Sim.NThreads, idx, keys, npart, sizeof(*keys), 
 			&compare_peanokeys); 

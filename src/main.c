@@ -30,7 +30,12 @@ int main(int argc, char *argv[])
 
 	for (;;) { // run, Forest, run !
 
+		if (Time_Is_Up())
+			break;
+
 		#pragma omp barrier
+
+		Update(BEFORE_STEP);
 
 		Set_New_Timesteps();
 
@@ -46,11 +51,6 @@ int main(int argc, char *argv[])
 		Compute_Acceleration();
 
 		Kick_Second_Halfstep();
-	
-		Update(AFTER_SECOND_KICK);
-
-		if (Time_Is_Up())
-			break;
 	}
 
 	} // omp parallel 

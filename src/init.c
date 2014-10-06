@@ -51,6 +51,10 @@ void Read_and_Init()
 		break;
 	}
 	
+#ifdef PERIODIC
+	Constrain_Particles_To_Box();
+#endif
+
 	return ;
 }
 

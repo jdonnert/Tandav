@@ -19,7 +19,7 @@ struct TimeData {
 	int NSnap;				// expected number of snapshot
 } Time;
 
-struct IntergerTimeLine {
+struct IntegerTimeLine {
 	intime_t Beg;		// beginning of integer timeline
 	intime_t Current;	// current point on integer timeline
 	intime_t Next;		// next point on interger timeline

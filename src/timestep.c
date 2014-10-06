@@ -18,6 +18,7 @@ static void print_timebins();
 static float cosmological_timestep(const int ipart);
 
 struct TimeData Time = { 0 };
+struct IntegerTimeLine Int_Time = { 0 };
 
 /* 
  * All active particles get a new step that is smaller than or equal to 

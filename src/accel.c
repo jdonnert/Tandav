@@ -13,7 +13,7 @@ void Compute_Acceleration()
 {
 	Profile("Accelerations");
 
-	rprintf("Computing Accelerations... ");
+	rprintf("Computing Accelerations ... ");
 	
 	#pragma omp for 
 	for (int i = 0; i < NActive_Particles; i++) {

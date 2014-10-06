@@ -1,5 +1,7 @@
 This is the Style Guide :
 
+* Read Kernighan & Pike: "The practice of programming"
+
 * IF the code is broader than 79 characters, you are doing it wrong.
 	The rationale is that broad code is hard to read. This can usually be
 	solved by introducing new variables, which the compiler might later
@@ -17,8 +19,8 @@ This is the Style Guide :
 	can not always be avoided, proper modularisation and shorter local variable
 	names should make this rarely a problem.
 
-* We indent like the Linux kernel - Linus is right.
-	You can't argue about taste.
+* We format like the Linux kernel - Linus is right,
+  but a tab is just 4 spaces.
 
 * Variables are initialised when declared. 
 	Index vars are the obvious exception. This saves lines and the declaration 
@@ -35,7 +37,7 @@ This is the Style Guide :
 	scope ("static X" outside of a function). Code-wide variables should be
 	embedded in the existing structures, if possible.
 
-* Local variables are short, hungarian and start with a small letter.
+* Local variables are short and start with a small letter.
 	Again scope should be visible. Short names make it easy to code
 	efficiently and stay readable.
 
@@ -48,9 +50,9 @@ This is the Style Guide :
     off. Here global variables are in globals.h and prototypes are in proto.h.
     This ensures modularisation, whereever possible !
 
-* Constants are macros, have unique long descriptive capitalised names
+* Constants in CGSM are macros, have unique long descriptive capitalised names
 	There is no elegant alternative to this in pure C. Don't forget to bracket
-	everything thats not a one word constant, or division may fail.
+	everything that's not a one word constant, or division may fail.
 	E.g. :
 		#define SPEED_OF_LIGHT 3e10
 		#define ELECTRON_REST_MASS_ENERGY (me*c*c)
@@ -60,6 +62,8 @@ This is the Style Guide :
 
     This solves the naming problem and lets you write equations that look like
     math.
+	Constants in Code units can be found in the Const structure, which is 
+	initialised from the macros.
 
 * Comments are // on the side, /* */ on the line.
 	Saves lines, increases readability.
@@ -71,7 +75,9 @@ This is the Style Guide :
 * Bitmasks are set in hex format : int a = 0x0A;
 * mark what you are closing in preprocessor macros : #endif // PMGRID
 * write in C99
-* inline functions should not contain if () statements depending on function input. The compiler does not always treat this correctly. Keep them short as well.
-* All integers are int for simplicity, if there is no good reason. Otherwise use int64_t, uint64_t etc. long and int are architecture dependent :-(
+* inline functions should not contain if () statements depending on function input. 
+  The compiler does not always treat this correctly. Keep them short as well.
+* All integers are int for simplicity, if there is no good reason. Otherwise 
+  use int64_t, uint32_t etc. long and int are architecture dependent :-(
 
 

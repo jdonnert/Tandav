@@ -106,30 +106,29 @@ static void Constrain_Particles_To_Box()
 	const double boxsize[3] = { Sim.Boxsize[0],
 								Sim.Boxsize[1],
 								Sim.Boxsize[2]};
-
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 		
 		int ipart = Active_Particle_List[i];
 
 		if (P[ipart].Pos[0] < 0)
-			P[ipart] += boxsize[0];
+			P[ipart].Pos[0] += boxsize[0];
 		
 		if (P[ipart].Pos[0] >= boxsize[0])
-			P[ipart] -= boxsize[0];
+			P[ipart].Pos[0] -= boxsize[0];
 
 		if (P[ipart].Pos[1] < 0)
-			P[ipart] += boxsize[1];
+			P[ipart].Pos[1] += boxsize[1];
 		
 		if (P[ipart].Pos[1] >= boxsize[1])
-			P[ipart] -= boxsize[1];
+			P[ipart].Pos[1] -= boxsize[1];
 
 		if (P[ipart].Pos[2] < 0)
-			P[ipart] += boxsize[2];
+			P[ipart].Pos[2] += boxsize[2];
 		
 		if (P[ipart].Pos[2] >= boxsize[2])
-			P[ipart] -= boxsize[2];
+			P[ipart].Pos[2] -= boxsize[2];
 	}
 
-	return
+	return ;
 }

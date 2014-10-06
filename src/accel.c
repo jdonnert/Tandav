@@ -35,7 +35,6 @@ void Compute_Acceleration()
 #ifdef GRAVITY_POTENTIAL
 		P[ipart].Grav_Pot = grav_potential;
 #endif // GRAVITY_POTENTIAL
-
 #endif // GRAVITY
 	
 		P[ipart].Acc[0] = (Float) accel[0];
@@ -46,6 +45,8 @@ void Compute_Acceleration()
 	rprintf("done\n");
 
 	Profile("Accelerations");
+
+	#pragma omp barrier
 
 	return ;
 }

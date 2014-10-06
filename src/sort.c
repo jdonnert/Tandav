@@ -197,7 +197,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 		perm[i] = i; 
 
 	const int desNumPar = MIN(nThreads, floor(nData/INSERT_THRES));
-
+	
 	#pragma omp single
 	{
 

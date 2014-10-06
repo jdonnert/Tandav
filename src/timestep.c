@@ -124,8 +124,10 @@ static void set_particle_timebins(int *bin_max, int *bin_min)
 	
 	#pragma omp critical // reduction
 	{
+
 	*bin_min = MIN(local_bin_min, *bin_min);
 	*bin_max = MAX(local_bin_max, *bin_max);
+	
 	}
 	#pragma omp barrier
 

@@ -7,7 +7,7 @@ GRAVITY_POTENTIAL	// compute gravitational potential
 GRAV_SOFTENING 30 	// gravitational softening length 
 
 #COMOVING			// time integration in comoving coordinates
-TIME_INT_ACCURACY 0.1	// std 0.05, time step parameter
+TIME_INT_ACCURACY 0.05	// std 0.05, time step parameter
 
 #### OUTPUT OPTIONS ####
 

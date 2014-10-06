@@ -42,4 +42,3 @@ const struct Constants_In_Code_Units {
 	double Hydrogen_Fraction;
 	double Helium_Fraction;
 } Const; 
-#pragma omp threadprivate(Const)

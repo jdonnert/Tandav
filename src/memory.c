@@ -56,13 +56,14 @@ void *Malloc_info(const char* file, const char* func, const int line,
 	}
 
 	memset(Mem_Block[i].Start, 0, Mem_Block[i].Size);
-	
+		
 	return Mem_Block[i].Start;
 }
 
 void *Realloc_info(const char* file, const char* func, const int line, 
 		void *ptr, size_t new_size)
 {
+
 	if (ptr == NULL) 
 		return Malloc_info(file, func, line, new_size);
 
@@ -70,6 +71,7 @@ void *Realloc_info(const char* file, const char* func, const int line,
 		new_size = (new_size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
 
 	const int i = find_memory_block_from_ptr(ptr);
+
 	int i_return = i; 
 
 	if (i == NMem_Blocks-1) { // enlarge last block
@@ -104,6 +106,9 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 void Free_info(const char* file, const char* func, const int line, void *ptr) 
 {
+	#pragma omp critical
+	{
+	
 	Warn(ptr == NULL, "You tried to free a NULL pointer in file "
 		"%s, function %s() : %d\n", file, func, line);
 
@@ -117,6 +122,8 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 	Mem_Block[i].Line = 0;
 
 	merge_free_memory_blocks(i);
+	
+	}
 
 	return ;
 }

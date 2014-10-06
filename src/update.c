@@ -3,7 +3,6 @@
 #include "accel.h"
 #include "timestep.h"
 #include "io/io.h"
-#include "peano.h"
 
 static void find_global_boxsize();
 		
@@ -19,13 +18,12 @@ void Update(enum Update_Parameters stage)
 #ifndef PERIODIC
 		find_global_boxsize();
 #endif
+
 		Sort_Particles_By_Peano_Key();
 		
 		Compute_Acceleration();
 		
 		Print_Memory_Usage();
-
-		#pragma omp barrier
 
 		if (Time.Begin == Time.Next_Snap) { 
 

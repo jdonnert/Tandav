@@ -59,6 +59,7 @@ extern struct Parameters_From_File {
 
 extern struct Particle_Data {
 	int Type;
+	int Idx;
 	int Time_Bin;
 	intime_t Int_Time_Pos;		// position on integer timeline
 	peanoKey Peanokey;

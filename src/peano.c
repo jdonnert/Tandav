@@ -1,10 +1,13 @@
+/* 
+ * Here we compute the peano keys and reorder the particles
+ */
+
 #include "globals.h"
 #include "peano.h"
 #include "sort.h"
 
-/* 
- * Here we compute the peano keys and reorder the particles
- */
+static peanoKey *keys = NULL;
+static size_t *idx = NULL;
 
 int compare_peanokeys(const void * a, const void *b)
 {
@@ -14,13 +17,12 @@ int compare_peanokeys(const void * a, const void *b)
 	return (int) (*x - *y);
 }
 
-static peanoKey *keys = NULL;
-static size_t *idx = NULL;
-
 void Sort_Particles_By_Peano_Key()
 {
+	Profile("Peano-Hilbert order");
+
 	const int npart = Task.Npart_Total;
-	
+
 	#pragma omp single
 	{
 
@@ -53,6 +55,10 @@ void Sort_Particles_By_Peano_Key()
 	Qsort_Index(Sim.NThreads, idx, keys, npart, sizeof(*keys), 
 			&compare_peanokeys); 
 
+	#pragma omp for 
+	for (int i = 0; i < NActive_Particles; i++)
+		Active_Particle_List[i] = idx[Active_Particle_List[i]];
+
 	#pragma omp single
 	{
 
@@ -61,28 +67,30 @@ void Sort_Particles_By_Peano_Key()
         if (idx[i] == i)
             continue;
 
-		int dest = i;
+		struct Particle_Data Psrc = P[i];
 
-        struct Particle_Data Ptmp = P[dest];
-		int src = idx[i];
+		int src = i;
+		int dest = idx[i];
 
         for (;;) {
 
-			memcpy(&P[dest], &P[src], sizeof(*P));
-            idx[dest] = dest;
+			struct Particle_Data Ptmp = P[dest];
+			int idxtmp = idx[dest];
 
-			dest = src;
-			src = idx[dest];
+			P[dest] = Psrc;
+			idx[dest] = src;
 
-            if (src == i) 
+            if (dest == i) 
                 break;
-        }
 
-		memcpy(&P[dest], &Ptmp, sizeof(*P));
-        idx[dest] = dest;
+			Psrc = Ptmp;
+			src = dest = idxtmp;
+        }
     }
 
 	} // omp single
+	
+	Profile("Peano-Hilbert order");
 
 	return ;
 }

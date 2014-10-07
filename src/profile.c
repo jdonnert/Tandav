@@ -112,14 +112,14 @@ void Profile_Report(FILE *stream)
 		scale *= 60; // min
 
 		fprintf(stream, "\nProfiler: All sections, total runtime of %g min\n"
-		"                Name       Total  Tot Imbal           Max      "
-		"Mean      Min      Imbal\n", runtime);
+		"                Name       Total    Imbalance         Max      "
+		"Mean       Min      Imbal\n", runtime);
 
 	} else { 
 
 		fprintf(stream, "\nProfiler: All sections, total runtime of %g sec\n"
-		"                Name       Total  Tot Imbal           Max      "
-		"Mean      Min      Imbal\n", runtime*60);
+		"                Name       Total    Imbalance         Max      "
+		"Mean       Min      Imbal\n", runtime*60);
 	}
 
 	for (int i = 0; i < NProfObjs; i++ )

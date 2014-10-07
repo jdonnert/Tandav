@@ -6,8 +6,10 @@
 
 static void find_global_boxsize();
 		
-/* provide a consistent way of updating/calling different parts 
- * of the code from the main loop without cluttering */
+/* 
+ * provide a consistent way of updating/calling different parts 
+ * of the code from the main loop
+ */
 
 void Update(enum Update_Parameters stage) 
 {
@@ -93,7 +95,7 @@ static void find_global_boxsize()
 	Sim.Boxsize[1] *= 2;
 	Sim.Boxsize[2] *= 2;
 	
-	}
+	} // omp single
 
 	return ;
 }

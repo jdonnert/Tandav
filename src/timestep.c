@@ -8,11 +8,13 @@
  */
 #define N_INT_BINS (sizeof(intime_t) * CHAR_BIT) 
 
+void Make_Active_Particle_List();
+
+
 static int max_active_time_bin();
 static void set_particle_timebins(int *bin_max, int *bin_min);
 static void set_global_timestep(const int, const int);
 static int timestep2timebin(const double dt);
-static void make_active_particle_list();
 static void print_timebins();
 
 static float cosmological_timestep(const int ipart);
@@ -52,7 +54,7 @@ void Set_New_Timesteps()
 
 	} // omp single
 
-	make_active_particle_list();
+	Make_Active_Particle_List();
 
 #ifndef COMOVING
 	rprintf("\nStep <%d> t = %g -> %g\n\n", 
@@ -214,7 +216,7 @@ void Setup_Time_Integration()
 	return ;
 }
 
-static void make_active_particle_list()
+void Make_Active_Particle_List()
 {
 	int i = 0;
 

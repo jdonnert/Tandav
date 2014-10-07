@@ -2,6 +2,23 @@
 ;for i =0,25 do begin & density_profile, snap=i & wait, 0.2 & end
 ;for i =0,25 do begin & potential_profile, snap=i & wait, 0.2 & end
 
+pro show_halo, snap=snap
+
+	common globals, tandav, cosmo
+
+	if not keyword_set(snap) then $
+		snap = 0
+	
+	fname = 'snap_'+strn(snap, len=3, padc='0')
+
+	pos = tandav.readsnap(fname, 'POS', head=head)
+
+	plot, pos[0,*], pos[1,*], psym=3, /iso, $
+		xrange=[-1e4,1d4], yrange=[-1e4,1d4]
+
+	return
+end
+
 pro density_profile, snap=snap
 	
 	; we expect a little evolution here, because f(E) in the ICs 

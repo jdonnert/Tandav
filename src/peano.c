@@ -1,15 +1,15 @@
 /* 
- * Here we compute the peano keys and reorder the particles
+ * Here we compute the peano Keys and reorder the particles
  */
 
 #include "globals.h"
 #include "peano.h"
 #include "sort.h"
 
-static peanoKey *keys = NULL;
-static size_t *idx = NULL;
+static peanoKey *Keys = NULL;
+static size_t *Idx = NULL;
 
-int compare_peanokeys(const void * a, const void *b)
+int compare_peanoKeys(const void * a, const void *b)
 {
 	const peanoKey *x = (const peanoKey*)a;
 	const peanoKey *y = (const peanoKey*)b;
@@ -17,25 +17,44 @@ int compare_peanokeys(const void * a, const void *b)
 	return (int) (*x - *y);
 }
 
+static void compute_peano_keys();
+static void reorder_particles();
+
 void Sort_Particles_By_Peano_Key()
 {
 	Profile("Peano-Hilbert order");
 
-	const int npart = Task.Npart_Total;
-
 	#pragma omp single
 	{
 
-	if (keys == NULL)
-		keys = Malloc(Task.Npart_Total_Max * sizeof(*keys));
+	if (Keys == NULL)
+		Keys = Malloc(Task.Npart_Total_Max * sizeof(*Keys));
 	
-	if (idx == NULL)
-		idx = Malloc(Task.Npart_Total_Max * sizeof(*idx));
+	if (Idx == NULL)
+		Idx = Malloc(Task.Npart_Total_Max * sizeof(*Idx));
 	
 	} // omp single
 
+	compute_peano_keys();
+
+	Qsort_Index(Sim.NThreads, &Idx[0], &Keys[0], Task.Npart_Total, sizeof(*Keys), 
+			&compare_peanoKeys); 
+
+	#pragma omp for 
+	for (int i = 0; i < NActive_Particles; i++)
+		Active_Particle_List[i] = Idx[Active_Particle_List[i]];
+
+	reorder_particles();
+	
+	Profile("Peano-Hilbert order");
+
+	return ;
+}
+
+static void compute_peano_keys()
+{
 	#pragma omp for
-	for (int ipart = 0; ipart < npart; ipart++) {
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
 		float x = P[ipart].Pos[0];
 		float y = P[ipart].Pos[1];
@@ -47,54 +66,45 @@ void Sort_Particles_By_Peano_Key()
 		z += Sim.Boxsize[2] * 0.5;
 #endif
 
-		keys[ipart] = Peano_Key(x,y,z, Sim.Boxsize);
+		Keys[ipart] = Peano_Key(x,y,z, Sim.Boxsize);
 
-		P[ipart].Peanokey = keys[ipart];
+		P[ipart].Peanokey = Keys[ipart];
 	}
 
-	Qsort_Index(Sim.NThreads, idx, keys, npart, sizeof(*keys), 
-			&compare_peanokeys); 
+	return ;
+}
 
-	#pragma omp for 
-	for (int i = 0; i < NActive_Particles; i++)
-		Active_Particle_List[i] = idx[Active_Particle_List[i]];
+static void reorder_particles()
+{
+	#pragma omp single 
+	for (int i = 0; i < Task.Npart_Total; i++) {
 
-	#pragma omp single
-	{
-
-	for (int i = 0; i < npart; i++) {
-
-        if (idx[i] == i)
+        if (Idx[i] == i)
             continue;
 
 		struct Particle_Data Psrc = P[i];
 
 		int src = i;
-		int dest = idx[i];
+		int dest = Idx[i];
 
         for (;;) {
 
 			struct Particle_Data Ptmp = P[dest];
-			int idxtmp = idx[dest];
+			int Idxtmp = Idx[dest];
 
 			P[dest] = Psrc;
-			idx[dest] = src;
+			Idx[dest] = src;
 
             if (dest == i) 
                 break;
 
 			Psrc = Ptmp;
-			src = dest = idxtmp;
+			src = dest = Idxtmp;
         }
     }
 
-	} // omp single
-	
-	Profile("Peano-Hilbert order");
-
 	return ;
 }
-
 
 /* 
  * Construct 64 bit Peano-Hilbert distance in 3D 

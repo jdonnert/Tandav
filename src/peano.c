@@ -6,19 +6,20 @@
 #include "peano.h"
 #include "sort.h"
 
+#include <gsl/gsl_heapsort.h>
 static peanoKey *Keys = NULL;
 static size_t *Idx = NULL;
 
 int compare_peanoKeys(const void * a, const void *b)
 {
-	const peanoKey *x = (const peanoKey*)a;
-	const peanoKey *y = (const peanoKey*)b;
+	const peanoKey *x = (const peanoKey *) a;
+	const peanoKey *y = (const peanoKey *) b;
 
-	return (int) (*x - *y);
+	return (int) (*x > *y) - (*x < *y);
 }
 
 static void compute_peano_keys();
-static void reorder_particles();
+static void reorder_collisionless_particles();
 
 void Sort_Particles_By_Peano_Key()
 {
@@ -37,15 +38,13 @@ void Sort_Particles_By_Peano_Key()
 
 	compute_peano_keys();
 
-	Qsort_Index(Sim.NThreads, &Idx[0], &Keys[0], Task.Npart_Total, sizeof(*Keys), 
-			&compare_peanoKeys); 
+	Qsort_Index(Sim.NThreads, Idx, Keys, Task.Npart_Total, sizeof(*Keys), 
+			&compare_peanoKeys);
 
-	#pragma omp for 
-	for (int i = 0; i < NActive_Particles; i++)
-		Active_Particle_List[i] = Idx[Active_Particle_List[i]];
-
-	reorder_particles();
+	reorder_collisionless_particles();
 	
+	Make_Active_Particle_List();
+
 	Profile("Peano-Hilbert order");
 
 	return ;
@@ -66,41 +65,42 @@ static void compute_peano_keys()
 		z += Sim.Boxsize[2] * 0.5;
 #endif
 
-		Keys[ipart] = Peano_Key(x,y,z, Sim.Boxsize);
-
-		P[ipart].Peanokey = Keys[ipart];
+		P[ipart].Peanokey = Keys[ipart] = Peano_Key(x,y,z, Sim.Boxsize);
 	}
 
 	return ;
 }
 
-static void reorder_particles()
+static void reorder_collisionless_particles()
 {
 	#pragma omp single 
-	for (int i = 0; i < Task.Npart_Total; i++) {
+	for (size_t i = Task.Npart[0]; i < Task.Npart_Total; i++) {
 
         if (Idx[i] == i)
             continue;
 
-		struct Particle_Data Psrc = P[i];
+		size_t dest = i;
 
-		int src = i;
-		int dest = Idx[i];
+		struct Particle_Data Ptmp = P[i];
+
+		size_t src = Idx[i];
 
         for (;;) {
 
-			struct Particle_Data Ptmp = P[dest];
-			int Idxtmp = Idx[dest];
+			P[dest] = P[src];
 
-			P[dest] = Psrc;
-			Idx[dest] = src;
+			Idx[dest] = dest;
 
-            if (dest == i) 
+			dest = src;
+
+			src = Idx[dest];
+
+            if (src == i) 
                 break;
-
-			Psrc = Ptmp;
-			src = dest = Idxtmp;
         }
+
+		P[dest] = Ptmp;
+		Idx[dest] = dest;
     }
 
 	return ;

@@ -4,7 +4,8 @@
 #include <stdlib.h> 		// system       
 #include <stdio.h>
 #include <stdint.h>
-#include <stdarg.h>
+#include <stdarg.h> 
+#include <inttypes.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>

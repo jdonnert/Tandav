@@ -116,7 +116,7 @@ pro conservation
 
 	common globals, tandav, cosmo
 
-	nsnap = 290
+	nsnap = 200
 
 	X = make_array(nsnap, val=0D)
 	Y = make_array(nsnap, val=0D)

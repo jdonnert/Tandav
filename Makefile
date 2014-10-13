@@ -57,17 +57,18 @@ EXEC = Tandav
 
 SRCDIR = src/
 
-# do not add a ".c" file here, or "make clean" will send it into the abyss
-OBJFILES = main.o aux.o cosmo.o domain.o update.o print_settings.o drift.o \
-		init.o kick.o setup.o timestep.o tree.o unit.o memory.o profile.o \
-		sort.o finish.o peano.o accel.o constants.o log.o signal.o comov.o \
-	   	io/io.o io/read_snapshot.o io/write_snapshot.o io/rw_parameter_file.o \
-		io/write_restart_file.o io/read_restart_file.o
+SRCFILES = main.c aux.c cosmo.c domain.c update.c print_settings.c drift.c \
+		init.c kick.c setup.c timestep.c tree.c unit.c memory.c profile.c \
+		sort.c finish.c peano.c accel.c constants.c log.c signal.c comov.c \
+	   	io/io.c io/read_snapshot.c io/write_snapshot.c io/rw_parameter_file.c \
+		io/write_restart_file.c io/read_restart_file.c
 
 INCLFILES = config.h globals.h tree.h cosmo.h unit.h aux.h macro.h proto.h \
 	    memory.h profile.h io/io.h constants.h kick.h setup.h update.h \
 		drift.h tree.h timestep.h peano.h accel.h log.h signal.h  comov.h \
 		../Makefile ../Config
+
+OBJFILES = $(SRCFILES:.c=.o)
 
 OBJS = $(addprefix $(SRCDIR),$(OBJFILES))
 INCS = $(addprefix $(SRCDIR),$(INCLFILES))

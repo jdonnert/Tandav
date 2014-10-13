@@ -125,9 +125,8 @@ void Assert_Info(const char *func, const char *file, int line,
 
 	va_start(varArgList, errmsg);
 
-	fprintf(stderr, "\nERROR Task %d, MPI Rank %d Thread %d: \n"
-			"      In file %s, function %s(), line %d :\n\n	", 
-			Task.Rank, Task.MPI_Rank, Task.Thread_ID, file, func, line);
+	fprintf(stderr, "\nERROR (%d, %d, %d) %s : %d : %s() :\n\n	", 
+			Task.Rank, Task.MPI_Rank, Task.Thread_ID, file, line , func);
 
 	vfprintf(stderr, errmsg, varArgList); 
 	

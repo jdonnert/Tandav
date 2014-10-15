@@ -6,7 +6,7 @@ pro make_ICs
 
 	seed = 14041981L
 
-	npart = 1e4
+	npart = 2e4
 
 	mass = 1d15 * Msol / tandav.mass ; code units 
 	a_hernq = 924D 		

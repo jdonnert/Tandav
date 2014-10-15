@@ -1,7 +1,7 @@
 #include "globals.h"
 #include "timestep.h"
 
-#define MAXPROFILEITEMS 99		// Max number of profiling marks
+#define MAXPROFILEITEMS 64		// Max number of profiling marks
 
 static struct Profiling_Object {
 	char Name[CHARBUFSIZE];
@@ -13,7 +13,7 @@ static struct Profiling_Object {
 	double Max;			// Max Time spend here by a CPU
 	double Mean;		// Mean Time spend here by all CPUs
 	double Imbalance;	// Time wasted waiting for the slowest CPU
-} Prof[MAXPROFILEITEMS];
+} Prof[MAXPROFILEITEMS] = { {"",0} };
 
 static int NProfObjs = 0;
 static double Last_Report_Call = 0;
@@ -23,8 +23,6 @@ static double measure_time();
 
 void Init_Profiler()
 {
-	memset(Prof, 0, sizeof(*Prof) * MAXPROFILEITEMS);
-
 	Profile("Whole Run");
 
 	Last_Report_Call = measure_time();
@@ -54,6 +52,8 @@ void Profile_Info(const char* file, const char* func, const int line,
 		strncpy(Prof[i].Name, name, CHARBUFSIZE);
 
 		NProfObjs++;
+
+		mprintf("\n%s ... ", name);
 	}		
 	
 	if (Prof[i].Tbeg != 0) { // stop
@@ -109,7 +109,7 @@ void Profile_Report(FILE *stream)
 
 	if (runtime > 1) { // switch to minutes ?
 
-		scale *= 60; // min
+		scale *= 60;
 
 		fprintf(stream, "\nProfiler: All sections, total runtime of %g min\n"
 		"                Name       Total    Imbalance         Max      "

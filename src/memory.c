@@ -189,7 +189,7 @@ void Print_Memory_Usage()
 			
 			mem_Cumulative += Mem_Block[i].Size;
 
-			printf("    %d   %d    %11p  %6f    %6f"
+			printf("    %d   %d    %11p     %6f    %6f"
 				"  %35s()  %s:%d\n",
 				i,Mem_Block[i].In_Use, Mem_Block[i].Start, 
 				(double) Mem_Block[i].Size/1024/1024, 

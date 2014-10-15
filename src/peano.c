@@ -74,6 +74,7 @@ static void compute_peano_keys()
 static void reorder_collisionless_particles()
 {
 	#pragma omp single 
+	{
 	for (size_t i = Task.Npart[0]; i < Task.Npart_Total; i++) {
 
         if (Idx[i] == i)
@@ -101,7 +102,9 @@ static void reorder_collisionless_particles()
 
 		P[dest] = Ptmp;
 		Idx[dest] = dest;
-    }
+    } // for i
+	
+	} // omp single
 
 	return ;
 }

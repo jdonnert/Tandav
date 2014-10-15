@@ -13,8 +13,6 @@ void Compute_Acceleration()
 {
 	Profile("Accelerations");
 
-	rprintf("Computing Accelerations ... ");
-	
 	#pragma omp for 
 	for (int i = 0; i < NActive_Particles; i++) {
 		
@@ -42,8 +40,6 @@ void Compute_Acceleration()
 		P[ipart].Acc[2] = (Float) accel[2]; 
 	}
 	
-	rprintf("done\n");
-
 	Profile("Accelerations");
 
 	#pragma omp barrier

@@ -65,8 +65,7 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 	/* partition number and size */
 	const int desNumPar = MAX(1, 2*MIN(nThreads/2, nData/INSERT_THRES/2));
 	
-	/* initial stack node is just the whole array */
-	#pragma omp single 
+	#pragma omp single  // initial stack node is just the whole array 
 	{
 
 	shared_stack_char[0].lo = (char *)data_ptr; 
@@ -145,6 +144,9 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 			shared_stack_char[j + (delta>>1)].lo = left_ptr;
 			shared_stack_char[j + (delta>>1)].hi = hi;
 		} // j
+		
+		#pragma omp barrier
+
     } // while
 
 	#pragma omp for schedule(static,1)
@@ -178,34 +180,31 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 static struct SharedStackDataSizeT {
     size_t *lo;
     size_t *hi;
-} shared_stack_sizet[STACK_SIZE];
+} shared_stack_sizet[STACK_SIZE] = {{0,0}};
 
 void Qsort_Index(const int nThreads, size_t *perm, void *const data, 
 		const int nData, const size_t datasize, 
 		int (*cmp) (const void *, const void *))
 {
-	if (nData < PARALLEL_THRES_HEAPSORT) { // serial GSL is faster
+	if (nData < PARALLEL_THRES_HEAPSORT || nThreads == 1) { 
 	
 		#pragma omp single
 		gsl_heapsort_index(perm, data, nData, datasize, cmp); 
 		
 		return ;
 	}
-
-	#pragma omp for
+	
+	const int desNumPar = MIN(nThreads, floor(nData/INSERT_THRES));
+		
+	#pragma omp for	
 	for (size_t i = 0; i < nData; i++ ) 
 		perm[i] = i; 
 
-	const int desNumPar = MIN(nThreads, floor(nData/INSERT_THRES));
-	
 	#pragma omp single
 	{
 
 	shared_stack_sizet[0].lo = perm;  
 	shared_stack_sizet[0].hi = &perm[nData - 1];
-
-	for (int i = 1; i < STACK_SIZE; i++) // init !
-		shared_stack_sizet[i].lo = shared_stack_sizet[i].hi = perm;
 
 	} // omp single
 
@@ -213,9 +212,11 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 	/* First stage: subpartitions, roughly NThreads */
 	
-	while ( delta > 2) { 
+	while (delta > 2) { 
 			
 		delta >>= 1; // we compensated for this before
+
+		#pragma omp flush
 
 		#pragma omp for schedule(static,1)
 		for (int i = 0; i < desNumPar; i += delta) { 
@@ -279,14 +280,17 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 			shared_stack_sizet[i + (delta>>1)].lo = left; //Push for next
 			shared_stack_sizet[i + (delta>>1)].hi = hi;
 		} // j
+
     } // while
 
 	/* Second stage, every thread: Qsort on subpartition *beg to *end */
 
+	#pragma omp flush
+
 	size_t *beg = shared_stack_sizet[Task.Thread_ID].lo;
 	size_t *end = shared_stack_sizet[Task.Thread_ID].hi;
 
-	struct SharedStackDataSizeT stack[STACK_SIZE] = { { NULL, NULL } }; 
+	struct SharedStackDataSizeT stack[STACK_SIZE] = {{0,0}}; 
 
 	int next = 0; 
 
@@ -295,8 +299,15 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 	size_t partition_size = stack[0].hi - stack[0].lo + 1;
 
-	if (partition_size < INSERT_THRES)
+	#pragma omp barrier
+	
+	printf("SECOND %d %p %p %zu\n", Task.Thread_ID, beg, end, partition_size);
+	
+	if (partition_size < INSERT_THRES) {
+		printf("%d JUMP \n", Task.Thread_ID);
+		
 		goto insertion_sort;
+	}
 			
 	for (;;)  { 
 
@@ -379,7 +390,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 				stack[next].hi = right;
 			}
 		}
-		
+	printf("%d %d %zu | %zu %zu \n", Task.Thread_ID, next, stack[next].hi - stack[next].lo, stack[next].lo-beg, stack[next].hi-beg);	
 		if (next < 0) // stack empty
 			break;
 
@@ -390,18 +401,18 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 	insertion_sort:;
 				   
 	size_t *trail = beg;
-	size_t *run = NULL;
 
 	const size_t *runMax = MIN(end, beg + INSERT_THRES);
 
-	for (run = beg+1; run <= runMax; run++) // smallest element first
+printf("THIRD  %d %p %p \n", Task.Thread_ID, beg, runMax);
+	for (size_t *run = beg+1; run <= runMax; run++) // smallest element first
 		if (COMPARE_DATA(run, trail, datasize) < 0)
 			trail = run;
 
 	if (trail != beg)
 		SWAP_SIZE_T(trail, beg);
 
-	run = beg + 1;
+	size_t *run = beg + 1;
 
 	while (++run <= end) { // insertion sort left to right
 
@@ -425,6 +436,8 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 			*hi = save;
 		}
 	} // while
+
+	#pragma omp barrier
 
 	return;
 }

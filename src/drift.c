@@ -13,8 +13,6 @@ void Drift_To_Sync_Point()
 {
 	Profile("Drift");
 
-	rprintf("Drift to next Sync Point ... ");
-
 	double time_snap = 0; 
 
 	if (Sig.Drifted_To_Snaptime) {
@@ -52,8 +50,6 @@ void Drift_To_Sync_Point()
 
 	Time.Current = Integer2Physical_Time(Int_Time.Current);
 
-	mprintf("done \n");
-	
 	}
 
 	Profile("Drift");

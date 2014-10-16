@@ -3,6 +3,7 @@
  */
 
 #include "globals.h"
+#include "timestep.h"
 #include "peano.h"
 #include "sort.h"
 
@@ -24,15 +25,15 @@ static void reorder_collisionless_particles();
 void Sort_Particles_By_Peano_Key()
 {
 	Profile("Peano-Hilbert order");
-
+	
 	#pragma omp single
 	{
 
 	if (Keys == NULL)
-		Keys = Malloc(Task.Npart_Total_Max * sizeof(*Keys));
+		Keys = Malloc(Task.Npart_Total_Max * sizeof(*Keys), "PeanoKeys");
 	
 	if (Idx == NULL)
-		Idx = Malloc(Task.Npart_Total_Max * sizeof(*Idx));
+		Idx = Malloc(Task.Npart_Total_Max * sizeof(*Idx), "Idx");
 	
 	} // omp single
 

@@ -19,14 +19,14 @@ void Write_Snapshot()
 
 	#pragma omp single
 	{
-	
+
 	const int nFiles = Param.Num_Output_Files;
 	const int nIOTasks = Param.Num_IO_Tasks;
 
 	int groupSize = Sim.NTask/nFiles; // big last file possible 
-	int groupMaster = MIN(nFiles-1, floor(Task.Rank/groupSize)) * groupSize;
+	int groupMaster = MIN(nFiles-1, floor(Task.MPI_Rank/groupSize)) * groupSize;
 
-	int groupRank = Task.Rank - groupMaster;
+	int groupRank = Task.MPI_Rank - groupMaster;
 
 	if (mpi_comm_write == MPI_COMM_NULL) // create & keep group communicator
 		MPI_Comm_split(MPI_COMM_WORLD, groupMaster, groupRank, 
@@ -51,10 +51,8 @@ void Write_Snapshot()
 
 	Time.Snap_Counter++;
 
-	mprintf("done\n\n");
-	
 	} // omp single
-	
+
 	Profile("Write Snap");
 
 	return ;
@@ -64,7 +62,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 		const MPI_Comm mpi_comm_write)
 {
 	const int groupMaster = 0;  
-
+	
 	int nPartFile[NPARTYPE] = { 0 }; // npart in file by type
 
 	MPI_Reduce(Task.Npart, nPartFile, NPARTYPE, MPI_INT, MPI_SUM, 
@@ -84,15 +82,15 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 		
 	if (groupRank == groupMaster) { // open file, write header
 
-		printf("Writing file '%s' on Task %i - %i \n"
+		printf("Writing file '%s' on MPI Ranks %i - %i \n"
 			"   Gas   %9d, DM   %9d, Disk %9d\n"
 			"   Bulge %9d, Star %9d, Bndy %9d\n"
 			"   Total %9d\n\n",
-				filename, Task.Rank, Task.Rank+groupSize-1,
+				filename, Task.MPI_Rank, Task.MPI_Rank+groupSize-1,
 				nPartFile[0],nPartFile[1],nPartFile[2],
 				nPartFile[3],nPartFile[4],nPartFile[5],
-				nPartTotalFile);
-
+				nPartTotalFile); 
+		
 		fp = fopen(filename, "w");
 		
 		Assert(fp != NULL, "Can't open file %s for writing", filename);
@@ -107,7 +105,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 	else
 		dataBufSize *= Task.Npart_Total; // slaves buffer local data
 	
-	char *dataBuf = Malloc(dataBufSize); 
+	char *dataBuf = Malloc(dataBufSize, "dataBuf"); 
 		
 	for (int i = 0; i < NBlocks; i++) { // write blocks, hiding latency
 	
@@ -127,7 +125,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 				* Block[i].Nbytes; 
 
 			printf("%18s %8d MB\n", Block[i].Name, blocksize/1024/1024);
-		
+
 			write_block_header(Block[i].Label, blocksize, fp); 
 
 			WRITE_FORTRAN_RECORD(blocksize)

@@ -42,8 +42,6 @@ void Compute_Acceleration()
 	
 	Profile("Accelerations");
 
-	#pragma omp barrier
-
 	return ;
 }
 

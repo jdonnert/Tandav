@@ -3,6 +3,8 @@
 
 void Setup() 
 {
+	Profile("Setup");
+
 	Setup_Time_Integration();
 
 #ifdef COMOVING
@@ -11,6 +13,8 @@ void Setup()
 	Setup_Comoving();
 #endif // COMOVING
 	
+	Profile("Setup");
+
 	return ;
 }
 

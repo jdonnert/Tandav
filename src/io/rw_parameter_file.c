@@ -6,8 +6,11 @@ void sanity_check_input_parameters();
 
 void Read_Parameter_File(const char *filename)
 {
-	char buf[CHARBUFSIZE], buf1[CHARBUFSIZE], buf2[CHARBUFSIZE],
-		 buf3[CHARBUFSIZE];
+	char buf[CHARBUFSIZE] = { "" }, 
+		 buf1[CHARBUFSIZE]= { "" }, 
+		 buf2[CHARBUFSIZE]= { "" },
+		 buf3[CHARBUFSIZE]= { "" };
+
 	bool tagDone[9999] = { false };
 	
 	if (Task.Is_Master) {

@@ -10,7 +10,6 @@
 
 void Make_Active_Particle_List();
 
-
 static int max_active_time_bin();
 static void set_particle_timebins(int *bin_max, int *bin_min);
 static void set_global_timestep(const int, const int);
@@ -205,8 +204,8 @@ void Setup_Time_Integration()
 	Time.Max_Active_Bin = N_INT_BINS - 1;
 
 	size_t nBytes = Task.Npart_Total_Max * sizeof(*Active_Particle_List);
-	
-	Active_Particle_List = Malloc(nBytes);
+
+	Active_Particle_List = Malloc(nBytes, "APList");
 
 	NActive_Particles = Task.Npart_Total;
 
@@ -269,7 +268,7 @@ static int timestep2timebin(const double dt)
 
 static void print_timebins()
 {
-	#pragma omp master 
+	#pragma omp single nowait
 	{
 
 	int npart[N_INT_BINS] = { 0 };
@@ -281,6 +280,9 @@ static void print_timebins()
 
 	MPI_Reduce(npart, npart_global, N_INT_BINS, MPI_INT, MPI_SUM, Sim.Master, 
 			MPI_COMM_WORLD);
+
+	if (!Task.Is_MPI_Master)
+		goto skip;
 	
 	int imin = -1, imax = -1;
 
@@ -297,16 +299,16 @@ static void print_timebins()
 	if (Sig.Fullstep)
 		sprintf(fullstep,", Fullstep");
 
-	mprintf("Systemstep %g, NActive %d %s\n"
+	printf("Systemstep %g, NActive %d %s\n"
 			"   Bin       nGas        nDM A  dt\n", 
 			Time.Step, NActive_Particles, fullstep );
 
 	for (int i = imax; i > Time.Max_Active_Bin; i--)
-		mprintf("   %2d    %7d     %7d %s  %16.12f \n", 
+		printf("   %2d    %7d     %7d %s  %16.12f \n", 
 			i, 0, npart_global[i], " ", Timebin2Timestep(i));
 
 	for (int i = Time.Max_Active_Bin; i >= imin; i--)
-		mprintf("   %2d    %7d     %7d %s  %16.12f \n", 
+		printf("   %2d    %7d     %7d %s  %16.12f \n", 
 			i, 0, npart_global[i], "X", Timebin2Timestep(i));
 
 	rprintf("\n");
@@ -314,6 +316,8 @@ static void print_timebins()
 	if (Sig.Fullstep)
 		rprintf("Next full step at t = %g \n\n", 
 				Integer2Physical_Time(Int_Time.Next_Full_Step));
+
+	skip:;
 
 	} // omp single nowait
 

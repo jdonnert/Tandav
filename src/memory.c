@@ -17,6 +17,7 @@ static int NMem_Blocks = 0; // all blocks, also empty ones
 static struct memory_block_infos {
 	void * Start;
 	size_t Size;
+	char Name[CHARBUFSIZE];
 	char File[CHARBUFSIZE];
 	char Func[CHARBUFSIZE];
 	int Line;
@@ -24,7 +25,7 @@ static struct memory_block_infos {
 } Mem_Block[MAXMEMOBJECTS];
 
 void *Malloc_info(const char* file, const char* func, const int line, 
-		size_t size)
+		size_t size, const char *name)
 {
 	size = MAX(MEM_ALIGNMENT, size); // don't break alignment
 
@@ -33,6 +34,7 @@ void *Malloc_info(const char* file, const char* func, const int line,
 
 	const int i = find_free_block_from_size(size);
 
+	strncpy(Mem_Block[i].Name, name, CHARBUFSIZE);
 	strncpy(Mem_Block[i].File, file, CHARBUFSIZE);
 	strncpy(Mem_Block[i].Func, func, CHARBUFSIZE);
 	Mem_Block[i].Line = line;
@@ -61,11 +63,10 @@ void *Malloc_info(const char* file, const char* func, const int line,
 }
 
 void *Realloc_info(const char* file, const char* func, const int line, 
-		void *ptr, size_t new_size)
+		void *ptr, size_t new_size, const char *name)
 {
-
 	if (ptr == NULL) 
-		return Malloc_info(file, func, line, new_size);
+		return Malloc_info(file, func, line, new_size, name);
 
 	if ( (new_size % MEM_ALIGNMENT) > 0)
 		new_size = (new_size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
@@ -90,12 +91,14 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 		printf("%zu %zu \n",  new_size, Mem_Block[i].Size);
 		
-		void *dest = Malloc_info(file, func, line, new_size);
+		void *dest = Malloc_info(file, func, line, new_size, name);
+
 		void *src = Mem_Block[i].Start;
+		
 		size_t nBytes = Mem_Block[i].Size;
 
 		memcpy(dest, src, nBytes);
-
+ 
 		Free(Mem_Block[i].Start);
 
 		i_return = NMem_Blocks-1;
@@ -117,6 +120,7 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 	memset(Mem_Block[i].Start, 0, Mem_Block[i].Size);
 
 	Mem_Block[i].In_Use = false;
+	strncpy(Mem_Block[i].Name, "", CHARBUFSIZE);
 	strncpy(Mem_Block[i].File, "", CHARBUFSIZE);
 	strncpy(Mem_Block[i].Func, "", CHARBUFSIZE);
 	Mem_Block[i].Line = 0;
@@ -166,8 +170,9 @@ void Print_Memory_Usage()
 
 	size_t nBytes_Left_Global[Sim.NTask];
 
-	MPI_Allgather(&NBytes_Left, 1, MPI_BYTE, nBytes_Left_Global, 
-			sizeof(*nBytes_Left_Global), MPI_BYTE, MPI_COMM_WORLD);
+	MPI_Allgather(&NBytes_Left, sizeof(NBytes_Left), MPI_BYTE,
+			nBytes_Left_Global, sizeof(*nBytes_Left_Global), 
+			MPI_BYTE, MPI_COMM_WORLD);
 	
 	int max_Idx = 0;
 
@@ -175,34 +180,34 @@ void Print_Memory_Usage()
 		if (nBytes_Left_Global[i] > nBytes_Left_Global[max_Idx])
 			max_Idx = i;
 
-	if (Task.Rank == max_Idx) {
+	if (Task.MPI_Rank != max_Idx) // no returns inside an omp region
+		goto skip;
 
-		printf("\nMemory Manager: Reporting Blocks of Rank %d "
-				"with %g MB free memory\n"
-			"   No  Used      Address     Size (MB)   Cumulative"
-			"                             Function  File:Line\n", 
-			Task.Rank, (double) NBytes_Left/1024/1024);
+	printf("\nMemory Manager: Reporting Blocks of MPI Rank %d with %g MB "
+			"free memory\n   No  Used      Address      Size (MB)    "
+			"Cumulative     Variable  File:Line\n", 
+			Task.MPI_Rank, (double) NBytes_Left/1024/1024);
 
-		size_t mem_Cumulative = 0;
+	size_t mem_Cumulative = 0;
 
-		for (int i = 0; i < NMem_Blocks; i++) {
+	for (int i = 0; i < NMem_Blocks; i++) {
 			
-			mem_Cumulative += Mem_Block[i].Size;
+		mem_Cumulative += Mem_Block[i].Size;
 
-			printf("    %d   %d    %11p     %6f    %6f"
-				"  %35s()  %s:%d\n",
-				i,Mem_Block[i].In_Use, Mem_Block[i].Start, 
-				(double) Mem_Block[i].Size/1024/1024, 
-				(double) mem_Cumulative/1024/1024, 
-				Mem_Block[i].File, Mem_Block[i].Func, 
-				Mem_Block[i].Line);
-		}
-
-		printf("\n"); fflush(stdout);
+		printf("    %d   %d    %11p     %7.1f      %8.3f   %10s  %s:%d\n",
+			i,Mem_Block[i].In_Use, Mem_Block[i].Start, 
+			(double) Mem_Block[i].Size/1024/1024, 
+			(double) mem_Cumulative/1024/1024, 
+			Mem_Block[i].Name, Mem_Block[i].File,  
+			Mem_Block[i].Line);
 	}
-	
-	} // omp single nowait
 
+	printf("\n");
+	
+	skip: ;
+
+	} // omp single nowait
+	
 	return;
 }
 

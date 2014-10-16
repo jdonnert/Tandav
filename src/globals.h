@@ -21,6 +21,7 @@ int * restrict Active_Particle_List, NActive_Particles;
 
 extern struct Local_Task_Properties {		
 	bool Is_Master;			// == true on global master rank 
+	bool Is_MPI_Master;		// == true on global master rank 
 	int Is_Thread_Main;		// == true on local thread masters
 	int Rank;				// combined OMP & MPI Rank of this thread
 	int MPI_Rank;			// MPI Rank of this thread

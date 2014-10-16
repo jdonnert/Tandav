@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 	{
 	
 	Update(BEFORE_MAIN_LOOP);
-
+	
 	for (;;) { // run, Forest, run !
 
 		if (Time_Is_Up())
@@ -66,10 +66,12 @@ int main(int argc, char *argv[])
 /* 
  * Here we do OpenMP and MPI init: 
  * Because of Thread Parallelism, every thread has a rank 
- * Task.Rank which is a combination of MPI rank and ThreadID. On 
- * every MPI rank there is a main thread on which
- * Task.Is_Thread_Main is true. Every thread is treated as its own
- * MPI task, including communication, still loops allow work-sharing
+ * Task.Rank which is a combination of MPI rank and ThreadID.
+ * There is a global MPI master with Task.Is_MPI_MASTER = true. 
+ * On every MPI rank there is a main thread on which 
+ * Task.Is_Thread_Main = true. Every thread 
+ * is treated as its own MPI task, including communication.
+ * Always use Task.MPI_Rank inside an omp single region.
  */
 
 static void preamble(int argc, char *argv[])
@@ -91,26 +93,27 @@ static void preamble(int argc, char *argv[])
    		Task.Thread_ID = omp_get_thread_num();
    		Sim.NThreads = omp_get_num_threads();
 		
-		Sim.NRank = Sim.NTask ; // * Sim.NThreads;
-		
-		Task.Rank = Task.MPI_Rank ;//* Sim.NThreads + Task.ThreadID;
+		Sim.NRank = Sim.NTask * Sim.NThreads; 
 
-		Task.Seed[2] = 1441981 * Task.Thread_ID; // init thread safe std rng
-	   	erand48(Task.Seed); // remove leading 0 in some implementations
+		Task.Rank = Task.MPI_Rank * Sim.NThreads + Task.Thread_ID;
 	
 		if (Task.MPI_Rank == MASTER && Task.Thread_ID == MASTER)
 			Task.Is_Master = true;
+		
+		if (Task.MPI_Rank == MASTER)
+			Task.Is_MPI_Master = true;
+		
+		Task.Seed[2] = 1441981L * Task.Thread_ID; // init thread safe std rng
+	   	erand48(Task.Seed); // remove leading 0 in some implementations
    	}
 
 	if (Task.Is_Master) {
 
 		printf("# Tandav #\n\n");
 
-		printf("Using %d MPI tasks, %d OpenMP threads \n\n", 
+		printf("Using %d MPI tasks, %d OpenMP threads \n", 
 				Sim.NTask, Sim.NThreads);
 		
-		Print_compile_time_settings();
-
 		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
 
 		Assert(argc >= 2 && argc < 4, 

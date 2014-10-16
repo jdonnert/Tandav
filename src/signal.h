@@ -8,4 +8,3 @@ extern struct Simulation_Signals { // communicate an event across the code
 	bool Endrun;				// stops the run
 	bool Drifted_To_Snaptime;
 } Sig;
-#pragma omp threadprivate(Sig)

@@ -25,8 +25,6 @@ void Update(enum Update_Parameters stage)
 		
 		Compute_Acceleration();
 		
-		Print_Memory_Usage();
-
 		if (Time.Begin == Time.Next_Snap) { 
 
 			Write_Snapshot();
@@ -35,6 +33,8 @@ void Update(enum Update_Parameters stage)
 			Time.Next_Snap += Time.Bet_Snap;
 		}
 		
+		Print_Memory_Usage();
+
 		break;
 
 	case BEFORE_STEP:

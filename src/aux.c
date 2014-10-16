@@ -38,6 +38,8 @@ uint64_t Umax(const uint64_t x, const uint64_t y)
 void Reallocate_P_Info(const char *func, const char *file, int line, 
 		int dNpart[NPARTYPE], size_t offset_out[NPARTYPE])
 {
+
+	#pragma omp single 
 	for (int i = 0; i < NPARTYPE; i++)
 		Assert(Task.Npart[i] + dNpart[i] <= Task.Npart_Max[i], 
 			"Too many particles type %d on this task. \n"
@@ -47,6 +49,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 	int offset[NPARTYPE] = { 0 }, new_npart_total = 0;
 	int new_npart[NPARTYPE] = { 0 };
 	
+	#pragma omp single
 	for (int type = 0; type < NPARTYPE; type++) { // calc offset
 
 		new_npart[type] = Task.Npart[type] + dNpart[type];
@@ -69,6 +72,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
  
 	int nMove = Task.Npart_Total; // move particles left
 	
+	#pragma omp single
 	for (int type = 0; type < NPARTYPE; type++) { 
 
 		nMove -= Task.Npart[type];
@@ -84,6 +88,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 
 	nMove = Task.Npart_Total; // move particles right
 
+	#pragma omp single
 	for (int type = 0; type < NPARTYPE-1; type++) { 
 
 		nMove -= Task.Npart[type];

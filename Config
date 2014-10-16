@@ -1,5 +1,7 @@
 #### CODE PARAMETERS ####
 
+#DEBUG				// Verbose output for debugging
+
 #PERIODIC			// periodic boundary conditions
 
 GRAVITY				// gravitational interaction

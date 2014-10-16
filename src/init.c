@@ -14,19 +14,19 @@ struct Local_Task_Properties Task = { 0 };
 
 struct Particle_Data *P = NULL;
 
-static void init_particles();
-
 void Read_and_Init() 
 {
-	Read_Parameter_File(Param.File);
-	
  	Init_Profiler();
+
+	Profile("Init");
+		
+	Print_compile_time_settings();
+
+	Read_Parameter_File(Param.File);
 
 	Init_Memory_Management();
 
 	Init_Logs();
-
-	init_particles();
 
 	Init_Domain_Decomposition();
 
@@ -55,14 +55,7 @@ void Read_and_Init()
 	Constrain_Particles_To_Box();
 #endif
 
-	return ;
-}
-
-static void init_particles()
-{
-	size_t nBytes = Task.Npart_Total_Max*sizeof(*P);
-
-	P = Malloc(nBytes);
+	Profile("Init");
 
 	return ;
 }

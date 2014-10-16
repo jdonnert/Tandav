@@ -301,10 +301,10 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 	#pragma omp barrier
 	
-	printf("SECOND %d %p %p %zu\n", Task.Thread_ID, beg, end, partition_size);
+	//printf("SECOND %d %p %p %zu\n", Task.Thread_ID, beg, end, partition_size);
 	
 	if (partition_size < INSERT_THRES) {
-		printf("%d JUMP \n", Task.Thread_ID);
+		//printf("%d JUMP \n", Task.Thread_ID);
 		
 		goto insertion_sort;
 	}
@@ -390,7 +390,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 				stack[next].hi = right;
 			}
 		}
-	printf("%d %d %zu | %zu %zu \n", Task.Thread_ID, next, stack[next].hi - stack[next].lo, stack[next].lo-beg, stack[next].hi-beg);	
+	//printf("%d %d %zu | %zu %zu \n", Task.Thread_ID, next, stack[next].hi - stack[next].lo, stack[next].lo-beg, stack[next].hi-beg);	
 		if (next < 0) // stack empty
 			break;
 
@@ -404,7 +404,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 	const size_t *runMax = MIN(end, beg + INSERT_THRES);
 
-printf("THIRD  %d %p %p \n", Task.Thread_ID, beg, runMax);
+//printf("THIRD  %d %p %p \n", Task.Thread_ID, beg, runMax);
 	for (size_t *run = beg+1; run <= runMax; run++) // smallest element first
 		if (COMPARE_DATA(run, trail, datasize) < 0)
 			trail = run;

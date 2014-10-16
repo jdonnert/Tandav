@@ -19,7 +19,7 @@ static void generate_masses_from_header();
 
 void Read_Snapshot(char *input_name)
 {
-	const int nRank = Sim.NRank;
+	const int nTask = Sim.NTask;
 	
 	int nIOTasks = Param.Num_IO_Tasks;
 
@@ -64,28 +64,28 @@ void Read_Snapshot(char *input_name)
 
 		nIOTasks = fmin(nIOTasks,rest_Files);
 		
-		int groupSize = ceil( (float)nRank / (float)nIOTasks );
-		int groupMaster = round(Task.Rank / groupSize) * groupSize;
-		int groupRank = Task.Rank - groupMaster;
+		int groupSize = ceil( (float)nTask / (float)nIOTasks );
+		int groupMaster = round(Task.MPI_Rank / groupSize) * groupSize;
+		int groupRank = Task.MPI_Rank - groupMaster;
 
 		strncpy(filename, input_name, CHARBUFSIZE);
 
-		if (rest_Files >= nRank) { // read in nIO blocks, no communication
+		if (rest_Files >= nTask) { // read in nIO blocks, no communication
 		
-			int fileNum = nFiles - 1 - (Task.Rank + (rest_Files - nRank)); 
+			int fileNum = nFiles - 1 - (Task.MPI_Rank + (rest_Files - nTask)); 
 			
 			if (nFiles > 1)
 				sprintf(filename, "%s.%i", filename, fileNum);
 
 			for (int i = 0; i < groupSize; i++) {
 
-				if (Task.Rank == groupMaster + i)
+				if (Task.MPI_Rank == groupMaster + i)
 					read_file(filename, swap_Endian, 0, 1, MPI_COMM_SELF);
 
 				MPI_Barrier(MPI_COMM_WORLD);
 			}
 
-			rest_Files -= nRank;
+			rest_Files -= nTask;
 
 		} else { // parallel read on groupMasters and distribute to group
 	
@@ -158,7 +158,7 @@ static void read_file (char *filename, const bool swap_Endian,
        		"   Disk  %9i   Bulge  %9i    \n"
            	"   Star  %9i   Bndry  %9i    \n"
            	"   Total in File %9i \n\n",
-			filename, Task.Rank, Task.Rank+groupSize-1,
+			filename, Task.MPI_Rank, Task.MPI_Rank+groupSize-1,
 			nPartFile[0], nPartFile[1], nPartFile[2],
 			nPartFile[3], nPartFile[4], nPartFile[5], 
        		nTotRead); 
@@ -184,7 +184,7 @@ static void read_file (char *filename, const bool swap_Endian,
 	
 	size_t nBytes = nPartGetTotal * Largest_Block_Member_Nbytes();
 
-	char *RecvBuf = Malloc(nBytes);
+	char *RecvBuf = Malloc(nBytes, "RecvBuf");
 
 	char *ReadBuf = NULL;
 
@@ -192,7 +192,7 @@ static void read_file (char *filename, const bool swap_Endian,
 	
 		nBytes = nTotRead * Largest_Block_Member_Nbytes(); 
 		
-		ReadBuf = Malloc(nBytes); 
+		ReadBuf = Malloc(nBytes, "ReadBuf"); 
 	}
 
 	for (i = 0; i < NBlocks; i++) { // read blockwise
@@ -257,7 +257,7 @@ static void read_file (char *filename, const bool swap_Endian,
 		fclose(fp);
 	
 	Free(RecvBuf); Free(ReadBuf);
-
+	
 	return ;
 }
 
@@ -336,9 +336,6 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 					+ ( ((uint64_t)head.Nall_High_Word[i]) << 32);
 		
 		Sim.Npart_Total += Sim.Npart[i];
-
-		Task.Npart_Max[i] = ceil((double)Sim.Npart[i]/Sim.NRank 
-				* PARTALLOCFACTOR);
 	}
 
 #ifdef PERIODIC
@@ -369,19 +366,20 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 
 static void allocate_particle_structures()
 {
-	const double npart_per_task = (double)Sim.Npart_Total/(double) Sim.NRank;
+	const double npart_per_task = (double)Sim.Npart_Total/(double) Sim.NTask;
 
 	Task.Npart_Total_Max = ceil(npart_per_task * PARTALLOCFACTOR);
 
 	for (int i = 0; i < NPARTYPE; i++)
-		Task.Npart_Max[i] = ceil((double)Sim.Npart[i] / (double)Sim.NRank);
+		Task.Npart_Max[i] = ceil((double)Sim.Npart[i] / (double)Sim.NTask 
+				* PARTALLOCFACTOR);
 
 	rprintf("\nReserving space for %llu particles per task, factor %g\n", 
 			Task.Npart_Total_Max, PARTALLOCFACTOR);
 
-	P = Malloc(Task.Npart_Total_Max * sizeof(*P)); // add below
+	P = Malloc(Task.Npart_Total_Max * sizeof(*P), "P"); // add below
 
-	//G = Malloc(Task.Npart_Max[0] * sizeof(*G));
+	//G = Malloc(Task.Npart_Max[0] * sizeof(*G), "G");
 
 	return ;
 }

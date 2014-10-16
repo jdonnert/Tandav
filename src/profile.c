@@ -23,7 +23,7 @@ static double measure_time();
 
 void Init_Profiler()
 {
-	Profile("Whole Run");
+	Profile("Simulation");
 
 	Last_Report_Call = measure_time();
 		
@@ -32,7 +32,7 @@ void Init_Profiler()
 
 void Finish_Profiler() 
 {
-	Profile("Whole Run");
+	Profile("Simulation");
 
 	Profile_Report(stdout);
 	
@@ -47,14 +47,12 @@ void Profile_Info(const char* file, const char* func, const int line,
 
 	const int i = find_index_from_name(name);
 
-	if (i == NProfObjs) { // new item start profiling
+	if (i == NProfObjs) { // new item, init
 
 		strncpy(Prof[i].Name, name, CHARBUFSIZE);
 
 		NProfObjs++;
-
-		mprintf("\n%s ... ", name);
-	}		
+	} 
 	
 	if (Prof[i].Tbeg != 0) { // stop
 
@@ -67,11 +65,20 @@ void Profile_Info(const char* file, const char* func, const int line,
 		if (i != 0)
 			Prof[i].Tbeg = 0;
 		
+#ifdef DEBUG
+		printf("\nDEBUG: Rank %d ends %s took %g sec \n", 
+				Task.Rank, name, Prof[i].ThisLast);
+#endif
+
 	} else { // restart
 
 		Prof[i].Tbeg = measure_time();
 		
 		Prof[i].Tend = Prof[i].ThisLast = 0;
+
+#ifdef DEBUG
+		printf("\nDEBUG: Rank %d starts %s \n", Task.Rank, name); 
+#endif
 	}
 
 	} // omp single nowait
@@ -100,7 +107,7 @@ void Profile_Report(FILE *stream)
 		Prof[i].Imbalance += Prof[i].Max - Prof[i].Min;
 	}
 
-	if (! Task.Is_Master) 
+	if (! Task.Is_MPI_Master) 
 		goto skip; 
 
 	const double runtime = Runtime();
@@ -166,7 +173,7 @@ void Profile_Report_Last(FILE *stream)
 		imbalance[i] = max[i] - min[i];
 	}
 	
-	if (!Task.Is_Master)
+	if (!Task.Is_MPI_Master)
 		goto skip; 
 
 	double delta_last = now - Last_Report_Call;

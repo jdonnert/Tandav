@@ -1,6 +1,6 @@
 This is the Style Guide :
 
-* Read Kernighan & Pike: "The practice of programming"
+* Read: Kernighan & Pike - "The practice of programming"
 
 * IF the code is broader than 79 characters, you are doing it wrong.
 	The rationale is that broad code is hard to read. This can usually be
@@ -19,36 +19,25 @@ This is the Style Guide :
 	can not always be avoided, proper modularisation and shorter local variable
 	names should make this rarely a problem.
 
-* We format like the Linux kernel - Linus is right,
-  but a tab is just 4 spaces.
+* We format like the Linux kernel - Linus is right, but a tab is just 4 spaces.
 
-* Variables are initialised when declared. 
-	Index vars are the obvious exception. This saves lines and the declaration 
-	can easily be found using ctags. Furthermore this encourages the use of the 
-	const keyword. It also minimises scope, which is always a good thing.
+* C99
+
+* Variables are initialised when declared. Use the const keyword. Minimise scope.
 	
 * Global variables have long meaningful names, start with a capital letter.
-	Obviously the main structure like P, Task and Sim are exceptions, because
-	you have to learn those anyway.
 	Scope should be visible and global variables have to be understandable and 
 	unambiguous. You might not want to use these names locally, but define a 
-	local variable using the const keyword. This might even help the compiler.
-	In general you should only need to define new global variables on file
-	scope ("static X" outside of a function). Code-wide variables should be
+	local variable using the const keyword.  Code-wide variables should be
 	embedded in the existing structures, if possible.
 
 * Local variables are short and start with a small letter.
-	Again scope should be visible. Short names make it easy to code
-	efficiently and stay readable.
 
-* Every .c file has a corresponding .h header file of the same name. The 
+* Modulerise: Every .c file has a corresponding .h header file of the same name. The 
     header file contains the Global functions and variables. 
     These all start with a capital letter and are enclosed in an #ifdef if
     the functionality is switchable. All header file are includes in proto.h
     which itself is contained in globals.h.
-    The exception to this rule is core of the code, that is cannot be switched 
-    off. Here global variables are in globals.h and prototypes are in proto.h.
-    This ensures modularisation, whereever possible !
 
 * Constants in CGSM are macros, have unique long descriptive capitalised names
 	There is no elegant alternative to this in pure C. Don't forget to bracket
@@ -57,7 +46,7 @@ This is the Style Guide :
 		#define SPEED_OF_LIGHT 3e10
 		#define ELECTRON_REST_MASS_ENERGY (me*c*c)
 
-    This will be clunky in your code. Use a constant local variable :
+    Then use a constant local variable :
         const double c = SPEED_OF_LIGHT;
 
     This solves the naming problem and lets you write equations that look like
@@ -74,10 +63,9 @@ This is the Style Guide :
 * All char buffers have size CHARBUFSIZE ! That also helps you to use strncpy.
 * Bitmasks are set in hex format : int a = 0x0A;
 * mark what you are closing in preprocessor macros : #endif // PMGRID
-* write in C99
 * inline functions should not contain if () statements depending on function input. 
-  The compiler does not always treat this correctly. Keep them short as well.
+   Keep them short as well.
 * All integers are int for simplicity, if there is no good reason. Otherwise 
-  use int64_t, uint32_t etc. long and int are architecture dependent :-(
+  use int64_t, uint32_t etc. long and int are architecture dependent and discouraged.
 
 

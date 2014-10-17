@@ -5,7 +5,7 @@
 
 void merge_free_memory_blocks(int);
 int find_memory_block_from_ptr(void *);
-int find_free_block_from_size(const size_t);
+int reserve_free_block_from_size(const size_t);
 size_t get_system_memory_size();
 
 static void *Memory = NULL; 
@@ -27,12 +27,23 @@ static struct memory_block_infos {
 void *Malloc_info(const char* file, const char* func, const int line, 
 		size_t size, const char *name)
 {
+	Assert_Info(file, func, line, size > 0, // check input
+			"Can't allocate an array of size 0 !");
+
+	Assert_Info(file, func, line, NBytes_Left >= size,  
+			"Can't allocate Memory, Bytes: %zu > %zu , %zu total", 
+			size, NBytes_Left, Mem_Size);
+	
 	size = MAX(MEM_ALIGNMENT, size); // don't break alignment
 
 	if ( (size % MEM_ALIGNMENT) > 0) // make sure we stay aligned
 		size = (size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
 
-	const int i = find_free_block_from_size(size);
+	int i = 0;
+
+	i = reserve_free_block_from_size(size);
+
+	Mem_Block[i].In_Use = true;
 
 	strncpy(Mem_Block[i].Name, name, CHARBUFSIZE);
 	strncpy(Mem_Block[i].File, file, CHARBUFSIZE);
@@ -40,17 +51,10 @@ void *Malloc_info(const char* file, const char* func, const int line,
 	Mem_Block[i].Line = line;
 
 	if (i == NMem_Blocks) { // couldn't find a free gap, add new at the end
-	
-		Assert_Info(file, func, line, NBytes_Left >= size, 
-			"Can't allocate Memory, "
-			"%zu bytes wanted, %zu bytes left, %zu bytes total", 
-			size, NBytes_Left, Mem_Size);
 		
 		Mem_Block[i].Start = Memory + Mem_Size - NBytes_Left;
 	
 		Mem_Block[i].Size = size;
-
-		Mem_Block[i].In_Use = true;
 		
 		NMem_Blocks++;
 
@@ -65,6 +69,9 @@ void *Malloc_info(const char* file, const char* func, const int line,
 void *Realloc_info(const char* file, const char* func, const int line, 
 		void *ptr, size_t new_size, const char *name)
 {
+	Assert_Info(file, func, line, new_size > 0, // check input
+			"Can't re-allocate an array of size 0 !");
+
 	if (ptr == NULL) 
 		return Malloc_info(file, func, line, new_size, name);
 
@@ -101,7 +108,7 @@ void *Realloc_info(const char* file, const char* func, const int line,
  
 		Free(Mem_Block[i].Start);
 
-		i_return = NMem_Blocks-1;
+		i_return = NMem_Blocks - 1;
 	}
 
 	return Mem_Block[i_return].Start;
@@ -127,7 +134,7 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 
 	merge_free_memory_blocks(i);
 	
-	}
+	} // omp critical
 
 	return ;
 }
@@ -256,13 +263,20 @@ int find_memory_block_from_ptr(void *ptr)
 	return i;
 }
 
-int find_free_block_from_size(const size_t size)
+int reserve_free_block_from_size(const size_t size)
 {
 	int i = 0;
 
+	#pragma omp critical
+	{
+
 	for (i = 0; i < NMem_Blocks; i++)
-		if ((Mem_Block[i].Start == NULL) && (Mem_Block[i].Size <= size))
+		if ( !Mem_Block[i].In_Use && (Mem_Block[i].Size >= size))
 			break;
+	
+	Mem_Block[i].In_Use = true;
+	
+	} // omp critical
 
 	return i;
 }

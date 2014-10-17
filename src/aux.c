@@ -102,12 +102,12 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		memmove(&P[dest], &P[src], nMove*sizeof(*P));
 	} 
 
-	#pragma omp parallel 
+	#pragma omp parallel  // book-keeping
 	{
 
 	Task.Npart_Total = new_npart_total;
 	
-	for (int type = 0; type < NPARTYPE; type++) // book-keeping
+	for (int type = 0; type < NPARTYPE; type++) 
 		Task.Npart[type] = new_npart[type];
 	}
 

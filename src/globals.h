@@ -32,7 +32,7 @@ extern struct Local_Task_Properties {
 	uint64_t Npart_Max[NPARTYPE];// Use this if array size scales with Npart
 	unsigned short Seed[3];	// Thread safe urand48() seed
 } Task;
-#pragma omp threadprivate(Task)
+#pragma omp threadprivate(Task) // modifications only in parallel env.
 
 extern struct Global_Simulation_Properties {	
 	int Master;					// Global Rank Master

@@ -8,6 +8,7 @@
 #include "sort.h"
 
 #include <gsl/gsl_heapsort.h>
+
 static peanoKey *Keys = NULL;
 static size_t *Idx = NULL;
 
@@ -28,12 +29,12 @@ void Sort_Particles_By_Peano_Key()
 	
 	#pragma omp single
 	{
-
+	Assert(Task.Npart_Total_Max, "OEH");
 	if (Keys == NULL)
 		Keys = Malloc(Task.Npart_Total_Max * sizeof(*Keys), "PeanoKeys");
 	
 	if (Idx == NULL)
-		Idx = Malloc(Task.Npart_Total_Max * sizeof(*Idx), "Idx");
+		Idx = Malloc(Task.Npart_Total_Max * sizeof(*Idx), "Sort Idx");
 	
 	} // omp single
 

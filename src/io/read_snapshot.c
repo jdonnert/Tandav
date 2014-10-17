@@ -368,11 +368,16 @@ static void allocate_particle_structures()
 {
 	const double npart_per_task = (double)Sim.Npart_Total/(double) Sim.NTask;
 
+	#pragma omp parallel // Task is threadprivate
+	{
+	
 	Task.Npart_Total_Max = ceil(npart_per_task * PARTALLOCFACTOR);
 
 	for (int i = 0; i < NPARTYPE; i++)
 		Task.Npart_Max[i] = ceil((double)Sim.Npart[i] / (double)Sim.NTask 
 				* PARTALLOCFACTOR);
+	
+	} // omp parallel
 
 	rprintf("\nReserving space for %llu particles per task, factor %g\n", 
 			Task.Npart_Total_Max, PARTALLOCFACTOR);

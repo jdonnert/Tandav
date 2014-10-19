@@ -19,7 +19,7 @@ static void generate_masses_from_header();
 
 void Read_Snapshot(char *input_name)
 {
-	const int nTask = Sim.NTask;
+	const int nRank = Sim.NRank;
 	
 	int nIOTasks = Param.Num_IO_Tasks;
 
@@ -64,28 +64,28 @@ void Read_Snapshot(char *input_name)
 
 		nIOTasks = fmin(nIOTasks,rest_Files);
 		
-		int groupSize = ceil( (float)nTask / (float)nIOTasks );
-		int groupMaster = round(Task.MPI_Rank / groupSize) * groupSize;
-		int groupRank = Task.MPI_Rank - groupMaster;
+		int groupSize = ceil( (float)nRank / (float)nIOTasks );
+		int groupMaster = round(Task.Rank / groupSize) * groupSize;
+		int groupRank = Task.Rank - groupMaster;
 
 		strncpy(filename, input_name, CHARBUFSIZE);
 
-		if (rest_Files >= nTask) { // read in nIO blocks, no communication
+		if (rest_Files >= nRank) { // read in nIO blocks, no communication
 		
-			int fileNum = nFiles - 1 - (Task.MPI_Rank + (rest_Files - nTask)); 
+			int fileNum = nFiles - 1 - (Task.Rank + (rest_Files - nRank)); 
 			
 			if (nFiles > 1)
 				sprintf(filename, "%s.%i", filename, fileNum);
 
 			for (int i = 0; i < groupSize; i++) {
 
-				if (Task.MPI_Rank == groupMaster + i)
+				if (Task.Rank == groupMaster + i)
 					read_file(filename, swap_Endian, 0, 1, MPI_COMM_SELF);
 
 				MPI_Barrier(MPI_COMM_WORLD);
 			}
 
-			rest_Files -= nTask;
+			rest_Files -= nRank;
 
 		} else { // parallel read on groupMasters and distribute to group
 	
@@ -158,7 +158,7 @@ static void read_file (char *filename, const bool swap_Endian,
        		"   Disk  %9i   Bulge  %9i    \n"
            	"   Star  %9i   Bndry  %9i    \n"
            	"   Total in File %9i \n\n",
-			filename, Task.MPI_Rank, Task.MPI_Rank+groupSize-1,
+			filename, Task.Rank, Task.Rank+groupSize-1,
 			nPartFile[0], nPartFile[1], nPartFile[2],
 			nPartFile[3], nPartFile[4], nPartFile[5], 
        		nTotRead); 

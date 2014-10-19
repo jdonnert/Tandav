@@ -23,10 +23,10 @@ void Write_Snapshot()
 	const int nFiles = Param.Num_Output_Files;
 	const int nIOTasks = Param.Num_IO_Tasks;
 
-	int groupSize = Sim.NTask/nFiles; // big last file possible 
-	int groupMaster = MIN(nFiles-1, floor(Task.MPI_Rank/groupSize)) * groupSize;
+	int groupSize = Sim.NRank/nFiles; // big last file possible 
+	int groupMaster = MIN(nFiles-1, floor(Task.Rank/groupSize)) * groupSize;
 
-	int groupRank = Task.MPI_Rank - groupMaster;
+	int groupRank = Task.Rank - groupMaster;
 
 	if (mpi_comm_write == MPI_COMM_NULL) // create & keep group communicator
 		MPI_Comm_split(MPI_COMM_WORLD, groupMaster, groupRank, 
@@ -86,7 +86,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 			"   Gas   %9d, DM   %9d, Disk %9d\n"
 			"   Bulge %9d, Star %9d, Bndy %9d\n"
 			"   Total %9d\n\n",
-				filename, Task.MPI_Rank, Task.MPI_Rank+groupSize-1,
+				filename, Task.Rank, Task.Rank+groupSize-1,
 				nPartFile[0],nPartFile[1],nPartFile[2],
 				nPartFile[3],nPartFile[4],nPartFile[5],
 				nPartTotalFile); 

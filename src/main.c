@@ -33,8 +33,6 @@ int main(int argc, char *argv[])
 		if (Time_Is_Up())
 			break;
 
-		#pragma omp barrier
-
 		Update(BEFORE_STEP);
 
 		Set_New_Timesteps();
@@ -65,9 +63,9 @@ int main(int argc, char *argv[])
 
 /* 
  * Here we do OpenMP and MPI init: 
- * Because of Thread Parallelism, every thread has a rank 
- * Task.Rank which is a combination of MPI rank and ThreadID.
- * There is a global MPI master with Task.Is_MPI_MASTER = true. 
+ * Because of Thread Parallelism, every thread has a MPI rank 
+ * Task.Rank and a ThreadID.
+ * There is a global MPI master with Task.Is_MPI_Master = true. 
  * On every MPI rank there is a main thread on which 
  * Task.Is_Thread_Main = true. Every thread 
  * is treated as its own MPI task, including communication.
@@ -83,8 +81,8 @@ static void preamble(int argc, char *argv[])
 	Assert(provided == MPI_THREAD_MULTIPLE, 
 			"MPI thread multiple not supported, have %d", provided);
 
-	MPI_Comm_rank(MPI_COMM_WORLD, &Task.MPI_Rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &Sim.NTask);
+	MPI_Comm_rank(MPI_COMM_WORLD, &Task.Rank);
+	MPI_Comm_size(MPI_COMM_WORLD, &Sim.NRank);
 
 	MPI_Is_thread_main(&Task.Is_Thread_Main);
 
@@ -93,14 +91,12 @@ static void preamble(int argc, char *argv[])
    		Task.Thread_ID = omp_get_thread_num();
    		Sim.NThreads = omp_get_num_threads();
 		
-		Sim.NRank = Sim.NTask * Sim.NThreads; 
+		Sim.NTask = Sim.NRank * Sim.NThreads; 
 
-		Task.Rank = Task.MPI_Rank * Sim.NThreads + Task.Thread_ID;
-	
-		if (Task.MPI_Rank == MASTER && Task.Thread_ID == MASTER)
+		if (Task.Rank == MASTER && Task.Thread_ID == MASTER)
 			Task.Is_Master = true;
 		
-		if (Task.MPI_Rank == MASTER)
+		if (Task.Rank == MASTER)
 			Task.Is_MPI_Master = true;
 		
 		Task.Seed[2] = 1441981L * Task.Thread_ID; // init thread safe std rng

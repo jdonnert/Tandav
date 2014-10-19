@@ -130,8 +130,8 @@ void Assert_Info(const char *func, const char *file, int line,
 
 	va_start(varArgList, errmsg);
 
-	fprintf(stderr, "\nERROR (%d, %d, %d) %s : %d : %s() :\n\n	", 
-			Task.Rank, Task.MPI_Rank, Task.Thread_ID, file, line , func);
+	fprintf(stderr, "\nERROR (%d, %d) %s : %d : %s() :\n\n	", 
+			Task.Rank,  Task.Thread_ID, file, line , func);
 
 	vfprintf(stderr, errmsg, varArgList); 
 	
@@ -158,9 +158,9 @@ void Warn_Info(const char *func, const char *file, int line,
 
 	va_start(varArgList, errmsg);
 
-    fprintf(stderr, "\nWARNING Task %d, MPI Rank %d Thread %d: "
+    fprintf(stderr, "\nWARNING  (%d, %d): "
 			"        In file %s, function %s(), line %d :\n\n	", 
-			Task.Rank, Task.MPI_Rank, Task.Thread_ID, file, func, line);
+			 Task.Rank, Task.Thread_ID, file, func, line);
 
 	vfprintf(stderr, errmsg, varArgList); 
 	

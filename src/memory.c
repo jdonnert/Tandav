@@ -187,13 +187,13 @@ void Print_Memory_Usage()
 		if (nBytes_Left_Global[i] > nBytes_Left_Global[max_Idx])
 			max_Idx = i;
 
-	if (Task.MPI_Rank != max_Idx) // no returns inside an omp region
+	if (Task.Rank != max_Idx) // no returns inside an omp region
 		goto skip;
 
 	printf("\nMemory Manager: Reporting Blocks of MPI Rank %d with %g MB "
 			"free memory\n   No  Used      Address      Size (MB)    "
 			"Cumulative     Variable  File:Line\n", 
-			Task.MPI_Rank, (double) NBytes_Left/1024/1024);
+			Task.Rank, (double) NBytes_Left/1024/1024);
 
 	size_t mem_Cumulative = 0;
 

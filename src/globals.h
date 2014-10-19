@@ -21,10 +21,9 @@ int * restrict Active_Particle_List, NActive_Particles;
 
 extern struct Local_Task_Properties {		
 	bool Is_Master;			// == true on global master rank 
-	bool Is_MPI_Master;		// == true on global master rank 
+	bool Is_MPI_Master;		// == true on MPI master rank 
 	int Is_Thread_Main;		// == true on local thread masters
-	int Rank;				// combined OMP & MPI Rank of this thread
-	int MPI_Rank;			// MPI Rank of this thread
+	int Rank;				// MPI Rank of this thread
 	int Thread_ID;			// OpenMP ID of this thread
 	int Npart_Total;		// Sum of Npart
 	int Npart[NPARTYPE];	// Number of particles on this processor
@@ -32,13 +31,13 @@ extern struct Local_Task_Properties {
 	uint64_t Npart_Max[NPARTYPE];// Use this if array size scales with Npart
 	unsigned short Seed[3];	// Thread safe urand48() seed
 } Task;
-#pragma omp threadprivate(Task) // modifications only in parallel env.
+#pragma omp threadprivate(Task) // modifications only in parallel env. !!
 
 extern struct Global_Simulation_Properties {	
 	int Master;					// Global Rank Master
-	int NRank;					// NTask * NThreads
-	int NTask;					// Number of MPI tasks
+	int NRank;					// Number of MPI tasks
 	int NThreads;				// Number of OpenMP threads
+	int NTask;					// NRank * NThreads
 	uint64_t Npart_Total;		// total global number of particles
 	uint64_t Npart[NPARTYPE]; 	// global number of particles
 	double Mpart[NPARTYPE]; 	// Global Masses  from header

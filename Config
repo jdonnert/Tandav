@@ -4,9 +4,13 @@
 
 #PERIODIC			// periodic boundary conditions
 
-GRAVITY				// gravitational interaction
+GRAVITY				// gravitational interaction master switch
 GRAVITY_POTENTIAL	// compute gravitational potential
 GRAV_SOFTENING 30 	// gravitational softening length 
+
+GRAVITY_SIMPLE		// N^2 law
+#GRAVITY_TREE		// B&H gravity tree
+#GRAVITY_PM			// Particle Mesh force
 
 #COMOVING			// time integration in comoving coordinates
 TIME_INT_ACCURACY 0.1	// std 0.05, time step parameter
@@ -27,5 +31,5 @@ VELOCITY2CGS 1.0e+05		// km/s
 
 #### ALWAYS RECOMMENDED ####
 
-#MEMORY_MANAGER  
+MEMORY_MANAGER  
 

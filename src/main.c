@@ -108,7 +108,7 @@ static void preamble(int argc, char *argv[])
 		printf("# Tandav #\n\n");
 
 		printf("Using %d MPI tasks, %d OpenMP threads \n", 
-				Sim.NTask, Sim.NThreads);
+				Sim.NRank, Sim.NThreads);
 		
 		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
 

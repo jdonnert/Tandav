@@ -130,17 +130,17 @@ void sanity_check_input_parameters()
 	
 	Assert(Param.Num_IO_Tasks > 0, "NumIOTasks has to be > 0");
 	
-	Assert(Param.Num_IO_Tasks <= Sim.NTask, 
-		"NTask (=%d) can't be smaller than No_IOTasks (=%d)", 
-		Sim.NTask,  Param.Num_Output_Files);
+	Warn(Param.Num_IO_Tasks > Sim.NRank, 
+		"NRank (=%d) can't be smaller than No_IOTasks (=%d)", 
+		Sim.NRank,  Param.Num_Output_Files);
 	
-	Assert(Param.Num_IO_Tasks <= Param.Num_Output_Files, 
-		"Num_IO_Tasks (=%d) can't be smaller than Num_Output_Files (=%d)", 
+	Param.Num_IO_Tasks = MIN(Param.Num_IO_Tasks, Sim.NRank);
+	
+	Warn(Param.Num_IO_Tasks > Param.Num_Output_Files, 
+		"Num_IO_Tasks (=%d) can't be larger than Num_Output_Files (=%d)", 
 		Param.Num_IO_Tasks,  Param.Num_Output_Files);
 	
-	Param.Num_IO_Tasks = MIN(Param.Num_IO_Tasks, Sim.NTask);
-	
-	Param.Num_Output_Files = MIN(Param.Num_Output_Files, Sim.NTask);
+	Param.Num_Output_Files = MIN(Param.Num_Output_Files, Sim.NRank);
 
 	return ;
 }

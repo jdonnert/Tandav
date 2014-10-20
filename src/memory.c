@@ -175,7 +175,7 @@ void Print_Memory_Usage()
 	#pragma omp single nowait
 	{
 
-	size_t nBytes_Left_Global[Sim.NTask];
+	size_t nBytes_Left_Global[Sim.NRank];
 
 	MPI_Allgather(&NBytes_Left, sizeof(NBytes_Left), MPI_BYTE,
 			nBytes_Left_Global, sizeof(*nBytes_Left_Global), 
@@ -183,7 +183,7 @@ void Print_Memory_Usage()
 	
 	int max_Idx = 0;
 
-	for (int i = 0; i < Sim.NTask; i++)
+	for (int i = 0; i < Sim.NRank; i++)
 		if (nBytes_Left_Global[i] > nBytes_Left_Global[max_Idx])
 			max_Idx = i;
 

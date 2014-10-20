@@ -23,7 +23,17 @@ void Compute_Acceleration()
 		double grav_accel[3] = { 0 };
 		double grav_potential = 0;
 
+#ifdef GRAVITY_SIMPLE
 		Accel_Gravity_Simple(ipart, grav_accel, &grav_potential);
+#endif
+
+#ifdef GRAVITY_TREE
+		Accel_Gravity_Tree(ipart, grav_accel, &grav_potential);
+#endif
+
+#ifdef GRAVITY_PM
+		Accel_Gravity_PM(ipart, grav_accel, &grav_potential);
+#endif
 
 		accel[0] += grav_accel[0];
 		accel[1] += grav_accel[1];
@@ -31,7 +41,8 @@ void Compute_Acceleration()
 
 #ifdef GRAVITY_POTENTIAL
 		P[ipart].Grav_Pot = grav_potential;
-#endif // GRAVITY_POTENTIAL
+#endif 
+
 #endif // GRAVITY
 	
 		P[ipart].Acc[0] = (Float) accel[0];

@@ -366,15 +366,15 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 
 static void allocate_particle_structures()
 {
-	const double npart_per_task = (double)Sim.Npart_Total/(double) Sim.NTask;
+	const double npart_per_rank = (double)Sim.Npart_Total/(double) Sim.NRank;
 
 	#pragma omp parallel // Task is threadprivate
 	{
 	
-	Task.Npart_Total_Max = ceil(npart_per_task * PARTALLOCFACTOR);
+	Task.Npart_Total_Max = ceil(npart_per_rank * PARTALLOCFACTOR);
 
 	for (int i = 0; i < NPARTYPE; i++)
-		Task.Npart_Max[i] = ceil((double)Sim.Npart[i] / (double)Sim.NTask 
+		Task.Npart_Max[i] = ceil((double)Sim.Npart[i] / (double)Sim.NRank 
 				* PARTALLOCFACTOR);
 	
 	} // omp parallel

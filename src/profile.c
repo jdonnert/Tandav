@@ -102,7 +102,7 @@ void Profile_Report(FILE *stream)
 		MPI_Reduce(&Prof[i].Total, &Prof[i].Mean, 1, MPI_DOUBLE, 
 			MPI_SUM, Sim.Master, MPI_COMM_WORLD);
 
-		Prof[i].Mean /= Sim.NTask;
+		Prof[i].Mean /= Sim.NRank;
 
 		Prof[i].Imbalance += Prof[i].Max - Prof[i].Min;
 	}
@@ -168,7 +168,7 @@ void Profile_Report_Last(FILE *stream)
 		MPI_Reduce(&Prof[i].ThisLast, &mean[i], 1, MPI_DOUBLE, 
 			MPI_SUM, Sim.Master, MPI_COMM_WORLD);
 	
-		mean[i] /= Sim.NTask;
+		mean[i] /= Sim.NRank;
  
 		imbalance[i] = max[i] - min[i];
 	}

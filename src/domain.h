@@ -8,3 +8,5 @@ static struct bunch_information {
 
 void Domain_Decomposition();
 void Init_Domain_Decomposition();
+
+double Domain_Corner[3];

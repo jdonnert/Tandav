@@ -24,6 +24,11 @@ uint64_t Umax(const uint64_t x, const uint64_t y)
   return x ^ ((x ^ y) & -(x < y));
 }
 
+Float Sign(const Float x)
+{
+	return ((Float)0 < x) - (x < (Float)0);
+}
+
 /* 
  * Reallocates the Particle structures. Takes the relative change
  * as argument, not the total number. Add or Remove via sign of nPart.

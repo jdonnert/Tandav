@@ -8,9 +8,9 @@ struct Tree_Node {
 	Float Center[3];
 	Float Size;
 	int Npart;
+	float Mass;
 	int Next;		
 	int Up;
-	float Mass;
 } *Tree = NULL;
 
 static size_t NNodes = 0;
@@ -34,40 +34,75 @@ void Build_Tree()
 		Float pz = P[ipart].Pos[2] - Domain_Corner[2];
 
 		int node = 0;
-		int parent = -1;
-		bool part_done = false;
 
 		for (;;) {
 			
 			if (is_inside(px, py, pz, node)) {
 			
-				Tree[node].Npart++;
 				Tree[node].Mass += P[ipart].Mass;
 	
-				if (Tree[node].Npart > 2) // decline
-					node += 1;
-				else  // refine
-					break;
-
-				continue;
+				if (Tree[node].Npart++ < 2) // refine
+					break; 
+				
+				node++; // decline
 
 			} else { // skip
 
+				if (Tree[node].Next < 0) {
+					
+					node = NNodes; // add at the end
+					
+					break;
+				} 
+			
 				node += Tree[node].Next;
 			}
+
+		} // for (;;)
+
+		if (Tree[node].Npart == 2) { // make space
+			
+			int jpart = Tree[node].Next;
+					
+			add_node(jpart, node++, node);
+		}
+		add_node(ipart, node++, node);
 		
-		} // while
+	} // for ipart
 
-		Tree[node].size = Tree[parent].Size * 0.5;
+	return ;
+}
 
-		Tree[node].Up = parent;
-		Tree[node].Center[0] = Tree[parent].Center[0]+sign*Tree[node].size;
-		Tree[node].Center[1] = Tree[parent].Center[1]+sign*Tree[node].size;
-		Tree[node].Center[2] = Tree[parent].Center[2]+sign*Tree[node].size;
+static inline bool is_inside(const Float px, const Float py, const Float pz,
+		const int node)
+{
+	const Float size_half = Tree[node].Size * 0.5;
 
-		Tree[node].Npart = 1;
-		Tree[node].Mass = P[ipart].Mass; 
-	}
+	return (bool) ((fabs(px - Tree[node].Center[0]) <= size_half) +
+				   (fabs(py - Tree[node].Center[1]) <= size_half) +
+		           (fabs(pz - Tree[node].Center[2]) <= size_half))
+}
+
+static inline void add_node(const int ipart, const int parent, const int node)
+{
+	Tree[node].size = Tree[parent].Size * 0.5;
+
+	float sign[3] = { 0 };
+
+	sign[0] = 0.5 * Sign(px - Tree[parent].Center[0]);
+	sign[1] = 0.5 * Sign(py - Tree[parent].Center[1]);
+	sign[2] = 0.5 * Sign(pz - Tree[parent].Center[2]);
+
+	Tree[node].Up = parent;
+
+	Tree[node].Center[0] = Tree[parent].Center[0] + sign[0] * Tree[node].size;
+	Tree[node].Center[1] = Tree[parent].Center[1] + sign[1] * Tree[node].size;
+	Tree[node].Center[2] = Tree[parent].Center[2] + sign[2] * Tree[node].size;
+
+	Tree[node].Npart = 1;
+	Tree[node].Mass = P[ipart].Mass; 
+
+	NNodes++;
 
 	return ;
 }
@@ -79,7 +114,7 @@ void Init_Tree()
 
 	Boxsize = fmax(Sim.Boxsize[0], fmax(Sim.Boxsize[1], Sim.Boxsize[2]));
 	
-	Max_Nodes = Task.Npart_Total_Max*NODES_PER_PARTICLE;
+	Max_Nodes = Task.Npart_Total_Max * NODES_PER_PARTICLE;
 	
 	Tree = Malloc(Max_Nodes * sizeof(*Tree), "Tree")
 	

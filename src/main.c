@@ -6,7 +6,7 @@
 #include "setup.h"
 #include "peano.h"
 #include "accel.h"
-#include "io/io.h"
+#include "IO/io.h"
 
 static void preamble(int argc, char *argv[]);
 
@@ -86,9 +86,10 @@ static void preamble(int argc, char *argv[])
 
 	MPI_Is_thread_main(&Task.Is_Thread_Main);
 
-#pragma omp parallel
+	#pragma omp parallel
    	{
-   		Task.Thread_ID = omp_get_thread_num();
+   	
+		Task.Thread_ID = omp_get_thread_num();
    		Sim.NThreads = omp_get_num_threads();
 		
 		Sim.NTask = Sim.NRank * Sim.NThreads; 
@@ -100,8 +101,9 @@ static void preamble(int argc, char *argv[])
 			Task.Is_MPI_Master = true;
 		
 		Task.Seed[2] = 1441981L * Task.Thread_ID; // init thread safe std rng
-	   	erand48(Task.Seed); // remove leading 0 in some implementations
-   	}
+	   	erand48(Task.Seed); // remove first 0 in some implementations
+
+	} // omp parallel
 
 	if (Task.Is_Master) {
 

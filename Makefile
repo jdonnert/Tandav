@@ -41,12 +41,12 @@ endif
 
 ifeq ($(SYSTYPE),getorin.ira.inaf.it)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O0 -openmp  #-finline -finline-functions \
+OPTIMIZE =  -Wall -g -O3 -openmp  -finline -finline-functions \
 			-funroll-loops  -xhost  -mkl  -ipo 
 MPI_LIBS = -lmpich -L/homes/donnert/Libs/lib 
 MPI_INCL = -I/homes/donnert/Libs/include 
 GSL_INCL =  
-GSL_LIBS = 
+GSL_LIBS = -L/opt/intel/composer_xe_2013_sp1.2.144/lib/
 FFT_INCL =
 FFT_LIBS =
 endif
@@ -61,7 +61,7 @@ SRCFILES = main.c aux.c cosmo.c domain.c update.c print_settings.c drift.c \
 		init.c kick.c setup.c timestep.c tree.c unit.c memory.c profile.c \
 		sort.c finish.c peano.c accel.c constants.c log.c signal.c comov.c \
 	   	IO/io.c IO/read_snapshot.c IO/write_snapshot.c IO/rw_parameter_file.c \
-		io/write_restart_file.c io/read_restart_file.c  \
+		IO/write_restart_file.c IO/read_restart_file.c  \
 		Gravity/gravity_simple.c Gravity/gravity_tree.c \
 
 INCLFILES = config.h globals.h tree.h cosmo.h unit.h aux.h macro.h proto.h \

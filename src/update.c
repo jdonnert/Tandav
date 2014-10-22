@@ -2,7 +2,7 @@
 #include "update.h"
 #include "accel.h"
 #include "timestep.h"
-#include "io/io.h"
+#include "IO/io.h"
 
 static void find_global_boxsize();
 		

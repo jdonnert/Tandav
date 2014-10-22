@@ -27,7 +27,7 @@ void Build_Tree()
 		
 	*/
 
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+/*	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
 		Float px = P[ipart].Pos[0] - Domain_Corner[0];
 		Float py = P[ipart].Pos[1] - Domain_Corner[1];
@@ -69,35 +69,45 @@ void Build_Tree()
 		add_node(ipart, node++, node);
 		
 	} // for ipart
-
+*/
 	return ;
 }
 
-static inline bool is_inside(const Float px, const Float py, const Float pz,
+static bool is_inside(const Float px, const Float py, const Float pz,
 		const int node)
 {
-	const Float size_half = Tree[node].Size * 0.5;
+	const Float ds = Tree[node].Size * 0.5;
 
-	return (bool) ((fabs(px - Tree[node].Center[0]) <= size_half) +
-				   (fabs(py - Tree[node].Center[1]) <= size_half) +
-		           (fabs(pz - Tree[node].Center[2]) <= size_half))
+	const Float dx = fabs(px - Tree[node].Center[0]);
+	const Float dy = fabs(py - Tree[node].Center[1]);
+	const Float dz = fabs(pz - Tree[node].Center[2]);
+
+	return (dx <= ds) && (dy <= ds) && (dz <= ds) ;
 }
 
-static inline void add_node(const int ipart, const int parent, const int node)
+/* 
+ * The node center is determined by the location of the occupying particle.
+ */
+
+static void add_node(const int ipart, const int parent, const int node)
 {
-	Tree[node].size = Tree[parent].Size * 0.5;
-
-	float sign[3] = { 0 };
-
-	sign[0] = 0.5 * Sign(px - Tree[parent].Center[0]);
-	sign[1] = 0.5 * Sign(py - Tree[parent].Center[1]);
-	sign[2] = 0.5 * Sign(pz - Tree[parent].Center[2]);
 
 	Tree[node].Up = parent;
+	Tree[node].Next = ipart;
 
-	Tree[node].Center[0] = Tree[parent].Center[0] + sign[0] * Tree[node].size;
-	Tree[node].Center[1] = Tree[parent].Center[1] + sign[1] * Tree[node].size;
-	Tree[node].Center[2] = Tree[parent].Center[2] + sign[2] * Tree[node].size;
+	Tree[node].Size = Tree[parent].Size * 0.5;
+
+	Float px = P[ipart].Pos[0] - Domain_Corner[0];
+	Float py = P[ipart].Pos[1] - Domain_Corner[1];
+	Float pz = P[ipart].Pos[2] - Domain_Corner[2];
+
+	Float dx = Sign(px - Tree[parent].Center[0]) * 0.5 * Tree[node].Size;
+	Float dy = Sign(py - Tree[parent].Center[1]) * 0.5 * Tree[node].Size;
+	Float dz = Sign(pz - Tree[parent].Center[2]) * 0.5 * Tree[node].Size;
+
+	Tree[node].Center[0] = Tree[parent].Center[0] + dx;
+	Tree[node].Center[1] = Tree[parent].Center[1] + dy;
+	Tree[node].Center[2] = Tree[parent].Center[2] + dz;
 
 	Tree[node].Npart = 1;
 	Tree[node].Mass = P[ipart].Mass; 
@@ -116,7 +126,7 @@ void Init_Tree()
 	
 	Max_Nodes = Task.Npart_Total_Max * NODES_PER_PARTICLE;
 	
-	Tree = Malloc(Max_Nodes * sizeof(*Tree), "Tree")
+	Tree = Malloc(Max_Nodes * sizeof(*Tree), "Tree");
 	
 	Tree[0].Center[0] = 0.5 * Boxsize;
 	Tree[0].Center[1] = 0.5 * Boxsize;

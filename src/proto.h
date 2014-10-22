@@ -20,6 +20,20 @@
 
 #include "config.h" 		// holds Config #defines
 
+/*
+ * Other Code Parameters
+ */
+
+#define CHARBUFSIZE 256L 	// Maximum No. of chars in every char buffer
+#define NPARTYPE 6L 		// No of particle types
+#define MEM_ALIGNMENT 64L	// byte memory alignment
+#define PARTALLOCFACTOR 1.2	// Mem overhead for dynamic inbalance
+#define MASTER 0			// Global master MPI thread
+
+typedef float Float;		// type of floating point variables in P
+typedef uint32_t ID_t;		// type of particle ID
+typedef uint64_t intime_t; 	// type of integer time +
+
 #include "macro.h" 			// macro definitions
 #include "unit.h" 			// unit functions
 #include "constants.h"		// physical constants
@@ -31,18 +45,25 @@
 #include "sort.h" 			// sort functions
 #include "peano.h" 			
 
-/* Global function prototypes */
+/* 
+ * Global function prototypes 
+ */
 
 extern void Finish();
 
 extern void Print_compile_time_settings();
 
-/* Add your headers here, #ifdefs go into the .h file */
+/* 
+ * Add your headers here, #ifdefs go into the .h file 
+ */
 
 #include "cosmo.h" 			// cosmology functions 
 #include "comov.h"			// Comoving coordinates
 
-/* Workarounds */
+/* 
+ * Workarounds 
+ */
+
 double erand48(unsigned short xsubi[3]);
 int posix_memalign(void **memptr, size_t alignment, size_t size);
 

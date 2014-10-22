@@ -5,8 +5,7 @@
 #include "globals.h"
 #include "accel.h"
 #include "timestep.h"
-#include "gravity/gravity.h"
-
+#include "Gravity/gravity.h"
 
 void Compute_Acceleration()
 {
@@ -31,17 +30,15 @@ void Compute_Acceleration()
 		Accel_Gravity_Tree(ipart, grav_accel, &grav_potential);
 #endif
 
-#ifdef GRAVITY_PM
-		Accel_Gravity_PM(ipart, grav_accel, &grav_potential);
-#endif
 
-		accel[0] += grav_accel[0];
-		accel[1] += grav_accel[1];
-		accel[2] += grav_accel[2];
 
 #ifdef GRAVITY_POTENTIAL
 		P[ipart].Grav_Pot = grav_potential;
 #endif 
+
+		accel[0] += grav_accel[0];
+		accel[1] += grav_accel[1];
+		accel[2] += grav_accel[2];
 
 #endif // GRAVITY
 	

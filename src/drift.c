@@ -66,7 +66,7 @@ void Drift_To_Sync_Point()
 
 void Drift_To_Snaptime()
 {
-	rprintf("Drift to next Shapshot Time %g \n", Time.Next_Snap);
+	rprintf("\nDrift to next Shapshot Time %g \n", Time.Next_Snap);
 
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {

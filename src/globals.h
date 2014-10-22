@@ -3,20 +3,6 @@
 
 #include "proto.h"
 
-typedef float Float;		// type of floating point variables in P
-typedef uint32_t ID_t;		// type of particle ID
-typedef uint64_t intime_t; 	// type of integer time 
-
-/* CODE PARAMETERS */
-
-#define CHARBUFSIZE 256L 	// Maximum No. of chars in every char buffer
-#define NPARTYPE 6L 		// No of particle types
-#define MEM_ALIGNMENT 64L	// byte memory alignment
-#define PARTALLOCFACTOR 1.2	// Mem overhead for dynamic inbalance
-#define MASTER 0			// Global master MPI thread
-
-/* VARIABLES */
-
 int * restrict Active_Particle_List, NActive_Particles;
 
 extern struct Local_Task_Properties {		

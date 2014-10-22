@@ -54,17 +54,17 @@ bool Time_For_Snapshot()
 
 		Sig.Write_Snapshot = false;
 	
-		rprintf("Encountered Signal: Write Snapshot %d at t=%g \n", 
+		rprintf("\nEncountered Signal: Write Snapshot %d at t=%g \n", 
 				Time.Snap_Counter, Time.Current);
 
 		return true;
 	}
 
 	if (Time.Current + Time.Step >= Time.Next_Snap) { 
-	
+		
 		Drift_To_Snaptime();
 
-		rprintf("Snapshot No. %d at t=%g, Next at t=%g \n", 
+		rprintf("\nSnapshot No. %d at t=%g, Next at t=%g \n", 
 				Time.Snap_Counter+1, Time.Next_Snap, 
 				Time.Next_Snap + Time.Bet_Snap);
 	

@@ -1,5 +1,6 @@
 #include "../globals.h"
 #include "../proto.h"
+#include "../init.h"
 #include "io.h"
 
 #define SKIP_FORTRAN_RECORD safe_fread(&Fortran_Record, 4, 1, fp, swap_Endian);
@@ -14,7 +15,6 @@ static void read_file(char *, const bool, const int, const int, MPI_Comm);
 static void empty_comm_buffer(char *, const int, const int, const int *, 
 		const size_t *);
 
-static void allocate_particle_structures();
 static void generate_masses_from_header();
 
 void Read_Snapshot(char *input_name)
@@ -56,7 +56,7 @@ void Read_Snapshot(char *input_name)
 
 	MPI_Bcast(&Sim, sizeof(Sim), MPI_BYTE, 0, MPI_COMM_WORLD);
 
-	allocate_particle_structures();
+	Allocate_Particle_Structures();
 	
 	int rest_Files = nFiles;
 
@@ -360,31 +360,6 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 	
 	Warn(head.Num_Files != nFiles, "NumFiles in Header (%d) doesnt match "
 			"number of files found (%d) \n\n", head.Num_Files, nFiles);
-
-	return ;
-}
-
-static void allocate_particle_structures()
-{
-	const double npart_per_rank = (double)Sim.Npart_Total/(double) Sim.NRank;
-
-	#pragma omp parallel // Task is threadprivate
-	{
-	
-	Task.Npart_Total_Max = ceil(npart_per_rank * PARTALLOCFACTOR);
-
-	for (int i = 0; i < NPARTYPE; i++)
-		Task.Npart_Max[i] = ceil((double)Sim.Npart[i] / (double)Sim.NRank 
-				* PARTALLOCFACTOR);
-	
-	} // omp parallel
-
-	rprintf("\nReserving space for %llu particles per task, factor %g\n", 
-			Task.Npart_Total_Max, PARTALLOCFACTOR);
-
-	P = Malloc(Task.Npart_Total_Max * sizeof(*P), "P"); // add below
-
-	//G = Malloc(Task.Npart_Max[0] * sizeof(*G), "G");
 
 	return ;
 }

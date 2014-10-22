@@ -13,7 +13,7 @@ static struct Profiling_Object {
 	double Max;			// Max Time spend here by a CPU
 	double Mean;		// Mean Time spend here by all CPUs
 	double Imbalance;	// Time wasted waiting for the slowest CPU
-} Prof[MAXPROFILEITEMS] = { {"",0} };
+} Prof[MAXPROFILEITEMS] = { {"", 0} };
 
 static int NProfObjs = 0;
 static double Last_Report_Call = 0;
@@ -63,11 +63,11 @@ void Profile_Info(const char* file, const char* func, const int line,
 		Prof[i].Total += Prof[i].ThisLast;
 
 		if (i != 0)
-			Prof[i].Tbeg = 0;
+			Prof[i].Tbeg = 0;	
 		
 #ifdef DEBUG
-		printf("\nDEBUG: Rank %d ends %s took %g sec \n", 
-				Task.Rank, name, Prof[i].ThisLast);
+		printf("\nDEBUG: %d %d ends %s took %g sec \n", Task.Rank, 
+				Task.Thread_ID, name, Prof[i].ThisLast); fflush(stdout);
 #endif
 
 	} else { // restart
@@ -77,11 +77,14 @@ void Profile_Info(const char* file, const char* func, const int line,
 		Prof[i].Tend = Prof[i].ThisLast = 0;
 
 #ifdef DEBUG
-		printf("\nDEBUG: Rank %d starts %s \n", Task.Rank, name); 
+		printf("\nDEBUG: %d %d starts %s \n", 
+				Task.Rank, Task.Thread_ID, name); fflush(stdout);
 #endif
 	}
 
-	} // omp single nowait
+	} // omp single //nowait
+
+	#pragma omp flush
 
 	return ;
 }
@@ -234,5 +237,5 @@ static inline int find_index_from_name(const char *name)
 
 static double measure_time()
 {
-	return MPI_Wtime(); // [ms]
+	return MPI_Wtime(); // [s]
 }

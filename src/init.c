@@ -3,7 +3,7 @@
  */
 
 #include "globals.h"
-#include "io/io.h"
+#include "IO/io.h"
 #include "domain.h"
 
 struct Parameters_From_File Param; 
@@ -34,7 +34,7 @@ void Read_and_Init()
 
 	case 0: 
 
-		Read_Snapshot(Param.Input_File);
+		Read_Snapshot(Param.Input_File); // also init particle structures
 		
 		break;
 
@@ -56,6 +56,31 @@ void Read_and_Init()
 #endif
 
 	Profile("Init");
+
+	return ;
+}
+
+void Allocate_Particle_Structures()
+{
+	const double npart_per_rank = (double)Sim.Npart_Total/(double) Sim.NRank;
+
+	#pragma omp parallel // Task is threadprivate
+	{
+	
+	Task.Npart_Total_Max = ceil(npart_per_rank * PARTALLOCFACTOR);
+
+	for (int i = 0; i < NPARTYPE; i++)
+		Task.Npart_Max[i] = ceil((double)Sim.Npart[i] / (double)Sim.NRank 
+				* PARTALLOCFACTOR);
+	
+	} // omp parallel
+
+	rprintf("\nReserving space for %llu particles per task, factor %g\n", 
+			Task.Npart_Total_Max, PARTALLOCFACTOR);
+
+	P = Malloc(Task.Npart_Total_Max * sizeof(*P), "P"); // add below
+
+	//G = Malloc(Task.Npart_Max[0] * sizeof(*G), "G");
 
 	return ;
 }

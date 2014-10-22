@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 	{
 	
 	Update(BEFORE_MAIN_LOOP);
-	
+
 	for (;;) { // run, Forest, run !
 
 		if (Time_Is_Up())
@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
  		
 		Drift_To_Sync_Point();
 		
-		Update(BEFORE_FORCES);
+		Update(FORCES);
 
 		Compute_Acceleration();
 

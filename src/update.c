@@ -1,11 +1,10 @@
 #include "globals.h"
 #include "update.h"
+#include "domain.h"
 #include "accel.h"
 #include "timestep.h"
 #include "IO/io.h"
 
-static void find_global_boxsize();
-		
 /* 
  * provide a consistent way of updating/calling different parts 
  * of the code from the main loop
@@ -16,10 +15,6 @@ void Update(enum Update_Parameters stage)
 	switch (stage) {
 
 	case BEFORE_MAIN_LOOP:
-
-#ifndef PERIODIC
-		find_global_boxsize();
-#endif
 
 		Sort_Particles_By_Peano_Key();
 		
@@ -41,10 +36,6 @@ void Update(enum Update_Parameters stage)
 		
 		Write_Logs();
 
-#ifndef PERIODIC
-		find_global_boxsize();
-#endif
-
 		break;
 
 	case BEFORE_SNAPSHOT:
@@ -55,9 +46,11 @@ void Update(enum Update_Parameters stage)
 		
 		break;
 
-	case BEFORE_FORCES:
+	case FORCES:
 
 		Sort_Particles_By_Peano_Key();
+		
+		Domain_Decomposition();
 
 		break;
 
@@ -72,30 +65,3 @@ void Update(enum Update_Parameters stage)
 	return;
 }
 
-
-static void find_global_boxsize()
-{
-	double local_max[3] = { 0 };
-
-	#pragma omp for
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-	
-		local_max[0] = fmax(local_max[0], fabs(P[ipart].Pos[0]));
-		local_max[1] = fmax(local_max[1], fabs(P[ipart].Pos[1]));
-		local_max[2] = fmax(local_max[2], fabs(P[ipart].Pos[2]));
-	}
-
-	#pragma omp single 
-	{
-
-	MPI_Allreduce(&local_max, &Sim.Boxsize, 3, MPI_DOUBLE, MPI_MAX,
-			MPI_COMM_WORLD);
-
-	Sim.Boxsize[0] *= 2;
-	Sim.Boxsize[1] *= 2;
-	Sim.Boxsize[2] *= 2;
-	
-	} // omp single
-
-	return ;
-}

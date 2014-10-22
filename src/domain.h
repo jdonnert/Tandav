@@ -1,4 +1,4 @@
-static struct bunch_information { 
+struct bunch_information { 
 	Float Pos[3];
 	int Npart[NPARTYPE];
 	int Next_bunch; 
@@ -9,4 +9,8 @@ static struct bunch_information {
 void Domain_Decomposition();
 void Init_Domain_Decomposition();
 
-double Domain_Corner[3];
+struct Domain_Properties {
+	double Size[3];
+	double Corner[3];
+} Domain;
+

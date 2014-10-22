@@ -30,8 +30,6 @@ void Compute_Acceleration()
 		Accel_Gravity_Tree(ipart, grav_accel, &grav_potential);
 #endif
 
-
-
 #ifdef GRAVITY_POTENTIAL
 		P[ipart].Grav_Pot = grav_potential;
 #endif 

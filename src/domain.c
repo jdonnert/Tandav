@@ -2,12 +2,12 @@
 #include "domain.h"
 #include "peano.h"
 
+static void find_global_domain();
 static void fill_bunchlist();
 static double compute_imbalance();
 static void split_bunches();
 static void update_bunchlist();
 static void communicate_particles();
-
 
 /* This function distributes particles in bunches, which are continuous
  * on the Peano curve. This way, the bunches correspond to parts
@@ -20,6 +20,8 @@ static void communicate_particles();
 void Domain_Decomposition()
 {
 	Profile("Domain Decomposition");
+
+	find_global_domain();
 
  	Sort_Particles_By_Peano_Key();
 
@@ -44,6 +46,8 @@ void Domain_Decomposition()
 
 void Init_Domain_Decomposition()
 {
+	find_global_domain();
+
 	/*int nTask = Sim.NTask, nThreads = Sim.NThreads;
 	
 	size_t nBytes = (1ULL << DOMAIN_CEILING) * Sim.NRank * sizeof(Bunchlist); 
@@ -106,5 +110,76 @@ static void communicate_particles()
 
 static void update_bunchlist()
 {
+	return ;
+}
+
+static double global_min[3] = { 0 }; 
+static double global_max[3] = { 0 };
+
+static void find_global_domain()
+{
+	double local_max[3] = { 0 };
+	double local_min[3] = { 0 };
+
+	#pragma omp for nowait
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+	
+		local_max[0] = fmax(local_max[0], P[ipart].Pos[0]);
+		local_max[1] = fmax(local_max[1], P[ipart].Pos[1]);
+		local_max[2] = fmax(local_max[2], P[ipart].Pos[2]);
+
+		local_min[0] = fmin(local_min[0], P[ipart].Pos[0]);
+		local_min[1] = fmin(local_min[1], P[ipart].Pos[1]);
+		local_min[2] = fmin(local_min[2], P[ipart].Pos[2]);
+	}
+
+	#pragma omp critical // now do an omp reduction
+	{
+
+	global_max[0] = fmax(global_max[0], local_max[0]);
+	global_max[1] = fmax(global_max[1], local_max[1]);
+	global_max[2] = fmax(global_max[2], local_max[2]);
+	
+	global_min[0] = fmin(global_min[0], local_min[0]);
+	global_min[1] = fmin(global_min[1], local_min[1]);
+	global_min[2] = fmin(global_min[2], local_min[2]);
+	
+	} // omp critical
+
+	#pragma omp single // now an MPI Reduction
+	{
+
+	memcpy(local_max, global_max, 3*sizeof(*local_max)); // copy back as buf
+	memcpy(local_min, global_min, 3*sizeof(*local_min));
+
+	MPI_Allreduce(&local_max, &global_max, 3, MPI_DOUBLE, MPI_MAX,
+			MPI_COMM_WORLD);
+
+	MPI_Allreduce(&local_min, &global_min, 3, MPI_DOUBLE, MPI_MIN,
+			MPI_COMM_WORLD);
+
+	Domain.Size[0] = fabs(global_max[0] - global_min[0]);
+	Domain.Size[1] = fabs(global_max[1] - global_min[1]);
+	Domain.Size[2] = fabs(global_max[2] - global_min[2]);
+
+#ifndef PERIODIC
+	Sim.Boxsize[0] = Domain.Size[0];
+	Sim.Boxsize[1] = Domain.Size[1];
+	Sim.Boxsize[2] = Domain.Size[2];
+#endif // PERIODIC
+
+	Domain.Corner[0] = global_min[0];
+	Domain.Corner[1] = global_min[1];
+	Domain.Corner[2] = global_min[2];
+
+#ifdef DEBUG
+	printf("%d, %d found domain size %g %g %g at %g %g %g \n", 
+			Task.Rank, Task.Thread_ID,
+			Domain.Size[0], Domain.Size[1],Domain.Size[2],
+			Domain.Corner[0],Domain.Corner[1],Domain.Corner[2]);
+#endif
+
+	} // omp single
+
 	return ;
 }

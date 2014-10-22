@@ -27,7 +27,7 @@
 #define CHARBUFSIZE 256L 	// Maximum No. of chars in every char buffer
 #define NPARTYPE 6L 		// No of particle types
 #define MEM_ALIGNMENT 64L	// byte memory alignment
-#define PARTALLOCFACTOR 1.2	// Mem overhead for dynamic inbalance
+#define PARTALLOCFACTOR 1.1	// Mem overhead for dynamic inbalance
 #define MASTER 0			// Global master MPI thread
 
 typedef float Float;		// type of floating point variables in P

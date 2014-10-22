@@ -6,7 +6,7 @@ pro make_ICs
 
 	seed = 14041981L
 
-	npart = 15001L
+	npart = 20000L
 
 	mass = 1d15 * Msol / tandav.mass ; code units 
 	a_hernq = 924D 		
@@ -18,7 +18,6 @@ pro make_ICs
 	pos = make_array(3, npart, /double, val=0)
 	
 	sqrt_q = sqrt(randomu(seed, npart))
-
 
 	r = a_hernq  * sqrt_q / (1-sqrt_q)
 
@@ -36,39 +35,39 @@ pro make_ICs
 
 	vel = make_array(3, npart, /double, val=0)
 
-	for i = 0, npart-1 do begin
+;	for i = 0, npart-1 do begin
 
-		r = sqrt(pos[0,i]^2 + pos[1,i]^2 + pos[2,i]^2)
+;		r = sqrt(pos[0,i]^2 + pos[1,i]^2 + pos[2,i]^2)
 
-		pot = hernquist_potential(r, a_hernq, mass)
+;		pot = hernquist_potential(r, a_hernq, mass)
 
-		vmax = sqrt(-2*pot)
-		Emax = -pot
-		qmax = 4*!pi*vmax^2/mass $
-			* hernquist_distribution_function(Emax, a_hernq, mass)
+;		vmax = sqrt(-2*pot)
+;		Emax = -pot
+;		qmax = 4*!pi*vmax^2/mass $
+;			* hernquist_distribution_function(Emax, a_hernq, mass)
 
-		while 1 do begin ; rejection sampling
+;		while 1 do begin ; rejection sampling
 	
-			lower_bound = qmax * randomu(seed)
+;			lower_bound = qmax * randomu(seed)
 
-			v = vmax * randomu(seed)
+;			v = vmax * randomu(seed)
 
-			Etot = 0.5*v^2 + pot
+;			Etot = 0.5*v^2 + pot
 
-			q = 4*!pi * v^2/mass $
-				* hernquist_distribution_function(-Etot, a_hernq, mass)
+;			q = 4*!pi * v^2/mass $
+;				* hernquist_distribution_function(-Etot, a_hernq, mass)
 
-			if q ge lower_bound then $
-				break
-		end
+;			if q ge lower_bound then $
+;				break
+;		end
+;
+;		theta = acos(2 * randomu(seed) - 1)
+;		phi =  2 * !pi * randomu(seed)
 
-		theta = acos(2 * randomu(seed) - 1)
-		phi =  2 * !pi * randomu(seed)
-
-		vel[0,i] = v * sin(theta) * cos(phi)
-		vel[1,i] = v * sin(theta) * sin(phi)
-		vel[2,i] = v * cos(theta)
-	end
+;		vel[0,i] = v * sin(theta) * cos(phi)
+;		vel[1,i] = v * sin(theta) * sin(phi)
+;		vel[2,i] = v * cos(theta)
+;	end
 	
 	; output
 

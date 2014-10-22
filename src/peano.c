@@ -29,7 +29,7 @@ void Sort_Particles_By_Peano_Key()
 	
 	#pragma omp single
 	{
-	Assert(Task.Npart_Total_Max, "OEH");
+
 	if (Keys == NULL)
 		Keys = Malloc(Task.Npart_Total_Max * sizeof(*Keys), "PeanoKeys");
 	
@@ -104,6 +104,7 @@ static void reorder_collisionless_particles()
 
 		P[dest] = Ptmp;
 		Idx[dest] = dest;
+
     } // for i
 	
 	} // omp single
@@ -112,7 +113,7 @@ static void reorder_collisionless_particles()
 }
 
 /* 
- * Construct 64 bit Peano-Hilbert distance in 3D 
+ * Construct a 64 bit Peano-Hilbert distance in 3D 
  * Yes it's arcane, run as fast as you can.
  * Skilling 2004, AIP 707, 381: "Programming the Hilbert Curve"
  * Note: There is a bug in the code of the paper. See also:
@@ -122,7 +123,7 @@ static void reorder_collisionless_particles()
 peanoKey Peano_Key(const float x, const float y, const float z, 
 		const double *boxsize)
 {
-	const uint32_t m = 0x80000000; // = 1UL << 31;
+	const uint32_t m = 0x80000000; // = 1UL << 31 = 2^31;
 
 	uint32_t X[3] = { (y / boxsize[0]) * m, 
 				 	  (z / boxsize[1]) * m, 
@@ -167,7 +168,7 @@ peanoKey Peano_Key(const float x, const float y, const float z,
     for(int i = 1; i >= 0; i-- )
         X[i] ^= t;
 
-	/* bit interleave the transpose array */
+	/* branch free bit interleave the transpose array X into key */
 	peanoKey key = 0;
 
 	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
@@ -180,7 +181,9 @@ peanoKey Peano_Key(const float x, const float y, const float z,
 		
 		key <<= 3; 
 
-		X[0] <<= 1; X[1] <<= 1; X[2] <<= 1;
+		X[0] <<= 1; 
+		X[1] <<= 1; 
+		X[2] <<= 1;
 
 		key |= col; 
 	} 

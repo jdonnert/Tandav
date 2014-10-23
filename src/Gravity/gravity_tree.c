@@ -1,6 +1,5 @@
 /*
  * This builds the tree 
- *
  */
 
 #include "../globals.h"
@@ -10,8 +9,8 @@
 #define NODES_PER_PARTICLE 0.7 // Springel 2005
 
 struct Tree_Node {
-	Float Center[3];
-	Float Size;
+	Float CoM[3];
+	uint32_t Bitmask; // 5b:level, 3b:key, 24b:free
 	int Npart;
 	float Mass;
 	int Next;		
@@ -22,7 +21,7 @@ static size_t NNodes = 0;
 static size_t Max_Nodes = 0;
 static double Boxsize = 0;
 
-static void add_node(const int, const int, const int);
+static void add_node(const int, const int);
 static bool is_inside(const Float, const Float, const Float, const int);
 
 void Build_Tree()
@@ -43,20 +42,26 @@ void Build_Tree()
 		Float py = P[ipart].Pos[1] - Domain.Corner[1];
 		Float pz = P[ipart].Pos[2] - Domain.Corner[2];
 
+		Float mpart = P[ipart].Mass;
+
 		int node = 0;
 		int parent = 0;
 
 		for (;;) {
 			
-			if (is_inside(px, py, pz, node)) {
+			if (is_inside(px, py, pz, node)) { // open
 			
-				Tree[node].Mass += P[ipart].Mass;
+				Tree[node].CoM[0] += px * mpart;
+				Tree[node].CoM[1] += py * mpart;
+				Tree[node].CoM[2] += pz * mpart;
+				
+				Tree[node].Mass += mpart;
 				
 				Tree[node].Npart++;
 
 				parent = node;
 	
-				if (Tree[node].Npart == 2) // open and split
+				if (Tree[node].Npart == 2) // split
 					break; 
 				
 				node++; // decline
@@ -67,8 +72,6 @@ void Build_Tree()
 					
 					parent = Tree[node].Up;
 
-					node = NNodes; // add at the end
-					
 					break;
 				} 
 			
@@ -81,55 +84,56 @@ void Build_Tree()
 			
 			int jpart = Tree[node].Next;
 					
-			add_node(jpart, parent, node);
+			add_node(jpart, parent);
 		}
-		add_node(ipart, parent, node);
+
+		add_node(ipart, parent);
 		
 	} // for ipart
 
 	return ;
 }
 
-
-static bool is_inside(const Float px, const Float py, const Float pz,
-		const int node)
+/*
+ * For particle and node to overlap the peano key triplet at this
+ * tree level has to be equal 
+ */
+static bool is_inside(const int ipart, const int node)
 {
-	const Float ds = Tree[node].Size * 0.5;
+	int shift = 3*(Tree[node].Bitmask & 0x1F); 
+	uint64_t part_mask = 0x07 << shift; // shift first 3 bits
 
-	const Float dx = fabs(px - Tree[node].Center[0]);
-	const Float dy = fabs(py - Tree[node].Center[1]);
-	const Float dz = fabs(pz - Tree[node].Center[2]);
+	uint64_t part_triplet = (P[ipart].PeanoKey & part_mask) >> shift;
 
-	return (dx <= ds) && (dy <= ds) && (dz <= ds) ;
+	uint64_t node_triplet = Tree[node].Bitmask & 0xE0; 
+
+	return node_triplet == part_triplet;
 }
 
-/* 
- * The node center is determined by the location of the occupying particle.
+/*
+ * We always add nodes at the end
  */
-
-static void add_node(const int ipart, const int parent, const int node)
+static void add_node(const int ipart, const int parent)
 {
+	const int node = NNodes++;
+
 	Tree[node].Up = parent;
 	Tree[node].Next = ipart;
 
-	Tree[node].Size = Tree[parent].Size * 0.5;
-
-	Float px = P[ipart].Pos[0] - Sim.Boxsize[0];
-	Float py = P[ipart].Pos[1] - Sim.Boxsize[1];
-	Float pz = P[ipart].Pos[2] - Sim.Boxsize[2];
-
-	Float dx = Sign(px - Tree[parent].Center[0]) * 0.5 * Tree[node].Size;
-	Float dy = Sign(py - Tree[parent].Center[1]) * 0.5 * Tree[node].Size;
-	Float dz = Sign(pz - Tree[parent].Center[2]) * 0.5 * Tree[node].Size;
-
-	Tree[node].Center[0] = Tree[parent].Center[0] + dx;
-	Tree[node].Center[1] = Tree[parent].Center[1] + dy;
-	Tree[node].Center[2] = Tree[parent].Center[2] + dz;
+	Tree[node].CoM[0] = (P[ipart].Pos[0] - Domain.Corner[0]) * P[ipart].Mass;
+	Tree[node].CoM[1] = (P[ipart].Pos[1] - Domain.Corner[1]) * P[ipart].Mass;
+	Tree[node].CoM[2] = (P[ipart].Pos[2] - Domain.Corner[2]) * P[ipart].Mass;
 
 	Tree[node].Npart = 1;
 	Tree[node].Mass = P[ipart].Mass; 
 
-	NNodes++;
+	uint32_t level = (Tree[parent].Bitmask & 0x1F) + 1; // first 5 bits + 1
+	
+	uint32_t keyfragment = P[ipart].PeanoKey & (0x1F << 3*level);
+	
+	keyfragment >>= 3*level - 5; // leave space for level
+
+	Tree[node].Bitmask = level | keyfragment; 
 
 	return ;
 }

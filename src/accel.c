@@ -7,6 +7,8 @@
 #include "timestep.h"
 #include "Gravity/gravity.h"
 
+static void Accel_Gravity(const int ipart, double *accel);
+
 void Compute_Acceleration()
 {
 	Profile("Accelerations");
@@ -19,27 +21,9 @@ void Compute_Acceleration()
 		double accel[3] = { 0 };
 
 #ifdef GRAVITY
-		double grav_accel[3] = { 0 };
-		double grav_potential = 0;
-
-#ifdef GRAVITY_SIMPLE
-		Accel_Gravity_Simple(ipart, grav_accel, &grav_potential);
-#endif
-
-#ifdef GRAVITY_TREE
-		Accel_Gravity_Tree(ipart, grav_accel, &grav_potential);
-#endif
-
-#ifdef GRAVITY_POTENTIAL
-		P[ipart].Grav_Pot = grav_potential;
-#endif 
-
-		accel[0] += grav_accel[0];
-		accel[1] += grav_accel[1];
-		accel[2] += grav_accel[2];
-
+		Accel_Gravity(ipart, accel);
 #endif // GRAVITY
-	
+
 		P[ipart].Acc[0] = (Float) accel[0];
 		P[ipart].Acc[1] = (Float) accel[1];
 		P[ipart].Acc[2] = (Float) accel[2]; 
@@ -50,5 +34,27 @@ void Compute_Acceleration()
 	return ;
 }
 
+static void Accel_Gravity(const int ipart, double *accel)
+{
+	double grav_accel[3] = { 0 };
+	double grav_potential = 0;
 
+#ifdef GRAVITY_SIMPLE
+	Accel_Gravity_Simple(ipart, grav_accel, &grav_potential);
+#endif
+
+#ifdef GRAVITY_TREE
+	Accel_Gravity_Tree(ipart, grav_accel, &grav_potential);
+#endif
+
+#ifdef GRAVITY_POTENTIAL
+	P[ipart].Grav_Pot = grav_potential;
+#endif 
+
+	accel[0] += grav_accel[0];
+	accel[1] += grav_accel[1];
+	accel[2] += grav_accel[2];
+
+	return ;
+}
 

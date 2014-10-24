@@ -5,6 +5,7 @@
 #include "globals.h"
 #include "IO/io.h"
 #include "domain.h"
+#include "Gravity/gravity.h"
 
 struct Parameters_From_File Param; 
 struct Global_Simulation_Properties Sim;
@@ -27,8 +28,6 @@ void Read_and_Init()
 	Init_Memory_Management();
 
 	Init_Logs();
-
-	Init_Domain_Decomposition();
 
 	switch (Param.Start_Flag) {
 
@@ -54,7 +53,15 @@ void Read_and_Init()
 #ifdef PERIODIC
 	Constrain_Particles_To_Box();
 #endif
+	
+	Init_Domain_Decomposition();
 
+#ifdef GRAVITY_TREE
+	Init_Tree();
+#endif
+
+	Print_Memory_Usage();
+	
 	Profile("Init");
 
 	return ;

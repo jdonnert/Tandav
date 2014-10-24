@@ -1,12 +1,13 @@
 #include "globals.h"
 #include "update.h"
-#include "domain.h"
 #include "accel.h"
 #include "timestep.h"
 #include "IO/io.h"
+#include "domain.h"
+#include "Gravity/gravity.h"
 
 /* 
- * provide a consistent way of updating/calling different parts 
+ * Provide a consistent way of updating/calling different parts 
  * of the code from the main loop
  */
 
@@ -16,9 +17,16 @@ void Update(enum Update_Parameters stage)
 
 	case BEFORE_MAIN_LOOP:
 
-		Sort_Particles_By_Peano_Key();
+#pragma omp parallel
+		{
+
+		Update(FORCES);
 		
+		Print_Memory_Usage();
+
 		Compute_Acceleration();
+
+		} // omp parallel
 		
 		if (Time.Begin == Time.Next_Snap) { 
 
@@ -48,9 +56,11 @@ void Update(enum Update_Parameters stage)
 
 	case FORCES:
 
-		Sort_Particles_By_Peano_Key();
-		
 		Domain_Decomposition();
+printf("FORCES\n");
+#ifdef GRAVITY_TREE
+		Build_Tree();
+#endif
 
 		break;
 

@@ -25,7 +25,7 @@ void Domain_Decomposition()
 
  	Sort_Particles_By_Peano_Key();
 
-	for (;;) {
+	/*for (;;) {
 	
 		fill_bunchlist();
 
@@ -38,7 +38,7 @@ void Domain_Decomposition()
 	} 
 	
 	communicate_particles();
-
+*/
 	Profile("Domain Decomposition");
 
 	return ;
@@ -46,6 +46,7 @@ void Domain_Decomposition()
 
 void Init_Domain_Decomposition()
 {
+	#pragma omp parallel
 	find_global_domain();
 
 	/*int nTask = Sim.NTask, nThreads = Sim.NThreads;
@@ -133,7 +134,7 @@ static void find_global_domain()
 		local_min[2] = fmin(local_min[2], P[ipart].Pos[2]);
 	}
 
-	#pragma omp critical // now do an omp reduction
+	#pragma omp critical // do an omp reduction
 	{
 
 	global_max[0] = fmax(global_max[0], local_max[0]);
@@ -146,7 +147,7 @@ static void find_global_domain()
 	
 	} // omp critical
 
-	#pragma omp single // now an MPI Reduction
+	#pragma omp single // do an MPI reduction
 	{
 
 	memcpy(local_max, global_max, 3*sizeof(*local_max)); // copy back as buf
@@ -173,7 +174,7 @@ static void find_global_domain()
 	Domain.Corner[2] = global_min[2];
 
 #ifdef DEBUG
-	printf("%d, %d found domain size %g %g %g at %g %g %g \n", 
+	printf("\n%d, %d found domain size %g %g %g at %g %g %g \n\n", 
 			Task.Rank, Task.Thread_ID,
 			Domain.Size[0], Domain.Size[1],Domain.Size[2],
 			Domain.Corner[0],Domain.Corner[1],Domain.Corner[2]);

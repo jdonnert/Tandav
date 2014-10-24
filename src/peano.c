@@ -5,6 +5,7 @@
 #include "globals.h"
 #include "timestep.h"
 #include "peano.h"
+#include "domain.h"
 #include "sort.h"
 
 #include <gsl/gsl_heapsort.h>
@@ -57,17 +58,11 @@ static void compute_peano_keys()
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-		float x = P[ipart].Pos[0];
-		float y = P[ipart].Pos[1];
-		float z = P[ipart].Pos[2];
+		float x = P[ipart].Pos[0] - Domain.Corner[0];
+		float y = P[ipart].Pos[1] - Domain.Corner[1];
+		float z = P[ipart].Pos[2] - Domain.Corner[2];
 
-#ifndef PERIODIC
-		x += Sim.Boxsize[0] * 0.5;
-		y += Sim.Boxsize[1] * 0.5;
-		z += Sim.Boxsize[2] * 0.5;
-#endif
-
-		P[ipart].Peanokey = Keys[ipart] = Peano_Key(x,y,z, Sim.Boxsize);
+		P[ipart].Peanokey = Keys[ipart] = Peano_Key(x,y,z, Domain.Size);
 	}
 
 	return ;

@@ -57,7 +57,7 @@ void Update(enum Update_Parameters stage)
 	case FORCES:
 
 		Domain_Decomposition();
-printf("FORCES\n");
+printf("FORCES\n"); fflush(stdout);
 #ifdef GRAVITY_TREE
 		Build_Tree();
 #endif

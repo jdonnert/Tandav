@@ -56,10 +56,6 @@ void Read_and_Init()
 	
 	Init_Domain_Decomposition();
 
-#ifdef GRAVITY_TREE
-	Init_Tree();
-#endif
-
 	Print_Memory_Usage();
 	
 	Profile("Init");

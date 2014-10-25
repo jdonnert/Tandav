@@ -32,4 +32,4 @@ VELOCITY2CGS 1.0e+05		// km/s
 
 MEMORY_MANAGER  
 
-#DEBUG				// Verbose output for debugging
+DEBUG				// Verbose output for debugging

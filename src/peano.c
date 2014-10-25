@@ -186,7 +186,7 @@ peanoKey Peano_Key(const float x, const float y, const float z,
 	return key;
 }
 
-void print_int_bits64(const uint64_t val)
+static void print_int_bits64(const uint64_t val)
 {
 	for (int i = 63; i >= 0; i--)
 		printf("%llu", (val & (1ULL << i) ) >> i);

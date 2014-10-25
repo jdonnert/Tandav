@@ -20,7 +20,7 @@ static void communicate_particles();
 void Domain_Decomposition()
 {
 	Profile("Domain Decomposition");
-
+	
 	find_global_domain();
 
  	Sort_Particles_By_Peano_Key();

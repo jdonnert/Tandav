@@ -8,8 +8,11 @@
  * pointer, which is just a node++ now. It also means that new nodes are 
  * always added at the end of the tree during construction and the tree walk
  * has best possible cache coherency. 
- * To make the subtree movable, the "next" pointer just gives the difference 
- * between current and next node.
+ * To make the subtree movable, the "next" & "up" pointers just give the 
+ * difference between current and next/parent node.
+ * For particles closer than box/2^21, i.e. with the same 63bit peano key, 
+ * the nodes are just randomly inserted. This implies that the tree walk has
+ * to open all of these later and becomes ~N^2 for this subtree.
  */
 
 #include "../globals.h"
@@ -24,19 +27,20 @@ struct Tree_Node {
 	Float CoM[3];
 	float Mass;
 	int DNext;		 // this is the DELTA to the next node
-	int Up;
+	int DUp;
 } *Tree = NULL;
 
-static inline int level(const int node);
-static inline int key_fragment(const int node);
-static inline float node_size(const int node);
 
 static size_t NNodes = 0;
 static size_t Max_Nodes = 0;
-static double Boxsize = 0;
 
-static void add_node(const int ipart, const int node);
-static bool part_is_inside_node(const int ipart, const int node);
+static inline int level(const int node);
+static inline int key_fragment(const int node);
+static inline Float node_size(const int node);
+
+static inline void add_node(const int ipart, const int node);
+static inline bool particle_is_inside_node(const int ipart, const int node);
+static inline void add_particle_to_node(const int ipart, const int node);
 
 static void print_int_bits64(const uint64_t val)
 {
@@ -62,58 +66,47 @@ void Build_Tree()
 	   int  node_start, ipart_start, ipart_stop;
 		
 	*/
-
+ 
  	/* Here the top tree is complete, now build local nodes downwards */
 
 for (int n=0; n<NNodes; n++)
 	printf("START n=%d  np=%d next=%d up=%d mass=%g \n", 
-			n,  Tree[n].Npart, Tree[n].DNext, Tree[n].Up,Tree[n].Mass);
-bool tmp = part_is_inside_node(0, 0);
+			n,  Tree[n].Npart, Tree[n].DNext, Tree[n].DUp,Tree[n].Mass);
+bool tmp = particle_is_inside_node(0, 0);
 	add_node(0, 0); // add the first particle by hand
-	Tree[0].Up = -1;
+	Tree[0].DUp = -1;
 	Tree[0].Bitfield = 0;
 
-	for (int ipart = 1; ipart < 20; ipart++) {
-
-printf("IPART=%d NNodes=%d \n", ipart, NNodes);
+	
 		
-		Float px = P[ipart].Pos[0] - Domain.Corner[0];
-		Float py = P[ipart].Pos[1] - Domain.Corner[1];
-		Float pz = P[ipart].Pos[2] - Domain.Corner[2];
 
-		Float mpart = P[ipart].Mass;
+	for (int ipart = 1; ipart < 500; ipart++) {
+
+printf("\n\nIPART=%d NNodes=%zu \n", ipart, NNodes);
 
 		int node = 0;
-		int parent = 0;
-int cnt=0;
+
 		for (;;) {
 
-if (cnt++ > 10) break;
 
-	printf("LOOP : n=%d np=%d next=%d level=%d\n", node, Tree[node].Npart, Tree[node].DNext, level(node));
+	printf("\nLOOP : n=%d np=%d next=%d level=%d\n", node, Tree[node].Npart, Tree[node].DNext, level(node));
 
-		if (part_is_inside_node(ipart, node)) { // open
+		if (particle_is_inside_node(ipart, node)) { // open
 			
 	printf("IN : \n");
-				Tree[node].CoM[0] += px * mpart;
-				Tree[node].CoM[1] += py * mpart;
-				Tree[node].CoM[2] += pz * mpart;
-				
-				Tree[node].Mass += mpart;
-				
-				Tree[node].Npart++;
-
-				parent = node;
 	
-				if (Tree[node].Npart == 2) { // split
+				add_particle_to_node(ipart, node); 
+				
+				if (Tree[node].Npart == 2) { // refine
 				
 					int jpart = Tree[node].DNext;
 	
-	printf("REFINE : node=%d npart=%d jpart=%d\n", node,Tree[node].Npart, jpart);
+	printf("REFINE : node=%d npart=%d jpart=%d\n", 
+			node,Tree[node].Npart, jpart);
 
 					Tree[node].DNext = -1;
 					
-					add_node(jpart, parent); // add daughter
+					add_node(jpart, node); // add first daughter
 				}  
 				
 	printf("DECLINE %d->%d  \n", node, node+1);
@@ -121,36 +114,50 @@ if (cnt++ > 10) break;
 
 			} else { // skip
 
-				parent = Tree[node].Up;
+	printf("OUT %d : \n", Tree[node].DNext);
 
-	printf("OUT %d : \n", Tree[parent].DNext);
-				if (Tree[parent].DNext < 0) {
-					
+				if (Tree[node].DNext < 0 || node == NNodes - 1) {  
+
 	printf("LEAF : \n");
 
-					Tree[node].DNext = NNodes - node; // next give only delta
-
-					break;
+					break; // reached end
 				} 
+
+				if (Tree[node].Npart == 1) { // internal leaf
+
+					node++; // might need to split 
+	printf("NEXT : +%1\n");
+				} else {
 			
-				node += Tree[node].DNext;
+	printf("NEXT : +%d\n",Tree[node].DNext);
+				node += Tree[node].DNext; // skip whole subtree
+
+				}
 			}
 
 		} // for (;;)
 
+		if (Tree[node].DNext < 0) // correct internal next node
+			Tree[node].DNext = NNodes - node; // only  delta
 	
-	printf("ADD OUT : node=%d npart=%d \n", node, Tree[node].Npart);
-	add_node(ipart, parent); // add sibling or daughter
-		
+		int parent = node - Tree[node].DUp;
 
-for (int n=0; n<NNodes; n++) {
-	printf("n=%d ip=%d np=%d next=%d up=%d mass=%g level=%d \n", 
-			n, ipart, Tree[n].Npart, Tree[n].DNext, Tree[n].Up,Tree[n].Mass, level(n));
+printf("ADD OUT : node=%d npart=%d parent=%d \n", 
+			node, Tree[node].Npart, parent);
 
-print_int_bits64(Tree[n].Bitfield);
-}
+	add_node(ipart, parent); // add sibling 
 
 	} // for ipart
+
+
+for (int n=0; n<NNodes; n++) {
+printf("n=%d np=%d next=%d up=%d mass=%g level=%d \n", 
+n,  Tree[n].Npart, Tree[n].DNext, Tree[n].DUp,Tree[n].Mass, level(n));
+print_int_bits64(Tree[n].Bitfield);
+}
+printf("\n");
+for (int ipart = 0; ipart < 500; ipart++) 
+print_int_bits64(P[ipart].Peanokey);
 
 
 exit(0);
@@ -161,13 +168,14 @@ exit(0);
  * For particle and node to overlap the peano key triplet at this
  * tree level has to be equal 
  */
-static bool part_is_inside_node(const int ipart, const int node)
+static inline bool particle_is_inside_node(const int ipart, const int node)
 {
 	int lvl = level(node);
-	int shift = 63 - 3 * lvl; // bits 0-5
 
-	if (shift < 0) // particles closer than 3*21 bit PHKey resolution
-		return ipart % 8; // add daughter if true, add sibling if not
+	if (lvl > 21) // particles closer than 3*21 bit PHKey resolution
+		return false; // just add at the end in incoming order (random)
+
+	int shift = 63 - 3 * lvl; // bits 0-5
 
 	uint64_t part_mask = 0x07ULL << shift; // shift first 3 bits
 
@@ -176,53 +184,61 @@ static bool part_is_inside_node(const int ipart, const int node)
 	uint64_t node_triplet = key_fragment(node); 
 printf("TEST INSIDE shift=%d level=%d \n", shift, lvl);
 print_int_bits64(Tree[node].Bitfield);
-print_int_bits64(part_mask);
-print_int_bits64(part_triplet);
-print_int_bits64(node_triplet);
 print_int_bits64(P[ipart].Peanokey);
+print_int_bits64(part_mask);
+//print_int_bits64(part_triplet);
+//print_int_bits64(node_triplet);
 
-	return node_triplet == part_triplet;
+	return (node_triplet == part_triplet);
 }
 /*
  * We always add nodes at the end of the tree
  */
 
-static void add_node(const int ipart, const int parent)
+static inline void add_node(const int ipart, const int parent)
 {
 	const int node = NNodes++;
 	
 	Tree[parent].DNext = -1;
 
-	Tree[node].Up = parent;
+	Tree[node].DUp = node - parent;
 	Tree[node].DNext = ipart;
 
-	Tree[node].CoM[0] = (P[ipart].Pos[0] - Domain.Corner[0]) * P[ipart].Mass;
-	Tree[node].CoM[1] = (P[ipart].Pos[1] - Domain.Corner[1]) * P[ipart].Mass;
-	Tree[node].CoM[2] = (P[ipart].Pos[2] - Domain.Corner[2]) * P[ipart].Mass;
-
-	Tree[node].Npart = 1;
-	Tree[node].Mass = P[ipart].Mass; 
-
+	add_particle_to_node(ipart, node); 
+	
 	uint32_t lvl = level(parent) + 1; // first 5 bits + 1
 	
 	int shift = 63 - 3*lvl;
-printf("ADD n=%d parent=%d lvl=%d shft=%d Par_UP=%d \n", 
-		node, parent,lvl, shift, Tree[parent].Up);
+printf("ADD ipart=%d n=%d parent=%d lvl=%d shft=%d Par_UP=%d \n", 
+		ipart, node, parent,lvl, shift, Tree[parent].DUp);
 	uint64_t tmp_key = (P[ipart].Peanokey & (0x07ull << shift));
 	uint32_t keyfragment = (uint32_t) (tmp_key >> (shift - 6)); 
 	
-print_int_bits64(P[ipart].Peanokey);
+/*print_int_bits64(P[ipart].Peanokey);
 print_int_bits64(0x07ull << shift);
 print_int_bits64(keyfragment);
-
-
-print_int_bits64(keyfragment);
-
+*/
 	Tree[node].Bitfield = lvl | keyfragment; 
 
 print_int_bits64(Tree[node].Bitfield);
 	return ;
 }
+
+static inline void add_particle_to_node(const int ipart, const int node)
+{
+	Tree[node].CoM[0] += P[ipart].Pos[0] * P[ipart].Mass;
+	Tree[node].CoM[1] += P[ipart].Pos[1] * P[ipart].Mass;
+	Tree[node].CoM[2] += P[ipart].Pos[2] * P[ipart].Mass;
+	
+	Tree[node].Mass += P[ipart].Mass;
+
+	Tree[node].Npart++;
+
+	/* add yours here */
+
+	return ;
+}
+
 
 
 /*
@@ -249,11 +265,11 @@ static inline int key_fragment(const int node)
  * The size of the node is just the domain size halfed level times
  */
 
-static inline float node_size(const int node)
+static inline Float node_size(const int node)
 {
 	int lvl = level(node);
 
-	return Domain.Size[0] / (float) (1UL << lvl);
+	return Domain.Size / ((Float) (1UL << lvl));
 }
 
 
@@ -262,19 +278,21 @@ void Init_Tree()
 	#pragma omp single
 	{
 
-	Boxsize = fmax(Sim.Boxsize[0], fmax(Sim.Boxsize[1], Sim.Boxsize[2]));
-	
 	Max_Nodes = Task.Npart_Total_Max * NODES_PER_PARTICLE;
 	
+	size_t nBytes = Max_Nodes * sizeof(*Tree);
+
 	if (Tree == NULL)
-		Tree = Malloc(Max_Nodes * sizeof(*Tree), "Tree");
+		Tree = Malloc(nBytes, "Tree");
 	
+	memset(Tree, 0, nBytes);
+
 	Tree[0].CoM[0] = 0; // will hold global CoM of sim
 	Tree[0].CoM[1] = 0;
 	Tree[0].CoM[2] = 0;
 
 	Tree[0].Npart = 0;
-	Tree[0].Up = -1;
+	Tree[0].DUp = -1;
 	Tree[0].Mass = 0;
 	Tree[0].DNext = -1;
 	Tree[0].Bitfield = 0;

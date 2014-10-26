@@ -31,7 +31,7 @@ void Update(enum Update_Parameters stage)
 		if (Time.Begin == Time.Next_Snap) { 
 
 			Write_Snapshot();
-
+			
 			#pragma omp single
 			Time.Next_Snap += Time.Bet_Snap;
 		}
@@ -57,7 +57,7 @@ void Update(enum Update_Parameters stage)
 	case FORCES:
 
 		Domain_Decomposition();
-printf("FORCES\n"); fflush(stdout);
+
 #ifdef GRAVITY_TREE
 		Build_Tree();
 #endif

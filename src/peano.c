@@ -58,10 +58,10 @@ static void compute_peano_keys()
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-		float x = P[ipart].Pos[0] - Domain.Corner[0];
-		float y = P[ipart].Pos[1] - Domain.Corner[1];
-		float z = P[ipart].Pos[2] - Domain.Corner[2];
-
+		float x = P[ipart].Pos[0] - Domain.Origin[0];
+		float y = P[ipart].Pos[1] - Domain.Origin[1];
+		float z = P[ipart].Pos[2] - Domain.Origin[2];
+		
 		P[ipart].Peanokey = Keys[ipart] = Peano_Key(x,y,z, Domain.Size);
 	}
 
@@ -116,13 +116,13 @@ static void reorder_collisionless_particles()
  */
 
 peanoKey Peano_Key(const float x, const float y, const float z, 
-		const double *boxsize)
+		const double boxsize)
 {
 	const uint32_t m = 0x80000000; // = 1UL << 31 = 2^31;
 
-	uint32_t X[3] = { (y / boxsize[0]) * m, 
-				 	  (z / boxsize[1]) * m, 
-				      (x / boxsize[2]) * m };
+	uint32_t X[3] = { (y / boxsize) * m, 
+				 	  (z / boxsize) * m, 
+				      (x / boxsize) * m };
 
 	/* Inverse undo */
     for (uint32_t q = m; q > 1; q >>= 1 ) {
@@ -163,7 +163,7 @@ peanoKey Peano_Key(const float x, const float y, const float z,
     for(int i = 1; i >= 0; i-- )
         X[i] ^= t;
 
-	/* branch free bit interleave the transpose array X into key */
+	/* branch free bit interleave of transpose array X into key */
 	peanoKey key = 0;
 
 	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
@@ -200,7 +200,7 @@ static void print_int_bits64(const uint64_t val)
 
 void test_peanokey()
 {
-	const double box[3] = { 1.0, 1.0, 1 };
+	const double box = { 1.0};
 	float a[3] = { 0 };
 	int order = 1;
 	float delta = 1/pow(2.0, order);
@@ -210,9 +210,9 @@ void test_peanokey()
 	for (int j = 0; j < n; j++) 
 	for (int k = 0; k < n; k++) {
 
-		a[0] = (i + 0.5) * delta / box[0];
-		a[1] = (j + 0.5) * delta / box[1];
-		a[2] = (k + 0.5) * delta / box[2];
+		a[0] = (i + 0.5) * delta / box;
+		a[1] = (j + 0.5) * delta / box;
+		a[2] = (k + 0.5) * delta / box;
 
 		peanoKey stdkey =  Peano_Key(a[0], a[1], a[2], box);
 

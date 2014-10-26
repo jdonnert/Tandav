@@ -117,10 +117,15 @@ static void update_bunchlist()
 static double global_min[3] = { 0 }; 
 static double global_max[3] = { 0 };
 
+
+/*
+ * This finds the global domain origin and the maximum extend
+ */
+
 static void find_global_domain()
 {
-	double local_max[3] = { 0 };
-	double local_min[3] = { 0 };
+	double local_max[3] = { -DBL_MAX };
+	double local_min[3] = { DBL_MIN };
 
 	#pragma omp for nowait
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
@@ -146,6 +151,8 @@ static void find_global_domain()
 	global_min[2] = fmin(global_min[2], local_min[2]);
 	
 	} // omp critical
+	
+	#pragma omp barrier 
 
 	#pragma omp single // do an MPI reduction
 	{
@@ -159,27 +166,27 @@ static void find_global_domain()
 	MPI_Allreduce(&local_min, &global_min, 3, MPI_DOUBLE, MPI_MIN,
 			MPI_COMM_WORLD);
 
-	Domain.Size[0] = fabs(global_max[0] - global_min[0]);
-	Domain.Size[1] = fabs(global_max[1] - global_min[1]);
-	Domain.Size[2] = fabs(global_max[2] - global_min[2]);
+	Domain.Size = fabs(global_max[0] - global_min[0]);
+	Domain.Size = fmax(Domain.Size, fabs(global_max[1] - global_min[1]));
+	Domain.Size = fmax(Domain.Size, fabs(global_max[2] - global_min[2]));
 
 #ifndef PERIODIC
-	Sim.Boxsize[0] = Domain.Size[0];
-	Sim.Boxsize[1] = Domain.Size[1];
-	Sim.Boxsize[2] = Domain.Size[2];
+	Sim.Boxsize[0] = Domain.Size;
+	Sim.Boxsize[1] = Domain.Size;
+	Sim.Boxsize[2] = Domain.Size;
 #endif // PERIODIC
 
-	Domain.Corner[0] = global_min[0];
-	Domain.Corner[1] = global_min[1];
-	Domain.Corner[2] = global_min[2];
+	Domain.Origin[0] = global_min[0];
+	Domain.Origin[1] = global_min[1];
+	Domain.Origin[2] = global_min[2];
 
 #ifdef DEBUG
-	printf("\n%d, %d found domain size %g %g %g at %g %g %g \n\n", 
+	printf("\n%d, %d found domain size %g  at %g %g %g \n\n", 
 			Task.Rank, Task.Thread_ID,
-			Domain.Size[0], Domain.Size[1],Domain.Size[2],
-			Domain.Corner[0],Domain.Corner[1],Domain.Corner[2]);
+			Domain.Size,
+			Domain.Origin[0],Domain.Origin[1],Domain.Origin[2]);
 #endif
-
+	
 	} // omp single
 
 	return ;

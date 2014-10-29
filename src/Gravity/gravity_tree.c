@@ -6,13 +6,12 @@
 #define NODES_PER_PARTICLE 1.1 // Springel 2005
 
 struct Tree_Node {
-	uint32_t Bitfield; 
-	// bit 0-5:level, 6-8:key, 9-15:nLeaves, 16: DNext dangling, 17-32:free
-	int DNext;		 // this is the DELTA to the next node; or -ipart
+	uint32_t Bitfield; // bit 0-5:level, 6-8:key, 9: DNext dangling, 10-31:free
+	int DNext;		   // this is the DELTA to the next node; or -ipart
+	int Npart;
 	Float CoM[3];
 	float Mass;
-	int Npart;
-	int DUp;
+	//int DUp;
 } *Tree = NULL;
 
 static size_t NNodes = 0;
@@ -27,7 +26,7 @@ static inline void unset_dNext_dangling(const int node);
 static inline void add_particle_to_bitfield(const int node);
 static inline int nleafs_in_node(const int node); 
 
-static inline void add_node(const int ipart, const int node);
+static inline void add_node(const int ipart, const int node, const int lvl);
 static inline bool particle_is_inside_node(const int ipart, const int node);
 static inline void add_particle_to_node(const int ipart, const int node);
 
@@ -63,27 +62,21 @@ void Build_Tree()
  
  	/* Here the top tree is complete, now build local nodes downwards */
 
-for (int n=0; n<NNodes; n++)
-	printf("START n=%d  np=%d next=%d up=%d mass=%g \n", 
-			n,  Tree[n].Npart, Tree[n].DNext, Tree[n].DUp,Tree[n].Mass);
-bool tmp = particle_is_inside_node(0, 0);
-
-
-	add_node(0, 0); // add the first particle by hand
+	add_node(0, 0, 0); // add the first particle by hand
 	Tree[0].Bitfield &= ~0x1FF;
 
-	for (int ipart = 1; ipart < 20; ipart++) {
+	for (int ipart = 1; ipart < 4; ipart++) {
 
 printf("\n\nIPART=%d NNodes=%zu \n", ipart, NNodes);
 
 		int node = 0;  			// current node
 		int lvl = 0;			// counts current level
-		int parent = 0;		// parent of current node
-		int key = 0;			// peano key of ipart
+		int parent = 0;			// parent of current node
+		int last_parent = 0;	// parent of the last particle
+
 int cnt = 0;
 		for (;;) {
 
-			int part_triplet = (key >> lvl) & 0x7; 
 //if (cnt ++ > 10) break;
 
 //printf("\nLOOP : node=%d npart=%d next=%d level=%d dang=%d\n", node, Tree[node].Npart, Tree[node].DNext, level(node), dNext_is_dangling(node));
@@ -104,7 +97,7 @@ printf("ERROR LEVEL! %d %d \n", level(node), lvl);
 					
 					set_dNext_dangling(node); // DNext is now free
 					
-					add_node(jpart, node); // add  daughter to current node
+					add_node(jpart, node, lvl+1); // add daughter to curr node 
 				}  
 				
 				add_particle_to_node(ipart, node); // ipart to current node
@@ -140,39 +133,41 @@ printf("ERROR LEVEL! %d %d \n", level(node), lvl);
 		} // for (;;)
 
 	//	if (parent != last_parent) { // compactify tree
+	//		if (Tree[last_parent].Npart > 1)
+	//			NNodes -= Tree[last_parent].Npart;
+	//			node -= Tree[last_parent].Npart;
+
 //printf("COMPACTIFY node=%d, dNext=%d NNodes=%d newdNext=%d \n",
 //node, Tree[node].DNext, NNodes, NNodes-node);
-	//		NNodes = parent; // all trees smaller than 8 are particles
 	//		}
 	
+		last_parent = parent;
+
 		if (dNext_is_dangling(node)) { // set internal dangling next node
 
 			Tree[node].DNext = NNodes - node; // only delta
 
 			unset_dNext_dangling(node);
 		}
-		//last_parent = parent;
-		int parent2 = node - Tree[node].DUp;
-
-	printf("%d %d \n", parent, parent2);
+	
 //printf("ADD OUT : node=%d npart=%d parent=%d lvl=%d, dangling dNext=%d\n", 
 //node, Tree[node].Npart, parent, level(node), dNext_is_dangling(node));
 
-		add_node(ipart, parent); // add a sibling to current node
+		add_node(ipart, parent, lvl); // add a sibling to current node
 
 	} // for ipart
 
 
 for (int n=0; n<NNodes; n++) {
 	//if (Tree[n].DNext != -1 && dNext_is_dangling(n)) {
-printf("TEST n=%d np=%d next=%d up=%d mass=%g level=%d dangle=%d \n", 
-n,  Tree[n].Npart, Tree[n].DNext, Tree[n].DUp,Tree[n].Mass, level(n), 
+printf("TEST n=%d np=%d next=%d  mass=%g level=%d dangle=%d \n", 
+n,  Tree[n].Npart, Tree[n].DNext, Tree[n].Mass, level(n), 
 dNext_is_dangling(n));
 print_int_bits64(Tree[n].Bitfield);
 //	}
 }
 printf("\n");
-for (int ipart = 0; ipart < 20; ipart++) 
+for (int ipart = 0; ipart < 10; ipart++) 
 print_int_bits64(P[ipart].Peanokey);
 
 	Profile("Build Gravity Tree");
@@ -209,7 +204,7 @@ static inline bool particle_is_inside_node(const int ipart, const int node)
  * We always add nodes at the end of the tree
  */
 
-static inline void add_node(const int ipart, const int parent)
+static inline void add_node(const int ipart, const int parent, const int lvl)
 {
 	const int node = NNodes++;
 
@@ -217,35 +212,29 @@ static inline void add_node(const int ipart, const int parent)
 
 	Tree[node].DNext = -ipart;
 	
-	uint32_t lvl = level(parent) + 1; // construct bitfield
-	int shift = 63 - 3*lvl;
-
-	uint64_t tmp_key = (P[ipart].Peanokey & (0x07ull << shift));
-	uint32_t keyfragment = (uint32_t) (tmp_key >> (shift - 6)); 
+	int shift = 63 - 3*lvl - 6 ; // leave 6 bits space for level
 	
+	uint32_t keyfragment = (P[ipart].Peanokey >> shift) & 0x1C0ULL;
+
 	Tree[node].Bitfield = lvl | keyfragment; 
 
-	Tree[node].DUp = node - parent;
+	//Tree[node].DUp = node - parent;
 
 	add_particle_to_node(ipart, node); 
 
-//printf("ADD ipart=%d n=%d parent=%d lvl=%d shft=%d Par_UP=%d Pdangle=%d \n", 
-//ipart, node, parent,lvl, shift, Tree[parent].DUp, dNext_is_dangling(parent));
+//printf("ADD ipart=%d n=%d parent=%d lvl=%d shft=%d  Pdangle=%d \n", 
+//ipart, node, parent,lvl, shift,  dNext_is_dangling(parent));
 //print_int_bits64(Tree[node].Bitfield);
 	return ;
 }
 
 static inline void add_particle_to_node(const int ipart, const int node)
 {
-	add_particle_to_bitfield(node); 
-
 	Tree[node].CoM[0] += P[ipart].Pos[0] * P[ipart].Mass;
 	Tree[node].CoM[1] += P[ipart].Pos[1] * P[ipart].Mass;
 	Tree[node].CoM[2] += P[ipart].Pos[2] * P[ipart].Mass;
 	
 	Tree[node].Mass += P[ipart].Mass;
-
-	/* abuse the node below */
 
 	Tree[node].Npart++;
 
@@ -273,41 +262,22 @@ static inline int key_fragment(const int node)
 	return (Tree[node].Bitfield & bitmask) >> 6; // return bit 6-8
 }
 
-static inline int nleafs_in_node(const int node) // count up to 2^6-1
-{
-	const uint32_t bitmask = 15UL << 9;
-
-	return (Tree[node].Bitfield & bitmask) >> 9; // return bit 9-15
-}
-
-static inline void add_particle_to_bitfield(const int node)
-{
-	uint32_t nleafs = 1 + nleafs_in_node(node);
-
-	const uint32_t bitmask = 15UL << 9;
-	Tree[node].Bitfield &= ~bitmask; // clear bits 9-15
-
-	Tree[node].Bitfield |= nleafs << 9; // set new bits 9-15
-
-	return ;
-}
-
 static inline bool dNext_is_dangling(const int node)
 {
-	return (Tree[node].Bitfield & (1UL << 15)) >> 15; // return bit 16
+	return (Tree[node].Bitfield & (1UL << 9)) >> 9; // return bit 10
 }
 
 static inline void set_dNext_dangling(const int node)
 {
 	//Tree[node].DNext = 0xFFFFFFF;
-	Tree[node].Bitfield |= 1UL << 15; // set bit 16 = 1
+	Tree[node].Bitfield |= 1UL << 9; // set bit 10
 	
 	return ; 
 }
 
 static inline void unset_dNext_dangling(const int node)
 {
-	Tree[node].Bitfield &= ~(1UL << 15); // clear bit 16 
+	Tree[node].Bitfield &= ~(1UL << 9); // clear bit 10
 	
 	return ; 
 }
@@ -340,7 +310,7 @@ void Init_Tree()
 	Tree[0].CoM[2] = 0;
 
 	Tree[0].Npart = 0;
-	Tree[0].DUp = -1;
+	//Tree[0].DUp = -1;
 	Tree[0].Mass = 0;
 	Tree[0].DNext = -1;
 	Tree[0].Bitfield = 0;

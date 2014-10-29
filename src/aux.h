@@ -8,8 +8,18 @@ void Reallocate_P_Info(const char *, const char *, int, int*, size_t*);
 void Assert_Info(const char *, const char *, int, int64_t, const char *, ...);
 void Warn_Info(const char *, const char *, int, int64_t, const char *, ...);
 
+/*
+ * Helper monkeys
+ */
+
+int32_t imin(const int32_t x, const int32_t y); // breaks naming convention :(
+int32_t imax(const int32_t x, const int32_t y);
 int64_t Imin(const int64_t x, const int64_t y);
 int64_t Imax(const int64_t x, const int64_t y);
+
+uint32_t umin(const uint32_t x, const uint32_t y);
+uint32_t umax(const uint32_t x, const uint32_t y);
 uint64_t Umin(const uint64_t x, const uint64_t y);
 uint64_t Umax(const uint64_t x, const uint64_t y);
+
 Float Sign(const Float x);

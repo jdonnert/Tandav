@@ -1,8 +1,27 @@
 #include "globals.h"
 
 /* 
- * branch free Min/Max functions for signed/unsigned 64 bit integers 
+ * Branch free Min/Max functions for signed/unsigned 64/32 bit integers 
  */
+
+int32_t imin(const int32_t x, const int32_t y)
+{
+  return y ^ ((x ^ y) & -(x < y));
+}
+
+int32_t imax(const int32_t x, const int32_t y)
+{
+  return x ^ ((x ^ y) & -(x < y));
+}
+uint32_t umin(const uint32_t x, const uint32_t y)
+{
+  return y ^ ((x ^ y) & -(x < y));
+}
+ 
+uint32_t umax(const uint32_t x, const uint32_t y)
+{
+  return x ^ ((x ^ y) & -(x < y));
+}
 
 int64_t Imin(const int64_t x, const int64_t y)
 {
@@ -24,7 +43,7 @@ uint64_t Umax(const uint64_t x, const uint64_t y)
   return x ^ ((x ^ y) & -(x < y));
 }
 
-Float Sign(const Float x)
+Float Sign(const Float x)  
 {
 	return ((Float)0 < x) - (x < (Float)0);
 }

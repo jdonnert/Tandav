@@ -11,12 +11,9 @@ struct CurrentCosmologyInCodeUnits {
 	double Redshift;
 	double Expansion_Factor;
 	double Critical_Density;
-	double Mean_Density;
 } Cosmo;
 
 void Set_Current_Cosmology();
-double Redshift();
 double Hubble_Parameter(const double a);
 double E_Hubble(const double a);
 double Critical_Density(double); 
-double Mean_Density(double); 

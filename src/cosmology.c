@@ -24,23 +24,17 @@ void Set_Current_Cosmology()
 	
 	Cosmo.Expansion_Factor = a;
 
-	Cosmo.Redshift = Redshift(a);
+	Cosmo.Redshift = 1/a - 1;
 	Cosmo.Hubble_Parameter = Hubble_Parameter(a);
 	Cosmo.Critical_Density = Critical_Density(a);
-	Cosmo.Mean_Density = Mean_Density(a);
 
 	return ;
 }
 
 /* 
  * These functions implements the cosmological background evolution 
- * (Peebles 1980)
+ * see also Peebles 1980
  */
-
-double Redshift(const double a)
-{
-	return 1/a + 1;
-}
 
 double Hubble_Parameter(const double a) // H(a) Mo, v.d.Bosch & White 3.74
 {
@@ -55,10 +49,5 @@ double E_Hubble(const double a) // E(a) Mo, v.d.Bosch & White 3.75
 
 double Critical_Density(double hubble_parameter) // Mo, v.d.Bosch & White 3.63
 {
-	return 3/8/PI/Const.Gravity * p2(hubble_parameter);
-}
-
-double Mean_Density(double a)
-{
-	return 1;
+	return 3.0/8.0/PI/Const.Gravity * p2(hubble_parameter);
 }

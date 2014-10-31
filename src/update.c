@@ -56,6 +56,10 @@ void Update(enum Update_Parameters stage)
 
 	case FORCES:
 
+#ifdef COMOVING
+		Set_Current_Cosmology();
+#endif
+
 		Domain_Decomposition();
 
 #ifdef GRAVITY_TREE

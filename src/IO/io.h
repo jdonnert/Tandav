@@ -45,12 +45,6 @@ static const parameter ParDef[] = {
 	{"TimeOfFirstSnaphot", "0", &Time.First_Snap, DOUBLE},
 	{"TimeBetSnapshots", "0", &Time.Bet_Snap, DOUBLE},
 
-	{"\n%% Cosmology %%\n", "", NULL, COMMENT},
-	{"Omega0", "1", &Cosmo.Omega0, DOUBLE},
-	{"OmegaLambda", "0.7", &Cosmo.Omega_Lambda, DOUBLE},
-	{"OmegaBaryon", "1", &Cosmo.Omega_Baryon, DOUBLE},
-	{"HubbleParam", "0.7", &Cosmo.Hubble_Param, DOUBLE},
-
 	/* Add yours below */
 };
 

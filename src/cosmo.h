@@ -1,16 +1,22 @@
-struct Cosmology_Infos { 
-	double Omega0;			// Matter content
-	double Omega_Lambda;		// Dark Energy content
-	double Omega_Baryon;		// Baryon content
-	double Hubble_Param;		// 1% of Hubbles Constant
-	double Rho_Crit0;		// Critical mass density at z=0
-	double Sigma8;			// Norm of matter power-spectrum
-	double Spectral_Index;	// Index of matter power-spectrum
-	double Baryon_Fraction;	// Cosmic baryon fraction
-} Cosmo; 
 
-double Cosmo_Drift_Factor(double a);
-double Cosmo_Kick_Factor(double a);
-void Init_Cosmology ();
-double Hubble_Function (double a);
-double Critical_Density (double a);
+struct CurrentCosmologyInCodeUnits {
+	const double Hubble_Constant; // Constants
+	const double Omega_Lambda;
+	const double Omega_Matter;
+	const double Omega_Baryon;
+	const double Omega_0;
+	const double Omega_Rad;
+	const double Rho_Crit0;
+	double Hubble_Parameter; // Changing every timestep 
+	double Redshift;
+	double Expansion_Factor;
+	double Critical_Density;
+	double Mean_Density;
+} Cosmo;
+
+void Set_Current_Cosmology();
+double Redshift();
+double Hubble_Parameter(const double a);
+double E_Hubble(const double a);
+double Critical_Density(double); 
+double Mean_Density(double); 

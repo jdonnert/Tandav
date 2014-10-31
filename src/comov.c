@@ -16,4 +16,6 @@ static float symplectic_comoving_kick_factor() // Quinn+ 1996
 	return 1;
 }
 
+
+
 #endif // COMOVING

@@ -203,9 +203,9 @@ void write_gadget_header(const int *npart, FILE *fp)
 	head.Flag_Cooling = 0;
 	head.Num_Files = Param.Num_Output_Files;
 	head.Boxsize = Sim.Boxsize[0]; // fall back 
-	head.Omega0 = Cosmo.Omega0;
+	head.Omega0 = Cosmo.Omega_0;
 	head.Omega_Lambda = Cosmo.Omega_Lambda;
-	head.Hubble_Param = Cosmo.Hubble_Param;
+	head.Hubble_Param = Cosmo.Hubble_Constant;
 	head.Flag_Age = 0;
 	head.Flag_Metals = 0;
 

@@ -57,7 +57,7 @@ extern void Print_compile_time_settings();
  * Add your headers here, #ifdefs go into the .h file 
  */
 
-#include "cosmo.h" 			// cosmology functions 
+#include "cosmology.h" 			// cosmology functions 
 #include "comov.h"			// Comoving coordinates
 
 /* 

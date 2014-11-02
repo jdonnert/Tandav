@@ -41,6 +41,7 @@ static void print_int_bits64(const uint64_t val)
 
 /*
  * This builds the tree. 
+ *
  */
 
 void Build_Tree()
@@ -60,37 +61,30 @@ void Build_Tree()
  	/* Here the top tree is complete, now build local nodes downwards */
 
 	add_node(0, 0, 0); // add the first particle by hand
-	Tree[0].Bitfield &= ~0x1FF;
+	Tree[0].Bitfield &= ~0x1FF; // clear first 9 bits
 
-	for (int ipart = 1; ipart < 4; ipart++) {
+	int last_parent = 0;
+
+	for (int ipart = 1; ipart < 25; ipart++) {
 
 printf("\n\nIPART=%d NNodes=%zu \n", ipart, NNodes);
 
 		int node = 0;  			// current node
 		int lvl = 0;			// counts current level
 		int parent = 0;			// parent of current node
+		bool compact = true;	// flag to delete single particle nodes
 
-int cnt = 0;
 		for (;;) {
 
-if (cnt ++ > 10) break;
-
-//printf("\nLOOP : node=%d npart=%d next=%d level=%d\n", node, Tree[node].Npart, Tree[node].DNext, level(node), );
-
-if (level(node) != lvl)
-printf("ERROR LEVEL! %d %d \n", level(node), lvl);
+if (level(node) != lvl) {
+printf("ERROR LEVEL! %d: %d!=%d \n",node, level(node), lvl); goto out;}
 
 			if (particle_is_inside_node(ipart, node)) { // open node
 			
-//printf("IN : \n");
-	
 				if (Tree[node].Npart == 1) { // refine
 				
 					int jpart = -(Tree[node].DNext+1); // save current particle
 	
-//printf("REFINE : node=%d npart=%d jpart=%d\n", 
-//node,Tree[node].Npart, jpart);
-					
 					Tree[node].DNext = 0; // DNext is now free
 
 					add_node(jpart, node, lvl+1); // add daughter to curr node 
@@ -98,59 +92,44 @@ printf("ERROR LEVEL! %d %d \n", level(node), lvl);
 				
 				add_particle_to_node(ipart, node); // ipart to current node
 
-//printf("DECLINE %d->%d  \n", node, node+1);
+				if (node == last_parent)
+					compact = false;
+
 				parent = node;
 				node++; // decline in node containing jpart
 				lvl++;
 
 			} else { // skip
 
-//printf("OUT %d : \n", Tree[node].DNext);
-
-				if (Tree[node].DNext == 0 || node == NNodes - 1) {  
-
-//printf("LEAF : %d \n", Tree[node].DNext);
-
+				if (Tree[node].DNext == 0 || node == NNodes - 1)   
 					break; // reached end of my branch 
-				} 
-
-				if (Tree[node].Npart == 1) { // internal leaf
-
+				
+				if (Tree[node].DNext < 0)  // internal leaf
 					node++; // might need to split its sibling 
-//printf("NEXT : +%1\n");
-				} else {
-			
-//printf("NEXT : +%d\n",Tree[node].DNext);
+				else 
 					node += Tree[node].DNext; // skip whole subtree
-
-				}
 			}
 
 		} // for (;;)
+
+		if (compact && (Tree[last_parent].Npart == NNodes-last_parent-1)) {
+			
+			NNodes -= Tree[last_parent].Npart; // remove leaf nodes
+			Tree[last_parent].DNext = Tree[last_parent+1].DNext;
+
+			size_t nBytes = Tree[last_parent].Npart*sizeof(*Tree);
+			memset(&Tree[last_parent+1], 0, nBytes);
+		}
 	
-		if (Tree[node].DNext == 0) { // set internal next node
-
+		if (Tree[node].DNext == 0) // set internal next node
 			Tree[node].DNext = NNodes - node; // only delta
-		}
-
-		if ( Tree[node].Npart == Tree[node].DNext-1 ) { // compactify tree
-
-printf("COMPACTIFY node=%d, dNext=%d NNodes=%d  par=%d lastPar=%d lastPnp=%d\n",
-node, Tree[node].DNext, NNodes,   Tree[node].Npart);
-
-			NNodes -= Tree[node].Npart;
-			Tree[node].DNext = Tree[node+1].DNext; // point to particle
-
-			memset(&Tree[node+1], 0, sizeof(*Tree));
-		}
-
-//printf("ADD OUT : node=%d npart=%d parent=%d lvl=%d, \n", 
-//node, Tree[node].Npart, parent, level(node));
 
 		add_node(ipart, parent, lvl); // add a sibling to current node
+	
+		last_parent = parent;
 
 	} // for ipart
-
+out:
 
 for (int n=0; n<NNodes; n++) {
 	//if (Tree[n].DNext != -1 && dNext_is_unset(n)) {
@@ -160,12 +139,22 @@ print_int_bits64(Tree[n].Bitfield);
 //	}
 }
 printf("\n");
-for (int ipart = 0; ipart < 10; ipart++) 
-print_int_bits64(P[ipart].Peanokey);
+for (int ipart = 0; ipart < 25; ipart++) { 
+printf("%d ", ipart); print_int_bits64(P[ipart].Peanokey);}
 
 	Profile("Build Gravity Tree");
 Print_Memory_Usage();
 exit(0);
+
+	#pragma omp for
+	for (int i = 0; i < NNodes; i++) {
+	
+		Tree[i].CoM[0] /= Tree[i].Mass;
+		Tree[i].CoM[1] /= Tree[i].Mass;
+		Tree[i].CoM[2] /= Tree[i].Mass;
+	}
+
+
 	return ;
 }
 
@@ -194,7 +183,8 @@ static inline bool particle_is_inside_node(const int ipart, const int node)
 }
 
 /*
- * We always add nodes at the end of the tree
+ * We always add nodes at the end of the tree. Particles are negative and 
+ * offset by one to leave DNext=0 indicating unset.
  */
 
 static inline void add_node(const int ipart, const int parent, const int lvl)

@@ -8,10 +8,10 @@
 struct Tree_Node {
 	uint32_t Bitfield; // bit 0-5:level, 6-8:key, 9: DNext flag, 10-31:free
 	int DNext;		   // this is the DELTA to the next node; or -ipart
-	int Npart;
 	Float CoM[3];
 	float Mass;
 	//int DUp;
+	int Npart;
 } *Tree = NULL;
 
 static size_t NNodes = 0;
@@ -64,12 +64,12 @@ void Build_Tree()
 
 	int last_parent = 0;
 
-	for (int ipart = 1; ipart < 101; ipart++) {
+	for (int ipart = 1; ipart < Task.Npart_Total; ipart++) {
 
 		int node = 0;  			// current node
 		int lvl = 0;			// counts current level
 		int parent = 0;			// parent of current node
-		bool new_branch = true;	// flag to delete single particle nodes
+		bool is_new_branch = true;	// flag to delete single particle nodes
 
 		for (;;) {
 
@@ -78,19 +78,19 @@ printf("ERROR LEVEL! %d: %d!=%d \n",node, level(node), lvl); goto out;}
 
 			if (particle_is_inside_node(ipart, node)) { // open node
 			
-				if (Tree[node].Npart == 1) { // refine
+				if (Tree[node].DNext == -ipart) { // refine 
 				
-					int jpart = -(Tree[node].DNext+1); // save current particle
-	
+					int jpart = ipart-1; // node has to contain last particle 
+					
 					Tree[node].DNext = 0; // DNext is now free
 
-					add_node(jpart, node, lvl+1); // add daughter to curr node 
+					add_node(jpart, node, lvl+1); // add daughter to node 
 				}  
 				
 				add_particle_to_node(ipart, node); // ipart to current node
 
 				if (node == last_parent)
-					new_branch = false;
+					is_new_branch = false;
 
 				parent = node;
 				node++; // decline into node containing jpart
@@ -109,22 +109,19 @@ printf("ERROR LEVEL! %d: %d!=%d \n",node, level(node), lvl); goto out;}
 
 		} // for (;;)
 
-		if (new_branch) { // remove leaf particle nodes from tree
+		if (is_new_branch) { // remove leaf particle nodes from tree
 
 			int n = NNodes-1; 	// node counter
 			int np = 0;			// particle counter
 			
 			while (Tree[n].DNext < 0) { // walk backwards
-				
+			
 				n--;
 				np++;
 			}
-			
+
 			if (np == 0)
 				break;
-//printf("COMP node=%d par=%d lpar=%d NNode=%d n=%d np=%d \n", node, parent, last_parent, NNodes,n,np );			
-//for (int n=last_parent; n<NNodes;n++)
-//printf("CT n=%d np=%d next=%d  mass=%g level=%d  \n", n,  Tree[n].Npart, Tree[n].DNext, Tree[n].Mass, level(n));
 
 			Tree[n].DNext = Tree[n+1].DNext;
 			
@@ -141,14 +138,51 @@ printf("ERROR LEVEL! %d: %d!=%d \n",node, level(node), lvl); goto out;}
 
 	} // for ipart
 out:;
+
+	#pragma omp single nowait // correct DNext=0 to point upwards
+	{
+
+	Tree[0].DNext = -1;
+
+	int stack[25] = { 0 };
+	int lowest = 0;
+
+	for (int i = 1; i < NNodes; i++) {
+		
+		int lvl = level(i);
+
+		while (lvl <= lowest) {
+
+			int node = stack[lowest];
+	
+			if (node > 0)
+				Tree[node].DNext = i - node;
+
+			stack[lowest] = 0;
+			lowest--;
+
+		} 
+		
+		if (Tree[i].DNext == 0) { 
+			
+			stack[lvl] = i;
+			
+			lowest = lvl;
+		}
+		
+	} // for
+	
+	} // omp single
+
 for (int n=0; n<NNodes; n++) {
-	//if (Tree[n].DNext != -1 && dNext_is_unset(n)) {
+	//if (Tree[n].DNext == 0) {
 printf("TEST n=%d np=%d next=%d  mass=%g level=%d  \n", 
 n,  Tree[n].Npart, Tree[n].DNext, Tree[n].Mass, level(n));
 print_int_bits64(Tree[n].Bitfield);
-//	}
+	//}
 }
 printf("\n");
+
 for (int ipart = 0; ipart < 10; ipart++) { 
 printf("%d ", ipart); print_int_bits64(P[ipart].Peanokey);}
 

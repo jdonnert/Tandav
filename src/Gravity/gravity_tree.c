@@ -21,7 +21,6 @@ static inline int level(const int node); // bitmask functions
 static inline int key_fragment(const int node);
 static inline Float node_size(const int node);
 static inline void add_particle_to_bitfield(const int node);
-static inline int nleafs_in_node(const int node); 
 
 static inline void add_node(const int ipart, const int node, const int lvl);
 static inline bool particle_is_inside_node(const int ipart, const int node);
@@ -65,14 +64,12 @@ void Build_Tree()
 
 	int last_parent = 0;
 
-	for (int ipart = 1; ipart < 25; ipart++) {
-
-printf("\n\nIPART=%d NNodes=%zu \n", ipart, NNodes);
+	for (int ipart = 1; ipart < 101; ipart++) {
 
 		int node = 0;  			// current node
 		int lvl = 0;			// counts current level
 		int parent = 0;			// parent of current node
-		bool compact = true;	// flag to delete single particle nodes
+		bool new_branch = true;	// flag to delete single particle nodes
 
 		for (;;) {
 
@@ -93,16 +90,16 @@ printf("ERROR LEVEL! %d: %d!=%d \n",node, level(node), lvl); goto out;}
 				add_particle_to_node(ipart, node); // ipart to current node
 
 				if (node == last_parent)
-					compact = false;
+					new_branch = false;
 
 				parent = node;
-				node++; // decline in node containing jpart
+				node++; // decline into node containing jpart
 				lvl++;
 
 			} else { // skip
 
 				if (Tree[node].DNext == 0 || node == NNodes - 1)   
-					break; // reached end of my branch 
+					break; // reached end of my branch or whole tree
 				
 				if (Tree[node].DNext < 0)  // internal leaf
 					node++; // might need to split its sibling 
@@ -112,13 +109,27 @@ printf("ERROR LEVEL! %d: %d!=%d \n",node, level(node), lvl); goto out;}
 
 		} // for (;;)
 
-		if (compact && (Tree[last_parent].Npart == NNodes-last_parent-1)) {
-			
-			NNodes -= Tree[last_parent].Npart; // remove leaf nodes
-			Tree[last_parent].DNext = Tree[last_parent+1].DNext;
+		if (new_branch) { // remove leaf particle nodes from tree
 
-			size_t nBytes = Tree[last_parent].Npart*sizeof(*Tree);
-			memset(&Tree[last_parent+1], 0, nBytes);
+			int n = NNodes-1; 	// node counter
+			int np = 0;			// particle counter
+			
+			while (Tree[n].DNext < 0) { // walk backwards
+				
+				n--;
+				np++;
+			}
+			
+			if (np == 0)
+				break;
+//printf("COMP node=%d par=%d lpar=%d NNode=%d n=%d np=%d \n", node, parent, last_parent, NNodes,n,np );			
+//for (int n=last_parent; n<NNodes;n++)
+//printf("CT n=%d np=%d next=%d  mass=%g level=%d  \n", n,  Tree[n].Npart, Tree[n].DNext, Tree[n].Mass, level(n));
+
+			Tree[n].DNext = Tree[n+1].DNext;
+			
+			NNodes = n + 1; // remove leaf nodes
+			memset(&Tree[n+1], 0, np*sizeof(*Tree));
 		}
 	
 		if (Tree[node].DNext == 0) // set internal next node
@@ -129,8 +140,7 @@ printf("ERROR LEVEL! %d: %d!=%d \n",node, level(node), lvl); goto out;}
 		last_parent = parent;
 
 	} // for ipart
-out:
-
+out:;
 for (int n=0; n<NNodes; n++) {
 	//if (Tree[n].DNext != -1 && dNext_is_unset(n)) {
 printf("TEST n=%d np=%d next=%d  mass=%g level=%d  \n", 
@@ -139,7 +149,7 @@ print_int_bits64(Tree[n].Bitfield);
 //	}
 }
 printf("\n");
-for (int ipart = 0; ipart < 25; ipart++) { 
+for (int ipart = 0; ipart < 10; ipart++) { 
 printf("%d ", ipart); print_int_bits64(P[ipart].Peanokey);}
 
 	Profile("Build Gravity Tree");

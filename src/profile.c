@@ -66,7 +66,7 @@ void Profile_Info(const char* file, const char* func, const int line,
 			Prof[i].Tbeg = 0;	
 		
 #ifdef DEBUG
-		printf("\nDEBUG: %d %d ends %s took %g sec \n", Task.Rank, 
+		printf("\nDEBUG: (%d %d) ends %s took %g sec \n", Task.Rank, 
 				Task.Thread_ID, name, Prof[i].ThisLast); fflush(stdout);
 #endif
 
@@ -77,12 +77,12 @@ void Profile_Info(const char* file, const char* func, const int line,
 		Prof[i].Tend = Prof[i].ThisLast = 0;
 
 #ifdef DEBUG
-		printf("\nDEBUG: %d %d starts %s \n", 
+		printf("\nDEBUG: (%d %d) starts %s \n", 
 				Task.Rank, Task.Thread_ID, name); fflush(stdout);
 #endif
 	}
 
-	} // omp single //nowait
+	} // omp single nowait
 
 	#pragma omp flush
 

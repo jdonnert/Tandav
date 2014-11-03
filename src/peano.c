@@ -58,11 +58,11 @@ static void compute_peano_keys()
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-		float x = P[ipart].Pos[0] - Domain.Origin[0];
-		float y = P[ipart].Pos[1] - Domain.Origin[1];
-		float z = P[ipart].Pos[2] - Domain.Origin[2];
+		float px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
+		float py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
+		float pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
-		P[ipart].Peanokey = Keys[ipart] = Peano_Key(x,y,z, Domain.Size);
+		P[ipart].Peanokey = Keys[ipart] = Peano_Key(px, py, pz);
 	}
 
 	return ;
@@ -71,7 +71,8 @@ static void compute_peano_keys()
 static void reorder_collisionless_particles()
 {
 	#pragma omp single 
-	{
+	{ 
+
 	for (size_t i = Task.Npart[0]; i < Task.Npart_Total; i++) {
 
         if (Idx[i] == i)
@@ -108,23 +109,28 @@ static void reorder_collisionless_particles()
 }
 
 /* 
- * Construct a 64 bit Peano-Hilbert distance in 3D 
+ * Construct a 64 bit Peano-Hilbert distance in 3D, input coordinates 
+ * have to be normed between 0 < x < 1.
  * Yes it's arcane, run as fast as you can.
  * Skilling 2004, AIP 707, 381: "Programming the Hilbert Curve"
  * Note: There is a bug in the code of the paper. See also:
  * Campbell+03 'Dynamic Octree Load Balancing Using Space-Filling Curves' 
  */
 
-peanoKey Peano_Key(const float x, const float y, const float z, 
-		const double boxsize)
+peanoKey Peano_Key(const float x, const float y, const float z)
 {
+#ifdef DEBUG
+	Assert(x>=0 && x <=1, "X coordinate of out range for PH key %g", x);
+	Assert(y>=0 && y <=1, "Y coordinate of out range for PH key %g", y);
+	Assert(z>=0 && z <=1, "Z coordinate of out range for PH key %g", z);
+#endif
+
 	const uint32_t m = 0x80000000; // = 1UL << 31 = 2^31;
 
-	uint32_t X[3] = { (y / boxsize) * m, 
-				 	  (z / boxsize) * m, 
-				      (x / boxsize) * m };
+	uint32_t X[3] = { y*m, z*m, x*m };
 
 	/* Inverse undo */
+
     for (uint32_t q = m; q > 1; q >>= 1 ) {
 
         uint32_t P = q - 1;
@@ -150,6 +156,7 @@ peanoKey Peano_Key(const float x, const float y, const float z,
     }
 
 	/* Gray encode (inverse of decode) */
+
 	for(int i = 1; i < 3; i++ )
         X[i] ^= X[i-1];
 
@@ -164,6 +171,7 @@ peanoKey Peano_Key(const float x, const float y, const float z,
         X[i] ^= t;
 
 	/* branch free bit interleave of transpose array X into key */
+
 	peanoKey key = 0;
 
 	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
@@ -214,7 +222,7 @@ void test_peanokey()
 		a[1] = (j + 0.5) * delta / box;
 		a[2] = (k + 0.5) * delta / box;
 
-		peanoKey stdkey =  Peano_Key(a[0], a[1], a[2], box);
+		peanoKey stdkey =  Peano_Key(a[0], a[1], a[2]);
 
 		printf("%g %g %g %llu \n", a[0], a[1], a[2], stdkey);
 

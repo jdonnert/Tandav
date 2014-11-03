@@ -2,8 +2,7 @@
 #include "../domain.h"
 #include "gravity.h"
 
-#include "memory.h"
-#define NODES_PER_PARTICLE 1.1 // Springel 2005
+#define NODES_PER_PARTICLE 1.0 
 
 struct Tree_Node {
 	uint32_t Bitfield; // bit 0-5:level, 6-8:key, 9: DNext flag, 10-31:free
@@ -62,7 +61,7 @@ void Build_Tree()
 	add_node(0, 0, 0); // add the first particle by hand
 	Tree[0].Bitfield &= ~0x1FF; // clear first 9 bits
 
-	int last_parent = 0;
+	int last_parent = 0; 		// parent of last particle
 
 	for (int ipart = 1; ipart < Task.Npart_Total; ipart++) {
 
@@ -82,7 +81,7 @@ printf("ERROR LEVEL! %d: %d!=%d \n",node, level(node), lvl); goto out;}
 				
 					int jpart = ipart-1; // node has to contain last particle 
 					
-					Tree[node].DNext = 0; // DNext is now free
+					Tree[node].DNext = 0; // mark DNext free
 
 					add_node(jpart, node, lvl+1); // add daughter to node 
 				}  
@@ -174,21 +173,17 @@ out:;
 	
 	} // omp single
 
-for (int n=0; n<NNodes; n++) {
-	//if (Tree[n].DNext == 0) {
+for (int n=0; n<Task.Npart_Total; n++) {
+	if (level(n) == 2) {
 printf("TEST n=%d np=%d next=%d  mass=%g level=%d  \n", 
 n,  Tree[n].Npart, Tree[n].DNext, Tree[n].Mass, level(n));
 print_int_bits64(Tree[n].Bitfield);
-	//}
+	}
 }
 printf("\n");
 
 for (int ipart = 0; ipart < 10; ipart++) { 
 printf("%d ", ipart); print_int_bits64(P[ipart].Peanokey);}
-
-	Profile("Build Gravity Tree");
-Print_Memory_Usage();
-exit(0);
 
 	#pragma omp for
 	for (int i = 0; i < NNodes; i++) {
@@ -198,7 +193,11 @@ exit(0);
 		Tree[i].CoM[2] /= Tree[i].Mass;
 	}
 
+	rprintf("Finished tree build, %d nodes for %d particles", 
+			NNodes, Task.Npart_Total);
 
+	Profile("Build Gravity Tree");
+exit(0);
 	return ;
 }
 
@@ -247,9 +246,6 @@ static inline void add_node(const int ipart, const int parent, const int lvl)
 
 	add_particle_to_node(ipart, node); 
 
-//printf("ADD ipart=%d n=%d parent=%d lvl=%d shft=%d  Pdangle=%d \n", 
-//ipart, node, parent,lvl, shift,  dNext_is_unset(parent));
-//print_int_bits64(Tree[node].Bitfield);
 	return ;
 }
 

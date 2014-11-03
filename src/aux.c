@@ -43,6 +43,10 @@ uint64_t Umax(const uint64_t x, const uint64_t y)
   return x ^ ((x ^ y) & -(x < y));
 }
 
+/*
+ * Branch free sign function for "Float" type
+ */
+
 Float Sign(const Float x)  
 {
 	return ((Float)0 < x) - (x < (Float)0);
@@ -68,7 +72,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		Assert(Task.Npart[i] + dNpart[i] <= Task.Npart_Max[i], 
 			"Too many particles type %d on this task. \n"
 			"Have %d, want %d, max %d \nCurrent PARTALLOCFACTOR = %g", 
-			i,Task.Npart[i], dNpart[i], Task.Npart_Max[i], PARTALLOCFACTOR);
+			i, Task.Npart[i], dNpart[i], Task.Npart_Max[i], PARTALLOCFACTOR);
 
 	int offset[NPARTYPE] = { 0 }, new_npart_total = 0;
 	int new_npart[NPARTYPE] = { 0 };
@@ -182,8 +186,8 @@ void Warn_Info(const char *func, const char *file, int line,
 
 	va_start(varArgList, errmsg);
 
-    fprintf(stderr, "\nWARNING  (%d, %d): "
-			"        In file %s, function %s(), line %d :\n\n	", 
+    fprintf(stderr, "\nWARNING (%d, %d): In file %s,\n"
+			          "                function %s(), line %d :\n\n		", 
 			 Task.Rank, Task.Thread_ID, file, func, line);
 
 	vfprintf(stderr, errmsg, varArgList); 

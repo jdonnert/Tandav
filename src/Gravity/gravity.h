@@ -4,8 +4,20 @@ void Accel_Gravity_Simple(const int ipart, double *acc, double *pot);
 
 #ifdef GRAVITY_TREE
 
-void Init_Tree();
-void Build_Tree();
+struct Tree_Node {
+	uint32_t Bitfield; 	// bit 0-5:level, 6-8:key, 9-31:free
+	int DNext;		   	// distance to the next node; or -ipart
+	Float CoM[3];		// Center of Mass
+	float Mass;			// Total Mass
+	int DUp;			// distance to the parent
+	int Npart;			// number of particles in node
+} *Tree;
+
+size_t NNodes;
+size_t Max_Nodes;
+
+void Gravity_Tree_Build();
+void Gravity_Tree_Acceleration();
 
 #endif // GRAVITY_TREE
 

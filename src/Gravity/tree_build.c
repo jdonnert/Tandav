@@ -4,26 +4,19 @@
 
 #define NODES_PER_PARTICLE 1.0 
 
-struct Tree_Node {
-	uint32_t Bitfield; // bit 0-5:level, 6-8:key, 9: DNext flag, 10-31:free
-	int DNext;		   // this is the DELTA to the next node; or -ipart
-	Float CoM[3];
-	float Mass;
-	//int DUp;
-	int Npart;
-} *Tree = NULL;
-
-static size_t NNodes = 0;
-static size_t Max_Nodes = 0;
+struct Tree_Node *Tree = NULL;
+size_t NNodes = 0;
+size_t Max_Nodes = 0;
 
 static inline int level(const int node); // bitmask functions
 static inline int key_fragment(const int node);
-static inline Float node_size(const int node);
-static inline void add_particle_to_bitfield(const int node);
 
-static inline void add_node(const int ipart, const int node, const int lvl);
+static int build_subtree(const int, const int, const int, const int);
+static inline void add_node(const int, const int, const int, int *);
 static inline bool particle_is_inside_node(const int ipart, const int node);
 static inline void add_particle_to_node(const int ipart, const int node);
+
+void gravity_tree_init();
 
 static void print_int_bits64(const uint64_t val)
 {
@@ -39,6 +32,10 @@ static void print_int_bits64(const uint64_t val)
 
 /*
  * This builds the tree. 
+ * First the tree in every local node is build starting from the bunchnode. 
+ * In the global tree memory, all bunchnodes are seperated by npart nodes.
+ * Then the tree from the top nodes is constructed and the local nodes 
+ * are moved in blocks.
  *
  */
 
@@ -46,28 +43,52 @@ void Build_Tree()
 {
 	Profile("Build Gravity Tree");
 
-	Init_Tree();
+	gravity_tree_init();
+	#pragma omp single
+	NNodes = build_subtree(0, Task.Npart_Total, 0, 0);
 
-	/* Build_Top_Tree();
-	
-	   for (int i = 0; i < NBunches; i++) {
+	rprintf("Finished tree build, %d nodes for %d particles", 
+			NNodes, Task.Npart_Total);
 
-	   int  node_start, ipart_start, ipart_stop;
+	Profile("Build Gravity Tree");
+
+exit(0);
+	return ;
+}
+
+/*
+ * A subtree is build starting at node index top.
+ * In the tree, DNext points to the difference to next index in the walk, 
+ * if the node is not opened, opening is node++. If DNext is negative it 
+ * points to particles with ipart=-DNext-1, and the next node in line 
+ * is node++. 
+ * The tree saves only one particle per leaf-node. Other particles in the 
+ * same leaf node have to be inferred from Npart during the walk, to 
+ * safe memory.
+ * The Bitfield contains the level of the node and the Peano-Triplet of the
+ * node at that level. 
+ * After the initial build, some DNext pointers are 0 and a non-recursive tree
+ * walk is performed to set these pointers and close the P-H curve through the
+ * tree.
+ */
+
+static int build_subtree(const int start, const int npart, const int offset, 
+		const int top)
+{
+	int nNodes = 0;
+
+	add_node(start, offset, top, &nNodes); 	// add the first particle by hand
+
+printf("istart=%d npart=%d offs=%d top=%d nNodes=%d\n", 
+start, npart, offset, top, nNodes);
+
+	int last_parent = offset;		// parent of last particle
+
+	for (int ipart = start+1; ipart < npart; ipart++) {
 		
-	*/
- 
- 	/* Here the top tree is complete, now build local nodes downwards */
-
-	add_node(0, 0, 0); // add the first particle by hand
-	Tree[0].Bitfield &= ~0x1FF; // clear first 9 bits
-
-	int last_parent = 0; 		// parent of last particle
-
-	for (int ipart = 1; ipart < Task.Npart_Total; ipart++) {
-
-		int node = 0;  			// current node
-		int lvl = 0;			// counts current level
-		int parent = 0;			// parent of current node
+		int node = offset;  		// current node
+		int lvl = top;				// counts current level
+		int parent = node;			// parent of current node
 		bool is_new_branch = true;	// flag to delete single particle nodes
 
 		for (;;) {
@@ -79,38 +100,34 @@ printf("ERROR LEVEL! %d: %d!=%d \n",node, level(node), lvl); goto out;}
 			
 				if (Tree[node].DNext == -ipart) { // refine 
 				
-					int jpart = ipart-1; // node has to contain last particle 
-					
 					Tree[node].DNext = 0; // mark DNext free
 
-					add_node(jpart, node, lvl+1); // add daughter to node 
+					add_node(ipart-1, node, lvl+1, &nNodes); // add daughter 
 				}  
 				
-				add_particle_to_node(ipart, node); // ipart to current node
+				add_particle_to_node(ipart, node); // add ipart to node
 
-				if (node == last_parent)
-					is_new_branch = false;
+				is_new_branch = is_new_branch & (node != last_parent);
 
 				parent = node;
+
 				node++; // decline into node containing jpart
+
 				lvl++;
 
 			} else { // skip
 
-				if (Tree[node].DNext == 0 || node == NNodes - 1)   
+				if (Tree[node].DNext == 0 || node == nNodes - 1)   
 					break; // reached end of my branch or whole tree
 				
-				if (Tree[node].DNext < 0)  // internal leaf
-					node++; // might need to split its sibling 
-				else 
-					node += Tree[node].DNext; // skip whole subtree
+				node += fmax(1, Tree[node].DNext);
 			}
 
 		} // for (;;)
 
 		if (is_new_branch) { // remove leaf particle nodes from tree
 
-			int n = NNodes-1; 	// node counter
+			int n = nNodes-1; 	// node counter
 			int np = 0;			// particle counter
 			
 			while (Tree[n].DNext < 0) { // walk backwards
@@ -124,14 +141,15 @@ printf("ERROR LEVEL! %d: %d!=%d \n",node, level(node), lvl); goto out;}
 
 			Tree[n].DNext = Tree[n+1].DNext;
 			
-			NNodes = n + 1; // remove leaf nodes
+			nNodes = n + 1; // remove leaf nodes
+
 			memset(&Tree[n+1], 0, np*sizeof(*Tree));
 		}
 	
 		if (Tree[node].DNext == 0) // set internal next node
-			Tree[node].DNext = NNodes - node; // only delta
+			Tree[node].DNext = nNodes - node; // only delta
 
-		add_node(ipart, parent, lvl); // add a sibling to current node
+		add_node(ipart, parent, lvl, &nNodes); // add sibling to current node
 	
 		last_parent = parent;
 
@@ -141,12 +159,12 @@ out:;
 	#pragma omp single nowait // correct DNext=0 to point upwards
 	{
 
-	Tree[0].DNext = -1;
+	Tree[top].DNext = 0;
 
 	int stack[25] = { 0 };
 	int lowest = 0;
 
-	for (int i = 1; i < NNodes; i++) {
+	for (int i = 1; i < nNodes; i++) {
 		
 		int lvl = level(i);
 
@@ -158,8 +176,8 @@ out:;
 				Tree[node].DNext = i - node;
 
 			stack[lowest] = 0;
-			lowest--;
 
+			lowest--;
 		} 
 		
 		if (Tree[i].DNext == 0) { 
@@ -171,9 +189,17 @@ out:;
 		
 	} // for
 	
-	} // omp single
+	} // omp single nowait
 
-for (int n=0; n<Task.Npart_Total; n++) {
+	#pragma omp for
+	for (int i = 0; i < nNodes; i++) {
+	
+		Tree[i].CoM[0] /= Tree[i].Mass;
+		Tree[i].CoM[1] /= Tree[i].Mass;
+		Tree[i].CoM[2] /= Tree[i].Mass;
+	}
+
+for (int n = 0; n < Task.Npart_Total; n++) {
 	if (level(n) == 2) {
 printf("TEST n=%d np=%d next=%d  mass=%g level=%d  \n", 
 n,  Tree[n].Npart, Tree[n].DNext, Tree[n].Mass, level(n));
@@ -185,20 +211,7 @@ printf("\n");
 for (int ipart = 0; ipart < 10; ipart++) { 
 printf("%d ", ipart); print_int_bits64(P[ipart].Peanokey);}
 
-	#pragma omp for
-	for (int i = 0; i < NNodes; i++) {
-	
-		Tree[i].CoM[0] /= Tree[i].Mass;
-		Tree[i].CoM[1] /= Tree[i].Mass;
-		Tree[i].CoM[2] /= Tree[i].Mass;
-	}
-
-	rprintf("Finished tree build, %d nodes for %d particles", 
-			NNodes, Task.Npart_Total);
-
-	Profile("Build Gravity Tree");
-exit(0);
-	return ;
+	return nNodes;
 }
 
 /*
@@ -230,9 +243,10 @@ static inline bool particle_is_inside_node(const int ipart, const int node)
  * offset by one to leave DNext=0 indicating unset.
  */
 
-static inline void add_node(const int ipart, const int parent, const int lvl)
+static inline void add_node(const int ipart, const int parent, const int lvl, 
+		int *nNodes)
 {
-	const int node = NNodes++;
+	const int node = (*nNodes)++;
 
 	Tree[node].DNext = -ipart - 1;
 	
@@ -262,6 +276,19 @@ static inline void add_particle_to_node(const int ipart, const int node)
 	return ;
 }
 
+static inline void add_bunch_to_node(const int i, const int node)
+{
+	Tree[node].CoM[0] += Bunch[i].CoM[0];
+	Tree[node].CoM[1] += Bunch[i].CoM[1];
+	Tree[node].CoM[2] += Bunch[i].CoM[2];
+
+	Tree[node].Mass += Bunch[i].Mass;
+
+	Tree[node].Npart += Bunch[i].Npart;
+
+	return ;
+}
+
 /*
  * These functions set/extract bits from the bitmask to control
  * the tree construction and walk. They will be inlined by the compiler and
@@ -283,15 +310,7 @@ static inline int key_fragment(const int node)
 	return (Tree[node].Bitfield & bitmask) >> 6; // return bit 6-8
 }
 
-static inline Float node_size(const int node)
-{
-	int lvl = level(node);
-
-	return Domain.Size / ((Float) (1UL << lvl)); // Domain.Size/2^level
-}
-
-
-void Init_Tree()
+void gravity_tree_init()
 {
 	#pragma omp single
 	{
@@ -305,16 +324,6 @@ void Init_Tree()
 	
 	memset(Tree, 0, nBytes);
 
-	Tree[0].CoM[0] = 0; // will hold global CoM of sim
-	Tree[0].CoM[1] = 0;
-	Tree[0].CoM[2] = 0;
-
-	Tree[0].Npart = 0;
-	//Tree[0].DUp = -1;
-	Tree[0].Mass = 0;
-	Tree[0].DNext = -1;
-	Tree[0].Bitfield = 0;
-
 	NNodes = 0;
 
 	} // omp single
@@ -322,15 +331,4 @@ void Init_Tree()
 	return ;
 }
 
-/*
- * This function computes the gravitational acceleration by walking the tree  
- */
 
-void Accel_Gravity_Tree(const int ipart, double *acc, double *pot)
-{
-
-	if (Sig.Fullstep) // need to build new one
-		Free(Tree);
-
-	return ;
-}

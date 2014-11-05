@@ -5,6 +5,8 @@
 
 int * restrict Active_Particle_List, NActive_Particles;
 
+int * restrict CommBuf;
+
 extern struct Local_Task_Properties {		
 	bool Is_Master;			// == true on global master rank 
 	bool Is_MPI_Master;		// == true on MPI master rank 

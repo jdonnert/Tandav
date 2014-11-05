@@ -1,10 +1,16 @@
 struct bunch_information { 
-	Float Pos[3];
-	int Npart[NPARTYPE];
-	int Next_bunch; 
-	int Target_task;
+	int Target_Rank;
+	int First_Particle;
+	int Npart;
 	peanoKey Key;
-} *Bunchlist; // These will also be the leafs of the dynamic top node tree
+	int Global_Tree_Offset;
+	float CPU_Cost;
+	Float CoM[3];
+	Float Mass;
+} *Bunch; // These will also be the leafs of the dynamic top node tree
+
+int NBunches;
+int NLocal_Bunches;
 
 void Domain_Decomposition();
 void Init_Domain_Decomposition();

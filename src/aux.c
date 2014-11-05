@@ -158,7 +158,7 @@ void Assert_Info(const char *func, const char *file, int line,
 
 	va_start(varArgList, errmsg);
 
-	fprintf(stderr, "\nERROR (%d, %d) %s : %d : %s() :\n\n	", 
+	fprintf(stderr, "\nERROR (%d:%d) %s : %d : %s() :\n\n	", 
 			Task.Rank,  Task.Thread_ID, file, line , func);
 
 	vfprintf(stderr, errmsg, varArgList); 
@@ -186,7 +186,7 @@ void Warn_Info(const char *func, const char *file, int line,
 
 	va_start(varArgList, errmsg);
 
-    fprintf(stderr, "\nWARNING (%d, %d): In file %s,\n"
+    fprintf(stderr, "\nWARNING (%d:%d): In file %s,\n"
 			          "                function %s(), line %d :\n\n		", 
 			 Task.Rank, Task.Thread_ID, file, func, line);
 

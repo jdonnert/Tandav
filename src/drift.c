@@ -1,6 +1,9 @@
 #include "globals.h"
 #include "timestep.h"
 
+#ifdef PERIODIC
+static void Constrain_Particles_To_Box();
+#endif
 
 /* 
  * This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 
@@ -97,6 +100,7 @@ void Drift_To_Snaptime()
 	return ;
 }
 
+#ifdef PERIODIC
 static void Constrain_Particles_To_Box()
 {
 	const double boxsize[3] = { Sim.Boxsize[0],
@@ -124,7 +128,8 @@ static void Constrain_Particles_To_Box()
 		
 		if (P[ipart].Pos[2] >= boxsize[2])
 			P[ipart].Pos[2] -= boxsize[2];
-	}
+	} // for i
 
 	return ;
 }
+#endif

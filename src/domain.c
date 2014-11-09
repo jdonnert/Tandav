@@ -9,13 +9,16 @@ static void split_bunches();
 static void update_bunchlist();
 static void communicate_particles();
 
-/* This function distributes particles in bunches, which are continuous
- * on the Peano curve. This way, the bunches correspond to parts
- * of the tree. Bunches also give the ghost nodes in the tree and are later
+/* 
+ * This function distributes particles in bunches, which are continuous
+ * on the Peano curve. The bunches correspond to nodes of the tree. 
+ * Bunches also give the ghost nodes in the tree and are later
  * used to construct the top node tree. 
- * We keep a global list of all the bunches that also contains the workload and 
- * memory footprint of each bunch. An optimal way of distributing bunches
- * minimises memory and workload imbalance over all Tasks. */
+ * We keep a global list of all the bunches that also contains the 
+ * workload and memory footprint of each bunch. An optimal way of 
+ * distributing bunches minimises memory and workload imbalance over all
+ * Tasks. 
+ * */
 
 void Domain_Decomposition()
 {
@@ -179,15 +182,15 @@ static void find_global_domain()
 	Domain.Origin[0] = global_min[0];
 	Domain.Origin[1] = global_min[1];
 	Domain.Origin[2] = global_min[2];
+	
+	} // omp single
 
 #ifdef DEBUG
-	printf("\n%d, %d found domain size %g  at %g %g %g \n\n", 
+	rprintf("\nDomain size %g, origin at %4g %4g %4g \n\n", 
 			Task.Rank, Task.Thread_ID,
 			Domain.Size,
 			Domain.Origin[0],Domain.Origin[1],Domain.Origin[2]);
 #endif
-	
-	} // omp single
 
 	return ;
 }

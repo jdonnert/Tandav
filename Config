@@ -2,23 +2,25 @@
 
 #PERIODIC			// periodic boundary conditions
 #COMOVING			// time integration in comoving coordinates
+DEBUG				// Verbose output for debugging
 
-#### Interaction ####
+#### GRAVITY ####
 
 GRAVITY				// gravitational interaction master switch
 GRAVITY_POTENTIAL	// compute gravitational potential
 GRAV_SOFTENING 30 	// gravitational softening length 
 
-#GRAVITY_SIMPLE		// N^2 law
-GRAVITY_TREE		// B&H gravity tree
+GRAVITY_SIMPLE		// N^2 law
+#GRAVITY_TREE		// B&H gravity tree
 
-TIME_INT_ACCURACY 0.1	// std 0.05, time step parameter
+TIME_INT_ACCURACY 0.1			// std 0.05, time step parameter
 
 #### OUTPUT OPTIONS ####
 
-OUTPUT_ACCELERATION // total acceleration ACC
-OUTPUT_GRAV_POTENTIAL // gravitational potential GPOT
-#OUTPUT_PEANO_KEY   // peano key of particle "PKEY"
+OUTPUT_TOTAL_ACCELERATION 			// total acceleration ACC
+OUTPUT_PARTIAL_ACCELERATIONS	// save & output all ACC components
+OUTPUT_GRAV_POTENTIAL 			// gravitational potential GPOT
+#OUTPUT_PEANO_KEY   			// peano key of particle "PKEY"
 
 #### DOMAIN DECOMPOSITION ####
 
@@ -40,4 +42,3 @@ OMEGA_RAD 4.8e-5
 
 MEMORY_MANAGER  
 
-DEBUG				// Verbose output for debugging

@@ -4,6 +4,7 @@
 #include "drift.h"
 #include "timestep.h"
 #include "setup.h"
+#include "domain.h"
 #include "peano.h"
 #include "accel.h"
 #include "IO/io.h"
@@ -25,7 +26,7 @@ int main(int argc, char *argv[])
 	
 	#pragma omp parallel
 	{
-	
+
 	Update(BEFORE_MAIN_LOOP);
 
 	for (;;) { // run, Forest, run !
@@ -44,7 +45,7 @@ int main(int argc, char *argv[])
  		
 		Drift_To_Sync_Point();
 		
-		Update(FORCES);
+		Domain_Decomposition();
 
 		Compute_Acceleration();
 

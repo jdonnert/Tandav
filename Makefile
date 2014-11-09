@@ -93,7 +93,7 @@ $(EXEC)	: $(OBJS)
 	@echo 'EXEC =' $(EXEC)
 	@echo " "
 	$(CC) $(CFLAGS) $(OBJS) $(LIBS) -o $(EXEC)
-	@cd src && ctags -R *.[ch]
+	@cd src && ctags *.[ch]
 
 $(OBJS)	: $(INCS)
 

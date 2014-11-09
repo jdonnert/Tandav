@@ -1,6 +1,6 @@
 #ifdef GRAVITY
 
-void Accel_Gravity_Simple(const int ipart, double *acc, double *pot);
+void Accel_Gravity_Simple();
 
 #ifdef GRAVITY_TREE
 
@@ -16,7 +16,7 @@ struct Tree_Node {
 size_t NNodes;
 size_t Max_Nodes;
 
-void Gravity_Tree_Build();
+void Build_Gravity_Tree();
 void Gravity_Tree_Acceleration();
 
 #endif // GRAVITY_TREE

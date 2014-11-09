@@ -14,7 +14,7 @@ static void set_filename(char *filename);
 static MPI_Comm mpi_comm_write = MPI_COMM_NULL;
 
 void Write_Snapshot()
-{
+{ 
 	Profile("Write Snap");
 
 	#pragma omp single

@@ -5,8 +5,6 @@
 
 int * restrict Active_Particle_List, NActive_Particles;
 
-int * restrict CommBuf;
-
 extern struct Local_Task_Properties {		
 	bool Is_Master;			// == true on global master rank 
 	bool Is_MPI_Master;		// == true on MPI master rank 
@@ -47,10 +45,10 @@ extern struct Parameters_From_File {
 
 extern struct Particle_Data {
 	int Type;
+	peanoKey Peanokey;
 	int Idx;
 	int Time_Bin;
 	intime_t Int_Time_Pos;		// position on integer timeline
-	peanoKey Peanokey;
 	Float Pos[3];
 	Float Vel[3];
 	Float Acc[3];
@@ -58,6 +56,9 @@ extern struct Particle_Data {
 	ID_t ID; // add below 
 #ifdef GRAVITY_POTENTIAL
 	Float Grav_Pot;
+#endif
+#ifdef OUTPUT_PARTIAL_ACCELERATIONS
+	Float Grav_Acc[3];
 #endif
 } *P;
 

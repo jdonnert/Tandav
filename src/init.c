@@ -54,8 +54,6 @@ void Read_and_Init()
 	Constrain_Particles_To_Box();
 #endif
 	
-	Comm_Buf = Malloc(Param.Comm_Buf_Size * 1024); // in kBytes
-
 	Init_Domain_Decomposition();
 
 	Print_Memory_Usage();

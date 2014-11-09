@@ -98,15 +98,25 @@ static const struct io_block_def Block[] = {
   	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_SIZEOF(Vel),true},
   	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_SIZEOF(ID), true},
   	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_SIZEOF(Mass), false}
-#ifdef OUTPUT_ACCELERATION
+
+#ifdef OUTPUT_TOTAL_ACCELERATION
   	,{"ACC", "Acceleration", VAR_P, P_OFFSET(Acc), P_SIZEOF(Acc), false}
 #endif
-#ifdef OUTPUT_GRAV_POTENTIAL
-  	,{"GPOT","Grav Potential",VAR_P,P_OFFSET(Grav_Pot),P_SIZEOF(Grav_Pot), false}
+
+#ifdef OUTPUT_PARTIAL_ACCELERATIONS
+  	,{"GACC", "Grav Acceleration", VAR_P, P_OFFSET(Grav_Acc), 
+		P_SIZEOF(Grav_Acc), false}
 #endif
+
+#ifdef OUTPUT_GRAV_POTENTIAL
+  	,{"GPOT","Grav Potential", VAR_P, P_OFFSET(Grav_Pot), P_SIZEOF(Grav_Pot), 
+		false}
+#endif
+
 #ifdef OUTPUT_PEANO_KEY
   	,{"PKEY","Peanokey",VAR_P,P_OFFSET(Peanokey),P_SIZEOF(peanoKey), false}
 #endif
+
 	// Add yours below 
 };
 

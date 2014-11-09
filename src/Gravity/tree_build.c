@@ -2,6 +2,8 @@
 #include "../domain.h"
 #include "gravity.h"
 
+#ifdef GRAVITY_TREE
+
 #define NODES_PER_PARTICLE 1.0 
 
 struct Tree_Node *Tree = NULL;
@@ -39,7 +41,7 @@ static void print_int_bits64(const uint64_t val)
  *
  */
 
-void Build_Tree()
+void Build_Gravity_Tree()
 {
 	Profile("Build Gravity Tree");
 
@@ -332,3 +334,4 @@ void gravity_tree_init()
 }
 
 
+#endif // GRAVITY_TREE

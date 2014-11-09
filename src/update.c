@@ -17,17 +17,16 @@ void Update(enum Update_Parameters stage)
 
 	case BEFORE_MAIN_LOOP:
 
-#pragma omp parallel
-		{
+#ifdef COMOVING
+		Set_Current_Cosmology();
+#endif
 
-		Update(FORCES);
-		
+		Domain_Decomposition();
+
 		Print_Memory_Usage();
 
 		Compute_Acceleration();
 
-		} // omp parallel
-		
 		if (Time.Begin == Time.Next_Snap) { 
 
 			Write_Snapshot();
@@ -58,12 +57,6 @@ void Update(enum Update_Parameters stage)
 
 #ifdef COMOVING
 		Set_Current_Cosmology();
-#endif
-
-		Domain_Decomposition();
-
-#ifdef GRAVITY_TREE
-		Build_Tree();
 #endif
 
 		break;

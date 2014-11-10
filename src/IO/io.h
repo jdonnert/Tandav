@@ -109,7 +109,7 @@ static const struct io_block_def Block[] = {
 #endif
 
 #ifdef OUTPUT_GRAV_POTENTIAL
-  	,{"GPOT","Grav Potential", VAR_P, P_OFFSET(Grav_Pot), P_SIZEOF(Grav_Pot), 
+  	,{"GPOT", "Grav Potential", VAR_P, P_OFFSET(Grav_Pot), P_SIZEOF(Grav_Pot), 
 		false}
 #endif
 

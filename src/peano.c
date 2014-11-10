@@ -26,10 +26,6 @@ static void reorder_collisionless_particles();
 
 void Sort_Particles_By_Peano_Key()
 {
-printf("%d \n", Task.Thread_ID); fflush(stdout); 
-
-#pragma omp barrier
-
 	Profile("Peano-Hilbert order");
 	
 	#pragma omp single

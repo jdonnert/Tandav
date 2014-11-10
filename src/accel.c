@@ -6,7 +6,7 @@
 #include "accel.h"
 #include "timestep.h"
 #include "Gravity/gravity.h"
-
+#include "memory.h"
 static void Accel_Gravity();
 
 void Compute_Acceleration()
@@ -28,6 +28,8 @@ static void Accel_Gravity()
 #ifdef GRAVITY_TREE
 	Build_Gravity_Tree();
 
+Print_Memory_Usage();
+exit(0);
 	Gravity_Tree_Acceleration();
 #endif
 

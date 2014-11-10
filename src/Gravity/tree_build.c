@@ -46,15 +46,17 @@ void Build_Gravity_Tree()
 	Profile("Build Gravity Tree");
 
 	gravity_tree_init();
+
 	#pragma omp single
+	{
 	NNodes = build_subtree(0, Task.Npart_Total, 0, 0);
 
-	rprintf("Finished tree build, %d nodes for %d particles", 
-			NNodes, Task.Npart_Total);
 
+	printf("Finished tree build, %d nodes for %d particles \n", 
+			NNodes, Task.Npart_Total);
+	}
 	Profile("Build Gravity Tree");
 
-exit(0);
 	return ;
 }
 
@@ -163,7 +165,7 @@ out:;
 
 	Tree[top].DNext = 0;
 
-	int stack[25] = { 0 };
+	int stack[63] = { 0 };
 	int lowest = 0;
 
 	for (int i = 1; i < nNodes; i++) {
@@ -200,7 +202,7 @@ out:;
 		Tree[i].CoM[1] /= Tree[i].Mass;
 		Tree[i].CoM[2] /= Tree[i].Mass;
 	}
-
+/*
 for (int n = 0; n < Task.Npart_Total; n++) {
 	if (level(n) == 2) {
 printf("TEST n=%d np=%d next=%d  mass=%g level=%d  \n", 
@@ -212,7 +214,7 @@ printf("\n");
 
 for (int ipart = 0; ipart < 10; ipart++) { 
 printf("%d ", ipart); print_int_bits64(P[ipart].Peanokey);}
-
+*/
 	return nNodes;
 }
 

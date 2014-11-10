@@ -49,8 +49,8 @@ void Build_Gravity_Tree()
 
 	#pragma omp single
 	{
+	
 	NNodes = build_subtree(0, Task.Npart_Total, 0, 0);
-
 
 	printf("Finished tree build, %d nodes for %d particles \n", 
 			NNodes, Task.Npart_Total);
@@ -83,7 +83,7 @@ static int build_subtree(const int start, const int npart, const int offset,
 
 	add_node(start, offset, top, &nNodes); 	// add the first particle by hand
 
-printf("istart=%d npart=%d offs=%d top=%d nNodes=%d\n", 
+printf("Tree Build Local: istart=%d npart=%d offs=%d top=%d nNodes=%d\n", 
 start, npart, offset, top, nNodes);
 
 	int last_parent = offset;		// parent of last particle

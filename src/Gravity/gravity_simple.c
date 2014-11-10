@@ -8,7 +8,7 @@ void Accel_Gravity_Simple()
 	Profile("Gravity_Simple");
 
 	#pragma omp for
-	for (int i = 0; i < NActive_Particles; i++) {
+	for (int i = 0; i < Task.Npart_Total; i++) {
 
 		int ipart = Active_Particle_List[i];
 

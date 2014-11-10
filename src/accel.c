@@ -25,17 +25,19 @@ void Compute_Acceleration()
 static void Accel_Gravity()
 {
 
+#ifdef GRAVITY_SIMPLE
+	Accel_Gravity_Simple();
+#endif
+
 #ifdef GRAVITY_TREE
 	Build_Gravity_Tree();
 
 Print_Memory_Usage();
-exit(0);
+	
 	Gravity_Tree_Acceleration();
+exit(0);
 #endif
 
-#ifdef GRAVITY_SIMPLE
-	Accel_Gravity_Simple();
-#endif
 
 	return ;
 }

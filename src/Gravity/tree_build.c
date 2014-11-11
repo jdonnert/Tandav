@@ -4,7 +4,7 @@
 
 #ifdef GRAVITY_TREE
 
-#define NODES_PER_PARTICLE 1.0 
+#define NODES_PER_PARTICLE 0.7 
 
 struct Tree_Node *Tree = NULL;
 size_t NNodes = 0;

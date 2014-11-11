@@ -261,6 +261,16 @@ static inline void add_node(const int ipart, const int parent, const int lvl,
 	Tree[node].Bitfield = lvl | keyfragment; 
 
 	//Tree[node].DUp = node - parent;
+	
+	int sign[3] = { -1 * (int)(P[ipart].Pos[0] < Tree[parent].Pos[0]),
+	 			    -1 * (int)(P[ipart].Pos[1] < Tree[parent].Pos[1]),
+	 			    -1 * (int)(P[ipart].Pos[2] < Tree[parent].Pos[2])}; 
+	
+	Float size = Domain.Size / (1 << lvl+1);
+
+	Tree[node].Pos[0] = Tree[parent].Pos[0] + sign[0] * size * 0.5;
+	Tree[node].Pos[1] = Tree[parent].Pos[1] + sign[1] * size * 0.5;
+	Tree[node].Pos[2] = Tree[parent].Pos[2] + sign[2] * size * 0.5;
 
 	add_particle_to_node(ipart, node); 
 
@@ -329,6 +339,8 @@ void gravity_tree_init()
 	memset(Tree, 0, nBytes);
 
 	NNodes = 0;
+
+	Tree[0].Pos[0] = Tree[0].Pos[1] = Tree[0].Pos[2] = 1;
 
 	} // omp single
 

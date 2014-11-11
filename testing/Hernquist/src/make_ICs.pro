@@ -17,7 +17,7 @@ pro make_ICs
 
 	pos = make_array(3, npart, /double, val=0)
 	
-	sqrt_q = sqrt(randomu(seed, npart))
+	sqrt_q = sqrt(randomu(seed, npart) )
 
 	r = a_hernq  * sqrt_q / (1-sqrt_q)
 
@@ -27,6 +27,8 @@ pro make_ICs
 	pos[0,*] = r * sin(theta) * cos(phi)
 	pos[1,*] = r * sin(theta) * sin(phi)
 	pos[2,*] = r * cos(theta) 
+
+	print, minmax(r)
 
 	plot, pos[0,*], pos[1,*], /iso, psym=3, $
 		xrange=[-1e5,1e5], yrange=[-1e5,1e5]

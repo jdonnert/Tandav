@@ -35,7 +35,7 @@ static void Accel_Gravity()
 Print_Memory_Usage();
 	
 	Gravity_Tree_Acceleration();
-exit(0);
+//exit(0);
 #endif
 
 

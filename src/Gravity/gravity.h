@@ -8,6 +8,7 @@ struct Tree_Node {
 	uint32_t Bitfield; 	// bit 0-5:level, 6-8:key, 9-31:free
 	int DNext;		   	// distance to the next node; or -ipart
 	Float CoM[3];		// Center of Mass
+	Float Pos[3];		// Node Center
 	float Mass;			// Total Mass
 	int DUp;			// distance to the parent
 	int Npart;			// number of particles in node

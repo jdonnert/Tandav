@@ -55,6 +55,7 @@ void Sort_Particles_By_Peano_Key()
 
 static void compute_peano_keys()
 {
+	float box[3]= { 1,1,1 };
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
@@ -62,7 +63,9 @@ static void compute_peano_keys()
 		float py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
 		float pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
+		//P[ipart].Peanokey = Keys[ipart] = Compute_Peano_Key(px, py, pz, box);
 		P[ipart].Peanokey = Keys[ipart] = Peano_Key(px, py, pz);
+
 	}
 
 	return ;
@@ -120,12 +123,12 @@ static void reorder_collisionless_particles()
 peanoKey Peano_Key(const float x, const float y, const float z)
 {
 #ifdef DEBUG
-	Assert(x>=0 && x <=1, "X coordinate of out range for PH key %g", x);
-	Assert(y>=0 && y <=1, "Y coordinate of out range for PH key %g", y);
-	Assert(z>=0 && z <=1, "Z coordinate of out range for PH key %g", z);
+	Assert(x >= 0 && x <= 1, "X coordinate of out range for PH key %g", x);
+	Assert(y >= 0 && y <= 1, "Y coordinate of out range for PH key %g", y);
+	Assert(z >= 0 && z <= 1, "Z coordinate of out range for PH key %g", z);
 #endif
 
-	const uint32_t m = 0x80000000; // = 1UL << 31 = 2^31;
+	const uint32_t m = 1UL << 31; // = 2^31;
 
 	uint32_t X[3] = { y*m, z*m, x*m };
 
@@ -176,7 +179,7 @@ peanoKey Peano_Key(const float x, const float y, const float z)
 
 	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
 
-	for (int i = 0; i < 21; i++) {
+	for (int i = 0; i < 22; i++) {
 
 		uint32_t col = ((X[0] & 0x80000000) 
 					  | (X[1] & 0x40000000) 
@@ -193,24 +196,24 @@ peanoKey Peano_Key(const float x, const float y, const float z)
 
 	return key;
 }
-
 static void print_int_bits64(const uint64_t val)
 {
-	for (int i = 63; i >= 0; i--)
+	for (int i = 63; i >= 0; i--) {
 		printf("%llu", (val & (1ULL << i) ) >> i);
-	
-	printf("\n");
-
-	fflush(stdout);
+		if (i % 3 == 0 && i != 0)
+			printf(".");
+	}
+	printf("\n");fflush(stdout);
 
 	return ;
 }
 
+
 void test_peanokey()
 {
-	const double box = { 1.0};
+	const double box[3]  = { 1.0, 1, 1};
 	float a[3] = { 0 };
-	int order = 1;
+	int order = 2;
 	float delta = 1/pow(2.0, order);
 	int n = roundf(1/delta);
 
@@ -218,15 +221,18 @@ void test_peanokey()
 	for (int j = 0; j < n; j++) 
 	for (int k = 0; k < n; k++) {
 
-		a[0] = (i + 0.5) * delta / box;
-		a[1] = (j + 0.5) * delta / box;
-		a[2] = (k + 0.5) * delta / box;
+		a[0] = (i + 0.5) * delta / box[0];
+		a[1] = (j + 0.5) * delta / box[1];
+		a[2] = (k + 0.5) * delta / box[2];
 
 		peanoKey stdkey =  Peano_Key(a[0], a[1], a[2]);
+		peanoKey gdtkey =  0; //Compute_Peano_Key(a[0], a[1], a[2], box);
 
-		printf("%g %g %g %llu \n", a[0], a[1], a[2], stdkey);
+		printf("%g %g %g %llu %llu \n", a[0], a[1], a[2], stdkey, gdtkey);
 
-		print_int_bits64(stdkey); printf("\n");
+		print_int_bits64(stdkey); 
+		print_int_bits64(gdtkey); 
+		printf("\n");
 
 	}
 	return ;

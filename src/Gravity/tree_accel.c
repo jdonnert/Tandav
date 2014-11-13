@@ -5,7 +5,7 @@
 #ifdef GRAVITY_TREE
 
 #define NODE_OPEN_PARAM_BH 0.4 // Barnes & Hut opening criterion parameter
-#define NODE_OPEN_PARAM_REL 0.01 // Relative opening criterion parameter
+#define NODE_OPEN_PARAM_REL 0.001 // Relative opening criterion parameter
 
 static const double h_grav = GRAV_SOFTENING / 3.0; // Plummer equiv softening
 
@@ -18,6 +18,7 @@ static struct GravityDataForExport {
 static struct GravityDataForImport {
 	int Target_Part;
 	Float Acc[3];
+	Float Cost;
 } DataIn;
 
 static void gravity_tree_walk_local(const int ipart, Float* acc);
@@ -35,7 +36,7 @@ static inline int level(const int node)
 
 void Gravity_Tree_Acceleration()
 {
-	//Accel_Gravity_Simple();
+	Accel_Gravity_Simple();
 
 	Profile("Grav Tree Walk");
 
@@ -45,13 +46,15 @@ void Gravity_Tree_Acceleration()
 	int cnt = 0;
 
 	#pragma omp for
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+	for (int i = 0; i < NActive_Particles; i++) {
 			
+		int ipart = Active_Particle_List[i];
+
 		Float grav_accel[3] = { 0 };
 
 		gravity_tree_walk_local(ipart, grav_accel);
 
-	/*	double rel_err = fabs(ALENGTH3(grav_accel)-ALENGTH3(P[ipart].Acc))
+		double rel_err = fabs(ALENGTH3(grav_accel)-ALENGTH3(P[ipart].Acc))
 			/ ALENGTH3(P[ipart].Acc);
 
 		if (rel_err > max_rel_err) {
@@ -62,12 +65,12 @@ void Gravity_Tree_Acceleration()
 
 		mean_err += rel_err;
 
-		if (rel_err > 0.02)
+		if (rel_err > 0.01)
 			cnt++;
 
-		printf("%d %d %g %g %g %g\n", ipart, P[ipart].ID, (ALENGTH3(grav_accel)-ALENGTH3(P[ipart].Acc)) / ALENGTH3(P[ipart].Acc), P[ipart].Pos[0],P[ipart].Pos[1],P[ipart].Pos[2]);
+		//printf("%d %d %g %g %g %g\n", ipart, P[ipart].ID, (ALENGTH3(grav_accel)-ALENGTH3(P[ipart].Acc)) / ALENGTH3(P[ipart].Acc), P[ipart].Pos[0],P[ipart].Pos[1],P[ipart].Pos[2]);
 
-if (rel_err > 0.1)
+if (rel_err > 0.2)
 printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 				ipart, rel_err,
 				grav_accel[0],grav_accel[1],grav_accel[2],
@@ -75,7 +78,7 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 				(grav_accel[0] - P[ipart].Acc[0])/grav_accel[0],
 				(grav_accel[1] - P[ipart].Acc[1])/grav_accel[1],
 				(grav_accel[2] - P[ipart].Acc[2])/grav_accel[2], 
-				 P[ipart].Pos[0],P[ipart].Pos[1],P[ipart].Pos[2]); */
+				 P[ipart].Pos[0],P[ipart].Pos[1],P[ipart].Pos[2]); 
 
 		P[ipart].Acc[0]  += grav_accel[0];
 		P[ipart].Acc[1]  += grav_accel[1];
@@ -87,11 +90,11 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 		P[ipart].Grav_Acc[2] = grav_accel[2];
 #endif 
 	} // ipart
-//printf("Largest Err %g at %d, %d above threshold, mean err %g \n", 
-//		max_rel_err, worst_part, cnt, mean_err / Task.Npart_Total);
+printf("Largest Err %g at %d, %d above threshold, mean err %g \n", 
+		max_rel_err, worst_part, cnt, mean_err / Task.Npart_Total);
 
 	Profile("Grav Tree Walk");
-
+exit(0);
 	return ;
 }
 	
@@ -100,20 +103,24 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
  * This function walks the local tree and computes the gravitational 
  * acceleration.
  */
+
 static void gravity_tree_walk_local(const int ipart, Float* accel)
 {
 	int node = 1;
-
-	const Float fac = 0; //ALENGTH3(P[ipart].Acc)/Const.Gravity*NODE_OPEN_PARAM_REL;
+//int kpart = 0;
+	const Float fac = ALENGTH3(P[ipart].Acc)/Const.Gravity*NODE_OPEN_PARAM_REL;
 
 	while (Tree[node].DNext != 0) {
 		
-		if (Tree[node].DNext < 0) { // encountered particle
+		if (Tree[node].DNext < 0) { // encountered particle bundle
 
 			int first = -(Tree[node].DNext + 1); // part index is offset by 1
 			int last = first + Tree[node].Npart;
 
 			for (int jpart = first; jpart < last; jpart++ ) {
+
+				if (jpart == ipart)
+					continue;
 			
 				Float dr[3] = { P[ipart].Pos[0] - P[jpart].Pos[0],	
 					   		    P[ipart].Pos[1] - P[jpart].Pos[1], 
@@ -122,8 +129,11 @@ static void gravity_tree_walk_local(const int ipart, Float* accel)
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
 				Float mpart = P[jpart].Mass;
-				
-				interact(mpart, dr, r2, accel);
+
+//if (ipart == kpart) {
+//printf("IPART=%05d ", jpart);
+				interact(mpart, dr, r2, accel); 
+//}
 			}
 
 			node++;
@@ -160,12 +170,20 @@ static void gravity_tree_walk_local(const int ipart, Float* accel)
 			}
 		
 		}
+//if(node == 4364 && ipart==kpart)
+//printf("%g %g, %g %g, %g %g | %g\n",P[ipart].Pos[0],Tree[node].Pos[0],P[ipart].Pos[1],Tree[node].Pos[1], P[ipart].Pos[2],Tree[node].Pos[2] , nSize);
 
-		if ( fabs(dr[0]) < 0.6 * nSize) {
+		Float dx = fabs(P[ipart].Pos[0] - Tree[node].Pos[0]);
 
-			if ( fabs(dr[1]) < 0.6 * nSize) {
+		if ( dx < 0.6 * nSize) {
+
+			Float dy = fabs(P[ipart].Pos[1] - Tree[node].Pos[1]);
 			
-				if ( fabs(dr[2]) < 0.6 * nSize) {
+			if ( dy < 0.6 * nSize) {
+			
+				Float dz = fabs(P[ipart].Pos[2] - Tree[node].Pos[2]);
+				
+				if ( dz < 0.6 * nSize) {
 
 					node++; // part inside node
 
@@ -174,8 +192,10 @@ static void gravity_tree_walk_local(const int ipart, Float* accel)
 			}
 		}
 		
+//if (ipart == kpart) {
+//printf("NODE=%05d ", node);
 		interact(nMass, dr, r2, accel); // use node
-		
+//}
 		node += fmax(1, Tree[node].DNext);
 		
 	} // while
@@ -206,7 +226,10 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 	accel[0] += -acc_mag * dr[0] * rinv;
 	accel[1] += -acc_mag * dr[1] * rinv;
 	accel[2] += -acc_mag * dr[2] * rinv;
-
+//int kpart = 0;
+//printf("%g | %g %g %g |  %g %g %g \n", 
+//acc_mag, accel[0], accel[1], accel[2],
+//P[kpart].Acc[0], P[kpart].Acc[1], P[kpart].Acc[2]);
 	return ;
 }
 

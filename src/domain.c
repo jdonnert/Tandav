@@ -182,6 +182,10 @@ static void find_global_domain()
 	Domain.Origin[0] = global_min[0];
 	Domain.Origin[1] = global_min[1];
 	Domain.Origin[2] = global_min[2];
+
+	Domain.Center[0] = Domain.Origin[0] + 0.5 * Domain.Size;
+	Domain.Center[1] = Domain.Origin[1] + 0.5 * Domain.Size;
+	Domain.Center[2] = Domain.Origin[2] + 0.5 * Domain.Size;
 	
 	} // omp single
 

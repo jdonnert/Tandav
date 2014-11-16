@@ -4,7 +4,7 @@
 
 #ifdef GRAVITY_TREE
 
-#define NODES_PER_PARTICLE 0.7 
+#define NODES_PER_PARTICLE 0.6 
 
 struct Tree_Node *Tree = NULL;
 size_t NNodes = 0;
@@ -54,7 +54,9 @@ void Build_Gravity_Tree()
 
 	printf("Finished tree build, %d nodes for %d particles \n", 
 			NNodes, Task.Npart_Total);
-	}
+
+	} // omp single
+	
 	Profile("Build Gravity Tree");
 
 
@@ -89,7 +91,9 @@ static int build_subtree(const int istart, const int npart, const int offset,
 
 	add_node(istart, offset, top, &nNodes); 	// add the first node by hand
 
-	Tree[0].Pos[0] = Tree[0].Pos[1] = Tree[0].Pos[2] = 0;
+	Tree[0].Pos[0] = Domain.Center[0];
+	Tree[0].Pos[1] = Domain.Center[1];
+	Tree[0].Pos[2] = Domain.Center[2];
 
 	int last_parent = offset;		// last parent of last particle
 
@@ -165,9 +169,9 @@ static int build_subtree(const int istart, const int npart, const int offset,
 	#pragma omp single nowait // correct for last DNext to point upwards
 	{
 
-	Tree[top].DNext = 0;
+	Tree[top].DNext = 0; 
 
-	int stack[63] = { 0 }; // can't go deeper than 63
+	int stack[63] = { 0 }; 
 	int lowest = 0;
 
 	for (int i = 1; i < nNodes; i++) {
@@ -203,68 +207,6 @@ static int build_subtree(const int istart, const int npart, const int offset,
 		Tree[i].CoM[0] /= Tree[i].Mass;
 		Tree[i].CoM[1] /= Tree[i].Mass;
 		Tree[i].CoM[2] /= Tree[i].Mass;
-	}
-/*
-for (int n = 0; n < nNodes; n++) {
-	//if (level(n) == 2) {
-printf("TEST n=%d np=%d next=%d  mass=%g level=%d  \n", 
-n,  Tree[n].Npart, Tree[n].DNext, Tree[n].Mass, level(n));
-//print_int_bits64(Tree[n].Bitfield);
-	//}
-}
-printf("\n");
-
-for (int ipart = 0; ipart < 56; ipart++) { 
-printf("%d ", ipart); print_int_bits64(P[ipart].Peanokey);}
-exit(0); */
-
-//for (int z = 0; z < nNodes; z++) printf("TREE n=%d np=%d next=%d  mass=%g level=%d  \n", z,  Tree[z].Npart, Tree[z].DNext, Tree[z].Mass, level(z));
-
-	for (int node = 0; node < nNodes; node++) {
-	
-		int lvl = level(node);
-	
-		int n = node + 1;
-
-		double mass = 0;
-		int npart = 0;
-		int nout = 0;
-
-		float nSize = Domain.Size / (float)(1ULL << lvl);
-
-		while (level(n) > lvl) {
-//printf("n=%d lvl=%d np=%d \n", n, level(n), Tree[n].Npart);
-
-
-			if (Tree[n].DNext < 0) {
-			
-				int first = -Tree[n].DNext - 1;
-				int last = first + Tree[n].Npart;
-
-				for (int jpart = first; jpart < last; jpart++ ) {
-
-				 	npart++;
-
-					mass += P[jpart].Mass;
-//printf("    jpart=%d first=%d last=%d np=%d lvl=%d \n", jpart, first, last, Tree[n].Npart, level(n));
-	
-					float dx = fabs(P[jpart].Pos[0] - Tree[n].Pos[0]);
-					float dy = fabs(P[jpart].Pos[1] - Tree[n].Pos[1]);
-					float dz = fabs(P[jpart].Pos[2] - Tree[n].Pos[2]);
-
-					if (dx > nSize * 0.5)
-					if (dy > nSize * 0.5)
-					if (dz > nSize * 0.5)
-						nout++;
-				}
-			}
-
-			n++; //= fmax(1, Tree[n].DNext);
-		}
-
-printf("%d m=%g,%g N=%d,%d nsize=%g nout=%d\n", 
-node, mass, Tree[node].Mass, npart, Tree[node].Npart, 	nSize, nout);
-	
 	}
 
 	return nNodes;
@@ -311,16 +253,18 @@ static inline void add_node(const int ipart, const int parent, const int lvl,
 	uint32_t keyfragment = (P[ipart].Peanokey >> shift) & 0x1C0ULL;
 
 	Tree[node].Bitfield = lvl | keyfragment; 
-	
+
+#ifdef TREE_POSITIONS
 	int sign[3] = { 1 - 2 * (int)(P[ipart].Pos[0] < Tree[parent].Pos[0]),
 	 			    1 - 2 * (int)(P[ipart].Pos[1] < Tree[parent].Pos[1]),
 	 			    1 - 2 * (int)(P[ipart].Pos[2] < Tree[parent].Pos[2])}; 
 	
-	Float size = Domain.Size / (1 << (lvl));
+	Float size = Domain.Size / (1 << lvl);
 
 	Tree[node].Pos[0] = Tree[parent].Pos[0] + sign[0] * size * 0.5;
 	Tree[node].Pos[1] = Tree[parent].Pos[1] + sign[1] * size * 0.5;
 	Tree[node].Pos[2] = Tree[parent].Pos[2] + sign[2] * size * 0.5;
+#endif // TREE_POSITIONS
 
 	//Tree[node].DUp = node - parent;
 
@@ -395,6 +339,57 @@ void gravity_tree_init()
 	Tree[0].Pos[0] = Tree[0].Pos[1] = Tree[0].Pos[2] = 0;
 
 	} // omp single
+
+	return ;
+}
+
+void test_gravity_tree(const int nNodes)
+{
+	for (int node = 0; node < nNodes; node++) {
+	
+		int lvl = level(node);
+	
+		int n = node + 1;
+
+		float mass = 0;
+		int npart = 0;
+		int nout = 0;
+
+		double nSize = Domain.Size / (float)(1ULL << lvl);
+
+		if (Tree[node].DNext < 0)
+			continue;
+
+		while (level(n) > lvl) {
+
+			if (Tree[n].DNext < 0) {
+			
+				int first = -Tree[n].DNext - 1;
+				int last = first + Tree[n].Npart;
+
+				for (int jpart = first; jpart < last; jpart++ ) {
+
+				 	npart++;
+
+					mass += P[jpart].Mass;
+	
+					float dx = fabs(P[jpart].Pos[0] - Tree[n].Pos[0]);
+					float dy = fabs(P[jpart].Pos[1] - Tree[n].Pos[1]);
+					float dz = fabs(P[jpart].Pos[2] - Tree[n].Pos[2]);
+
+					if (dx > nSize * 0.5) 
+						if (dy > nSize * 0.5) 
+							if (dz > nSize * 0.5)
+								nout++;
+				}
+			}
+
+			n++; 
+		}
+
+		printf("%d m=%g,%g N=%d,%d nsize=%g nout=%d\n", node, mass, 
+				Tree[node].Mass, npart, Tree[node].Npart, 	nSize, nout);
+	}
 
 	return ;
 }

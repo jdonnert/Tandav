@@ -6,7 +6,7 @@
 #include "accel.h"
 #include "timestep.h"
 #include "Gravity/gravity.h"
-#include "memory.h"
+
 static void Accel_Gravity();
 
 void Compute_Acceleration()
@@ -18,7 +18,7 @@ void Compute_Acceleration()
 			
 		int ipart = Active_Particle_List[i];
 	
-		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[1] = 0;
+		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
 	}
 
 #ifdef GRAVITY
@@ -41,7 +41,6 @@ static void Accel_Gravity()
 	Build_Gravity_Tree();
 
 	Gravity_Tree_Acceleration();
-
 #endif
 
 

@@ -13,6 +13,19 @@
 static peanoKey *Keys = NULL;
 static size_t *Idx = NULL;
 
+static void print_int_bits64(const uint64_t val)
+{
+	for (int i = 63; i >= 0; i--) {
+		printf("%llu", (val & (1ULL << i) ) >> i);
+		if (i % 3 == 0 && i != 0)
+			printf(".");
+	}
+	printf("\n");fflush(stdout);
+
+	return ;
+}
+
+
 int compare_peanoKeys(const void * a, const void *b)
 {
 	const peanoKey *x = (const peanoKey *) a;
@@ -55,7 +68,6 @@ void Sort_Particles_By_Peano_Key()
 
 static void compute_peano_keys()
 {
-	float box[3]= { 1,1,1 };
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
@@ -63,11 +75,8 @@ static void compute_peano_keys()
 		float py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
 		float pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
-		//P[ipart].Peanokey = Keys[ipart] = Compute_Peano_Key(px, py, pz, box);
 		P[ipart].Peanokey = Keys[ipart] = Peano_Key(px, py, pz);
-
 	}
-
 	return ;
 }
 
@@ -196,17 +205,7 @@ peanoKey Peano_Key(const float x, const float y, const float z)
 
 	return key;
 }
-static void print_int_bits64(const uint64_t val)
-{
-	for (int i = 63; i >= 0; i--) {
-		printf("%llu", (val & (1ULL << i) ) >> i);
-		if (i % 3 == 0 && i != 0)
-			printf(".");
-	}
-	printf("\n");fflush(stdout);
 
-	return ;
-}
 
 
 void test_peanokey()

@@ -18,5 +18,6 @@ void Init_Domain_Decomposition();
 struct Domain_Properties {  
 	double Size;		// size of smallest cubic box containing all parts
 	double Origin[3];	// origin of smallest cubic box containing all parts
+	double Center[3];	// center of smallest cubic box containing all parts
 } Domain;
 

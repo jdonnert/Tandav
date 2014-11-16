@@ -4,10 +4,6 @@
 
 #ifdef GRAVITY_TREE
 
-#define NODE_OPEN_PARAM_BH 0.4 // Barnes & Hut opening criterion parameter
-#define NODE_OPEN_PARAM_REL 0.001 // Relative opening criterion parameter
-
-static const double h_grav = GRAV_SOFTENING / 3.0; // Plummer equiv softening
 
 static struct GravityDataForExport {
 	int Target_Task;
@@ -21,9 +17,9 @@ static struct GravityDataForImport {
 	Float Cost;
 } DataIn;
 
-static void gravity_tree_walk_local(const int ipart, Float* acc);
+static void gravity_tree_walk_local(const int ipart, Float*, Float*);
 
-static void interact(const Float, const Float *, const Float, Float *accel);
+static void interact(const Float,const Float *,const Float,Float *,Float *);
 
 static inline Float node_size(const int node);
 
@@ -36,7 +32,7 @@ static inline int level(const int node)
 
 void Gravity_Tree_Acceleration()
 {
-	Accel_Gravity_Simple();
+	//Accel_Gravity_Simple();
 
 	Profile("Grav Tree Walk");
 
@@ -50,11 +46,11 @@ void Gravity_Tree_Acceleration()
 			
 		int ipart = Active_Particle_List[i];
 
-		Float grav_accel[3] = { 0 };
+		Float grav_accel[3] = { 0 }, pot = 0, 
 
-		gravity_tree_walk_local(ipart, grav_accel);
+		gravity_tree_walk_local(ipart, grav_accel, &pot);
 
-		double rel_err = fabs(ALENGTH3(grav_accel)-ALENGTH3(P[ipart].Acc))
+		/*double rel_err = fabs(ALENGTH3(grav_accel)-ALENGTH3(P[ipart].Acc))
 			/ ALENGTH3(P[ipart].Acc);
 
 		if (rel_err > max_rel_err) {
@@ -78,7 +74,7 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 				(grav_accel[0] - P[ipart].Acc[0])/grav_accel[0],
 				(grav_accel[1] - P[ipart].Acc[1])/grav_accel[1],
 				(grav_accel[2] - P[ipart].Acc[2])/grav_accel[2], 
-				 P[ipart].Pos[0],P[ipart].Pos[1],P[ipart].Pos[2]); 
+				 P[ipart].Pos[0],P[ipart].Pos[1],P[ipart].Pos[2]); */
 
 		P[ipart].Acc[0]  += grav_accel[0];
 		P[ipart].Acc[1]  += grav_accel[1];
@@ -89,12 +85,17 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 		P[ipart].Grav_Acc[1] = grav_accel[1];
 		P[ipart].Grav_Acc[2] = grav_accel[2];
 #endif 
+
+#ifdef GRAVITY_POTENTIAL
+		P[ipart].Grav_Pot = pot;
+#endif
+
 	} // ipart
-printf("Largest Err %g at %d, %d above threshold, mean err %g \n", 
-		max_rel_err, worst_part, cnt, mean_err / Task.Npart_Total);
+	
+//printf("Largest Err %g at %d, %d above threshold, mean err %g \n", 	max_rel_err, worst_part, cnt, mean_err / Task.Npart_Total);
 
 	Profile("Grav Tree Walk");
-exit(0);
+
 	return ;
 }
 	
@@ -107,8 +108,8 @@ exit(0);
 static void gravity_tree_walk_local(const int ipart, Float* accel)
 {
 	int node = 1;
-//int kpart = 0;
-	const Float fac = ALENGTH3(P[ipart].Acc)/Const.Gravity*NODE_OPEN_PARAM_REL;
+
+	const Float fac = ALENGTH3(P[ipart].Acc)/Const.Gravity*TREE_OPEN_PARAM_REL;
 
 	while (Tree[node].DNext != 0) {
 		
@@ -130,10 +131,7 @@ static void gravity_tree_walk_local(const int ipart, Float* accel)
 
 				Float mpart = P[jpart].Mass;
 
-//if (ipart == kpart) {
-//printf("IPART=%05d ", jpart);
 				interact(mpart, dr, r2, accel); 
-//}
 			}
 
 			node++;
@@ -153,7 +151,7 @@ static void gravity_tree_walk_local(const int ipart, Float* accel)
 
 		if (fac == 0) {
 
-			if (nSize*nSize > r2 * NODE_OPEN_PARAM_BH) { // BH criterion
+			if (nSize*nSize > r2 * TREE_OPEN_PARAM_BH) { // BH criterion
 
 				node++; // open
 
@@ -170,20 +168,18 @@ static void gravity_tree_walk_local(const int ipart, Float* accel)
 			}
 		
 		}
-//if(node == 4364 && ipart==kpart)
-//printf("%g %g, %g %g, %g %g | %g\n",P[ipart].Pos[0],Tree[node].Pos[0],P[ipart].Pos[1],Tree[node].Pos[1], P[ipart].Pos[2],Tree[node].Pos[2] , nSize);
 
-		Float dx = fabs(P[ipart].Pos[0] - Tree[node].Pos[0]);
+		//Float dx = fabs(P[ipart].Pos[0] - Tree[node].Pos[0]);
 
-		if ( dx < 0.6 * nSize) {
+		if ( dr[0] < 0.6 * nSize) {
 
-			Float dy = fabs(P[ipart].Pos[1] - Tree[node].Pos[1]);
+			//Float dy = fabs(P[ipart].Pos[1] - Tree[node].Pos[1]);
 			
-			if ( dy < 0.6 * nSize) {
+			if ( dr[1] < 0.6 * nSize) {
 			
-				Float dz = fabs(P[ipart].Pos[2] - Tree[node].Pos[2]);
+				//Float dz = fabs(P[ipart].Pos[2] - Tree[node].Pos[2]);
 				
-				if ( dz < 0.6 * nSize) {
+				if ( dr[2] < 0.6 * nSize) {
 
 					node++; // part inside node
 
@@ -192,10 +188,8 @@ static void gravity_tree_walk_local(const int ipart, Float* accel)
 			}
 		}
 		
-//if (ipart == kpart) {
-//printf("NODE=%05d ", node);
 		interact(nMass, dr, r2, accel); // use node
-//}
+		
 		node += fmax(1, Tree[node].DNext);
 		
 	} // while
@@ -203,14 +197,18 @@ static void gravity_tree_walk_local(const int ipart, Float* accel)
 	return ;
 }
 
-
+static const Float h_grav = GRAV_SOFTENING / 3.0; // Plummer equiv softening
 
 static void interact(const Float mass, const Float dr[3], const Float r2, 
-		Float accel[3])
+		Float accel[3], Float pot)
 {
 	const Float r = sqrt(r2);
 	
 	Float rinv = 1/r;
+
+#ifdef GRAVITY_POTENTIAL
+	Float rinv_pot = rinv;
+#endif
 
 	if (r < h_grav) {
 	
@@ -219,6 +217,10 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 		Float u3 = u2*u;
 			
 		rinv = sqrt(14*u- 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3) / h_grav;
+
+#ifdef GRAVITY_POTENTIAL
+		rinv_pot = (7*u2-21*u2*u2+28*u3*u2-15*u3*u3+u3*u3*u*8-3)/h;
+#endif
 	} 
 	
 	Float acc_mag = Const.Gravity * mass * p2(rinv);
@@ -226,10 +228,11 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 	accel[0] += -acc_mag * dr[0] * rinv;
 	accel[1] += -acc_mag * dr[1] * rinv;
 	accel[2] += -acc_mag * dr[2] * rinv;
-//int kpart = 0;
-//printf("%g | %g %g %g |  %g %g %g \n", 
-//acc_mag, accel[0], accel[1], accel[2],
-//P[kpart].Acc[0], P[kpart].Acc[1], P[kpart].Acc[2]);
+
+#ifdef GRAVITY_POTENTIAL
+	P[ipart].Grav_Pot += -Const.Gravity * P[jpart].Mass *rinv_pot;
+#endif
+
 	return ;
 }
 

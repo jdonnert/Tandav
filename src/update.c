@@ -28,7 +28,7 @@ void Update(enum Update_Parameters stage)
 		Compute_Acceleration();
 
 		if (Time.Begin == Time.Next_Snap) { 
-
+			
 			Write_Snapshot();
 			
 			#pragma omp single

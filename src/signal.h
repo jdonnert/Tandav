@@ -7,4 +7,5 @@ extern struct Simulation_Signals { // communicate an event across the code
 	bool Write_Restart_File;	// write a restart file upon exit
 	bool Endrun;				// stops the run
 	bool Drifted_To_Snaptime;
+	bool First_Step;
 } Sig;

@@ -91,9 +91,11 @@ static int build_subtree(const int istart, const int npart, const int offset,
 
 	add_node(istart, offset, top, &nNodes); 	// add the first node by hand
 
+#ifdef TREE_POSITIONS
 	Tree[0].Pos[0] = Domain.Center[0];
 	Tree[0].Pos[1] = Domain.Center[1];
 	Tree[0].Pos[2] = Domain.Center[2];
+#endif
 
 	int last_parent = offset;		// last parent of last particle
 
@@ -336,7 +338,9 @@ void gravity_tree_init()
 
 	NNodes = 0;
 
+#ifdef TREE_POSITIONS
 	Tree[0].Pos[0] = Tree[0].Pos[1] = Tree[0].Pos[2] = 0;
+#endif
 
 	} // omp single
 
@@ -373,6 +377,7 @@ void test_gravity_tree(const int nNodes)
 
 					mass += P[jpart].Mass;
 	
+#ifdef TREE_POSITIONS
 					float dx = fabs(P[jpart].Pos[0] - Tree[n].Pos[0]);
 					float dy = fabs(P[jpart].Pos[1] - Tree[n].Pos[1]);
 					float dz = fabs(P[jpart].Pos[2] - Tree[n].Pos[2]);
@@ -381,6 +386,7 @@ void test_gravity_tree(const int nNodes)
 						if (dy > nSize * 0.5) 
 							if (dz > nSize * 0.5)
 								nout++;
+#endif
 				}
 			}
 

@@ -59,12 +59,24 @@ void Update(enum Update_Parameters stage)
 		Set_Current_Cosmology();
 #endif
 
+		Domain_Decomposition();
+
+		Print_Memory_Usage();
+
+		Compute_Acceleration();
+
 		break;
 
 	case BEFORE_SECOND_KICK:
 
 		break;
-		
+	
+	case AFTER_STEP:
+
+		Sig.First_Step = false;
+
+		break;
+
 	default:
 		Assert(false, "Update Stage %d not handled", stage);
 	}

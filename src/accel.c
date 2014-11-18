@@ -7,32 +7,26 @@
 #include "timestep.h"
 #include "Gravity/gravity.h"
 
-static void Accel_Gravity();
+static void accel_gravity();
+
+static void zero_active_particle_accelerations();
 
 void Compute_Acceleration()
 {
 	Profile("Accelerations");
 
 #ifdef GRAVITY
-	Accel_Gravity();
+	accel_gravity();
 #else
-	#pragma omp for
-	for (int i = 0; i < NActive_Particles; i++) { 
-			
-		int ipart = Active_Particle_List[i];
-	
-		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
-	}
+	zero_active_particle_accelerations();
 #endif // GRAVITY
-
-	#pragma omp barrier
 
 	Profile("Accelerations");
 
 	return ;
 }
 
-static void Accel_Gravity()
+static void accel_gravity()
 {
 	Profile("Gravity");
 
@@ -41,15 +35,34 @@ static void Accel_Gravity()
 #endif
 
 #ifdef GRAVITY_TREE
-#pragma omp single
-	Build_Gravity_Tree();
-	
+	//if (Sig.Fullstep)
+	Gravity_Tree_Build();
+	//else
+		//Gravity_Tree_Update();
+	 
 	Gravity_Tree_Acceleration();
-#pragma omp barrier
-#endif
+
+#ifdef PERIODIC
+	Gravity_Tree_Periodic();
+#endif	
+
+#endif // GRAVITY_TREE
 
 	Profile("Gravity");
 
 	return ;
 }
 
+
+static void zero_active_particle_accelerations()
+{
+	#pragma omp for
+	for (int i = 0; i < NActive_Particles; i++) { 
+			
+		int ipart = Active_Particle_List[i];
+	
+		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
+	}
+		
+	return ;
+}

@@ -2,7 +2,7 @@
 
 #PERIODIC			// periodic boundary conditions
 #COMOVING			// time integration in comoving coordinates
-DEBUG				// Verbose output for debugging
+#DEBUG				// Verbose output for debugging
 
 #### GRAVITY ####
 
@@ -18,8 +18,8 @@ TIME_INT_ACCURACY 0.1			// std 0.05, time step parameter
 #### OUTPUT OPTIONS ####
 
 OUTPUT_TOTAL_ACCELERATION 		// total acceleration ACC
-OUTPUT_PARTIAL_ACCELERATIONS	// save & output all ACC components
-OUTPUT_GRAV_POTENTIAL 			// gravitational potential GPOT
+#OUTPUT_PARTIAL_ACCELERATIONS	// save & output all ACC components
+#OUTPUT_GRAV_POTENTIAL 			// gravitational potential GPOT
 #OUTPUT_PEANO_KEY   			// peano key of particle "PKEY"
 
 #### DOMAIN DECOMPOSITION ####

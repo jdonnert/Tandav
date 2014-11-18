@@ -49,7 +49,7 @@ void Domain_Decomposition()
 
 void Init_Domain_Decomposition()
 {
-	#pragma omp parallel
+	//#pragma omp parallel
 	find_global_domain();
 
 	/*int nTask = Sim.NTask, nThreads = Sim.NThreads;

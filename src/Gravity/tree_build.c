@@ -41,7 +41,7 @@ static void print_int_bits64(const uint64_t val)
  *
  */
 
-void Build_Gravity_Tree()
+void Gravity_Tree_Build()
 {
 	Profile("Build Gravity Tree");
 
@@ -203,7 +203,6 @@ static int build_subtree(const int istart, const int npart, const int offset,
 	
 	} // omp single nowait
 
-	#pragma omp for
 	for (int i = 0; i < nNodes; i++) {
 	
 		Tree[i].CoM[0] /= Tree[i].Mass;

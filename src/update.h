@@ -6,6 +6,7 @@ enum Update_Parameters {
 	BEFORE_DRIFT,
 	FORCES,
 	BEFORE_SECOND_KICK,
+	AFTER_STEP,
 };
 
 void Update(enum Update_Parameters stage); 

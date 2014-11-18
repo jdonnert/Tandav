@@ -19,7 +19,7 @@ struct Tree_Node {
 size_t NNodes;
 size_t Max_Nodes;
 
-void Build_Gravity_Tree();
+void Gravity_Tree_Build();
 void Gravity_Tree_Acceleration();
 
 #endif // GRAVITY_TREE

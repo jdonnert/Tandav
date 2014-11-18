@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 	#pragma omp barrier
 
 	for (;;) { // run, Forest, run !
-break;
+
 		if (Time_Is_Up())
 			break;
 
@@ -52,6 +52,8 @@ break;
 		Compute_Acceleration();
 
 		Kick_Second_Halfstep();
+
+		Update(AFTER_STEP);
 	}
 
 	} // omp parallel 

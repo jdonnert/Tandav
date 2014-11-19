@@ -4,7 +4,7 @@
 
 #ifdef GRAVITY_TREE
 
-#define NODES_PER_PARTICLE 0.6 
+#define NODES_PER_PARTICLE 0.7 
 
 struct Tree_Node *Tree = NULL;
 size_t NNodes = 0;
@@ -49,11 +49,13 @@ void Gravity_Tree_Build()
 
 	#pragma omp single
 	{
-	
+	// build_top_tree();
+	// correct_dNext_pointers();
+	// do_final_operations();
 	NNodes = build_subtree(0, Task.Npart_Total, 0, 0);
 
-	printf("Finished tree build, %d nodes for %d particles \n", 
-			NNodes, Task.Npart_Total);
+	printf("\nTree build: %d nodes for %d particles\n", 
+			NNodes, Task.Npart_Total, 1);
 
 	} // omp single
 	
@@ -67,7 +69,7 @@ void Gravity_Tree_Build()
  * A subtree is build starting at node index top.
  * In the tree, DNext points to the difference to next index in the walk, 
  * if the node is not opened. Opening a node is then node++. If DNext is 
- * negative it points to Nprat particles starting at ipart=-DNext-1, and the 
+ * negative it points to Npart particles starting at ipart=-DNext-1, and the 
  * next node in line is node++. DNext=0 is only at the root node.
  * The tree saves only one particle per node, up to eight are combined in
  * the node. This is done on the fly in an explicit cleaning step, when a 
@@ -91,16 +93,14 @@ static int build_subtree(const int istart, const int npart, const int offset,
 
 	add_node(istart, offset, top, &nNodes); 	// add the first node by hand
 
-#ifdef TREE_POSITIONS
 	Tree[0].Pos[0] = Domain.Center[0];
 	Tree[0].Pos[1] = Domain.Center[1];
 	Tree[0].Pos[2] = Domain.Center[2];
-#endif
 
 	int last_parent = offset;		// last parent of last particle
 
 	for (int ipart = istart+1; ipart < Task.Npart_Total; ipart++) {
-		
+		printf("%d \n", ipart);
 		int node = offset;  		// current node
 		int lvl = top;				// counts current level
 		int parent = node;			// parent of current node
@@ -168,7 +168,7 @@ static int build_subtree(const int istart, const int npart, const int offset,
 	
 	} // for ipart
 
-	#pragma omp single nowait // correct for last DNext to point upwards
+	//#pragma omp single nowait // correct for last DNext to point upwards
 	{
 
 	Tree[top].DNext = 0; 
@@ -208,6 +208,10 @@ static int build_subtree(const int istart, const int npart, const int offset,
 		Tree[i].CoM[0] /= Tree[i].Mass;
 		Tree[i].CoM[1] /= Tree[i].Mass;
 		Tree[i].CoM[2] /= Tree[i].Mass;
+
+		Tree[i].Vel_CoM[0] /= Tree[i].Mass;
+		Tree[i].Vel_CoM[1] /= Tree[i].Mass;
+		Tree[i].Vel_CoM[2] /= Tree[i].Mass;
 	}
 
 	return nNodes;
@@ -247,6 +251,9 @@ static inline void add_node(const int ipart, const int parent, const int lvl,
 {
 	const int node = (*nNodes)++;
 
+	Assert(node < Max_Nodes, "Too many nodes (%d), increase "
+			"NODES_PER_PARTICLE=%d", nNodes, NODES_PER_PARTICLE);
+
 	Tree[node].DNext = -ipart - 1;
 	
 	int shift = 63 - 3*lvl - 6 ; // leave 6 bits space for level in bitfield
@@ -255,7 +262,6 @@ static inline void add_node(const int ipart, const int parent, const int lvl,
 
 	Tree[node].Bitfield = lvl | keyfragment; 
 
-#ifdef TREE_POSITIONS
 	int sign[3] = { 1 - 2 * (int)(P[ipart].Pos[0] < Tree[parent].Pos[0]),
 	 			    1 - 2 * (int)(P[ipart].Pos[1] < Tree[parent].Pos[1]),
 	 			    1 - 2 * (int)(P[ipart].Pos[2] < Tree[parent].Pos[2])}; 
@@ -265,7 +271,6 @@ static inline void add_node(const int ipart, const int parent, const int lvl,
 	Tree[node].Pos[0] = Tree[parent].Pos[0] + sign[0] * size * 0.5;
 	Tree[node].Pos[1] = Tree[parent].Pos[1] + sign[1] * size * 0.5;
 	Tree[node].Pos[2] = Tree[parent].Pos[2] + sign[2] * size * 0.5;
-#endif // TREE_POSITIONS
 
 	//Tree[node].DUp = node - parent;
 
@@ -279,6 +284,10 @@ static inline void add_particle_to_node(const int ipart, const int node)
 	Tree[node].CoM[0] += P[ipart].Pos[0] * P[ipart].Mass;
 	Tree[node].CoM[1] += P[ipart].Pos[1] * P[ipart].Mass;
 	Tree[node].CoM[2] += P[ipart].Pos[2] * P[ipart].Mass;
+
+	Tree[node].Vel_CoM[0] += P[ipart].Vel[0] * P[ipart].Mass;
+	Tree[node].Vel_CoM[1] += P[ipart].Vel[1] * P[ipart].Mass;
+	Tree[node].Vel_CoM[2] += P[ipart].Vel[2] * P[ipart].Mass;
 	
 	Tree[node].Mass += P[ipart].Mass;
 
@@ -337,11 +346,17 @@ void gravity_tree_init()
 
 	NNodes = 0;
 
-#ifdef TREE_POSITIONS
-	Tree[0].Pos[0] = Tree[0].Pos[1] = Tree[0].Pos[2] = 0;
-#endif
+	Tree[0].Pos[0] = Domain.Center[0];
+	Tree[0].Pos[1] = Domain.Center[1];
+	Tree[0].Pos[2] = Domain.Center[2];
 
 	} // omp single
+
+	return ;
+}
+
+void Gravity_Tree_Update()
+{
 
 	return ;
 }
@@ -376,7 +391,6 @@ void test_gravity_tree(const int nNodes)
 
 					mass += P[jpart].Mass;
 	
-#ifdef TREE_POSITIONS
 					float dx = fabs(P[jpart].Pos[0] - Tree[n].Pos[0]);
 					float dy = fabs(P[jpart].Pos[1] - Tree[n].Pos[1]);
 					float dz = fabs(P[jpart].Pos[2] - Tree[n].Pos[2]);
@@ -385,7 +399,6 @@ void test_gravity_tree(const int nNodes)
 						if (dy > nSize * 0.5) 
 							if (dz > nSize * 0.5)
 								nout++;
-#endif
 				}
 			}
 

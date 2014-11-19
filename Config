@@ -8,7 +8,7 @@
 
 GRAVITY				// gravitational interaction master switch
 GRAVITY_POTENTIAL	// compute gravitational potential
-GRAV_SOFTENING 30 	// gravitational softening length 
+GRAV_SOFTENING 20 	// gravitational softening length 
 
 #GRAVITY_SIMPLE		// N^2 law
 GRAVITY_TREE		// B&H gravity tree
@@ -18,8 +18,8 @@ TIME_INT_ACCURACY 0.1			// std 0.05, time step parameter
 #### OUTPUT OPTIONS ####
 
 OUTPUT_TOTAL_ACCELERATION 		// total acceleration ACC
-#OUTPUT_PARTIAL_ACCELERATIONS	// save & output all ACC components
-#OUTPUT_GRAV_POTENTIAL 			// gravitational potential GPOT
+OUTPUT_PARTIAL_ACCELERATIONS	// save & output all ACC components
+OUTPUT_GRAV_POTENTIAL 			// gravitational potential GPOT
 #OUTPUT_PEANO_KEY   			// peano key of particle "PKEY"
 
 #### DOMAIN DECOMPOSITION ####
@@ -27,8 +27,7 @@ OUTPUT_TOTAL_ACCELERATION 		// total acceleration ACC
 
 #### TREE ####
 
-#TREE_POSITIONS				// carry centre of tree nodes in Tree structure
-TREE_OPEN_PARAM_BH 0.01 	// Barnes & Hut opening criterion parameter
+TREE_OPEN_PARAM_BH 0.05 	// Barnes & Hut opening criterion parameter
 TREE_OPEN_PARAM_REL 0.01	// Relative opening criterion parameter
 
 #### CODE UNITS ####

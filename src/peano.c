@@ -131,7 +131,7 @@ static void reorder_collisionless_particles()
 
 peanoKey Peano_Key(const float x, const float y, const float z)
 {
-#ifdef DEBUG
+#ifdef DEBUG // check input
 	Assert(x >= 0 && x <= 1, "X coordinate of out range for PH key %g", x);
 	Assert(y >= 0 && y <= 1, "Y coordinate of out range for PH key %g", y);
 	Assert(z >= 0 && z <= 1, "Z coordinate of out range for PH key %g", z);

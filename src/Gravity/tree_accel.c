@@ -4,7 +4,6 @@
 
 #ifdef GRAVITY_TREE
 
-
 static struct GravityDataForExport {
 	int Target_Task;
 	Float Pos[3];
@@ -30,17 +29,16 @@ static inline int level(const int node)
 	return Tree[node].Bitfield & bitmask; // return but 0-5
 }
 
-/*	double max_rel_err = 0;
-	double mean_err = 0;
-	int worst_part = -1;
-	int cnt = 0;
-*/
-
 void Gravity_Tree_Acceleration()
 {
 	Profile("Grav Tree Walk");
-
-	#pragma omp for schedule(dynamic)
+	
+	/*double max_rel_err = 0;
+	double mean_err = 0;
+	int worst_part = -1;
+	int cnt = 0; */
+	
+	#pragma omp for 
 	for (int i = 0; i < NActive_Particles; i++) {
 			
 		int ipart = Active_Particle_List[i];
@@ -49,8 +47,8 @@ void Gravity_Tree_Acceleration()
 		Float pot = 0;
 
 		gravity_tree_walk(ipart, grav_accel, &pot);
-
-	/*double rel_err = fabs(ALENGTH3(grav_accel)-ALENGTH3(P[ipart].Acc))
+	
+/*	double rel_err = fabs(ALENGTH3(grav_accel)-ALENGTH3(P[ipart].Acc))
 			/ ALENGTH3(P[ipart].Acc);
 
 	if (rel_err > max_rel_err) {
@@ -74,7 +72,7 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 				(grav_accel[0] - P[ipart].Acc[0])/grav_accel[0],
 				(grav_accel[1] - P[ipart].Acc[1])/grav_accel[1],
 				(grav_accel[2] - P[ipart].Acc[2])/grav_accel[2], 
-				 P[ipart].Pos[0],P[ipart].Pos[1],P[ipart].Pos[2]); */
+				 P[ipart].Pos[0],P[ipart].Pos[1],P[ipart].Pos[2]);  */
 
 		P[ipart].Acc[0] = grav_accel[0];
 		P[ipart].Acc[1] = grav_accel[1];
@@ -92,8 +90,8 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 
 	} // ipart
 
-//rprintf("Largest Err %g at %d, %d above threshold, mean err %g \n", 	max_rel_err, worst_part, cnt, mean_err / Task.Npart_Total);
-	
+//printf("Tree accel: max err %g at %d, %d above threshold, mean err %g \n", 	max_rel_err, worst_part, cnt, mean_err / NActive_Particles);
+
 	Profile("Grav Tree Walk");
 	
 	return ;
@@ -103,6 +101,7 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 /*
  * This function walks the local tree and computes the gravitational 
  * acceleration.
+ * If we encounter a particle bundle we interact with all of them.
  */
 
 static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
@@ -170,11 +169,17 @@ static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
 		
 		} // if (fac == 0)
 
-		if ( dr[0] < 0.6 * nSize) { // particle inside node ? Springel 2005
+		Float dx = fabs(P[ipart].Pos[0] - Tree[node].Pos[0]);
 
-			if ( dr[1] < 0.6 * nSize) {
+		if (dx < 0.6 * nSize) { // particle inside node ? Springel 2005
+
+			Float dy = fabs(P[ipart].Pos[1] - Tree[node].Pos[1]);
+
+			if (dy < 0.6 * nSize) {
 			
-				if ( dr[2] < 0.6 * nSize) {
+				Float dz = fabs(P[ipart].Pos[2] - Tree[node].Pos[2]);
+
+				if (dz < 0.6 * nSize) {
 
 					node++; 
 
@@ -194,7 +199,7 @@ static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
 
 
 static void interact(const Float mass, const Float dr[3], const Float r2, 
-		Float Accel[3], Float *Pot)
+		Float Accel[3], Float Pot[1])
 {
 	const Float h_grav = GRAV_SOFTENING / 3.0; // Plummer equiv softening
 	
@@ -219,11 +224,11 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 #endif
 	} 
 	
-	Float acc_mag = Const.Gravity * mass * p2(r_inv);
+	Float acc_mag = -Const.Gravity * mass * p2(r_inv);
 
-	Accel[0] += -acc_mag * dr[0] * r_inv;
-	Accel[1] += -acc_mag * dr[1] * r_inv;
-	Accel[2] += -acc_mag * dr[2] * r_inv;
+	Accel[0] += acc_mag * dr[0] * r_inv;
+	Accel[1] += acc_mag * dr[1] * r_inv;
+	Accel[2] += acc_mag * dr[2] * r_inv;
 
 #ifdef GRAVITY_POTENTIAL
 	Pot[0] += -Const.Gravity * mass * r_inv_pot;
@@ -238,5 +243,6 @@ static inline Float node_size(const int node)
 
 	return Domain.Size / ((Float) (1UL << lvl)); // Domain.Size/2^level
 }
+
 
 #endif // GRAVITY_TREE

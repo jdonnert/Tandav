@@ -17,7 +17,8 @@ static void preamble(int argc, char *argv[]);
  */
 
 int main(int argc, char *argv[])
-{
+{test_peanokey();
+	return;
 	preamble(argc, argv);
 	
 	Read_and_Init();
@@ -84,7 +85,7 @@ static void preamble(int argc, char *argv[])
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
 	Assert(provided == MPI_THREAD_MULTIPLE, 
-			"MPI thread multiple not supported, have %d", provided);
+			"MPI thread multiple not supported, have %d :-(", provided);
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &Task.Rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &Sim.NRank);
@@ -105,7 +106,8 @@ static void preamble(int argc, char *argv[])
 		if (Task.Rank == MASTER)
 			Task.Is_MPI_Master = true;
 		
-		Task.Seed[2] = 1441981L * Task.Thread_ID; // init thread safe std rng
+		Task.Seed[2] = 14041981L * (Task.Thread_ID+1); // init thread safe rng
+
 	   	erand48(Task.Seed); // remove first 0 in some implementations
 
 	} // omp parallel
@@ -119,7 +121,7 @@ static void preamble(int argc, char *argv[])
 		
 		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
 
-		Assert(argc >= 2 && argc < 4, 
+		Assert( (argc >= 2) && (argc < 4), 
 			"Wrong number of arguments, let me help you: \n\n" 
 			"	USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
 			"	  0  : Read IC file and start simulation (default) \n"

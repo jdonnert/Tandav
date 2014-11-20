@@ -14,8 +14,9 @@ static inline int level(const int node); // bitmask functions
 static inline int key_fragment(const int node);
 
 static int build_subtree(const int, const int, const int, const int);
-static inline void add_node(const int, const int, const int, int *);
-static inline bool particle_is_inside_node(const int ipart, const int node);
+static inline void add_node(const int, const int, const peanoKey, 
+		const int, int *);
+static inline bool particle_is_inside_node(const peanoKey *, const int node);
 static inline void add_particle_to_node(const int ipart, const int node);
 
 void gravity_tree_init();
@@ -50,12 +51,12 @@ void Gravity_Tree_Build()
 	#pragma omp single
 	{
 	// build_top_tree();
-	// correct_dNext_pointers();
+	// compact_TREE();
 	// do_final_operations();
 	NNodes = build_subtree(0, Task.Npart_Total, 0, 0);
 
-	printf("\nTree build: %d nodes for %d particles\n", 
-			NNodes, Task.Npart_Total, 1);
+	printf("\nTree build: zu nodes for %d particles\n", 
+			NNodes, Task.Npart_Total );
 
 	} // omp single
 	
@@ -64,6 +65,34 @@ void Gravity_Tree_Build()
 
 	return ;
 }
+
+static void build_top_tree()
+{
+
+	return ;
+}
+
+static void compact_tree()
+{
+
+	return ;
+}
+
+static void finalise_tree()
+{
+	#pragma omp for
+	for (int i = 0; i < NNodes; i++) {
+	
+		Tree[i].CoM[0] /= Tree[i].Mass;
+		Tree[i].CoM[1] /= Tree[i].Mass;
+		Tree[i].CoM[2] /= Tree[i].Mass;
+
+		Tree[i].Vel_CoM[0] /= Tree[i].Mass;
+		Tree[i].Vel_CoM[1] /= Tree[i].Mass;
+		Tree[i].Vel_CoM[2] /= Tree[i].Mass;
+	}
+}
+
 
 /*
  * A subtree is build starting at node index top.
@@ -89,9 +118,18 @@ static int build_subtree(const int istart, const int npart, const int offset,
 			, Task.Rank, Task.Thread_ID, istart, npart, offset, top);
 #endif
 
-	int nNodes = 0;
+	int nNodes = 0; // local in this subtree
 
-	add_node(istart, offset, top, &nNodes); 	// add the first node by hand
+	Float px = (P[0].Pos[0] - Domain.Origin[0]) / Domain.Size;
+	Float py = (P[0].Pos[1] - Domain.Origin[1]) / Domain.Size;
+	Float pz = (P[0].Pos[2] - Domain.Origin[2]) / Domain.Size;
+		
+	peanoKey pkey[2] = { 0 };
+	pkey[0] = Peano_Key(px, py, pz, &pkey[1]);
+	
+	__uint128_t oldkey = 0;
+	memcpy(*pkey[0], &oldkey, 32);
+	add_node(istart, offset, pkey[0], top, &nNodes); // add the first node by hand
 
 	Tree[0].Pos[0] = Domain.Center[0];
 	Tree[0].Pos[1] = Domain.Center[1];
@@ -100,22 +138,35 @@ static int build_subtree(const int istart, const int npart, const int offset,
 	int last_parent = offset;		// last parent of last particle
 
 	for (int ipart = istart+1; ipart < Task.Npart_Total; ipart++) {
-		printf("%d \n", ipart);
+
+		Float px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
+		Float py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
+		Float pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
+		
+		peanoKey pkey[2] = { 0 };
+		pkey[0] = Peano_Key(px, py, pz, &pkey[1]);
+
 		int node = offset;  		// current node
 		int lvl = top;				// counts current level
 		int parent = node;			// parent of current node
 
 		bool ipart_starts_new_branch = true; // flag to remove leaf nodes
-
+		
+		__uint128_t key = 0;
+		memcpy(*pkey[0], &key, 32);
+		
 		for (;;) {
 
-			if (particle_is_inside_node(ipart, node)) { // open node
+			if (particle_is_inside_node(key, node)) { // open node
 			
 				if (Tree[node].DNext == -ipart) { // points to ipart-1, refine 
 				
 					Tree[node].DNext = 0; // mark DNext free
 					
-					add_node(ipart-1, node, lvl+1, &nNodes); // add daughter 
+					if (lvl+1 < 22) // add daughter
+						add_node(ipart-1,node, pkey[0], lvl+1,&nNodes);  
+					else
+						add_node(ipart-1,node, pkey[1], lvl+1,&nNodes)
 				}  
 				
 				add_particle_to_node(ipart, node); // add ipart to node
@@ -135,6 +186,8 @@ static int build_subtree(const int istart, const int npart, const int offset,
 				
 				node += fmax(1, Tree[node].DNext);
 			}
+
+			key <<= 3;
 
 		} // for (;;)
 
@@ -162,9 +215,13 @@ static int build_subtree(const int istart, const int npart, const int offset,
 		if (Tree[node].DNext == 0) // set internal next node
 			Tree[node].DNext = nNodes - node; // only delta
 
-		add_node(ipart, parent, lvl, &nNodes); // add sibling to current node
+		if (lvl < 22) // add sibling to current node
+			add_node(ipart, parent, pkey[0], lvl, &nNodes); 
+		else
+			add_node(ipart, parent, pkey[1], lvl, &nNodes); 
 	
 		last_parent = parent;
+		oldkey = key;
 	
 	} // for ipart
 
@@ -226,7 +283,8 @@ static int build_subtree(const int istart, const int npart, const int offset,
  * which make this N^2.
  */
 
-static inline bool particle_is_inside_node(const int ipart, const int node)
+static inline bool particle_is_inside_node(const peanoKey pkey,
+		const int node)
 {
 	const int lvl = level(node);
 
@@ -234,11 +292,11 @@ static inline bool particle_is_inside_node(const int ipart, const int node)
 
 	const uint64_t part_mask = 0x07ULL << shift; // shift first 3 bits
 
-	uint64_t part_triplet = (P[ipart].Peanokey & part_mask) >> shift;
+	uint64_t part_triplet = (key & part_mask) >> shift;
 
 	uint64_t node_triplet = key_fragment(node); 
 
-	return (node_triplet == part_triplet) && (lvl < 22); // branch free
+	return (node_triplet == part_triplet); 
 }
 
 /*
@@ -246,8 +304,8 @@ static inline bool particle_is_inside_node(const int ipart, const int node)
  * offset by one to leave DNext=0 indicating unset.
  */
 
-static inline void add_node(const int ipart, const int parent, const int lvl, 
-		int *nNodes)
+static inline void add_node(const int ipart, const int parent, 
+		const peanoKey key, const int lvl, int *nNodes)
 {
 	const int node = (*nNodes)++;
 
@@ -255,16 +313,16 @@ static inline void add_node(const int ipart, const int parent, const int lvl,
 			"NODES_PER_PARTICLE=%d", nNodes, NODES_PER_PARTICLE);
 
 	Tree[node].DNext = -ipart - 1;
-	
-	int shift = 63 - 3*lvl - 6 ; // leave 6 bits space for level in bitfield
-	
-	uint32_t keyfragment = (P[ipart].Peanokey >> shift) & 0x1C0ULL;
 
-	Tree[node].Bitfield = lvl | keyfragment; 
+	int shift = 63 - 3*(lvl % 22);
 
-	int sign[3] = { 1 - 2 * (int)(P[ipart].Pos[0] < Tree[parent].Pos[0]),
-	 			    1 - 2 * (int)(P[ipart].Pos[1] < Tree[parent].Pos[1]),
-	 			    1 - 2 * (int)(P[ipart].Pos[2] < Tree[parent].Pos[2])}; 
+	uint32_t keyfragment = ((key >> shift) & 0x7) << 6; 
+
+	Tree[node].Bitfield = lvl | keyfragment;
+	
+	const int sign[3] = { -1 + 2 * (P[ipart].Pos[0] > Tree[parent].Pos[0]),
+	 			     	  -1 + 2 * (P[ipart].Pos[1] > Tree[parent].Pos[1]),
+	 			          -1 + 2 * (P[ipart].Pos[2] > Tree[parent].Pos[2])}; 
 	
 	Float size = Domain.Size / (1 << lvl);
 

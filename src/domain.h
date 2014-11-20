@@ -1,13 +1,14 @@
-struct bunch_information { 
-	int Target_Rank;
+struct Bunch_Info { 
+	int Target;
 	int First_Particle;
 	int Npart;
-	peanoKey Key;
+	peanoKey Key[2];
 	int Global_Tree_Offset;
 	float CPU_Cost;
 	Float CoM[3];
+	Float Vel[3];
 	Float Mass;
-} *Bunch; // These will also be the leafs of the dynamic top node tree
+} *B; // These will also be the leafs of the dynamic top node tree
 
 int NBunches;
 int NLocal_Bunches;

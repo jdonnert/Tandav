@@ -48,16 +48,19 @@ extern struct Particle_Data {
 	int Idx;
 	int Time_Bin;
 	intime_t Int_Time_Pos;		// position on integer timeline
+	ID_t ID; // add below 
 	Float Pos[3];
 	Float Vel[3];
 	Float Acc[3];
 	Float Mass;
-	ID_t ID; // add below 
 #ifdef GRAVITY_POTENTIAL
 	Float Grav_Pot;
 #endif
 #ifdef OUTPUT_PARTIAL_ACCELERATIONS
 	Float Grav_Acc[3];
+#endif
+#ifdef GRAVITY_TREE
+	int Tree_Parent;
 #endif
 } *P;
 

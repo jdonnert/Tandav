@@ -36,10 +36,11 @@ static void accel_gravity()
 
 #ifdef GRAVITY_TREE
 	
-	//if (Sig.Fullstep)
-	Gravity_Tree_Build();
-	//else
-		//Gravity_Tree_Update();
+	if (Sig.Domain_Updated)
+		Gravity_Tree_Build();
+	else
+		Gravity_Tree_Update();
+	
 	Gravity_Tree_Acceleration();
 	
 

@@ -20,7 +20,7 @@ void Update(enum Update_Parameters stage)
 #ifdef COMOVING
 		Set_Current_Cosmology();
 #endif
-
+		
 		Domain_Decomposition();
 
 		Print_Memory_Usage();
@@ -53,17 +53,12 @@ void Update(enum Update_Parameters stage)
 		
 		break;
 
-	case FORCES:
+	case BEFORE_FORCES:
 
 #ifdef COMOVING
 		Set_Current_Cosmology();
 #endif
-
-		Domain_Decomposition();
-
 		Print_Memory_Usage();
-
-		Compute_Acceleration();
 
 		break;
 

@@ -6,16 +6,14 @@ static bool test_for_stop_file();
 
 struct Simulation_Signals Sig;
 
+/*
+ * These functions handle simulation signals (->signal.h).
+ */
+
 bool Time_Is_Up()
 {
-	Profile("Signal");
-
-	if (Sig.Endrun) {
-	
+	if (Sig.Endrun)
 		rprintf("Encountered Signal: Endrun, t=%g", Time.Current);
-
-		return true;
-	}
 
 	if (test_for_stop_file()) {
 	
@@ -23,14 +21,14 @@ bool Time_Is_Up()
 
 		Sig.Write_Restart_File = true;
 
-		return true;
+		Sig.Endrun = true;
 	}
 	
 	if (Int_Time.Current == Int_Time.End) {
 		
 		rprintf("EndTime reached: %g \n", Time.End);
 		
-		return true;
+		Sig.Endrun = true;
 	}
 
 	if (Runtime() >= Param.Runtime_Limit) {
@@ -40,26 +38,14 @@ bool Time_Is_Up()
 
 		Sig.Write_Restart_File = true;
 
-		return true;
+		Sig.Endrun = true;
 	}
 
-	Profile("Signal");
-
-	return false;
+	return Sig.Endrun;
 }
 
 bool Time_For_Snapshot()
 {
-	if (Sig.Write_Snapshot) {
-
-		Sig.Write_Snapshot = false;
-	
-		rprintf("\nEncountered Signal: Write Snapshot %d at t=%g \n", 
-				Time.Snap_Counter, Time.Current);
-
-		return true;
-	}
-
 	if (Time.Current + Time.Step >= Time.Next_Snap) { 
 		
 		Drift_To_Snaptime();
@@ -73,6 +59,27 @@ bool Time_For_Snapshot()
 
 		return true;
 	}
+
+	if (Sig.Write_Snapshot) {
+
+		Sig.Write_Snapshot = false;
+	
+		rprintf("\nEncountered Signal: Write Snapshot %d at t=%g \n", 
+				Time.Snap_Counter, Time.Current);
+
+		return true;
+	}
+
+
+	return false;
+}
+
+bool Time_For_Domain_Update()
+{
+	Sig.Domain_Updated = false;
+
+	if (1)
+		return true;
 
 	return false;
 }
@@ -92,7 +99,7 @@ static bool test_for_stop_file()
 			
 			fclose(fp);
 
-			endrun = 1;
+			endrun = true;
 		}
 	}
 

@@ -47,7 +47,7 @@ void Gravity_Tree_Acceleration()
 		Float pot = 0;
 
 		gravity_tree_walk(ipart, grav_accel, &pot);
-	
+
 /*	double rel_err = fabs(ALENGTH3(grav_accel)-ALENGTH3(P[ipart].Acc))
 			/ ALENGTH3(P[ipart].Acc);
 
@@ -110,6 +110,8 @@ static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
 
 	const Float fac = ALENGTH3(P[ipart].Acc) / Const.Gravity
 		* TREE_OPEN_PARAM_REL;
+	
+	const Float pos_i[3] = {P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2]};
 
 	while (Tree[node].DNext != 0) {
 		
@@ -123,9 +125,9 @@ static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
 				if (jpart == ipart)
 					continue;
 			
-				Float dr[3] = { P[ipart].Pos[0] - P[jpart].Pos[0],	
-					   		    P[ipart].Pos[1] - P[jpart].Pos[1], 
-					            P[ipart].Pos[2] - P[jpart].Pos[2] };
+				Float dr[3] = { pos_i[0] - P[jpart].Pos[0],	
+					   		    pos_i[1] - P[jpart].Pos[1], 
+					            pos_i[2] - P[jpart].Pos[2] };
 
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
@@ -139,9 +141,9 @@ static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
 			continue;
 		}
 	
-		Float dr[3] = { P[ipart].Pos[0] - Tree[node].CoM[0],	
-					    P[ipart].Pos[1] - Tree[node].CoM[1], 
-					    P[ipart].Pos[2] - Tree[node].CoM[2] };
+		Float dr[3] = { pos_i[0] - Tree[node].CoM[0],	
+					    pos_i[1] - Tree[node].CoM[1], 
+					    pos_i[2] - Tree[node].CoM[2] };
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
@@ -169,15 +171,15 @@ static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
 		
 		} // if (fac == 0)
 
-		Float dx = fabs(P[ipart].Pos[0] - Tree[node].Pos[0]);
+		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]);
 
 		if (dx < 0.6 * nSize) { // particle inside node ? Springel 2005
 
-			Float dy = fabs(P[ipart].Pos[1] - Tree[node].Pos[1]);
+			Float dy = fabs(pos_i[1] - Tree[node].Pos[1]);
 
 			if (dy < 0.6 * nSize) {
 			
-				Float dz = fabs(P[ipart].Pos[2] - Tree[node].Pos[2]);
+				Float dz = fabs(pos_i[2] - Tree[node].Pos[2]);
 
 				if (dz < 0.6 * nSize) {
 

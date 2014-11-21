@@ -2,7 +2,7 @@
 
 #PERIODIC			// periodic boundary conditions
 #COMOVING			// time integration in comoving coordinates
-#DEBUG				// Verbose output for debugging
+DEBUG				// Verbose output for debugging
 
 #### GRAVITY ####
 

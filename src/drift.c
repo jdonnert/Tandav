@@ -111,22 +111,22 @@ static void Constrain_Particles_To_Box()
 		
 		int ipart = Active_Particle_List[i];
 
-		if (P[ipart].Pos[0] < 0)
+		while (P[ipart].Pos[0] < 0)
 			P[ipart].Pos[0] += boxsize[0];
 		
-		if (P[ipart].Pos[0] >= boxsize[0])
+		while (P[ipart].Pos[0] >= boxsize[0])
 			P[ipart].Pos[0] -= boxsize[0];
 
-		if (P[ipart].Pos[1] < 0)
+		while (P[ipart].Pos[1] < 0)
 			P[ipart].Pos[1] += boxsize[1];
 		
-		if (P[ipart].Pos[1] >= boxsize[1])
+		while (P[ipart].Pos[1] >= boxsize[1])
 			P[ipart].Pos[1] -= boxsize[1];
 
-		if (P[ipart].Pos[2] < 0)
+		while (P[ipart].Pos[2] < 0)
 			P[ipart].Pos[2] += boxsize[2];
 		
-		if (P[ipart].Pos[2] >= boxsize[2])
+		while (P[ipart].Pos[2] >= boxsize[2])
 			P[ipart].Pos[2] -= boxsize[2];
 	} // for i
 

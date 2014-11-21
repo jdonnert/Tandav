@@ -11,7 +11,7 @@ struct Tree_Node {
 	Float CoM[3];		// Center of Mass
 	Float Vel_CoM[3];	// Velocity of Center of Mass
 	float Mass;			// Total Mass
-	//int DUp;			// distance to the parent
+	int DUp;			// distance to the parent
 	int Npart;			// number of particles in node
 } *Tree;
 

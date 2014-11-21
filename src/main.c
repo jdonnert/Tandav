@@ -12,8 +12,8 @@
 static void preamble(int argc, char *argv[]);
 
 /* 
- * This exposes the time integration of the code. Everything else is found
- * in Update(). 
+ * This exposes the time integration of the code. We use the HOLD integrator
+ * from Pelupessy+ 2012. 
  */
 
 int main(int argc, char *argv[])
@@ -47,7 +47,10 @@ int main(int argc, char *argv[])
  		
 		Drift_To_Sync_Point();
 		
-		Domain_Decomposition();
+		if (Time_For_Domain_Update())
+			Domain_Decomposition();
+
+		Update(BEFORE_FORCES);
 
 		Compute_Acceleration();
 

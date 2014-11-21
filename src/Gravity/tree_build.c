@@ -13,6 +13,7 @@ size_t Max_Nodes = 0;
 static inline int level(const int node); // bitmask functions
 static inline int key_fragment(const int node);
 static inline bool is_local(const int node);
+static inline bool is_top(const int node);
 
 void gravity_tree_init();
 static void finalise_tree();
@@ -86,12 +87,13 @@ void Gravity_Tree_Build()
 	// build_top_tree();
 	// do_final_operations();
 	NNodes = build_subtree(0, Task.Npart_Total, 0, 0);
-	finalise_tree();
 
 	printf("\nTree build: %zu nodes for %d particles\n", 
 			NNodes, Task.Npart_Total );
 
 	} // omp single
+	
+	finalise_tree();
 	
 	Profile("Build Gravity Tree");
 
@@ -106,7 +108,7 @@ static void build_top_tree()
 
 static void finalise_tree()
 {
-	//#pragma omp for
+	#pragma omp for
 	for (int i = 0; i < NNodes; i++) {
 	
 		//if (!node_local(i))
@@ -190,7 +192,7 @@ static int build_subtree(const int istart, const int npart, const int offset,
 	
 					Tree[node].DNext = 0;		
 
-					add_node(ipart-1, node, last_key, lvl+1, &nNodes);
+					add_node(ipart-1, node, last_key, lvl+1, &nNodes); // son
 
 					last_key >>= 3;
 				}  
@@ -213,7 +215,7 @@ static int build_subtree(const int istart, const int npart, const int offset,
 				node += fmax(1, Tree[node].DNext);
 			}
 
-		} // for (;;)
+		} // while (lvl > 42)
 		
 		if (lvl > N_PEANO_TRIPLETS-1) 	// particles closer than PH resolution
 			continue; 					// tree cannot be deeper
@@ -239,8 +241,8 @@ static int build_subtree(const int istart, const int npart, const int offset,
 			}	
 		}
 	
-		if (Tree[node].DNext == 0) // set next pointer for internal node
-			Tree[node].DNext = nNodes - node; // only delta
+		if (Tree[node].DNext == 0) 				// set DNext for internal node
+			Tree[node].DNext = nNodes - node; 	// only delta
 			
 		add_node(ipart, parent, key, lvl, &nNodes); // add a sibling of node
 	
@@ -288,10 +290,10 @@ static int build_subtree(const int istart, const int npart, const int offset,
 }
 
 /*
- * For particle and node to overlap the peano key triplet at this
- * tree level has to be equal. Hence the tree cannot be deeper than the PH key
- * resolution, which for 128 bits is 42. This corresponds to distances less than
- * 1e-12.
+ * For particle and node to overlap the peano key triplet at this tree level 
+ * has to be equal. Hence the tree cannot be deeper than the PH key
+ * resolution, which for 128 bits length is 42. This corresponds to distances 
+ * less than 2^42, small enough for single precision.
  */
 
 static inline bool particle_is_inside_node(const peanoKey key, const int lvl,		const int node)
@@ -313,18 +315,20 @@ static inline void add_node(const int ipart, const int parent,
 {
 	const int node = (*nNodes)++;
 
-	//Assert(node < Max_Nodes, "Too many nodes (%d), increase "
-	//		"NODES_PER_PARTICLE=%d", nNodes, NODES_PER_PARTICLE);
+#ifdef DEBUG
+	Assert(node < Max_Nodes, "Too many nodes (%d), increase "
+			"NODES_PER_PARTICLE=%d", nNodes, NODES_PER_PARTICLE);
+#endif
 
 	Tree[node].DNext = -ipart - 1;
 
 	int keyfragment = (key & 0x7) << 6;
 
-	Tree[node].Bitfield = lvl | keyfragment;
+	Tree[node].Bitfield = lvl | keyfragment | (3UL << 8);
 
 	const int sign[3] = { -1 + 2 * (P[ipart].Pos[0] > Tree[parent].Pos[0]),
 	 			     	  -1 + 2 * (P[ipart].Pos[1] > Tree[parent].Pos[1]),
-	 			          -1 + 2 * (P[ipart].Pos[2] > Tree[parent].Pos[2])}; 
+	 			          -1 + 2 * (P[ipart].Pos[2] > Tree[parent].Pos[2]) }; 
 	
 	Float size = Domain.Size / (1 << lvl);
 
@@ -332,7 +336,7 @@ static inline void add_node(const int ipart, const int parent,
 	Tree[node].Pos[1] = Tree[parent].Pos[1] + sign[1] * size * 0.5;
 	Tree[node].Pos[2] = Tree[parent].Pos[2] + sign[2] * size * 0.5;
 
-	//Tree[node].DUp = node - parent;
+	Tree[node].DUp = node - parent;
 
 	add_particle_to_node(ipart, node); 
 
@@ -381,7 +385,14 @@ static inline bool is_local(const int node)
 {
 	const uint32_t bitmask = 1UL << 9;
 
-	return (bool) (Tree[node].Bitfield & bitmask); 
+	return (Tree[node].Bitfield & bitmask) >> 9; // test bit 9
+}
+
+static inline bool is_top(const int node)
+{
+	const uint32_t bitmask = 1UL << 10;
+
+	return (Tree[node].Bitfield & bitmask) >> 10; // test bit 10 
 }
 
 /*
@@ -417,11 +428,37 @@ void gravity_tree_init()
  * Dynamically update the tree with the kicks of this timestep
  */
 
-void Gravity_Tree_Update()
+void Gravity_Tree_Update_Kicks(const Float dv[3], const int parent)
 {
+	
+	int node = parent;
+
+	while (!is_top(node)) {
+		
+		
+	}
+
+	// add to bunchleave kicks
+
 
 	return ;
 }
+
+void Gravity_Tree_Update_Drift()
+{
+	return ;
+}
+
+void Gravity_Tree_Update_Topnode_Kicks()
+{
+	// zero bunch leave kicks
+	// MPI reduce bunch leave kicks
+	
+
+
+	return ;
+}
+
 
 void test_gravity_tree(const int nNodes)
 {

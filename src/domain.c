@@ -42,6 +42,9 @@ void Domain_Decomposition()
 	
 	communicate_particles();
 */
+
+	Sig.Domain_Updated = true;
+
 	Profile("Domain Decomposition");
 
 	return ;

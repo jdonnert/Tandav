@@ -21,8 +21,6 @@ void Compute_Acceleration()
 	zero_active_particle_accelerations();
 #endif // GRAVITY
 
-
-
 	Profile("Accelerations");
 
 	return ;
@@ -37,12 +35,13 @@ static void accel_gravity()
 #endif
 
 #ifdef GRAVITY_TREE
+	
 	//if (Sig.Fullstep)
 	Gravity_Tree_Build();
 	//else
 		//Gravity_Tree_Update();
-	
 	Gravity_Tree_Acceleration();
+	
 
 #ifdef PERIODIC
 	Gravity_Tree_Periodic();

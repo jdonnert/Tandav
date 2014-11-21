@@ -12,14 +12,16 @@ size_t Max_Nodes = 0;
 
 static inline int level(const int node); // bitmask functions
 static inline int key_fragment(const int node);
-
-static int build_subtree(const int, const int, const int, const int);
-static inline void add_node(const int, const int, const peanoKey, 
-		const int, int *);
-static inline bool particle_is_inside_node(const peanoKey *, const int node);
-static inline void add_particle_to_node(const int ipart, const int node);
+static inline bool is_local(const int node);
 
 void gravity_tree_init();
+static void finalise_tree();
+
+static int build_subtree(const int, const int, const int, const int);
+static inline void add_node(const int,const int,const peanoKey,const int,int*);
+static inline bool particle_is_inside_node(const peanoKey,const int,const int);
+static inline void add_particle_to_node(const int, const int);
+
 
 static void print_int_bits64(const uint64_t val)
 {
@@ -28,6 +30,37 @@ static void print_int_bits64(const uint64_t val)
 		if (i % 3 == 0 && i != 0)
 			printf(".");
 	}
+	printf("\n");fflush(stdout);
+
+	return ;
+}
+
+static void print_int_bits128(const peanoKey val)
+{
+	for (int i = 127; i >= 0; i--) {
+
+		printf("%llu", 
+				(unsigned long long ) ((val & (((peanoKey) 1) << i) ) >> i));
+		
+		if ((i-2) % 3 == 0 && i != 0)
+			printf(".");
+	}
+
+	printf("\n");fflush(stdout);
+
+	return ;
+}
+static void print_int_bits128r(const peanoKey val)
+{
+	for (int i = 127; i >= 0; i--) {
+
+		printf("%llu", 
+				(unsigned long long ) ((val & (((peanoKey) 1) << i) ) >> i));
+		
+		if ((i-3) % 3 == 0 && i != 0)
+			printf(".");
+	}
+
 	printf("\n");fflush(stdout);
 
 	return ;
@@ -51,17 +84,16 @@ void Gravity_Tree_Build()
 	#pragma omp single
 	{
 	// build_top_tree();
-	// compact_TREE();
 	// do_final_operations();
 	NNodes = build_subtree(0, Task.Npart_Total, 0, 0);
+	finalise_tree();
 
-	printf("\nTree build: zu nodes for %d particles\n", 
+	printf("\nTree build: %zu nodes for %d particles\n", 
 			NNodes, Task.Npart_Total );
 
 	} // omp single
 	
 	Profile("Build Gravity Tree");
-
 
 	return ;
 }
@@ -72,17 +104,14 @@ static void build_top_tree()
 	return ;
 }
 
-static void compact_tree()
-{
-
-	return ;
-}
-
 static void finalise_tree()
 {
-	#pragma omp for
+	//#pragma omp for
 	for (int i = 0; i < NNodes; i++) {
 	
+		//if (!node_local(i))
+		//	continue;
+
 		Tree[i].CoM[0] /= Tree[i].Mass;
 		Tree[i].CoM[1] /= Tree[i].Mass;
 		Tree[i].CoM[2] /= Tree[i].Mass;
@@ -93,21 +122,24 @@ static void finalise_tree()
 	}
 }
 
-
 /*
- * A subtree is build starting at node index top.
- * In the tree, DNext points to the difference to next index in the walk, 
- * if the node is not opened. Opening a node is then node++. If DNext is 
- * negative it points to Npart particles starting at ipart=-DNext-1, and the 
- * next node in line is node++. DNext=0 is only at the root node.
- * The tree saves only one particle per node, up to eight are combined in
- * the node. This is done on the fly in an explicit cleaning step, when a 
- * particle opens a new branch. 
- * The Bitfield contains the level of the node and the Peano-Triplet of the
- * node at that level. See Tree definition.
- * After the initial build, some DNext pointers are 0 and a non-recursive tree
- * walk is performed to set these pointers and close the P-H curve through the
- * tree.
+ * A subtree is build starting at node index top. We use that the particles are
+ * in Peano-Hilbert order, i.e. that a particle will branch off as late as 
+ * possible from the previous one.
+ * In the tree, DNext is the difference to next index in the walk, if the
+ * node is not opened. Opening a node is then node++. If DNext is negative it 
+ * points to Npart particles starting at ipart=-DNext-1, and the next node in 
+ * line is node++. DNext=0 is only at the root node. The tree saves only one 
+ * particle per node, up to eight are combined in a node.
+ * This is achieved on the fly in an explicit cleaning step when a particle 
+ * opens a new branch. 
+ * If the tree reaches the dynamic range of the 128bit Peano-Hilbert key, it 
+ * dumps all particles in one node, making the algorithm effectively N^2 again.
+ * This happens at maximum depth (42) which is a distance of Domain.Size/2^42, 
+ * hence only with double precision positions. The Tree.Bitfield contains the 
+ * level of the node and the Peano-Triplet of the node at that level. See Tree 
+ * definition. After the initial build, some DNext pointers are 0. This is 
+ * corrected setting these pointers and closing the P-H curve through the tree.
  */
 
 static int build_subtree(const int istart, const int npart, const int offset, 
@@ -119,17 +151,8 @@ static int build_subtree(const int istart, const int npart, const int offset,
 #endif
 
 	int nNodes = 0; // local in this subtree
-
-	Float px = (P[0].Pos[0] - Domain.Origin[0]) / Domain.Size;
-	Float py = (P[0].Pos[1] - Domain.Origin[1]) / Domain.Size;
-	Float pz = (P[0].Pos[2] - Domain.Origin[2]) / Domain.Size;
-		
-	peanoKey pkey[2] = { 0 };
-	pkey[0] = Peano_Key(px, py, pz, &pkey[1]);
 	
-	__uint128_t oldkey = 0;
-	memcpy(*pkey[0], &oldkey, 32);
-	add_node(istart, offset, pkey[0], top, &nNodes); // add the first node by hand
+	add_node(istart, offset, 0, top, &nNodes); // add the first node by hand
 
 	Tree[0].Pos[0] = Domain.Center[0];
 	Tree[0].Pos[1] = Domain.Center[1];
@@ -137,36 +160,39 @@ static int build_subtree(const int istart, const int npart, const int offset,
 
 	int last_parent = offset;		// last parent of last particle
 
-	for (int ipart = istart+1; ipart < Task.Npart_Total; ipart++) {
+	Float px = (P[0].Pos[0] - Domain.Origin[0]) / Domain.Size;
+	Float py = (P[0].Pos[1] - Domain.Origin[1]) / Domain.Size;
+	Float pz = (P[0].Pos[2] - Domain.Origin[2]) / Domain.Size;
+		
+	peanoKey last_key = Reversed_Peano_Key(px, py, pz);
+	
+	last_key >>= 3; 
 
+	for (int ipart = istart+1; ipart < Task.Npart_Total; ipart++) {
+		
 		Float px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
 		Float py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
 		Float pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
-		peanoKey pkey[2] = { 0 };
-		pkey[0] = Peano_Key(px, py, pz, &pkey[1]);
+		peanoKey key = Reversed_Peano_Key(px, py, pz);
 
-		int node = offset;  		// current node
-		int lvl = top;				// counts current level
+		int node = offset; //+1		// current node
+		int lvl = top;	//+1		// counts current level
 		int parent = node;			// parent of current node
 
 		bool ipart_starts_new_branch = true; // flag to remove leaf nodes
 		
-		__uint128_t key = 0;
-		memcpy(*pkey[0], &key, 32);
-		
-		for (;;) {
+		while (lvl < N_PEANO_TRIPLETS) {
 
-			if (particle_is_inside_node(key, node)) { // open node
-			
-				if (Tree[node].DNext == -ipart) { // points to ipart-1, refine 
+			if (particle_is_inside_node(key, lvl, node)) { // open node	
 				
-					Tree[node].DNext = 0; // mark DNext free
-					
-					if (lvl+1 < 22) // add daughter
-						add_node(ipart-1,node, pkey[0], lvl+1,&nNodes);  
-					else
-						add_node(ipart-1,node, pkey[1], lvl+1,&nNodes)
+				if (Tree[node].Npart == 1) { 	// refine 
+	
+					Tree[node].DNext = 0;		
+
+					add_node(ipart-1, node, last_key, lvl+1, &nNodes);
+
+					last_key >>= 3;
 				}  
 				
 				add_particle_to_node(ipart, node); // add ipart to node
@@ -176,24 +202,25 @@ static int build_subtree(const int istart, const int npart, const int offset,
 				parent = node;
 
 				node++; // decline into node
-
 				lvl++;
+				key >>= 3;
 
 			} else { // skip node
 				
 				if (Tree[node].DNext == 0 || node == nNodes - 1)   
-					break; // reached end of my branch or whole tree
+					break; // reached end of branch
 				
 				node += fmax(1, Tree[node].DNext);
 			}
 
-			key <<= 3;
-
 		} // for (;;)
+		
+		if (lvl > N_PEANO_TRIPLETS-1) 	// particles closer than PH resolution
+			continue; 					// tree cannot be deeper
 
-		if (ipart_starts_new_branch) { // now remove leaf particle nodes
+		if (ipart_starts_new_branch) { // collapse particle leaf nodes
 
-			int n = 0;
+			int n = 0; 
 
 			if (Tree[node].Npart <= 8) 
 				n = node;			
@@ -206,38 +233,35 @@ static int build_subtree(const int istart, const int npart, const int offset,
 					
 				int nZero = nNodes - n - 1;
 
-				memset(&Tree[n+1], 0, nZero*sizeof(*Tree));
-				
 				nNodes = n + 1;
+
+				memset(&Tree[nNodes], 0, nZero*sizeof(*Tree));
 			}	
 		}
 	
-		if (Tree[node].DNext == 0) // set internal next node
+		if (Tree[node].DNext == 0) // set next pointer for internal node
 			Tree[node].DNext = nNodes - node; // only delta
-
-		if (lvl < 22) // add sibling to current node
-			add_node(ipart, parent, pkey[0], lvl, &nNodes); 
-		else
-			add_node(ipart, parent, pkey[1], lvl, &nNodes); 
+			
+		add_node(ipart, parent, key, lvl, &nNodes); // add a sibling of node
 	
+		last_key = key >> 3;
 		last_parent = parent;
-		oldkey = key;
 	
 	} // for ipart
 
-	//#pragma omp single nowait // correct for last DNext to point upwards
+	//#pragma omp single nowait // close PH loop
 	{
 
 	Tree[top].DNext = 0; 
 
-	int stack[63] = { 0 }; 
+	int stack[N_PEANO_TRIPLETS+1] = { 0 }; 
 	int lowest = 0;
 
 	for (int i = 1; i < nNodes; i++) {
 		
 		int lvl = level(i);
 
-		while (lvl <= lowest) {
+		while (lvl <= lowest) { // set pointers
 
 			int node = stack[lowest];
 	
@@ -249,7 +273,7 @@ static int build_subtree(const int istart, const int npart, const int offset,
 			lowest--;
 		} 
 		
-		if (Tree[i].DNext == 0) { 
+		if (Tree[i].DNext == 0) { // add node to stack
 			
 			stack[lvl] = i;
 			
@@ -260,41 +284,21 @@ static int build_subtree(const int istart, const int npart, const int offset,
 	
 	} // omp single nowait
 
-	for (int i = 0; i < nNodes; i++) {
-	
-		Tree[i].CoM[0] /= Tree[i].Mass;
-		Tree[i].CoM[1] /= Tree[i].Mass;
-		Tree[i].CoM[2] /= Tree[i].Mass;
-
-		Tree[i].Vel_CoM[0] /= Tree[i].Mass;
-		Tree[i].Vel_CoM[1] /= Tree[i].Mass;
-		Tree[i].Vel_CoM[2] /= Tree[i].Mass;
-	}
-
 	return nNodes;
 }
 
 /*
  * For particle and node to overlap the peano key triplet at this
- * tree level has to be equal. If the tree is deeper than the number of 
- * bit triplets in the peano key (i.e. level>21), we always return 
- * "false", causing the particles to be added as leaves at the end of the 
- * tree in random order. The tree walk then has to look at all of them
- * which make this N^2.
+ * tree level has to be equal. Hence the tree cannot be deeper than the PH key
+ * resolution, which for 128 bits is 42. This corresponds to distances less than
+ * 1e-12.
  */
 
-static inline bool particle_is_inside_node(const peanoKey pkey,
-		const int node)
+static inline bool particle_is_inside_node(const peanoKey key, const int lvl,		const int node)
 {
-	const int lvl = level(node);
+	int part_triplet = key & 0x7;
 
-	const int shift = 63 - 3 * lvl; // bits 0-5
-
-	const uint64_t part_mask = 0x07ULL << shift; // shift first 3 bits
-
-	uint64_t part_triplet = (key & part_mask) >> shift;
-
-	uint64_t node_triplet = key_fragment(node); 
+	int node_triplet = key_fragment(node); 
 
 	return (node_triplet == part_triplet); 
 }
@@ -309,17 +313,15 @@ static inline void add_node(const int ipart, const int parent,
 {
 	const int node = (*nNodes)++;
 
-	Assert(node < Max_Nodes, "Too many nodes (%d), increase "
-			"NODES_PER_PARTICLE=%d", nNodes, NODES_PER_PARTICLE);
+	//Assert(node < Max_Nodes, "Too many nodes (%d), increase "
+	//		"NODES_PER_PARTICLE=%d", nNodes, NODES_PER_PARTICLE);
 
 	Tree[node].DNext = -ipart - 1;
 
-	int shift = 63 - 3*(lvl % 22);
-
-	uint32_t keyfragment = ((key >> shift) & 0x7) << 6; 
+	int keyfragment = (key & 0x7) << 6;
 
 	Tree[node].Bitfield = lvl | keyfragment;
-	
+
 	const int sign[3] = { -1 + 2 * (P[ipart].Pos[0] > Tree[parent].Pos[0]),
 	 			     	  -1 + 2 * (P[ipart].Pos[1] > Tree[parent].Pos[1]),
 	 			          -1 + 2 * (P[ipart].Pos[2] > Tree[parent].Pos[2])}; 
@@ -354,19 +356,6 @@ static inline void add_particle_to_node(const int ipart, const int node)
 	return ;
 }
 
-static inline void add_bunch_to_node(const int i, const int node)
-{
-	Tree[node].CoM[0] += Bunch[i].CoM[0];
-	Tree[node].CoM[1] += Bunch[i].CoM[1];
-	Tree[node].CoM[2] += Bunch[i].CoM[2];
-
-	Tree[node].Mass += Bunch[i].Mass;
-
-	Tree[node].Npart += Bunch[i].Npart;
-
-	return ;
-}
-
 /*
  * These functions set/extract bits from the bitmask to control
  * the tree construction and walk. They will be inlined by the compiler and
@@ -387,6 +376,17 @@ static inline int key_fragment(const int node)
 
 	return (Tree[node].Bitfield & bitmask) >> 6; // return bit 6-8
 }
+
+static inline bool is_local(const int node)
+{
+	const uint32_t bitmask = 1UL << 9;
+
+	return (bool) (Tree[node].Bitfield & bitmask); 
+}
+
+/*
+ * Initialse the first tree node
+ */
 
 void gravity_tree_init()
 {
@@ -412,6 +412,10 @@ void gravity_tree_init()
 
 	return ;
 }
+
+/*
+ * Dynamically update the tree with the kicks of this timestep
+ */
 
 void Gravity_Tree_Update()
 {

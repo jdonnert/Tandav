@@ -17,8 +17,7 @@ static void preamble(int argc, char *argv[]);
  */
 
 int main(int argc, char *argv[])
-{test_peanokey();
-	return;
+{
 	preamble(argc, argv);
 	
 	Read_and_Init();

@@ -88,9 +88,9 @@ static void compute_peano_keys()
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-		Float px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
-		Float py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
-		Float pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
+		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
+		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
+		double pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
 		Keys[ipart] = Peano_Key(px, py, pz);
 	}
@@ -141,7 +141,8 @@ static void reorder_collisionless_particles()
  * Construct a 128 bit Peano-Hilbert distance in 3D, input coordinates 
  * have to be normalized between 0 < x < 1. Unfortunately it's not clear if 
  * a 128bit type would be portable, though all modern CPUs have 128 bit 
- * registers. Bits 0 & 1 are unused, the most significant bit is 63. 
+ * registers. Bits 0 & 1 are unused, the most significant bit is 63. Input has
+ * to be double or its meaningless.
  * Yes it's totally arcane, run as fast as you can.
  *
  * Skilling 2004, AIP 707, 381: "Programming the Hilbert Curve"
@@ -149,7 +150,7 @@ static void reorder_collisionless_particles()
  * Campbell+03 'Dynamic Octree Load Balancing Using Space-Filling Curves' 
  */
 
-peanoKey Peano_Key(const Float x, const Float y, const Float z)
+peanoKey Peano_Key(const double x, const double y, const double z)
 {
 #ifdef DEBUG // check input
 	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1] have %g", x);
@@ -234,7 +235,7 @@ peanoKey Peano_Key(const Float x, const Float y, const Float z)
  * to ease tree construction.
  */
 
-peanoKey Reversed_Peano_Key(const Float x, const Float y, const Float z)
+peanoKey Reversed_Peano_Key(const double x, const double y, const double z)
 {
 #ifdef DEBUG // check input
 	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1] have %g", x);

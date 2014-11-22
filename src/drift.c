@@ -18,7 +18,7 @@ void Drift_To_Sync_Point()
 
 	double time_snap = 0; 
 
-	if (Sig.Drifted_To_Snaptime) {
+	if (Sig.Drifted_To_Snaptime) { // handle out of sync integer timeline
 
 		Sig.Drifted_To_Snaptime = false;
 	
@@ -41,12 +41,8 @@ void Drift_To_Sync_Point()
 		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2];
 
 	}
-
-#ifdef PERIODIC
-	Constrain_Particles_To_Box();
-#endif // PERIODIC
-
-	#pragma omp single 
+	
+	#pragma omp single nowait
 	{
 
 	Int_Time.Current += Int_Time.Step;
@@ -54,6 +50,16 @@ void Drift_To_Sync_Point()
 	Time.Current = Integer2Physical_Time(Int_Time.Current);
 
 	}
+
+#ifdef PERIODIC
+	Constrain_Particles_To_Box();
+#endif 
+
+#ifdef GRAVITY_TREE
+	Gravity_Tree_Update_Drift(Time.Step);
+#endif
+
+	#pragma omp barrier
 
 	Profile("Drift");
 	

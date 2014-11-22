@@ -16,7 +16,7 @@ void Compute_Acceleration()
 	Profile("Accelerations");
 
 #ifdef GRAVITY
-	accel_gravity(); // overwrites P.Acc
+	accel_gravity(); // needs previous P.Acc and overwrites it
 #else
 	zero_active_particle_accelerations();
 #endif // GRAVITY
@@ -35,14 +35,10 @@ static void accel_gravity()
 #endif
 
 #ifdef GRAVITY_TREE
-	
 	if (Sig.Domain_Updated)
 		Gravity_Tree_Build();
-	else
-		Gravity_Tree_Update();
-	
+
 	Gravity_Tree_Acceleration();
-	
 
 #ifdef PERIODIC
 	Gravity_Tree_Periodic();

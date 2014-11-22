@@ -36,7 +36,7 @@ void Kick_First_Halfstep()
 #endif // GRAVITY_TREE
 	}
 	
-	Gravity_Tree_Update_Topnode_Kicks();
+	//Gravity_Tree_Update_Topnode_Kicks();
 
 	Profile("First Kick");
 

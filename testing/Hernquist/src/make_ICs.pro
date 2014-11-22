@@ -6,7 +6,7 @@ pro make_ICs
 
 	seed = 14041981L
 
-	npart = 2000L
+	npart = 2000000L
 
 	mass = 1d15 * Msol / tandav.mass ; code units 
 	a_hernq = 924D 		
@@ -34,8 +34,8 @@ pro make_ICs
 	;pos[1,*] = randomu(seed, npart)* 1e4 - 0.5e4
 	;pos[2,*] = randomu(seed, npart)* 1e4 - 0.5e4
 
-	plot, pos[0,*], pos[1,*], /iso, psym=3, $
-		xrange=[-1e5,1e5], yrange=[-1e5,1e5]
+	plot, pos[0,*], pos[1,*], /iso, psym=3
+;		xrange=[-1e5,1e5], yrange=[-1e5,1e5]
 
 	; velocities
 

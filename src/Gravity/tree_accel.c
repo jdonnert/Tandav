@@ -37,8 +37,10 @@ void Gravity_Tree_Acceleration()
 	double mean_err = 0;
 	int worst_part = -1;
 	int cnt = 0; */
-	
-	#pragma omp for 
+
+	rprintf("Tree acceleration ");
+
+	#pragma omp for schedule(dynamic, 5000)
 	for (int i = 0; i < NActive_Particles; i++) {
 			
 		int ipart = Active_Particle_List[i];
@@ -91,6 +93,8 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 	} // ipart
 
 //printf("Tree accel: max err %g at %d, %d above threshold, mean err %g \n", 	max_rel_err, worst_part, cnt, mean_err / NActive_Particles);
+
+	rprintf(" done \n");
 
 	Profile("Grav Tree Walk");
 	

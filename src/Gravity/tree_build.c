@@ -10,10 +10,7 @@ struct Tree_Node *Tree = NULL;
 size_t NNodes = 0;
 size_t Max_Nodes = 0;
 
-static inline int level(const int node); // bitmask functions
 static inline int key_fragment(const int node);
-static inline bool is_local(const int node);
-static inline bool is_top(const int node);
 
 void gravity_tree_init();
 static void finalise_tree();
@@ -22,50 +19,6 @@ static int build_subtree(const int, const int, const int, const int);
 static inline void add_node(const int,const int,const peanoKey,const int,int*);
 static inline bool particle_is_inside_node(const peanoKey,const int,const int);
 static inline void add_particle_to_node(const int, const int);
-
-
-static void print_int_bits64(const uint64_t val)
-{
-	for (int i = 63; i >= 0; i--) {
-		printf("%llu", (val & (1ULL << i) ) >> i);
-		if (i % 3 == 0 && i != 0)
-			printf(".");
-	}
-	printf("\n");fflush(stdout);
-
-	return ;
-}
-
-static void print_int_bits128(const peanoKey val)
-{
-	for (int i = 127; i >= 0; i--) {
-
-		printf("%llu", 
-				(unsigned long long ) ((val & (((peanoKey) 1) << i) ) >> i));
-		
-		if ((i-2) % 3 == 0 && i != 0)
-			printf(".");
-	}
-
-	printf("\n");fflush(stdout);
-
-	return ;
-}
-static void print_int_bits128r(const peanoKey val)
-{
-	for (int i = 127; i >= 0; i--) {
-
-		printf("%llu", 
-				(unsigned long long ) ((val & (((peanoKey) 1) << i) ) >> i));
-		
-		if ((i-3) % 3 == 0 && i != 0)
-			printf(".");
-	}
-
-	printf("\n");fflush(stdout);
-
-	return ;
-}
 
 /*
  * This builds the tree. 
@@ -172,9 +125,9 @@ static int build_subtree(const int istart, const int npart, const int offset,
 
 	for (int ipart = istart+1; ipart < Task.Npart_Total; ipart++) {
 		
-		Float px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
-		Float py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
-		Float pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
+		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
+		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
+		double pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
 		peanoKey key = Reversed_Peano_Key(px, py, pz);
 
@@ -185,7 +138,7 @@ static int build_subtree(const int istart, const int npart, const int offset,
 		bool ipart_starts_new_branch = true; // flag to remove leaf nodes
 		
 		while (lvl < N_PEANO_TRIPLETS) {
-
+			
 			if (particle_is_inside_node(key, lvl, node)) { // open node	
 				
 				if (Tree[node].Npart == 1) { 	// refine 
@@ -216,10 +169,10 @@ static int build_subtree(const int istart, const int npart, const int offset,
 			}
 
 		} // while (lvl > 42)
-		
+
 		if (lvl > N_PEANO_TRIPLETS-1) 	// particles closer than PH resolution
 			continue; 					// tree cannot be deeper
-
+		
 		if (ipart_starts_new_branch) { // collapse particle leaf nodes
 
 			int n = 0; 
@@ -261,7 +214,7 @@ static int build_subtree(const int istart, const int npart, const int offset,
 
 	for (int i = 1; i < nNodes; i++) {
 		
-		int lvl = level(i);
+		int lvl = Level(i);
 
 		while (lvl <= lowest) { // set pointers
 
@@ -285,7 +238,7 @@ static int build_subtree(const int istart, const int npart, const int offset,
 	} // for
 	
 	} // omp single nowait
-
+	
 	return nNodes;
 }
 
@@ -315,16 +268,16 @@ static inline void add_node(const int ipart, const int parent,
 {
 	const int node = (*nNodes)++;
 
-#ifdef DEBUG
-	Assert(node < Max_Nodes, "Too many nodes (%d), increase "
-			"NODES_PER_PARTICLE=%d", nNodes, NODES_PER_PARTICLE);
-#endif
+//#ifdef DEBUG
+	Assert(node < Max_Nodes, "Too many nodes (%d>%d), increase "
+			"NODES_PER_PARTICLE=%g", nNodes, Max_Nodes, NODES_PER_PARTICLE);
+//#endif
 
 	Tree[node].DNext = -ipart - 1;
 
 	int keyfragment = (key & 0x7) << 6;
 
-	Tree[node].Bitfield = lvl | keyfragment | (3UL << 8);
+	Tree[node].Bitfield = lvl | keyfragment | (3UL << 9);
 
 	const int sign[3] = { -1 + 2 * (P[ipart].Pos[0] > Tree[parent].Pos[0]),
 	 			     	  -1 + 2 * (P[ipart].Pos[1] > Tree[parent].Pos[1]),
@@ -367,13 +320,6 @@ static inline void add_particle_to_node(const int ipart, const int node)
  * correct type of the constant.
  */
 
-static inline int level(const int node)
-{
-	const uint32_t bitmask = 0x3F;
-
-	return Tree[node].Bitfield & bitmask; // return but 0-5
-}
-
 static inline int key_fragment(const int node)
 {
 	const uint32_t bitmask = 7UL << 6;
@@ -381,22 +327,37 @@ static inline int key_fragment(const int node)
 	return (Tree[node].Bitfield & bitmask) >> 6; // return bit 6-8
 }
 
-static inline bool is_local(const int node)
+int Level(const int node)
 {
-	const uint32_t bitmask = 1UL << 9;
-
-	return (Tree[node].Bitfield & bitmask) >> 9; // test bit 9
-}
-
-static inline bool is_top(const int node)
-{
-	const uint32_t bitmask = 1UL << 10;
-
-	return (Tree[node].Bitfield & bitmask) >> 10; // test bit 10 
+	return Tree[node].Bitfield & 0x3F; // return but 0-5
 }
 
 /*
- * Initialse the first tree node
+ * This provides a unified way to set,clear and test bits in the bitfield
+ */
+
+bool Node_Is(const enum Tree_Bitfield bit, const int node)
+{
+	return Tree[node].Bitfield & (1UL << bit);
+}
+
+void Node_Set(const enum Tree_Bitfield bit, const int node)
+{
+	Tree[node].Bitfield |= 1UL << bit;
+
+	return ;
+}
+
+void Node_Clear(const enum Tree_Bitfield bit, const int node)
+{
+	Tree[node].Bitfield &= ~(1UL << bit);
+
+	return ;
+}
+
+
+/*
+ * Initialise the first tree node
  */
 
 void gravity_tree_init()
@@ -424,47 +385,13 @@ void gravity_tree_init()
 	return ;
 }
 
-/*
- * Dynamically update the tree with the kicks of this timestep
- */
-
-void Gravity_Tree_Update_Kicks(const Float dv[3], const int parent)
-{
-	
-	int node = parent;
-
-	while (!is_top(node)) {
-		
-		
-	}
-
-	// add to bunchleave kicks
-
-
-	return ;
-}
-
-void Gravity_Tree_Update_Drift()
-{
-	return ;
-}
-
-void Gravity_Tree_Update_Topnode_Kicks()
-{
-	// zero bunch leave kicks
-	// MPI reduce bunch leave kicks
-	
-
-
-	return ;
-}
 
 
 void test_gravity_tree(const int nNodes)
 {
 	for (int node = 0; node < nNodes; node++) {
 	
-		int lvl = level(node);
+		int lvl = Level(node);
 	
 		int n = node + 1;
 
@@ -477,7 +404,7 @@ void test_gravity_tree(const int nNodes)
 		if (Tree[node].DNext < 0)
 			continue;
 
-		while (level(n) > lvl) {
+		while (Level(n) > lvl) {
 
 			if (Tree[n].DNext < 0) {
 			

@@ -23,8 +23,7 @@ void Update(enum Update_Parameters stage)
 		
 		Domain_Decomposition();
 
-		Print_Memory_Usage();
-
+		Compute_Acceleration();
 		Compute_Acceleration();
 
 		if (Time.Begin == Time.Next_Snap) { 
@@ -58,8 +57,6 @@ void Update(enum Update_Parameters stage)
 #ifdef COMOVING
 		Set_Current_Cosmology();
 #endif
-		Print_Memory_Usage();
-
 		break;
 
 	case BEFORE_SECOND_KICK:

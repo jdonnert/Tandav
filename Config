@@ -2,7 +2,9 @@
 
 #PERIODIC			// periodic boundary conditions
 #COMOVING			// time integration in comoving coordinates
-DEBUG				// Verbose output for debugging
+#DEBUG				// Verbose output for debugging
+
+TIME_INT_ACCURACY 0.1	// time step parameter, std=0.1
 
 #### GRAVITY ####
 
@@ -12,8 +14,9 @@ GRAV_SOFTENING 20 	// gravitational softening length
 
 #GRAVITY_SIMPLE		// N^2 law
 GRAVITY_TREE		// B&H gravity tree
+TREE_OPEN_PARAM_BH 0.1 	// Barnes & Hut opening criterion parameter
+TREE_OPEN_PARAM_REL 0.01	// Relative opening criterion parameter
 
-TIME_INT_ACCURACY 0.1			// std 0.05, time step parameter
 
 #### OUTPUT OPTIONS ####
 
@@ -24,11 +27,7 @@ OUTPUT_GRAV_POTENTIAL 			// gravitational potential GPOT
 
 #### DOMAIN DECOMPOSITION ####
 
-
-#### TREE ####
-
-TREE_OPEN_PARAM_BH 0.05 	// Barnes & Hut opening criterion parameter
-TREE_OPEN_PARAM_REL 0.01	// Relative opening criterion parameter
+DOMAIN_UPDATE_PARAM	1
 
 #### CODE UNITS ####
 

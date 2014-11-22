@@ -20,8 +20,6 @@ void Read_and_Init()
  	Init_Profiler();
 
 	Profile("Init");
-		
-	Print_compile_time_settings();
 
 	Read_Parameter_File(Param.File);
 

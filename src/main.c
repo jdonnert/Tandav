@@ -116,13 +116,8 @@ static void preamble(int argc, char *argv[])
 
 	if (Task.Is_Master) {
 
-		printf("# Tandav #\n\n");
-
-		printf("Using %d MPI tasks, %d OpenMP threads \n", 
-				Sim.NRank, Sim.NThreads);
+		printf("#### Tandav ####\n\n");
 		
-		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
-
 		Assert( (argc >= 2) && (argc < 4), 
 			"Wrong number of arguments, let me help you: \n\n" 
 			"	USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
@@ -130,6 +125,14 @@ static void preamble(int argc, char *argv[])
 			"	  1  : Read restart files and resume  \n"
 			"	  2  : Read snapshot file and continue \n"
 			"	 10  : Dump a valid parameter file for this Config\n");
+
+		Print_compile_time_settings();
+
+		printf("\nUsing %d MPI tasks, %d OpenMP threads \n", 
+				Sim.NRank, Sim.NThreads);
+		
+		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
+
 	}
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);

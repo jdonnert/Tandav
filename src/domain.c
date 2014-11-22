@@ -23,8 +23,10 @@ static void communicate_particles();
 void Domain_Decomposition()
 {
 	Profile("Domain Decomposition");
-	
+
+#ifndef PERIODIC
 	find_global_domain();
+#endif
 
  	Sort_Particles_By_Peano_Key();
 
@@ -52,7 +54,7 @@ void Domain_Decomposition()
 
 void Init_Domain_Decomposition()
 {
-	//#pragma omp parallel
+	#pragma omp parallel
 	find_global_domain();
 
 	/*int nTask = Sim.NTask, nThreads = Sim.NThreads;
@@ -120,20 +122,31 @@ static void update_bunchlist()
 	return ;
 }
 
-static double global_min[3] = { 0 }; 
-static double global_max[3] = { 0 };
+int Bunch2Treenode(const int b)
+{
+	return 0;
+}
 
+int Tree2Bunchnode(const int n)
+{
+	return 0;
+}
 
 /*
  * This finds the global domain origin and the maximum extend
  */
+
+static double global_min[3] = { 0 }; 
+static double global_max[3] = { 0 };
 
 static void find_global_domain()
 {
 	double local_max[3] = { -DBL_MAX };
 	double local_min[3] = { DBL_MIN };
 
-	#pragma omp for nowait
+	#pragma omp for nowait 
+//		reduction(Max:local_max[0],local_max[1],local_max[2]) \
+//		reduction(Min:local_min[0],local_min[1],local_min[2])
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
 		local_max[0] = fmax(local_max[0], P[ipart].Pos[0]);

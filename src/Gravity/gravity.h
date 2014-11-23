@@ -9,7 +9,7 @@ struct Tree_Node {
 	int DNext;		   	// distance to the next node; or -ipart
 	Float Pos[3];		// Node Center
 	Float CoM[3];		// Center of Mass
-	Float Vel_CoM[3];	// Velocity of Center of Mass
+	Float Dp[3];		// Velocity of Center of Mass
 	float Mass;			// Total Mass
 	int DUp;			// distance to the parent
 	int Npart;			// number of particles in node
@@ -28,6 +28,8 @@ int Level(const int node); // bitfield functions
 
 enum Tree_Bitfield { LOCAL=10, TOP, UPDATED };
 bool Node_Is(const enum Tree_Bitfield bit, const int node);
+void Node_Set(const enum Tree_Bitfield bit, const int node);
+void Node_Clear(const enum Tree_Bitfield bit, const int node);
 
 #endif // GRAVITY_TREE
 

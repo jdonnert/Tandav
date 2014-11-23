@@ -51,7 +51,6 @@ int compare_peanoKeys(const void * a, const void *b)
 	return (int) (*x > *y) - (*x < *y);
 }
 
-static void compute_peano_keys();
 static void reorder_collisionless_particles();
 
 void Sort_Particles_By_Peano_Key()
@@ -69,7 +68,15 @@ void Sort_Particles_By_Peano_Key()
 	
 	} // omp single
 
-	compute_peano_keys();
+	#pragma omp for
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+
+		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
+		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
+		double pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
+		
+		Keys[ipart] = Peano_Key(px, py, pz);
+	}
 
 	Qsort_Index(Sim.NThreads, Idx, Keys, Task.Npart_Total, sizeof(*Keys), 
 			&compare_peanoKeys);
@@ -83,19 +90,7 @@ void Sort_Particles_By_Peano_Key()
 	return ;
 }
 
-static void compute_peano_keys()
-{
-	#pragma omp for
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-
-		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
-		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
-		double pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
-		
-		Keys[ipart] = Peano_Key(px, py, pz);
-	}
-	return ;
-}
+	
 
 static void reorder_collisionless_particles()
 {

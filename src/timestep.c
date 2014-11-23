@@ -130,6 +130,7 @@ static void set_particle_timebins(int *bin_max, int *bin_min)
 	*bin_max = MAX(local_bin_max, *bin_max);
 	
 	}
+
 	#pragma omp barrier
 
 	return ;
@@ -300,7 +301,7 @@ static void print_timebins()
 		sprintf(fullstep,", Fullstep");
 
 	printf("Systemstep %g, NActive %d %s\n"
-			"   Bin       nGas        nDM A  dt\n", 
+			"   Bin       nGas        nDM A    dt\n", 
 			Time.Step, NActive_Particles, fullstep );
 
 	for (int i = imax; i > Time.Max_Active_Bin; i--)
@@ -311,7 +312,7 @@ static void print_timebins()
 		printf("   %2d    %7d     %7d %s  %16.12f \n", 
 			i, 0, npart_global[i], "X", Timebin2Timestep(i));
 
-	rprintf("\n");
+	printf("\n");
 	
 	if (Sig.Fullstep)
 		rprintf("Next full step at t = %g \n\n", 

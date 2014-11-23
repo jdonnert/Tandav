@@ -10,4 +10,6 @@ extern struct Simulation_Signals { // communicate an event across the code
 	bool Drifted_To_Snaptime;	// results in integer timeline out of sync
 	bool First_Step;			// doing first step of the simulation
 	bool Domain_Updated;		// did domain decomposition this step
+	bool Force_Domain;
+	bool Force_Tree_Build;		
 } Sig;

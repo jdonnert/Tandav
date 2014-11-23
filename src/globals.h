@@ -45,9 +45,11 @@ extern struct Parameters_From_File {
 
 extern struct Particle_Data {
 	int Type;
-	int Idx;
 	int Time_Bin;
 	intime_t Int_Time_Pos;		// position on integer timeline
+#ifdef GRAVITY_TREE
+	int Tree_Parent;			// Tree node containing particle
+#endif
 	ID_t ID; // add below 
 	Float Pos[3];
 	Float Vel[3];
@@ -58,9 +60,6 @@ extern struct Particle_Data {
 #endif
 #ifdef OUTPUT_PARTIAL_ACCELERATIONS
 	Float Grav_Acc[3];
-#endif
-#ifdef GRAVITY_TREE
-	int Tree_Parent;
 #endif
 } *P;
 

@@ -27,12 +27,13 @@
 #define CHARBUFSIZE 256L 	// Maximum No. of chars in every char buffer
 #define NPARTYPE 6L 		// No of particle types
 #define MEM_ALIGNMENT 64L	// byte memory alignment
-#define PARTALLOCFACTOR 1.1	// Mem overhead for dynamic inbalance
-#define MASTER 0			// Global master MPI thread
+#define PARTALLOCFACTOR 1.1	// Mem overhead for dynamic imbalance
+#define MASTER 0			// Global master MPI task
 
 typedef float Float;		// type of floating point variables in P
 typedef uint32_t ID_t;		// type of particle ID
-typedef uint64_t intime_t; 	// type of integer time +
+typedef uint32_t intime_t; 	// type of integer time 
+typedef __uint128_t peanoKey;
 
 #include "macro.h" 			// macro definitions
 #include "unit.h" 			// unit functions

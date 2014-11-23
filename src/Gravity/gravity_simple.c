@@ -7,6 +7,8 @@ void Accel_Gravity_Simple()
 {
 	Profile("Gravity_Simple");
 
+	rprintf("Direct Gravity ... ");
+
 	#pragma omp for
 	for (int i = 0; i < Task.Npart_Total; i++) {
 
@@ -72,6 +74,8 @@ void Accel_Gravity_Simple()
 
 	} // for ipart
 
+	rprintf("done\n");
+	
 	Profile("Gravity_Simple");
 
 	return ;

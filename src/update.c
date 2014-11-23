@@ -8,7 +8,8 @@
 
 /* 
  * Provide a consistent way of updating/calling different parts 
- * of the code from the main loop
+ * of the code from the main loop. We are already in an OMP parallel
+ * environment !
  */
 
 void Update(enum Update_Parameters stage) 
@@ -16,14 +17,15 @@ void Update(enum Update_Parameters stage)
 	switch (stage) {
 
 	case BEFORE_MAIN_LOOP:
+		
+		Domain_Decomposition();
 
 #ifdef COMOVING
 		Set_Current_Cosmology();
 #endif
-		
-		Domain_Decomposition();
 
-		Compute_Acceleration();
+		Sig.Force_Tree_Build = true;
+
 		Compute_Acceleration();
 
 		if (Time.Begin == Time.Next_Snap) { 

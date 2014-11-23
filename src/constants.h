@@ -4,11 +4,8 @@
 #include <gsl/gsl_const_cgsm.h>
 #include <gsl/gsl_const_num.h>
 
-/* math */
-#define PI M_PI
-#define DEG2RAD 0.017453293
-
 /* physics */
+#define PI M_PI
 #define SPEED_OF_LIGHT GSL_CONST_CGSM_SPEED_OF_LIGHT
 #define ELECTRON_CHARGE (GSL_CONST_CGSM_ELECTRON_CHARGE * GSL_CONST_CGSM_SPEED_OF_LIGHT)
 #define PLANCK_CONST GSL_CONST_CGSM_PLANCKS_CONSTANT_H
@@ -35,6 +32,8 @@
 #define HELIUM_FRACTION (1-HYDROGEN_FRACTION) 	// Helium mass fraction
 #define UMOL (4.0/(5.0*HYDROGEN_FRACTION+3.0)) // Mean mol. weight in H
 #define ADIABATIC_INDEX_MONOATOMIC_GAS (5.0/3.0)
+
+const double Pi, Deg2Rad, Sqrt3, Sqrt2;
 
 const struct Constants_In_Code_Units {
 	double Adiabatic_Index;

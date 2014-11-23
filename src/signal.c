@@ -17,7 +17,7 @@ bool Time_Is_Up()
 
 	if (test_for_stop_file()) {
 	
-		rprintf("Found stop file t=%g", Time.Current);
+		rprintf("Found stop file t=%g\n", Time.Current);
 
 		Sig.Write_Restart_File = true;
 
@@ -40,6 +40,8 @@ bool Time_Is_Up()
 
 		Sig.Endrun = true;
 	}
+
+	#pragma omp flush (Sig)
 
 	return Sig.Endrun;
 }
@@ -70,26 +72,49 @@ bool Time_For_Snapshot()
 		return true;
 	}
 
+	#pragma omp flush(Sig)
 
 	return false;
 }
+
+static int Global_NPart_Updates = 0;
+static int Local_NPart_Updates = 0;
 
 bool Time_For_Domain_Update()
 {
 	Sig.Domain_Updated = false;
 
-	if (1)
-		return true;
+	#pragma omp single
+	{
 
-	return false;
+	Local_NPart_Updates += NActive_Particles;
+		
+	MPI_Allreduce(&Local_NPart_Updates, &Global_NPart_Updates, 1, 
+			MPI_INT, MPI_SUM, MPI_COMM_WORLD);
+
+	} // omp single
+
+	#pragma omp flush(Global_NPart_Updates)
+	
+	if (Sig.Fullstep || Sig.First_Step || Sig.Force_Domain 
+	|| (Global_NPart_Updates > DOMAIN_UPDATE_PARAM*Sim.Npart_Total)) {
+		
+		Global_NPart_Updates = Local_NPart_Updates = 0;
+		
+		Sig.Domain_Updated = true;
+	}
+	return Sig.Domain_Updated;
 }
 
-static int endrun = false;
+static int result = 0;
 
 static bool test_for_stop_file()
 {
+
 	#pragma omp single
 	{
+
+	int endrun = false;
 
 	if (Task.Is_MPI_Master) {
 			
@@ -103,12 +128,11 @@ static bool test_for_stop_file()
 		}
 	}
 
+	MPI_Allreduce(&endrun, &result, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+
 	} // omp single
 
-	int result = 0;
-
-	#pragma omp single
-	MPI_Allreduce(&endrun, &result, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
+	#pragma omp flush(Sig)
 
 	return (bool) result;
 }

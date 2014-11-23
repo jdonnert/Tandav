@@ -73,7 +73,7 @@ void Read_Parameter_File(const char *filename)
 				break;
 
 			default:
-				Assert(0, "Code Error in ParDef struct: %s", ParDef[j].tag);
+				Assert(false,"Code Error in ParDef struct: %s", ParDef[j].tag);
 			}
 		}
 		
@@ -141,6 +141,8 @@ void sanity_check_input_parameters()
 		Param.Num_IO_Tasks,  Param.Num_Output_Files);
 	
 	Param.Num_Output_Files = MIN(Param.Num_Output_Files, Sim.NRank);
+	
+	/* Add your own ! */
 
 	return ;
 }

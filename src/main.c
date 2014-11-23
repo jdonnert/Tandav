@@ -49,6 +49,8 @@ int main(int argc, char *argv[])
 		
 		if (Time_For_Domain_Update())
 			Domain_Decomposition();
+		else
+			rprintf("Tree update only\n");
 
 		Update(BEFORE_FORCES);
 

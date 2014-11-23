@@ -53,14 +53,14 @@ Float Sign(const Float x)
 }
 
 /* 
- * Reallocates the Particle structures. Takes the relative change
+ * Reallocate the Particle structures. Takes the relative change
  * as argument, not the total number. Add or Remove via sign of nPart.
  * Also updates Task.Npart and Task.NPartTotal. 
  * Expands P so that space for nPart[type] is at offset[type]
  * Contracts P so that the last nPart[type] particles are removed 
  * Note that actually no real allocation is taking place, because
- * that would fragment memory. Instead needs to stay with in the
- * limit set by PARTALLOCFACTOR 
+ * that would fragment memory. Instead this needs to stay with in the
+ * limit set by PARTALLOCFACTOR. 
  */
 
 void Reallocate_P_Info(const char *func, const char *file, int line, 

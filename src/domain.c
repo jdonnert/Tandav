@@ -28,24 +28,23 @@ void Domain_Decomposition()
 	find_global_domain();
 #endif
 
- 	Sort_Particles_By_Peano_Key();
-
-	/*for (;;) {
+	/*
+	 while ((max_mem_imbal > 0.05) && (max_cpu_imbal > 0.05)) {
 	
-		fill_bunchlist();
+	  distribute();
+	  decompose();
 
-		double imbalance = compute_imbalance();
+	  double max_mem_imbal = 0; 
+	  double max_cpu_imbal = 0; 
+	  measure(&max_mem_imbal, &max_cpu_imbal);
 
-		if ( imbalance < 0.05 )
-			break;
 		
-		split_bunches();
-	} 
+	  } 
 	
 	communicate_particles();
-*/
+	*/
 
-	Sig.Domain_Updated = true;
+ 	Sort_Particles_By_Peano_Key();
 
 	Profile("Domain Decomposition");
 
@@ -127,7 +126,7 @@ int Bunch2Treenode(const int b)
 	return 0;
 }
 
-int Tree2Bunchnode(const int n)
+int Treenode2Bunch(const int n)
 {
 	return 0;
 }
@@ -136,48 +135,33 @@ int Tree2Bunchnode(const int n)
  * This finds the global domain origin and the maximum extend
  */
 
-static double global_min[3] = { 0 }; 
-static double global_max[3] = { 0 };
+double max_x = -DBL_MAX, max_y = -DBL_MAX, max_z = -DBL_MAX, 
+	   min_x = DBL_MIN, min_y = DBL_MIN, min_z = DBL_MIN;
 
 static void find_global_domain()
 {
-	double local_max[3] = { -DBL_MAX };
-	double local_min[3] = { DBL_MIN };
 
-	#pragma omp for nowait 
-//		reduction(Max:local_max[0],local_max[1],local_max[2]) \
-//		reduction(Min:local_min[0],local_min[1],local_min[2])
+	#pragma omp for reduction(max:max_x,max_y,max_z) \
+		reduction(min:min_x,min_y,min_z)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
-		local_max[0] = fmax(local_max[0], P[ipart].Pos[0]);
-		local_max[1] = fmax(local_max[1], P[ipart].Pos[1]);
-		local_max[2] = fmax(local_max[2], P[ipart].Pos[2]);
+		max_x = fmax(max_x, P[ipart].Pos[0]);
+		max_y = fmax(max_y, P[ipart].Pos[1]);
+		max_z = fmax(max_z, P[ipart].Pos[2]);
 
-		local_min[0] = fmin(local_min[0], P[ipart].Pos[0]);
-		local_min[1] = fmin(local_min[1], P[ipart].Pos[1]);
-		local_min[2] = fmin(local_min[2], P[ipart].Pos[2]);
+		min_x = fmin(min_x, P[ipart].Pos[0]);
+		min_y = fmin(min_y, P[ipart].Pos[1]);
+		min_z = fmin(min_z, P[ipart].Pos[2]);
 	}
-
-	#pragma omp critical // do an omp reduction
-	{
-
-	global_max[0] = fmax(global_max[0], local_max[0]);
-	global_max[1] = fmax(global_max[1], local_max[1]);
-	global_max[2] = fmax(global_max[2], local_max[2]);
 	
-	global_min[0] = fmin(global_min[0], local_min[0]);
-	global_min[1] = fmin(global_min[1], local_min[1]);
-	global_min[2] = fmin(global_min[2], local_min[2]);
-	
-	} // omp critical
-	
-	#pragma omp barrier 
-
 	#pragma omp single // do an MPI reduction
 	{
 
-	memcpy(local_max, global_max, 3*sizeof(*local_max)); // copy back as buf
-	memcpy(local_min, global_min, 3*sizeof(*local_min));
+	double local_max[3] = { max_x, max_y, max_z  };
+	double local_min[3] = { min_x, min_y, min_z  };
+
+	double global_max[3] = { 0 };
+	double global_min[3] = { 0 };
 
 	MPI_Allreduce(&local_max, &global_max, 3, MPI_DOUBLE, MPI_MAX,
 			MPI_COMM_WORLD);
@@ -206,8 +190,7 @@ static void find_global_domain()
 	} // omp single
 
 #ifdef DEBUG
-	rprintf("\nDomain size %g, origin at %4g %4g %4g \n\n", 
-			Task.Rank, Task.Thread_ID,
+	printf("\nDomain size %g, origin at %4g %4g %4g \n\n", 
 			Domain.Size,
 			Domain.Origin[0],Domain.Origin[1],Domain.Origin[2]);
 #endif

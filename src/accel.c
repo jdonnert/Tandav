@@ -35,10 +35,13 @@ static void accel_gravity()
 #endif
 
 #ifdef GRAVITY_TREE
-	if (Sig.Domain_Updated)
+	if (Sig.Domain_Updated || Sig.Force_Tree_Build)
 		Gravity_Tree_Build();
 
 	Gravity_Tree_Acceleration();
+	
+	if (Sig.First_Step)
+		Gravity_Tree_Acceleration();
 
 #ifdef PERIODIC
 	Gravity_Tree_Periodic();

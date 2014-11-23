@@ -33,10 +33,13 @@ void Gravity_Tree_Build()
 {
 	Profile("Build Gravity Tree");
 
+	Sig.Force_Tree_Build = false;
+
 	gravity_tree_init();
 
 	#pragma omp single
 	{
+
 	// build_top_tree();
 	// do_final_operations();
 	NNodes = build_subtree(0, Task.Npart_Total, 0, 0);
@@ -64,16 +67,12 @@ static void finalise_tree()
 	#pragma omp for
 	for (int i = 0; i < NNodes; i++) {
 	
-		//if (!node_local(i))
-		//	continue;
+		if (! Node_Is(LOCAL, i))
+			continue;
 
 		Tree[i].CoM[0] /= Tree[i].Mass;
 		Tree[i].CoM[1] /= Tree[i].Mass;
 		Tree[i].CoM[2] /= Tree[i].Mass;
-
-		Tree[i].Vel_CoM[0] /= Tree[i].Mass;
-		Tree[i].Vel_CoM[1] /= Tree[i].Mass;
-		Tree[i].Vel_CoM[2] /= Tree[i].Mass;
 	}
 }
 
@@ -108,7 +107,7 @@ static int build_subtree(const int istart, const int npart, const int offset,
 	int nNodes = 0; // local in this subtree
 	
 	add_node(istart, offset, 0, top, &nNodes); // add the first node by hand
-
+Node_Set(TOP,0);
 	Tree[0].Pos[0] = Domain.Center[0];
 	Tree[0].Pos[1] = Domain.Center[1];
 	Tree[0].Pos[2] = Domain.Center[2];
@@ -170,8 +169,12 @@ static int build_subtree(const int istart, const int npart, const int offset,
 
 		} // while (lvl > 42)
 
-		if (lvl > N_PEANO_TRIPLETS-1) 	// particles closer than PH resolution
+		if (lvl > N_PEANO_TRIPLETS-1) {	// particles closer than PH resolution
+		
+			P[ipart].Tree_Parent = parent;
+			
 			continue; 					// tree cannot be deeper
+		}
 		
 		if (ipart_starts_new_branch) { // collapse particle leaf nodes
 
@@ -291,6 +294,8 @@ static inline void add_node(const int ipart, const int parent,
 
 	Tree[node].DUp = node - parent;
 
+	P[ipart].Tree_Parent = node;
+
 	add_particle_to_node(ipart, node); 
 
 	return ;
@@ -302,10 +307,6 @@ static inline void add_particle_to_node(const int ipart, const int node)
 	Tree[node].CoM[1] += P[ipart].Pos[1] * P[ipart].Mass;
 	Tree[node].CoM[2] += P[ipart].Pos[2] * P[ipart].Mass;
 
-	Tree[node].Vel_CoM[0] += P[ipart].Vel[0] * P[ipart].Mass;
-	Tree[node].Vel_CoM[1] += P[ipart].Vel[1] * P[ipart].Mass;
-	Tree[node].Vel_CoM[2] += P[ipart].Vel[2] * P[ipart].Mass;
-	
 	Tree[node].Mass += P[ipart].Mass;
 
 	Tree[node].Npart++;
@@ -333,7 +334,7 @@ int Level(const int node)
 }
 
 /*
- * This provides a unified way to set,clear and test bits in the bitfield
+ * This provides a unified way to set, clear and test bits in the bitfield
  */
 
 bool Node_Is(const enum Tree_Bitfield bit, const int node)

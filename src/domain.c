@@ -2,12 +2,16 @@
 #include "domain.h"
 #include "peano.h"
 
+#define NBUNCHES_PER_THREAD 64
+
 static void find_global_domain();
 static void fill_bunchlist();
 static double compute_imbalance();
 static void split_bunches();
 static void update_bunchlist();
 static void communicate_particles();
+
+struct Bunch_Info *B = NULL;
 
 /* 
  * This function distributes particles in bunches, which are continuous
@@ -27,6 +31,8 @@ void Domain_Decomposition()
 #ifndef PERIODIC
 	find_global_domain();
 #endif
+ 	
+	Sort_Particles_By_Peano_Key();
 
 	/*
 	 while ((max_mem_imbal > 0.05) && (max_cpu_imbal > 0.05)) {
@@ -53,62 +59,82 @@ void Domain_Decomposition()
 
 void Init_Domain_Decomposition()
 {
-	#pragma omp parallel
-	find_global_domain();
+/*	NBunches = fmin(floor(log2(Sim.NTask)/log2(8)), 1) * NBUNCHES_PER_THREAD;
 
-	/*int nTask = Sim.NTask, nThreads = Sim.NThreads;
+	double nSide = log2(NBunches)/log2(8);
 	
-	size_t nBytes = (1ULL << DOMAIN_CEILING) * Sim.NRank * sizeof(Bunchlist); 
+	size_t nBytes = NBunches * sizeof(B); 
 
-	Bunchlist = Malloc(nBytes);
+	B = Malloc(nBytes, "Bunchlist");
+	Tree2Bunch = Malloc(nBytes, "Tree2Bunch");
+	Bunch2Tree = Malloc(nBytes, "Bunch2Tree");
 
-	memset(Bunchlist, 0, nBytes);
+	memset(B, 0, nBytes);
 
-	const uint32_t nBunches = 1UL << (int) ceil(log2(nTask));
-	const uint32_t nSide = log2(nBunches);
-	const double size = Sim.Boxsize[0] / nSide;
+	const double size = 1 / nSide;
 
-	for (int i = 0; i < nSide; i++){
+	int b = 0;
 
-		for (int j = 0; j < nSide; j++){
+	#pragma omp parallel
+	{
+	
+	#pragma omp single nowait
+	for (int i = 0; i < nSide; i++) {
+
+		for (int j = 0; j < nSide; j++) {
 		
 			for (int k = 0; k < nSide; k++) {
 				
-				size_t idx = i * p2(nSide) + j * nSide + k;
+				double x =  i * size;
+				double y =  j * size;
+				double z =  k * size;
 				
-				Bunchlist[idx].Pos[0] = i * size;
-				Bunchlist[idx].Pos[1] = i * size;
-				Bunchlist[idx].Pos[2] = i * size;
+				Bunchlist[b].Key = Peano_Key(x,y,z) >> 64;
+
+				b++;
 			}
 		}
 	}
 
-	for (int i = 0; i < nBunches; i++) {
+	find_global_domain();
 	
-		Float x = Bunchlist[i].Pos[0];
-		Float y = Bunchlist[i].Pos[1];
-		Float z = Bunchlist[i].Pos[2];
-		
-		Bunchlist[i].Key = Peano_Key(x,y,z, Sim.Boxsize);
-	}
+	} // omp parallel
+
+	rprintf("Domain Decomposition: %d Bunches @ Level %d\n"
+			"   Initial size %g, origin at %4g %4g %4g \n\n", NBunches, nSide,
+			Domain.Size, Domain.Origin[0],Domain.Origin[1], Domain.Origin[2]);
 */
 	return;
 }
+
 static void fill_bunchlist()
 {
+	/*int i = 0;
 
+	memset(&B[i].Target, 0, sizeof(*B)-sizeof(uint64_t));
+
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+		
+		Float px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
+		Float py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
+		Float pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
+		
+		uint64_t key = Peano_Key(px, py, pz) >> 64;
+
+		while (B[i].Key < key) // particles are ordered
+			memset(&B[i++].Target, 0, sizeof(*B)-sizeof(64/CHAR_BIT));
+
+		B[i].Npart++;
+		//B[i].CPU_Cost += P[ipart].Cost;
+	
+	}
+*/
 	return ;
 }
 
 static double compute_imbalance()
 {
 	return 1;
-}
-
-static void split_bunches()
-{
-
-	return ;
 }
 
 static void communicate_particles()
@@ -121,15 +147,7 @@ static void update_bunchlist()
 	return ;
 }
 
-int Bunch2Treenode(const int b)
-{
-	return 0;
-}
 
-int Treenode2Bunch(const int n)
-{
-	return 0;
-}
 
 /*
  * This finds the global domain origin and the maximum extend

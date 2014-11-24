@@ -39,6 +39,8 @@ void Gravity_Tree_Update_Kicks(const Float dp[3], const int parent)
 void Gravity_Tree_Update_Drift(const double dt)
 {
 
+	rprintf("Tree update \n");
+
 	#pragma omp for
 	for (int i = 0; i < NNodes; i++) {
 

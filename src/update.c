@@ -45,6 +45,12 @@ void Update(enum Update_Parameters stage)
 		Write_Logs();
 
 		break;
+	
+	case BEFORE_FIRST_KICK:
+		
+		Test_For_Domain_Update();
+
+		break;
 
 	case BEFORE_SNAPSHOT:
 

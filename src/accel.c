@@ -35,7 +35,7 @@ static void accel_gravity()
 #endif
 
 #ifdef GRAVITY_TREE
-	if (Sig.Domain_Updated || Sig.Force_Tree_Build)
+	if (Sig.Domain_Update || Sig.Force_Tree_Build)
 		Gravity_Tree_Build();
 
 	Gravity_Tree_Acceleration();

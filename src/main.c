@@ -40,6 +40,8 @@ int main(int argc, char *argv[])
 
 		Set_New_Timesteps();
 
+		Update(BEFORE_FIRST_KICK);
+
 		Kick_First_Halfstep();
 
 		if (Time_For_Snapshot()) 
@@ -47,7 +49,7 @@ int main(int argc, char *argv[])
  		
 		Drift_To_Sync_Point();
 		
-		if (Time_For_Domain_Update())
+		if (Sig.Domain_Update)
 			Domain_Decomposition();
 		else
 			rprintf("Tree update only\n");

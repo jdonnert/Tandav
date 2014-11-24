@@ -51,6 +51,8 @@ void Write_Snapshot()
 
 	Time.Snap_Counter++;
 
+	printf("\n");
+
 	} // omp single
 
 	Profile("Write Snap");
@@ -162,7 +164,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 					groupRank, mpi_comm_write);
 
 		MPI_Barrier(mpi_comm_write);
-	}
+	} // for (i)
 
 	if (groupRank == groupMaster)
 		fclose(fp);

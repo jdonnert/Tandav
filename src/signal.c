@@ -80,9 +80,9 @@ bool Time_For_Snapshot()
 static int Global_NPart_Updates = 0;
 static int Local_NPart_Updates = 0;
 
-bool Time_For_Domain_Update()
+void Test_For_Domain_Update()
 {
-	Sig.Domain_Updated = false;
+	Sig.Domain_Update = false;
 
 	#pragma omp single
 	{
@@ -101,9 +101,9 @@ bool Time_For_Domain_Update()
 		
 		Global_NPart_Updates = Local_NPart_Updates = 0;
 		
-		Sig.Domain_Updated = true;
+		Sig.Domain_Update = true;
 	}
-	return Sig.Domain_Updated;
+	return ;
 }
 
 static int result = 0;

@@ -33,8 +33,6 @@ void Gravity_Tree_Build()
 {
 	Profile("Build Gravity Tree");
 
-	Sig.Force_Tree_Build = false;
-
 	gravity_tree_init();
 
 	#pragma omp single
@@ -51,6 +49,8 @@ void Gravity_Tree_Build()
 	
 	finalise_tree();
 	
+	Sig.Force_Tree_Build = false;
+
 	Profile("Build Gravity Tree");
 
 	return ;

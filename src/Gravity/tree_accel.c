@@ -49,7 +49,11 @@ void Gravity_Tree_Acceleration()
 		Float grav_accel[3] = { 0 };
 		Float pot = 0;
 
-		gravity_tree_walk(ipart, grav_accel, &pot);
+		if (Sig.First_Step)
+			gravity_tree_walk_first(ipart, grav_accel, &pot);
+		else
+			gravity_tree_walk(ipart, grav_accel, &pot);
+
 /*
 double rel_err = fabs(ALENGTH3(grav_accel)-ALENGTH3(P[ipart].Acc))
 		/ ALENGTH3(P[ipart].Acc);
@@ -155,26 +159,13 @@ static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
 
 		Float nSize = node_size(node); // now check opening criteria
 
-		if (fac == 0) { // use BH criterion, acc == 0
+		if (nMass*nSize*nSize > r2*r2 * fac) { // relative criterion
 
-			if (nSize*nSize > r2 * TREE_OPEN_PARAM_BH) { 
+			node++; 
 
-				node++; // open
-
-				continue;
-			}
-
-		} else { // use better relative criterion
+			continue;
+		}
 		
-			if (nMass*nSize*nSize > r2*r2 * fac) { 
-
-				node++; 
-
-				continue;
-			}
-		
-		} // if (fac == 0)
-
 		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]);
 
 		if (dx < 0.5 * Sqrt3 * nSize) { // particle inside node ? Springel 2005
@@ -203,6 +194,66 @@ static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
 	return ;
 }
 
+static void gravity_tree_walk_first(const int ipart, Float* Accel, Float *Pot)
+{
+	int node = 1;
+
+	const Float pos_i[3] = {P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2]};
+
+	while (Tree[node].DNext != 0) {
+		
+		if (Tree[node].DNext < 0) { // encountered particle bundle
+
+			int first = -(Tree[node].DNext + 1); // part index is offset by 1
+			int last = first + Tree[node].Npart;
+
+			for (int jpart = first; jpart < last; jpart++ ) {
+
+				if (jpart == ipart)
+					continue;
+			
+				Float dr[3] = { pos_i[0] - P[jpart].Pos[0],	
+					   		    pos_i[1] - P[jpart].Pos[1], 
+					            pos_i[2] - P[jpart].Pos[2] };
+
+				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
+
+				Float mpart = P[jpart].Mass;
+
+				interact(mpart, dr, r2, Accel, Pot); 
+			}
+
+			node++;
+			
+			continue;
+		}
+	
+		Float dr[3] = { pos_i[0] - Tree[node].CoM[0],	
+					    pos_i[1] - Tree[node].CoM[1], 
+					    pos_i[2] - Tree[node].CoM[2] };
+
+		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
+
+		Float nMass = Tree[node].Mass;
+
+		Float nSize = node_size(node); // now check opening criteria
+
+		if (nSize*nSize > r2 * TREE_OPEN_PARAM_BH) { // BH criterion
+
+			node++; // open
+
+			continue;
+		}
+
+		interact(nMass, dr, r2, Accel, Pot); // use node
+		
+		node += fmax(1, Tree[node].DNext);
+		
+	} // while
+
+	return ;
+}
+
 
 static void interact(const Float mass, const Float dr[3], const Float r2, 
 		Float Accel[3], Float Pot[1])
@@ -217,7 +268,7 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 	Float r_inv_pot = r_inv;
 #endif
 
-	if (r < h_grav) { // soften 1/r
+	if (r < h_grav) { // soften 1/r with Wendland C2 kernel
 	
 		Float u = r/h_grav;
 		Float u2 = u*u;

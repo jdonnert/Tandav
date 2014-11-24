@@ -17,11 +17,13 @@ void Gravity_Tree_Update_Kicks(const Float dp[3], const int parent)
 
 		#pragma omp critical
 		{
+
 		Tree[node].Dp[0] += dp[0] / Tree[node].Mass;
 		Tree[node].Dp[1] += dp[1] / Tree[node].Mass;
 		Tree[node].Dp[2] += dp[2] / Tree[node].Mass;
 		
 		Node_Set(UPDATED, node);
+		
 		}
 
 		node -= Tree[node].DUp;
@@ -32,14 +34,13 @@ void Gravity_Tree_Update_Kicks(const Float dp[3], const int parent)
 }
 
 /*  
- * Advance the Treenodes by the system timestep, even though we just drift
- * the 
+ * Advance the Treenodes by the system timestep 
  */
 
 void Gravity_Tree_Update_Drift(const double dt)
 {
 
-	rprintf("Tree update \n");
+	rprintf("Tree update ");
 
 	#pragma omp for
 	for (int i = 0; i < NNodes; i++) {
@@ -55,6 +56,8 @@ void Gravity_Tree_Update_Drift(const double dt)
 
 		Node_Clear(UPDATED, i);
 	} 
+	
+	rprintf("done \n");
 
 	return ;
 }

@@ -103,6 +103,9 @@ void Test_For_Domain_Update()
 		
 		Sig.Domain_Update = true;
 	}
+
+	#pragma omp flush(Global_NPart_Updates,Local_NPart_Updates)
+
 	return ;
 }
 
@@ -132,7 +135,7 @@ static bool test_for_stop_file()
 
 	} // omp single
 
-	#pragma omp flush(Sig)
+	#pragma omp flush(result)
 
 	return (bool) result;
 }

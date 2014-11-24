@@ -17,6 +17,7 @@ static struct GravityDataForImport {
 } DataIn;
 
 static void gravity_tree_walk(const int ipart, Float*, Float*);
+static void gravity_tree_walk_first(const int ipart, Float*, Float*);
 
 static void interact(const Float,const Float *,const Float,Float *,Float *);
 

@@ -12,8 +12,8 @@
 static void preamble(int argc, char *argv[]);
 
 /* 
- * This exposes the time integration of the code. We use the HOLD integrator
- * from Pelupessy+ 2012. 
+ * This exposes the time integration of the code. 
+ * We use the HOLD integrator from Pelupessy+ 2012. 
  */
 
 int main(int argc, char *argv[])
@@ -51,8 +51,6 @@ int main(int argc, char *argv[])
 		
 		if (Sig.Domain_Update)
 			Domain_Decomposition();
-		else
-			rprintf("Tree update only\n");
 
 		Update(BEFORE_FORCES);
 

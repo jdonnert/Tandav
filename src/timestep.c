@@ -6,12 +6,13 @@
 /* 
  * The number of bins is given by the number of bits in an integer time 
  */
+
 #define N_INT_BINS (sizeof(intime_t) * CHAR_BIT) 
 
 void Make_Active_Particle_List();
 
 static int max_active_time_bin();
-static void set_particle_timebins(int *bin_max, int *bin_min);
+static void set_particle_timebins();
 static void set_global_timestep(const int, const int);
 static int timestep2timebin(const double dt);
 static void print_timebins();
@@ -20,6 +21,8 @@ static float cosmological_timestep(const int ipart);
 
 struct TimeData Time = { 0 };
 struct IntegerTimeLine Int_Time = { 0 };
+
+static int local_bin_min, local_bin_max;
 
 /* 
  * All active particles get a new step that is smaller than or equal to 
@@ -30,10 +33,10 @@ void Set_New_Timesteps()
 {
 	Profile("Timesteps");
 
-	int local_bin_min = N_INT_BINS-1; 
-	int local_bin_max = 0;
+	local_bin_min = N_INT_BINS-1; 
+	local_bin_max = 0;
 
-	set_particle_timebins(&local_bin_max, &local_bin_min);
+	set_particle_timebins();
 	
 	#pragma omp single 
 	{
@@ -46,7 +49,7 @@ void Set_New_Timesteps()
 
 	MPI_Allreduce(&local_bin_max, &global_bin_max, 1, MPI_INT, MPI_MAX,
 			MPI_COMM_WORLD);
-	
+
 	set_global_timestep(global_bin_max, global_bin_min);
 
 	Time.Max_Active_Bin = max_active_time_bin();
@@ -74,7 +77,7 @@ void Set_New_Timesteps()
 
 /*
  * The highest active time bin is the last set bit in the current
- * integer time.
+ * integer time. Think about it ...
  */
 
 static int max_active_time_bin()
@@ -84,15 +87,12 @@ static int max_active_time_bin()
 
 /* 
  * Find smallest allowed timestep for local particles 
- * and return local max & min of these bins
+ * and shared local max & min to these bins
  */
 
-static void set_particle_timebins(int *bin_max, int *bin_min)
+static void set_particle_timebins()
 {
-	int local_bin_min = N_INT_BINS-1; 
-	int local_bin_max = 0;
-	
-	#pragma omp for
+	#pragma omp for reduction(min:local_bin_min) reduction(max:local_bin_max)
 	for (int i = 0; i < NActive_Particles; i++) {
 		
 		int ipart = Active_Particle_List[i];
@@ -122,22 +122,14 @@ static void set_particle_timebins(int *bin_max, int *bin_min)
 		local_bin_max = MAX(local_bin_max, P[ipart].Time_Bin);
 	}
 
-	
-	#pragma omp critical // reduction
-	{
-
-	*bin_min = MIN(local_bin_min, *bin_min);
-	*bin_max = MAX(local_bin_max, *bin_max);
-	
-	}
-
-	#pragma omp barrier
-
 	return ;
 }
 
 /*
- * set global timestep and handle fullstep
+ * set global timestep and handle fullstep. We also have to consider
+ * the first and last step separately and stay in sync with the timeline,
+ * i.e. we can choose a longer timestep only if it the next time is a 
+ * multiple of it.
  */
 
 static void set_global_timestep(const int global_bin_max, 
@@ -145,16 +137,16 @@ static void set_global_timestep(const int global_bin_max,
 {
 	intime_t step_bin = (intime_t) 1 << global_bin_min; // step down
 
-	intime_t step_sync = // stay synced if smallest bin becomes empty 
-		(intime_t) 1 << COUNT_TRAILING_ZEROS(Int_Time.Current); 
+	intime_t step_sync =   
+		(intime_t) 1 << COUNT_TRAILING_ZEROS(Int_Time.Current); // stay synced 
 
-	if (Int_Time.Current == Int_Time.Beg) // treat beginning, t=0
+	if (Int_Time.Current == Int_Time.Beg) // treat beginning t0
 		step_sync = step_bin;
 	
-	intime_t step_end = Int_Time.End - Int_Time.Current; // don't overstep
+	intime_t step_end = Int_Time.End - Int_Time.Current; // don't overstep end
 
-	Int_Time.Step = Umin(step_end, Umin(step_bin, step_sync));
-	
+	Int_Time.Step = umin(step_end, umin(step_bin, step_sync));
+
 	Int_Time.Next += Int_Time.Step;
 
 	Time.Next = Integer2Physical_Time(Int_Time.Next);
@@ -199,7 +191,7 @@ void Setup_Time_Integration()
 
 	Int_Time.Current = Int_Time.Beg;
 
-	Time.Step_Max = (Time.End - Time.Begin);
+	Time.Step_Max = Time.End - Time.Begin;
 	Time.Step_Min =  Time.Step_Max / ((intime_t) 1 << (N_INT_BINS - 1) );
 
 	Time.Max_Active_Bin = N_INT_BINS - 1;
@@ -240,7 +232,6 @@ void Make_Active_Particle_List()
 
 /* 
  * Give the physical timestep from timebin and vice versa
- * Use Time.Step for the current system step 
  */
 
 double Timebin2Timestep(const int TimeBin)
@@ -329,7 +320,7 @@ static void print_timebins()
 #undef COUNT_TRAILING_ZEROS
 
 /* 
- * Cosmological N-body step, Dehnen & Read 2011, eq (21) 
+ * Cosmological N-body step, Dehnen & Read 2011, eq 21
  */
 
 static float cosmological_timestep(const int ipart)

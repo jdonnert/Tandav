@@ -13,35 +13,6 @@
 static peanoKey *Keys = NULL;
 static size_t *Idx = NULL;
 
-static void print_int_bits64(const uint64_t val)
-{
-	for (int i = 63; i >= 0; i--) {
-		
-		printf("%llu", (val & (1ULL << i) ) >> i);
-		
-		if (i % 3 == 0 && i != 0)
-			printf(".");
-	}
-	printf("\n");fflush(stdout);
-
-	return ;
-}
-
-static void print_int_bits128(const peanoKey val)
-{
-	for (int i = 127; i >= 0; i--) {
-
-		printf("%llu", 
-				(unsigned long long ) ((val & (((peanoKey) 1) << i) ) >> i));
-		
-		if ((i-1) % 3 == 0 && i != 0)
-			printf(".");
-	}
-
-	printf("\n");fflush(stdout);
-
-	return ;
-}
 
 int compare_peanoKeys(const void * a, const void *b)
 {
@@ -137,7 +108,7 @@ static void reorder_collisionless_particles()
  * have to be normalized between 0 < x < 1. Unfortunately it's not clear if 
  * a 128bit type would be portable, though all modern CPUs have 128 bit 
  * registers. Bits 0 & 1 are unused, the most significant bit is 63. Input has
- * to be double or its meaningless.
+ * to be double for full precision.
  * Yes it's totally arcane, run as fast as you can.
  *
  * Skilling 2004, AIP 707, 381: "Programming the Hilbert Curve"
@@ -244,16 +215,16 @@ peanoKey Reversed_Peano_Key(const double x, const double y, const double z)
 
 	/* Inverse undo */
 
-    for (uint64_t q = m; q > 1; q >>= 1 ) {
+    for (uint64_t q = m; q > 1; q >>= 1) {
 
         uint64_t P = q - 1;
         
-		if( X[0] & q ) 
+		if(X[0] & q) 
 			X[0] ^= P;  // invert
 
         for(int i = 1; i < 3; i++ ) {
 
-			if( X[i] & q ) {
+			if(X[i] & q) {
 
 				X[0] ^= P; // invert                              
 				
@@ -270,17 +241,17 @@ peanoKey Reversed_Peano_Key(const double x, const double y, const double z)
 
 	/* Gray encode (inverse of decode) */
 
-	for(int i = 1; i < 3; i++ )
+	for(int i = 1; i < 3; i++)
         X[i] ^= X[i-1];
 
     uint64_t t = X[2];
 
-    for(int i = 1; i < 64; i <<= 1 )
+    for(int i = 1; i < 64; i <<= 1)
         X[2] ^= X[2] >> i;
 
     t ^= X[2];
 
-    for(int i = 1; i >= 0; i-- )
+    for(int i = 1; i >= 0; i--)
         X[i] ^= t;
 
 	/* branch free reversed (!) bit interleave of transpose array X into key */
@@ -291,9 +262,7 @@ peanoKey Reversed_Peano_Key(const double x, const double y, const double z)
 
 	for (int i = 0; i < N_PEANO_TRIPLETS+1; i++) {
 
-		uint64_t col = ((X[0] & 0x0000000000000004) 
-					  | (X[1] & 0x0000000000000002) 
-					  | (X[2] & 0x0000000000000001));
+		uint64_t col = ((X[0] & 0x4) | (X[1] & 0x2) | (X[2] & 0x1));
 		
 		key <<= 3; 
 
@@ -307,6 +276,118 @@ peanoKey Reversed_Peano_Key(const double x, const double y, const double z)
 	key <<= 3; // include level 0
 
 	return key;
+}
+
+/* 
+ * Reversed key of 64 bit length
+ */
+
+shortKey Reversed_Short_Peano_Key(const float x, const float y, const float z)
+{
+#ifdef DEBUG // check input
+	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1] have %g", x);
+	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1] have %g", y);
+	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1] have %g", z);
+#endif
+
+	const uint32_t m = 1UL << 31; // = 2^63;
+
+	uint32_t X[3] = { y*m, z*m, x*m };
+
+	/* Inverse undo */
+
+    for (uint32_t q = m; q > 1; q >>= 1) {
+
+        uint32_t P = q - 1;
+        
+		if( X[0] & q ) 
+			X[0] ^= P;  // invert
+
+        for(int i = 1; i < 3; i++) {
+
+			if(X[i] & q) {
+
+				X[0] ^= P; // invert                              
+				
+			} else { 
+			
+				uint32_t t = (X[0] ^ X[i]) & P;  
+				
+				X[0] ^= t;  
+				X[i] ^= t; 
+			
+			} // exchange
+		} 
+    }
+
+	/* Gray encode (inverse of decode) */
+
+	for(int i = 1; i < 3; i++)
+        X[i] ^= X[i-1];
+
+    uint32_t t = X[2];
+
+    for(int i = 1; i < 32; i <<= 1)
+        X[2] ^= X[2] >> i;
+
+    t ^= X[2];
+
+    for(int i = 1; i >= 0; i--)
+        X[i] ^= t;
+
+	/* branch free reversed (!) bit interleave of transpose array X into key */
+
+	shortKey key = 0; 
+
+	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
+
+	for (int i = 0; i < 22; i++) {
+
+		uint32_t col = ((X[0] & 0x4) | (X[1] & 0x2) | (X[2] & 0x1));
+		
+		key <<= 3; 
+
+		key |= col; 
+
+		X[0] >>= 1; 
+		X[1] >>= 1; 
+		X[2] >>= 1;
+	} 
+	
+	key <<= 3; // include level 0
+
+	return key;
+}
+
+static void print_int_bits64(const uint64_t val)
+{
+	for (int i = 63; i >= 0; i--) {
+		
+		printf("%llu", (val & (1ULL << i) ) >> i);
+		
+		if (i % 3 == 0 && i != 0)
+			printf(".");
+	}
+	printf("\n");fflush(stdout);
+
+	return ;
+}
+
+
+static void print_int_bits128(const peanoKey val)
+{
+	for (int i = 127; i >= 0; i--) {
+
+		printf("%llu", 
+				(unsigned long long ) ((val & (((peanoKey) 1) << i) ) >> i));
+		
+		if ((i-1) % 3 == 0 && i != 0)
+			printf(".");
+	}
+
+	printf("\n");fflush(stdout);
+
+	return ;
 }
 
 void test_peanokey()

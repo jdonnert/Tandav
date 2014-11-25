@@ -1,5 +1,5 @@
 struct Bunch_Info { 
-	uint64_t Key;
+	shortKey Key;
 	float Pos[3];
 	int Target; 		// target >=0 -> MPI Rank, target<0 -> -(ipart+1)
 	int Npart;

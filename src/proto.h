@@ -33,7 +33,8 @@
 typedef float Float;		// type of floating point variables in P
 typedef uint32_t ID_t;		// type of particle ID
 typedef uint32_t intime_t; 	// type of integer time 
-typedef __uint128_t peanoKey;
+typedef __uint128_t peanoKey; // long peanokey, 42 triplets/levels
+typedef uint64_t shortKey;	// short peanokey, 21 triplets/levels
 
 #include "macro.h" 			// macro definitions
 #include "unit.h" 			// unit functions

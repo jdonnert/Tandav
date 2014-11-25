@@ -257,7 +257,7 @@ static void gravity_tree_walk_first(const int ipart, Float* Accel, Float *Pot)
 
 
 static void interact(const Float mass, const Float dr[3], const Float r2, 
-		Float Accel[3], Float Pot[1])
+		Float Accel[3], Float Pot*)
 {
 	const Float h_grav = GRAV_SOFTENING / 3.0; // Plummer equiv softening
 	
@@ -289,7 +289,7 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 	Accel[2] += acc_mag * dr[2] * r_inv;
 
 #ifdef GRAVITY_POTENTIAL
-	Pot[0] += -Const.Gravity * mass * r_inv_pot;
+	*Pot += -Const.Gravity * mass * r_inv_pot;
 #endif
 
 	return ;

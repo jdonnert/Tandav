@@ -115,7 +115,7 @@ static void fill_bunchlist(const int first_bunch, const int first_part,
 
 	#pragma omp for
 	for (int i = first_bunch; i < last_bunch; i++)
-		B[i].Target = B[i].First_Particle = B[i].Npart = B[i].CPU_Cost = 0;
+		B[i].Target =  B[i].Npart = B[i].CPU_Cost = 0;
 
 printf("DING ! \n");	
 	int i = first_bunch;
@@ -132,14 +132,18 @@ printf("DING ! \n");
 		while ((B[i].Key < pkey) && (i < last_bunch))  // particles are ordered
 			i++;
 
-		printf("%d %d %d %d ", ipart, i , B[i].Npart, B[i].First_Particle);
-
+		printf("%d %d %d ", ipart, i , B[i].Npart);
 		print_int_bits64(B[i].Key); printf("\n");
+
 		#pragma omp critical 
 		{
 
-		if (B[i].Npart == 0)
-			B[i].First_Particle = ipart;
+		if (B[i].Npart == 0) {
+		
+			B[i].Pos[0] = P[ipart].Pos[0];
+			B[i].Pos[1] = P[ipart].Pos[1];
+			B[i].Pos[2] = P[ipart].Pos[2];
+		}
 
 		B[i].Npart++;
 

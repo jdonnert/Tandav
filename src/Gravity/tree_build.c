@@ -41,12 +41,14 @@ void Gravity_Tree_Build()
 	Profile("Build Gravity Tree");
 
 	gravity_tree_init();
+	// build_top_tree();
+	// finalise_tree();
+	
+	rprintf("Top tree has %d node, maximum depth %d \n");
 
 	#pragma omp single
 	{
-
-	// build_top_tree();
-	// do_final_operations();
+	
 	NNodes = build_subtree(0, Task.Npart_Total, 0, 0);
 
 	printf("\nTree build: %zu nodes for %d particles\n", 
@@ -77,7 +79,7 @@ static void build_top_tree()
 
 	uint64_t last_key = Bunch[0].Key >> 3;
 
-	#pragma omp single
+	#pragma omp single nowait
 	for (int i = 1; i < NBunches; i++) {
 	
 		int node = 0;
@@ -107,7 +109,7 @@ static void build_top_tree()
 				lvl++;
 				key >>= 3;
 			
-			} else {
+			} else { // skip
 	
 				if (Tree[node].DNext == 0 || node == nNodes - 1)   
 					break; // reached end of branch or top tree
@@ -116,10 +118,10 @@ static void build_top_tree()
 			}
 		} // for (;;)
 
-		if (node_starts_new_branch) {
+		if (node_starts_new_branch && (B[i].Target < 0) ) { 
 		
 			#pragma omp task
-			build_subtree(B[i].Target, B[i].Npart, parent, parent)
+			build_subtree(-(B[i].Target+1), B[i].Npart, parent, parent)
 
 			NNodes += NODES_PER_PARTICLE * B[i].Npart; // space for subtree
 		}
@@ -131,9 +133,10 @@ static void build_top_tree()
 	
 		last_key = key >> 3;
 		last_parent = parent;
-	}
 
+	} // for (i < NBunches)
 
+	
 	return ;
 }
 

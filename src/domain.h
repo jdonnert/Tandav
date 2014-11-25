@@ -1,7 +1,7 @@
 struct Bunch_Info { 
-	uint64_t Key; 	// first peano key not in bunch anymore
-	int Target;
-	int First_Particle;
+	uint64_t Key;
+	float Pos[3];
+	int Target; 		// target >=0 -> MPI Rank, target<0 -> -(ipart+1)
 	int Npart;
 	float CPU_Cost;
 } *B; // These will also be the leafs of the dynamic top node tree

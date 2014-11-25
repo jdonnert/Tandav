@@ -1,7 +1,7 @@
 struct Bunch_Info { 
 	uint64_t Key;
-	int Target;
-	int First_Particle;
+	float Pos[3];
+	int Target; 		// negative targets are Ranks, positives are particles
 	int Npart;
 	float CPU_Cost;
 } *B; // These will also be the leafs of the dynamic top node tree

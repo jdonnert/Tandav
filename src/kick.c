@@ -30,6 +30,7 @@ void Kick_First_Halfstep()
 
 #ifdef GRAVITY_TREE
 		if (!Sig.Domain_Update) {
+
 			Float m_dt = P[ipart].Mass * dt; // kick tree nodes
 
 			Float dp[3] = { m_dt*P[ipart].Acc[0], m_dt*P[ipart].Acc[1], 

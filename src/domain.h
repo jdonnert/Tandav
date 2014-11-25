@@ -1,5 +1,5 @@
 struct Bunch_Info { 
-	uint64_t Key;
+	uint64_t Key; 	// first peano key not in bunch anymore
 	int Target;
 	int First_Particle;
 	int Npart;

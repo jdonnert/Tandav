@@ -13,6 +13,20 @@ static void communicate_particles();
 
 struct Bunch_Info *B = NULL;
 
+static void print_int_bits64(const uint64_t val)
+{
+	for (int i = 63; i >= 0; i--) {
+		
+		printf("%llu", (val & (1ULL << i) ) >> i);
+		
+		if (i % 3 == 0 && i != 0)
+			printf(".");
+	}
+	printf("\n");fflush(stdout);
+
+	return ;
+}
+
 /* 
  * This function distributes particles in bunches, which are continuous
  * on the Peano curve. The bunches correspond to nodes of the tree. 
@@ -28,11 +42,18 @@ void Domain_Decomposition()
 {
 	Profile("Domain Decomposition");
 
-#ifndef PERIODIC
 	find_global_domain();
-#endif
  	
 	Sort_Particles_By_Peano_Key();
+
+	fill_bunchlist(0, 0, NBunches, Task.Npart_Total);
+
+	for (int i = 0; i < NBunches; i++) {
+		printf("%d %d \n", i, B[i].Npart);
+		print_int_bits64(B[i].Key);
+	}
+	exit(0);
+	
 
 	/*
 	 while ((max_mem_imbal > 0.05) && (max_cpu_imbal > 0.05)) {
@@ -59,76 +80,74 @@ void Domain_Decomposition()
 
 void Init_Domain_Decomposition()
 {
-/*	NBunches = fmin(floor(log2(Sim.NTask)/log2(8)), 1) * NBUNCHES_PER_THREAD;
+	find_global_domain();
 
-	double nSide = log2(NBunches)/log2(8);
+	NBunches = 8;
+
+	int nSide = log2(NBunches)/log2(8);
 	
-	size_t nBytes = NBunches * sizeof(B); 
+	size_t nBytes = NBunches * sizeof(*B); 
 
 	B = Malloc(nBytes, "Bunchlist");
-	Tree2Bunch = Malloc(nBytes, "Tree2Bunch");
-	Bunch2Tree = Malloc(nBytes, "Bunch2Tree");
 
 	memset(B, 0, nBytes);
 
-	const double size = 1 / nSide;
+	const int shift = 63 - log2(NBunches);
 
-	int b = 0;
+	#pragma omp parallel for 
+	for (int i = 0; i < NBunches; i++) 
+		B[i].Key = (uint64_t) (i+1) << shift;  // all bit permutations 
 
-	#pragma omp parallel
-	{
-	
-	#pragma omp single nowait
-	for (int i = 0; i < nSide; i++) {
+	rprintf("Domain Decomposition: \n"
+			"   %d Bunches @ Level %d for %d Tasks\n"
+			"   Initial size %g, origin at %4g %4g %4g \n\n", 
+			NBunches, nSide, Sim.NTask, Domain.Size, Domain.Origin[0],
+			Domain.Origin[1], Domain.Origin[2]);
 
-		for (int j = 0; j < nSide; j++) {
-		
-			for (int k = 0; k < nSide; k++) {
-				
-				double x =  i * size;
-				double y =  j * size;
-				double z =  k * size;
-				
-				Bunchlist[b].Key = Peano_Key(x,y,z) >> 64;
-
-				b++;
-			}
-		}
-	}
-
-	find_global_domain();
-	
-	} // omp parallel
-
-	rprintf("Domain Decomposition: %d Bunches @ Level %d\n"
-			"   Initial size %g, origin at %4g %4g %4g \n\n", NBunches, nSide,
-			Domain.Size, Domain.Origin[0],Domain.Origin[1], Domain.Origin[2]);
-*/
 	return;
 }
 
-static void fill_bunchlist()
+static void fill_bunchlist(const int first_bunch, const int first_part, 
+		const int nBunch, const nPart)
 {
-	/*int i = 0;
+	const int last_bunch = first_bunch + nBunch + 1;
+	const int last_part = first_part + nPart + 1;
 
-	memset(&B[i].Target, 0, sizeof(*B)-sizeof(uint64_t));
+	#pragma omp for
+	for (int i = first_bunch; i < last_bunch; i++)
+		B[i].Target = B[i].First_Particle = B[i].Npart = B[i].CPU_Cost = 0;
 
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+printf("DING ! \n");	
+	int i = first_bunch;
+
+	#pragma omp for
+	for (int ipart = first_part; ipart < last_part; ipart++) {
 		
 		Float px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
 		Float py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
 		Float pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
-		uint64_t key = Peano_Key(px, py, pz) >> 64;
+		uint64_t pkey = Peano_Key(px, py, pz) >> 64;
 
-		while (B[i].Key < key) // particles are ordered
-			memset(&B[i++].Target, 0, sizeof(*B)-sizeof(64/CHAR_BIT));
+		while ((B[i].Key < pkey) && (i < last_bunch))  // particles are ordered
+			i++;
+
+		printf("%d %d %d %d ", ipart, i , B[i].Npart, B[i].First_Particle);
+
+		print_int_bits64(B[i].Key); printf("\n");
+		#pragma omp critical 
+		{
+
+		if (B[i].Npart == 0)
+			B[i].First_Particle = ipart;
 
 		B[i].Npart++;
+
 		//B[i].CPU_Cost += P[ipart].Cost;
-	
+		} // omp critical
+
 	}
-*/
+
 	return ;
 }
 
@@ -150,7 +169,7 @@ static void update_bunchlist()
 
 
 /*
- * This finds the global domain origin and the maximum extend
+ * Find the global domain origin and the maximum extent
  */
 
 double max_x = -DBL_MAX, max_y = -DBL_MAX, max_z = -DBL_MAX, 
@@ -158,6 +177,18 @@ double max_x = -DBL_MAX, max_y = -DBL_MAX, max_z = -DBL_MAX,
 
 static void find_global_domain()
 {
+
+#ifdef PERIODIC
+	
+	Domain.Origin[0] = Domain.Origin[1] = Domain.Origin[2] = 0;
+
+	Domain.Size = fmax(Sim.Boxsize[0], fmax(Sim.Boxsize[1], Sim.Boxsize[2]));
+	
+	Domain.Center[0] = Domain.Origin[0] + Domain.Size/2;
+	Domain.Center[1] = Domain.Origin[1] + Domain.Size/2;
+	Domain.Center[2] = Domain.Origin[2] + Domain.Size/2;
+
+#else // ! PERIODIC
 
 	#pragma omp for reduction(max:max_x,max_y,max_z) \
 		reduction(min:min_x,min_y,min_z)
@@ -191,11 +222,7 @@ static void find_global_domain()
 	Domain.Size = fmax(Domain.Size, fabs(global_max[1] - global_min[1]));
 	Domain.Size = fmax(Domain.Size, fabs(global_max[2] - global_min[2]));
 
-#ifndef PERIODIC
-	Sim.Boxsize[0] = Domain.Size;
-	Sim.Boxsize[1] = Domain.Size;
-	Sim.Boxsize[2] = Domain.Size;
-#endif // PERIODIC
+	Sim.Boxsize[0] = Sim.Boxsize[1] = Sim.Boxsize[2] = Domain.Size;
 
 	Domain.Origin[0] = global_min[0];
 	Domain.Origin[1] = global_min[1];
@@ -206,6 +233,8 @@ static void find_global_domain()
 	Domain.Center[2] = Domain.Origin[2] + 0.5 * Domain.Size;
 	
 	} // omp single
+
+#endif // PERIODIC
 
 #ifdef DEBUG
 	printf("\nDomain size %g, origin at %4g %4g %4g \n\n", 

@@ -110,9 +110,8 @@ void Drift_To_Snaptime()
 #ifdef PERIODIC
 static void Constrain_Particles_To_Box()
 {
-	const double boxsize[3] = { Sim.Boxsize[0],
-								Sim.Boxsize[1],
-								Sim.Boxsize[2]};
+	const Float boxsize[3] = {Sim.Boxsize[0], Sim.Boxsize[1], Sim.Boxsize[2]};
+
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 		

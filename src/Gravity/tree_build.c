@@ -344,6 +344,12 @@ static int build_subtree(const int istart, const int npart, const int offset,
 				nNodes = n + 1;
 
 				memset(&Tree[nNodes], 0, nZero*sizeof(*Tree));
+
+				int first = -(Tree[n].DNext + 1); // correct parent pointer
+				int last = first + Tree[n].Npart;
+
+				for (int jpart = first; jpart < last; jpart++)
+					P[jpart].Tree_Parent = n;
 			}	
 		}
 	

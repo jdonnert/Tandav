@@ -1,20 +1,9 @@
 #include "../globals.h"
-#include "gravity.h"
-#include "../domain.h"
 
 #ifdef GRAVITY_TREE
 
-static struct GravityDataForExport {
-	int Target_Task;
-	Float Pos[3];
-	Float Acc;
-} DataOut;
-
-static struct GravityDataForImport {
-	int Target_Part;
-	Float Acc[3];
-	Float Cost;
-} DataIn;
+#include "gravity.h"
+#include "../domain.h"
 
 static void gravity_tree_walk(const int ipart, Float*, Float*);
 static void gravity_tree_walk_first(const int ipart, Float*, Float*);
@@ -23,12 +12,11 @@ static void interact(const Float,const Float *,const Float,Float *,Float *);
 
 static inline Float node_size(const int node);
 
-static inline int level(const int node)
-{
-	const uint32_t bitmask = 0x3F;
-
-	return Tree[node].Bitfield & bitmask; // return but 0-5
-}
+/*
+ * Walk the tree and estimate gravitational acceleration using two different
+ * opening criteria. Also open all nodes containing ipart to avoid large 
+ * maximum errors. Barnes & Hut 1984, Springel 2006, Dehnen & Read 2012.
+ */
 
 void Gravity_Tree_Acceleration()
 {
@@ -109,7 +97,7 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 
 /*
  * This function walks the local tree and computes the gravitational 
- * acceleration.
+ * acceleration using Springels relative opening criterion.
  * If we encounter a particle bundle we interact with all of them.
  */
 
@@ -195,6 +183,10 @@ static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
 	return ;
 }
 
+/*
+ * Walk tree an used the B&H opening criterion, which does not require a prior
+ * particle acceleration.
+ */
 static void gravity_tree_walk_first(const int ipart, Float* Accel, Float *Pot)
 {
 	int node = 1;
@@ -256,8 +248,13 @@ static void gravity_tree_walk_first(const int ipart, Float* Accel, Float *Pot)
 }
 
 
+/*
+ * Gravitational force law using Wendland C2 softening kernel with central 
+ * value corresponding to Plummer softening.
+ */
+
 static void interact(const Float mass, const Float dr[3], const Float r2, 
-		Float Accel[3], Float Pot*)
+		Float Accel[3], Float *Pot)
 {
 	const Float h_grav = GRAV_SOFTENING / 3.0; // Plummer equiv softening
 	
@@ -275,10 +272,11 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 		Float u2 = u*u;
 		Float u3 = u2*u;
 			
-		r_inv = sqrt(14*u- 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3) / h_grav;
+		r_inv = sqrt(14*u - 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3) / h_grav;
 
 #ifdef GRAVITY_POTENTIAL
-		r_inv_pot = (7*u2-21*u2*u2+28*u3*u2-15*u3*u3+u3*u3*u*8-3)/h_grav;
+		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3)
+			/h_grav;
 #endif
 	} 
 	

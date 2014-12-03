@@ -35,4 +35,10 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node);
 
 #endif // GRAVITY_TREE
 
+#ifdef GRAVITY_MULTI_GRID
+
+void Gravity_Multi_Long_Range();
+
+#endif // GRAVITY_MULTI_GRID
+
 #endif // GRAVITY

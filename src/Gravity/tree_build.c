@@ -150,9 +150,10 @@ static void build_top_tree()
 /* 
  * We complete the tree by walking the topnode tree backwards adding bunch node
  * properties. 
- * After the initial build, some DNext pointers are 0. This is corrected 
+ * After the initial build, some inner DNext pointers are 0. This is corrected 
  * setting these pointers and closing the P-H curve through the tree.
- * Finally we do some final operations on the node contents.
+ * Finally we do some final operations on the node contents. Computation can 
+ * be nicely overlapped with Open MP.
  */
 
 static void finalise_tree()
@@ -230,15 +231,15 @@ static void finalise_tree()
  * are in Peano-Hilbert order, i.e. that a particle will branch off as late as 
  * possible from the previous one.
  * In the tree, DNext is the difference to the next sibling in the walk, if the
- * node is not opened. Opening a node is then node++. If DNext is negative it 
+ * node is not opened. Opening a node is then node++. If DNext is negative, it 
  * points to Npart particles starting at ipart=-DNext-1, and the next node in 
- * line is node++. DNext=0 is only at the root node. The tree saves only one 
- * particle per node, up to eight are combined in a node.
- * This is achieved on the fly in an explicit cleaning step when a particle 
- * opens a new branch. 
+ * line is node++. DNext=0 is only once per level, at the end of the branch. 
+ * The tree saves only one particle per node, up to eight are combined in a 
+ * node. This is achieved on the fly in an explicit cleaning step when a
+ * particle opens a new branch. 
  * If the tree reaches the dynamic range of the 128bit Peano-Hilbert key, it 
- * dumps all particles in the last node, making the algorithm effectively N^2 
- * again. This happens at maximum depth of 42 which is a distance of 
+ * dumps all particles in the level 42 node, making the algorithm effectively 
+ * N^2  again. This happens at a depth, which corresponds to a distance of 
  * Domain.Size/2^42, hence only occurs with double precision positions. The 
  * Tree.Bitfield contains the level of the node and the Peano-Triplet of the 
  * node at that level. See Tree definition in gravity.h. 

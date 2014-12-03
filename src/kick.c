@@ -1,5 +1,6 @@
 #include "globals.h"
 #include "timestep.h"
+#include "Gravity/gravity.h"
 
 /* 
  * This is the Kick part of the KDK scheme. We update velocities from 

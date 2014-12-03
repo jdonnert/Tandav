@@ -1,5 +1,6 @@
 #include "globals.h"
 #include "timestep.h"
+#include "Gravity/gravity.h"
 
 #ifdef PERIODIC
 static void Constrain_Particles_To_Box();

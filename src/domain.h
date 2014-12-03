@@ -4,6 +4,7 @@ struct Bunch_Info {
 	int Target; 		// target >=0 -> MPI Rank, target<0 -> -(ipart+1)
 	int Npart;
 	float CPU_Cost;
+	int Level;
 } *B; // These will also be the leafs of the dynamic top node tree
 
 //int *Tree2Bunch = NULL, *Bunch2Tree = NULL;

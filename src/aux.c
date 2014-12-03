@@ -52,6 +52,45 @@ Float Sign(const Float x)
 	return ((Float)0 < x) - (x < (Float)0);
 }
 
+/*
+ * Show bits of an unsigned integer in triplets
+ */
+
+void Print_Int_Bits64(const uint64_t val)
+{
+	for (int i = 63; i >= 0; i--) {
+		
+		printf("%llu", (val & (1ULL << i) ) >> i);
+		
+		if (i % 3 == 0 && i != 0)
+			printf(".");
+	}
+	printf("\n"); 
+	
+	fflush(stdout);
+
+	return ;
+}
+
+void Print_Int_Bits128(const __uint128_t val)
+{
+	for (int i = 127; i >= 0; i--) {
+
+		printf("%llu", 
+				(unsigned long long ) 
+				((val & (((__uint128_t) 1) << i)) >> i));
+		
+		if ((i-1) % 3 == 0 && i != 0)
+			printf(".");
+	}
+
+	printf("\n");
+	
+	fflush(stdout);
+
+	return ;
+}
+
 /* 
  * Reallocate the Particle structures. Takes the relative change
  * as argument, not the total number. Add or Remove via sign of nPart.

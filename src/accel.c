@@ -44,7 +44,7 @@ static void accel_gravity()
 		Gravity_Tree_Acceleration();
 
 #ifdef PERIODIC
-	Gravity_Tree_Periodic();
+	Gravity_Tree_Ewald_Correction();
 #endif	
 
 #endif // GRAVITY_TREE

@@ -13,7 +13,6 @@
 static peanoKey *Keys = NULL;
 static size_t *Idx = NULL;
 
-
 int compare_peanoKeys(const void * a, const void *b)
 {
 	const peanoKey *x = (const peanoKey *) a;
@@ -359,36 +358,6 @@ shortKey Reversed_Short_Peano_Key(const float x, const float y, const float z)
 	return key;
 }
 
-static void print_int_bits64(const uint64_t val)
-{
-	for (int i = 63; i >= 0; i--) {
-		
-		printf("%llu", (val & (1ULL << i) ) >> i);
-		
-		if (i % 3 == 0 && i != 0)
-			printf(".");
-	}
-	printf("\n");fflush(stdout);
-
-	return ;
-}
-
-
-static void print_int_bits128(const peanoKey val)
-{
-	for (int i = 127; i >= 0; i--) {
-
-		printf("%llu", 
-				(unsigned long long ) ((val & (((peanoKey) 1) << i) ) >> i));
-		
-		if ((i-1) % 3 == 0 && i != 0)
-			printf(".");
-	}
-
-	printf("\n");fflush(stdout);
-
-	return ;
-}
 
 void test_peanokey()
 {
@@ -409,10 +378,11 @@ void test_peanokey()
 		peanoKey stdkey =  Peano_Key(a[0], a[1], a[2]);
 		peanoKey revkey =  Reversed_Peano_Key(a[0], a[1], a[2]);
 
-		printf("%g %g %g %llu %llu  \n", a[0], a[1], a[2], stdkey >> 64);
+		printf("%g %g %g %llu  \n", a[0], a[1], a[2], 
+				(unsigned long long)(stdkey >> 64));
 
-		print_int_bits128(stdkey);
-		print_int_bits128(revkey);
+		Print_Int_Bits128(stdkey);
+		Print_Int_Bits128(revkey);
 
 		printf("\n");
 	}

@@ -2,30 +2,16 @@
 #include "domain.h"
 #include "peano.h"
 
-#define NBUNCHES_PER_THREAD 64
+#define DOMAIN_SPLIT_MEM_THRES (0.05)
 
 static void find_global_domain();
-static void fill_bunchlist();
-static double compute_imbalance();
-static void split_bunches();
-static void update_bunchlist();
+static void fill_bunches(const int, const int, const int, const int);
+static bool bunch_overloaded(const int b);
+static int split_bunch(const int i);
 static void communicate_particles();
+static int compare_bunches(const void *a, const void *b);
 
 struct Bunch_Info *B = NULL;
-
-static void print_int_bits64(const uint64_t val)
-{
-	for (int i = 63; i >= 0; i--) {
-		
-		printf("%llu", (val & (1ULL << i) ) >> i);
-		
-		if (i % 3 == 0 && i != 0)
-			printf(".");
-	}
-	printf("\n");fflush(stdout);
-
-	return ;
-}
 
 /* 
  * This function distributes particles in bunches, which are continuous
@@ -46,24 +32,45 @@ void Domain_Decomposition()
  	
 	Sort_Particles_By_Peano_Key();
 
-	fill_bunchlist(0, 0, NBunches, Task.Npart_Total);
+	#pragma omp for
+	for (int i = 0; i < NBunches; i++) // reset bunchlist
+		B[i].Target =  B[i].Npart = B[i].CPU_Cost = 0;
+
+	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
 
 	for (int i = 0; i < NBunches; i++) {
 		printf("%d %d \n", i, B[i].Npart);
-		print_int_bits64(B[i].Key);
+		Print_Int_Bits64(B[i].Key);
 	}
-	exit(0);
+printf("-----------------------\n");
+	// while (total_imbalance < X) {
 	
+	int old_nBunches = NBunches;
+	
+	for (int i = 0; i < old_nBunches; i++ ) {
+	
+		if (bunch_overloaded(i)) { // split into 8
+printf("split %d \n", i);	
+			int first_new_bunch = split_bunch(i);
+
+			fill_bunches(first_new_bunch, 8, B[i].Target, B[i].Npart);
+
+			memset(&B[i], 0, sizeof(*B));
+		}
+	}
+
+	for (int i = 0; i < NBunches; i++) {
+		printf("%d %d \n", i, B[i].Npart);
+		Print_Int_Bits64(B[i].Key);
+	}
+	
+	Qsort(Sim.NThreads, B, NBunches, sizeof(*B), &compare_bunches);
+
+	if (old_nBunches - NBunches == 0) // reuse old distribution 
+		goto skip;
 
 	/*
 	 while ((max_mem_imbal > 0.05) && (max_cpu_imbal > 0.05)) {
-	
-	  distribute();
-	  decompose();
-
-	  double max_mem_imbal = 0; 
-	  double max_cpu_imbal = 0; 
-	  measure(&max_mem_imbal, &max_cpu_imbal);
 
 		
 	  } 
@@ -71,10 +78,12 @@ void Domain_Decomposition()
 	communicate_particles();
 	*/
 
+	skip:;
+
  	Sort_Particles_By_Peano_Key();
 
 	Profile("Domain Decomposition");
-
+exit(0);
 	return ;
 }
 
@@ -94,9 +103,24 @@ void Init_Domain_Decomposition()
 
 	const int shift = 63 - log2(NBunches);
 
+	const double size = 0.5 * Domain.Size;
+
 	#pragma omp parallel for 
-	for (int i = 0; i < NBunches; i++) 
-		B[i].Key = (uint64_t) (i+1) << shift;  // all bit permutations 
+	for (int i = 0; i < NBunches; i++) { 
+	
+		B[i].Level = 1;
+
+		double px =  0.25 + 0.5 * (i & 1); // position in domain units
+		double py =  0.25 + 0.5 * (i & 2) >> 1;
+		double pz =  0.25 + 0.5 * (i & 4) >> 2;
+
+		B[i].Key = Peano_Key(px, py, pz);   
+
+		B[i].Pos[0] = Domain.Corner[0] + px * Domain.Size;
+		B[i].Pos[1] = Domain.Corner[1] + py * Domain.Size;
+		B[i].Pos[2] = Domain.Corner[2] + pz * Domain.Size;
+		
+	}
 
 	rprintf("Domain Decomposition: \n"
 			"   %d Bunches @ Level %d for %d Tasks\n"
@@ -107,17 +131,11 @@ void Init_Domain_Decomposition()
 	return;
 }
 
-static void fill_bunchlist(const int first_bunch, const int first_part, 
-		const int nBunch, const nPart)
+static void fill_bunches(const int first_bunch, const int nBunch, 
+		 const int first_part, const int nPart)
 {
-	const int last_bunch = first_bunch + nBunch + 1;
 	const int last_part = first_part + nPart + 1;
-
-	#pragma omp for
-	for (int i = first_bunch; i < last_bunch; i++)
-		B[i].Target =  B[i].Npart = B[i].CPU_Cost = 0;
-
-printf("DING ! \n");	
+	
 	int i = first_bunch;
 
 	#pragma omp for
@@ -127,50 +145,82 @@ printf("DING ! \n");
 		Float py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
 		Float pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
-		uint64_t pkey = Peano_Key(px, py, pz) >> 64;
+		shortKey pkey = Peano_Key(px, py, pz) >> 64;
 
-		while ((B[i].Key < pkey) && (i < last_bunch))  // particles are ordered
+		while (B[i].Key < pkey) // particles are ordered
 			i++;
 
-		printf("%d %d %d ", ipart, i , B[i].Npart);
-		print_int_bits64(B[i].Key); printf("\n");
-
-		#pragma omp critical 
-		{
-
-		if (B[i].Npart == 0) {
-		
-			B[i].Pos[0] = P[ipart].Pos[0];
-			B[i].Pos[1] = P[ipart].Pos[1];
-			B[i].Pos[2] = P[ipart].Pos[2];
-		}
-
+		#pragma omp atomic
 		B[i].Npart++;
 
+		//#pragma omp atomic
 		//B[i].CPU_Cost += P[ipart].Cost;
-		} // omp critical
 
 	}
 
 	return ;
 }
 
-static double compute_imbalance()
+/*
+ * This function defines the metric that decides if a bunch has to be refined
+ * into eight sub-bunches.
+ */
+
+static bool bunch_overloaded(const int b)
 {
-	return 1;
+	bool result = false;
+
+	const int64_t mean_npart = Sim.Npart_Total / NBunches;
+
+	double rel_mem_load = (double)(B[b].Npart - mean_npart) / mean_npart;
+printf("%d %g \n",b , rel_mem_load);
+	if (rel_mem_load > 1 + DOMAIN_SPLIT_MEM_THRES)
+		result = true;
+
+	return result;
 }
+
+static int split_bunch(const int src)
+{
+	#pragma omp atomic 
+	NBunches += 8;
+
+	const int first = NBunches - 8;
+
+	for (int i = ; i < 8; i++) {
+
+		int dest = first + i;
+
+		B[dest].Size = 0.5 * B[src].Size;
+
+		B[dest].Pos[0] = B[src].Pos[0] + (-0.5 + (i & 1)) * B[dest].Size;
+		B[dest].Pos[1] = B[src].Pos[1] + (-0.5 + (i & 2) >> 1) * B[dest].Size;
+		B[dest].Pos[2] = B[src].Pos[2] + (-0.5 + (i & 4) >> 2) * B[dest].Size;
+
+		double bx = (B[dest].Pos[0] - Domain.Corner[0] ) / Domain.Size;
+		double by = (B[dest].Pos[1] - Domain.Corner[1] ) / Domain.Size;
+		double bz = (B[dest].Pos[2] - Domain.Corner[2] ) / Domain.Size;
+
+		B[i].Key = Peano_Key(bx, by, bz) >> 64;
+
+	}
+
+	return dest;
+}
+
+static int compare_bunches(const void *a, const void *b) 
+{
+	const struct Bunch_Info *x = (const struct Bunch_Info *) a;
+	const struct Bunch_Info *y = (const struct Bunch_Info *) b;
+
+	return (int) (x->Key > y->Key) - (x->Key < y->Key);
+}
+
 
 static void communicate_particles()
 {
 	return ;
 }
-
-static void update_bunchlist()
-{
-	return ;
-}
-
-
 
 /*
  * Find the global domain origin and the maximum extent

@@ -1,5 +1,3 @@
-/* Some useful macros */
-
 #if __STDC_VERSION__ < 199901L
 # error Recompile with C99 support
 #endif
@@ -19,5 +17,4 @@
 #define p2(a) ((a)*(a))  
 #define p3(a) ((a)*(a)*(a))
 
-/* Dependencies between Config switches */
 

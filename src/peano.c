@@ -278,8 +278,88 @@ peanoKey Reversed_Peano_Key(const double x, const double y, const double z)
 }
 
 /* 
- * Reversed key of 64 bit length
+ * Keys of 64 bit length (21 triplets), standard and reversed
  */
+
+shortKey Short_Peano_Key(const float x, const float y, const float z)
+{
+#ifdef DEBUG // check input
+	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1] have %g", x);
+	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1] have %g", y);
+	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1] have %g", z);
+#endif
+
+	const uint32_t m = 1UL << 31; // = 2^63;
+
+	uint32_t X[3] = { y*m, z*m, x*m };
+
+	/* Inverse undo */
+
+    for (uint32_t q = m; q > 1; q >>= 1 ) {
+
+        uint32_t P = q - 1;
+        
+		if( X[0] & q ) 
+			X[0] ^= P;  // invert
+
+        for(int i = 1; i < 3; i++ ) {
+
+			if( X[i] & q ) {
+
+				X[0] ^= P; // invert                              
+				
+			} else { 
+			
+				uint32_t t = (X[0] ^ X[i]) & P;  
+				
+				X[0] ^= t;  
+				X[i] ^= t; 
+			
+			} // exchange
+		}
+    }
+
+	/* Gray encode (inverse of decode) */
+
+	for(int i = 1; i < 3; i++ )
+        X[i] ^= X[i-1];
+
+    uint32_t t = X[2];
+
+    for(int i = 1; i < 32; i <<= 1 )
+        X[2] ^= X[2] >> i;
+
+    t ^= X[2];
+
+    for(int i = 1; i >= 0; i-- )
+        X[i] ^= t;
+
+	/* branch free bit interleave of transpose array X into key */
+
+	peanoKey key = 0; 
+
+	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
+
+	for (int i = 0; i < 22; i++) {
+
+		uint64_t col = ((X[0] & 0x80000000) 
+					  | (X[1] & 0x40000000) 
+					  | (X[2] & 0x20000000)) >> 29;
+		
+		key <<= 3; 
+
+		X[0] <<= 1; 
+		X[1] <<= 1; 
+		X[2] <<= 1;
+
+		key |= col; 
+	} 
+	
+	key <<= 2;
+
+	return key;
+}
+
 
 shortKey Reversed_Short_Peano_Key(const float x, const float y, const float z)
 {
@@ -289,7 +369,7 @@ shortKey Reversed_Short_Peano_Key(const float x, const float y, const float z)
 	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1] have %g", z);
 #endif
 
-	const uint32_t m = 1UL << 31; // = 2^63;
+	const uint32_t m = 1UL << 31; // = 2^31;
 
 	uint32_t X[3] = { y*m, z*m, x*m };
 

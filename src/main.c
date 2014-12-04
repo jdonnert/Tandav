@@ -8,6 +8,7 @@
 #include "peano.h"
 #include "accel.h"
 #include "IO/io.h"
+#include "Gravity/gravity.h"
 
 static void preamble(int argc, char *argv[]);
 
@@ -73,13 +74,14 @@ int main(int argc, char *argv[])
 
 /* 
  * Here we do OpenMP and MPI init: 
- * Because of Thread Parallelism, every thread has a MPI rank 
- * Task.Rank and a ThreadID.
- * There is a global MPI master with Task.Is_MPI_Master = true. 
+ * Because of Thread Parallelism, every thread has an MPI rank 
+ * Task.Rank and a Thread ID Task.Thread_ID.
+ * There is a global MPI master with Task.Is_MPI_Master == true. 
  * On every MPI rank there is a main thread on which 
- * Task.Is_Thread_Main = true. Every thread 
+ * Task.Is_Thread_Main == true. Every thread 
  * is treated as its own MPI task, including communication.
- * Always use Task.MPI_Rank inside an omp single region.
+ * Always use Task.MPI_Rank inside an omp single region. In a parallel region
+ * use Task.Rank to identify a thread on an CPU.
  */
 
 static void preamble(int argc, char *argv[])
@@ -110,7 +112,7 @@ static void preamble(int argc, char *argv[])
 		if (Task.Rank == MASTER)
 			Task.Is_MPI_Master = true;
 		
-		Task.Seed[2] = 14041981L * (Task.Thread_ID+1); // init thread safe rng
+		Task.Seed[2] = 14041981L * (Task.Thread_ID); // init thread safe rng
 
 	   	erand48(Task.Seed); // remove first 0 in some implementations
 
@@ -134,16 +136,29 @@ static void preamble(int argc, char *argv[])
 				Sim.NRank, Sim.NThreads);
 		
 		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
+		printf("\nsizeof(*B) = %zu byte\n", sizeof(*B)*CHAR_BIT/8);
+#ifdef GRAVITY_TREE
+		printf("\nsizeof(*Tree) = %zu byte\n", sizeof(*Tree)*CHAR_BIT/8);
+#endif
 
 	}
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);
 	
-	if (argc > 2) // Start Flag given
+	if (argc > 2) // Start Flag given ?
 		Param.Start_Flag = atoi(argv[2]);
+	else
+		Param.Start_Flag = 0;
 
-	if (Param.Start_Flag == 10) 
+	//if (Param.Start_Flag == 1) 
+		//Restore_From_Restart_File();
+
+	if (Param.Start_Flag == 10) {
+
 		Write_Parameter_File(Param.File); // dead end
+
+		Finish();
+	}
 
 	MPI_Barrier(MPI_COMM_WORLD);
 

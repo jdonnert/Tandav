@@ -1,18 +1,18 @@
-struct Bunch_Info { 
-	shortKey Key;
-	float Pos[3];
+struct Bunch_Info { // These will also be the leafs of the dynamic top node tree
+	shortKey Key;		// Largest Peano key held by this bunch
+	float Sample_Pos[3];// Random (!!!) position inside the bunch 
 	int Target; 		// target >=0 -> MPI Rank, target<0 -> -(ipart+1)
 	int Npart;
 	float CPU_Cost;
 	int Level;
-} *B; // These will also be the leafs of the dynamic top node tree
+} *B; 
 
 //int *Tree2Bunch = NULL, *Bunch2Tree = NULL;
 
 struct Domain_Properties {  
-	double Size;		// size of smallest cubic box containing all parts
-	double Origin[3];	// origin of smallest cubic box containing all parts
-	double Center[3];	// center of smallest cubic box containing all parts
+	double Size;		// size of smallest cubic box containing all particles
+	double Origin[3];	// origin of smallest cubic box containing all particles
+	double Center[3];	// center of smallest cubic box containing all partciles
 } Domain;
 
 int NBunches;

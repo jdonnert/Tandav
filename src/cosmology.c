@@ -2,13 +2,16 @@
 #include "timestep.h"
 
 struct CurrentCosmologyInCodeUnits Cosmo = { 
-	HUBBLE_CONST, OMEGA_LAMBDA, 
+	HUBBLE_CONST, 
+	OMEGA_LAMBDA, 
 	(OMEGA_0 - OMEGA_LAMBDA - OMEGA_RAD)*p2(HUBBLE_CONST/100.0), // Omega_M
-	OMEGA_BARYON * p2(HUBBLE_CONST/100.0), OMEGA_0, 
+	OMEGA_BARYON * p2(HUBBLE_CONST/100.0), 
+	OMEGA_0, 
 	OMEGA_RAD / p2(HUBBLE_CONST/100.0), 
 	3/8/PI/(GRAVITATIONAL_CONST/p3(VELOCITY2CGS)/TIME2CGS*MASS2CGS)
-		*p2(HUBBLE_CONST), 	// rho_crit0, can't use Const.Gravity here :-(
-	0 };
+	*p2(HUBBLE_CONST), 	// rho_crit0, can't use Const.Gravity here :-(
+	0 
+};
 
 /*
  * This updates the Cosmo structure to the current Time.Current == a

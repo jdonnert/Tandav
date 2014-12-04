@@ -3,6 +3,7 @@
 #include "peano.h"
 
 #define DOMAIN_SPLIT_MEM_THRES (0.05)
+#define DOMAIN_NBUNCHES_PER_THREAD 8
 
 static void find_global_domain();
 static void fill_bunches(const int, const int, const int, const int);
@@ -91,44 +92,59 @@ void Init_Domain_Decomposition()
 {
 	find_global_domain();
 
-	NBunches = 8;
+	NBunches = 1;
 
-	int nSide = log2(NBunches)/log2(8);
-	
-	size_t nBytes = NBunches * sizeof(*B); 
+	size_t nBytes = 8 * Sim.NTask* DOMAIN_NBUNCHES_PER_THREAD * sizeof(*B); 
 
 	B = Malloc(nBytes, "Bunchlist");
 
 	memset(B, 0, nBytes);
 
-	const int shift = 63 - log2(NBunches);
+	B[0].Key = 0xFFFFFFFFFFFFFFFF;
+	B[0].Sample_Pos[0] = Domain.Origin[0] + 0.5 * Domain.Size;
+	B[0].Sample_Pos[1] = Domain.Origin[1] + 0.5 * Domain.Size;
+	B[0].Sample_Pos[2] = Domain.Origin[2] + 0.5 * Domain.Size;
+	B[0].Npart = Sim.Npart_Total;
+	B[0].Level = B[0].Target = 0;
 
-	const double size = 0.5 * Domain.Size;
+	split_bunch(0); // make first 8 
 
-	#pragma omp parallel for 
-	for (int i = 0; i < NBunches; i++) { 
-	
-		B[i].Level = 1;
-
-		double px =  0.25 + 0.5 * (i & 1); // position in domain units
-		double py =  0.25 + 0.5 * (i & 2) >> 1;
-		double pz =  0.25 + 0.5 * (i & 4) >> 2;
-
-		B[i].Key = Peano_Key(px, py, pz);   
-
-		B[i].Pos[0] = Domain.Corner[0] + px * Domain.Size;
-		B[i].Pos[1] = Domain.Corner[1] + py * Domain.Size;
-		B[i].Pos[2] = Domain.Corner[2] + pz * Domain.Size;
-		
-	}
+	Qsort(Sim.NThreads, B, NBunches, sizeof(*B), &compare_bunches);
 
 	rprintf("Domain Decomposition: \n"
-			"   %d Bunches @ Level %d for %d Tasks\n"
 			"   Initial size %g, origin at %4g %4g %4g \n\n", 
-			NBunches, nSide, Sim.NTask, Domain.Size, Domain.Origin[0],
-			Domain.Origin[1], Domain.Origin[2]);
+			Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2]);
 
 	return;
+}
+
+/*
+ * We split a bunch into 8 sub-bunches/nodes, adding the largest peano key 
+ * contained in the bunch. The position of the bunch is set during filling to 
+ * a random particle position. From it we can later construct the top node 
+ * position during Tree construction.
+ */
+
+static int split_bunch(const int parent)
+{
+	#pragma omp atomic 
+	NBunches += 8;
+
+	const int first = NBunches - 8; // add new nodes at the end
+printf("First %d \n", first);
+	for (int i = 0; i < 8; i++) {
+
+		int dest = first + i;
+
+		B[dest].Level = B[parent].Level + 1;
+
+		shortKey bitmask = 0xFFFFFFFFFFFFFFFF >> (3 * B[dest].Level + 1);
+		shortKey keyfragment = ((shortKey) i) << (63 - 3 * B[dest].Level);
+
+		B[dest].Key = B[parent].Key & keyfragment | bitmask;
+	}
+
+	return first;
 }
 
 static void fill_bunches(const int first_bunch, const int nBunch, 
@@ -155,8 +171,14 @@ static void fill_bunches(const int first_bunch, const int nBunch,
 
 		//#pragma omp atomic
 		//B[i].CPU_Cost += P[ipart].Cost;
-
 	}
+
+	#pragma omp single nowait
+	{
+	
+	size_t ipart = 0;
+
+	} // omp single
 
 	return ;
 }
@@ -168,45 +190,20 @@ static void fill_bunches(const int first_bunch, const int nBunch,
 
 static bool bunch_overloaded(const int b)
 {
-	bool result = false;
-
 	const int64_t mean_npart = Sim.Npart_Total / NBunches;
 
 	double rel_mem_load = (double)(B[b].Npart - mean_npart) / mean_npart;
 printf("%d %g \n",b , rel_mem_load);
 	if (rel_mem_load > 1 + DOMAIN_SPLIT_MEM_THRES)
-		result = true;
+		return true;
 
-	return result;
+	if (NBunches < Sim.NThreads * DOMAIN_NBUNCHES_PER_THREAD)
+		return true; // do differently
+
+	return false;
 }
 
-static int split_bunch(const int src)
-{
-	#pragma omp atomic 
-	NBunches += 8;
 
-	const int first = NBunches - 8;
-
-	for (int i = ; i < 8; i++) {
-
-		int dest = first + i;
-
-		B[dest].Size = 0.5 * B[src].Size;
-
-		B[dest].Pos[0] = B[src].Pos[0] + (-0.5 + (i & 1)) * B[dest].Size;
-		B[dest].Pos[1] = B[src].Pos[1] + (-0.5 + (i & 2) >> 1) * B[dest].Size;
-		B[dest].Pos[2] = B[src].Pos[2] + (-0.5 + (i & 4) >> 2) * B[dest].Size;
-
-		double bx = (B[dest].Pos[0] - Domain.Corner[0] ) / Domain.Size;
-		double by = (B[dest].Pos[1] - Domain.Corner[1] ) / Domain.Size;
-		double bz = (B[dest].Pos[2] - Domain.Corner[2] ) / Domain.Size;
-
-		B[i].Key = Peano_Key(bx, by, bz) >> 64;
-
-	}
-
-	return dest;
-}
 
 static int compare_bunches(const void *a, const void *b) 
 {
@@ -291,8 +288,7 @@ static void find_global_domain()
 #endif // PERIODIC
 
 #ifdef DEBUG
-	printf("\nDomain size %g, origin at %4g %4g %4g \n\n", 
-			Domain.Size,
+	rprintf("\nDomain size %g, origin at %4g %4g %4g \n\n", Domain.Size,
 			Domain.Origin[0],Domain.Origin[1],Domain.Origin[2]);
 #endif
 

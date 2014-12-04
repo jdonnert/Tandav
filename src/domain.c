@@ -131,7 +131,7 @@ static int split_bunch(const int parent)
 	NBunches += 8;
 
 	const int first = NBunches - 8; // add new nodes at the end
-printf("First %d \n", first);
+	
 	for (int i = 0; i < 8; i++) {
 
 		int dest = first + i;
@@ -154,6 +154,10 @@ static void fill_bunches(const int first_bunch, const int nBunch,
 	
 	int i = first_bunch;
 
+	int npart = 0;
+	int first_part = 0;
+	float cost = 0;
+
 	#pragma omp for
 	for (int ipart = first_part; ipart < last_part; ipart++) {
 		
@@ -162,15 +166,25 @@ static void fill_bunches(const int first_bunch, const int nBunch,
 		Float pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
 		shortKey pkey = Peano_Key(px, py, pz) >> 64;
+	
+		while (B[i].Key < pkey) { // particles are ordered
+			
+			if (npart > 0) {
+			
+				#pragma omp atomic update
+				B[i].Npart += npart;
 
-		while (B[i].Key < pkey) // particles are ordered
+				#pragma omp atomic update
+				B[i].Cpu_Cost += cost;
+			
+				npart = cost = 0;
+			}
+
 			i++;
+		}
 
-		#pragma omp atomic
-		B[i].Npart++;
-
-		//#pragma omp atomic
-		//B[i].CPU_Cost += P[ipart].Cost;
+		npart++;
+		cost += 0; //P[ipart].Cost;
 	}
 
 	#pragma omp single nowait
@@ -272,8 +286,6 @@ static void find_global_domain()
 	Domain.Size = fabs(global_max[0] - global_min[0]);
 	Domain.Size = fmax(Domain.Size, fabs(global_max[1] - global_min[1]));
 	Domain.Size = fmax(Domain.Size, fabs(global_max[2] - global_min[2]));
-
-	Sim.Boxsize[0] = Sim.Boxsize[1] = Sim.Boxsize[2] = Domain.Size;
 
 	Domain.Origin[0] = global_min[0];
 	Domain.Origin[1] = global_min[1];

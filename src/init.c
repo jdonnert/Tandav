@@ -4,8 +4,8 @@
 
 #include "globals.h"
 #include "IO/io.h"
-#include "domain.h"
 #include "Gravity/gravity.h"
+#include "domain.h"
 
 struct Parameters_From_File Param; 
 struct Global_Simulation_Properties Sim;

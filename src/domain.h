@@ -1,18 +1,40 @@
-struct Bunch_Info { // These will also be leafs of the dynamic top node tree
-	shortKey Key;		// Largest Peano key held by this bunch
-	int Level;
-	int Npart;
-	float CPU_Cost;
-	float Sample_Pos[3];// Random (!!!) position inside the bunch 
-	int Target; 		// target >= 0 -> MPI Rank, target < 0 -> -(ipart+1)
-} *B; 
 
-//int *Tree2Bunch = NULL, *Bunch2Tree = NULL;
+/*
+ * The Domain decomposition creates bunches in *D that will later be made
+ * into the top nodes. The walk then traverses the topnode list and kicks
+ * off particle export or local tree walk.
+ */
 
-struct Domain_Properties {  
-	double Size;		// size of smallest cubic box containing all particles
-	double Origin[3];	// origin of smallest cubic box containing all particles
-	double Center[3];	// center of smallest cubic box containing all partciles
+union Domain_Node_List { 
+	
+	struct Bunch_Node { // Data needed for Domain Decomposition
+		shortKey Key;	// Largest Peano key held by this bunch
+		int Target; 	// MPIRANK
+		int Npart;
+		int Level;
+		float Cost;
+		int First_Part;
+	} Bunch;
+
+#ifdef GRAVITY_TREE
+	struct Top_Tree_Node {	//  dynamic top nodes, tree entry points
+		shortKey Key;		// Number of nodes to the parent
+		int Target;	   		// Tree entry index (>0) or MPI rank (<0)
+		int Npart;			// Number of particles in node
+		Float Pos[3];		// Node Center
+		Float Mass;			// Total Mass of particles inside node
+		Float CoM[3];		// Center of Mass
+		Float Dp[3];		// Velocity of Center of Mass
+	} TNode; 
+#endif //GRAVITY_TREE
+
+} *D;
+
+
+struct Domain_Properties { // smallest cubic box containing all particles
+	double Size;	 
+	double Origin[3];	
+	double Center[3];	
 } Domain;
 
 int NBunches;

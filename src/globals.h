@@ -47,6 +47,7 @@ extern struct Particle_Data {
 	int Type;
 	int Time_Bin;
 	intime_t Int_Time_Pos;		// position on integer timeline
+	float Cost;					// computational weight of particle
 #ifdef GRAVITY_TREE
 	int Tree_Parent;			// Tree node containing particle
 #endif

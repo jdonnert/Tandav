@@ -97,7 +97,7 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 
 /*
  * This function walks the local tree and computes the gravitational 
- * acceleration using Springels relative opening criterion.
+ * acceleration using the relative opening criterion (Springel 2005).
  * If we encounter a particle bundle we interact with all of them.
  */
 

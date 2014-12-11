@@ -4,11 +4,11 @@
 #include "drift.h"
 #include "timestep.h"
 #include "setup.h"
+#include "Gravity/gravity.h"
 #include "domain.h"
 #include "peano.h"
 #include "accel.h"
 #include "IO/io.h"
-#include "Gravity/gravity.h"
 
 static void preamble(int argc, char *argv[]);
 
@@ -136,7 +136,7 @@ static void preamble(int argc, char *argv[])
 				Sim.NRank, Sim.NThreads);
 		
 		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
-		printf("\nsizeof(*B) = %zu byte\n", sizeof(*B)*CHAR_BIT/8);
+		printf("\nsizeof(*D) = %zu byte\n", sizeof(*D)*CHAR_BIT/8);
 #ifdef GRAVITY_TREE
 		printf("\nsizeof(*Tree) = %zu byte\n", sizeof(*Tree)*CHAR_BIT/8);
 #endif

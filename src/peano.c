@@ -5,6 +5,7 @@
 #include "globals.h"
 #include "timestep.h"
 #include "peano.h"
+#include "Gravity/gravity.h"
 #include "domain.h"
 #include "sort.h"
 

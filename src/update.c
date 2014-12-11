@@ -3,8 +3,8 @@
 #include "accel.h"
 #include "timestep.h"
 #include "IO/io.h"
-#include "domain.h"
 #include "Gravity/gravity.h"
+#include "domain.h"
 
 /* 
  * Provide a consistent way of updating/calling different parts 

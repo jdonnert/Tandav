@@ -48,6 +48,8 @@ void Domain_Decomposition()
 		D[i].Bunch.First_Part = INT_MAX;
 	}
 
+	// make_complete_bunchlist();
+
 	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
 
 	for (int i = 0; i < NBunches; i++) 
@@ -159,6 +161,17 @@ void Init_Domain_Decomposition()
 			Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2]);
 
 	return;
+}
+
+/*
+ * Transform the top nodes back into a bunch list. Add nodes so the complete 
+ * domain is covered.
+ */
+
+void make_complete_bunchlist()
+{
+
+	return ;
 }
 
 /*
@@ -375,7 +388,7 @@ static void communicate_bunch_list()
  */
 
 double max_x = -DBL_MAX, max_y = -DBL_MAX, max_z = -DBL_MAX, 
-	   min_x = DBL_MIN, min_y = DBL_MIN, min_z = DBL_MIN;
+	   min_x = DBL_MAX, min_y = DBL_MAX, min_z = DBL_MAX;
 
 static void find_global_domain()
 {
@@ -405,21 +418,22 @@ static void find_global_domain()
 		min_z = fmin(min_z, P[ipart].Pos[2]);
 	}
 	
+	double global_max[3] = { max_x, max_y, max_z  };
+	double global_min[3] = { min_x, min_y, min_z  };
+
 	#pragma omp single // do an MPI reduction
 	{
 
-	double local_max[3] = { max_x, max_y, max_z  };
-	double local_min[3] = { min_x, min_y, min_z  };
-
-	double global_max[3] = { 0 };
-	double global_min[3] = { 0 };
-
-	MPI_Allreduce(&local_max, &global_max, 3, MPI_DOUBLE, MPI_MAX,
+	MPI_Allreduce(MPI_IN_PLACE, &global_max, 3, MPI_DOUBLE, MPI_MAX,
 			MPI_COMM_WORLD);
 
-	MPI_Allreduce(&local_min, &global_min, 3, MPI_DOUBLE, MPI_MIN,
+	MPI_Allreduce(MPI_IN_PLACE, &global_min, 3, MPI_DOUBLE, MPI_MIN,
 			MPI_COMM_WORLD);
+	
+	} // omp single
 
+	#pragma omp flush
+	
 	Domain.Size = fabs(global_max[0] - global_min[0]);
 	Domain.Size = fmax(Domain.Size, fabs(global_max[1] - global_min[1]));
 	Domain.Size = fmax(Domain.Size, fabs(global_max[2] - global_min[2]));
@@ -431,8 +445,6 @@ static void find_global_domain()
 	Domain.Center[0] = Domain.Origin[0] + 0.5 * Domain.Size;
 	Domain.Center[1] = Domain.Origin[1] + 0.5 * Domain.Size;
 	Domain.Center[2] = Domain.Origin[2] + 0.5 * Domain.Size;
-	
-	} // omp single
 
 #endif // PERIODIC
 

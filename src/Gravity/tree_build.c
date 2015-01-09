@@ -13,7 +13,7 @@ int Max_Nodes = 0;
 
 void gravity_tree_init();
 
-static int transform_bunches_into_top_nodes(const int);
+static int transform_bunch_into_top_node(const int);
 
 static int build_subtree(const int, const int, const int, const int);
 static inline bool particle_is_inside_node(const peanoKey,const int,const int);
@@ -26,9 +26,14 @@ static void finalise_tree();
 static inline int key_fragment(const int node);
 
 /*
- * This builds the tree. 
- * First the tree in every local node is build starting from the bunchnode. 
- * In the global tree memory, all bunch sub trees are seperated by npart nodes.
+ * This builds the tree in parallel.
+ * First every local bunch is converted into a topnode and broadcasted. 
+ * If the number of particles in that top node is <= 8  the topnode target 
+ * points directly to the particles and the tree walk will use particles 
+ * directly from the topnode. Else a subtree is build starting from the top 
+ * node. Every subtree allocated a fixed amount of memory. I.e. in the global 
+ * tree memory, all bunch sub trees are separated by 
+ * TNode.Npart * NODES_PER_PARTICLE nodes.
  */
 
 void Gravity_Tree_Build()
@@ -37,32 +42,58 @@ void Gravity_Tree_Build()
 
 	gravity_tree_init();
 
-	NNodes = 0;
 
 	NTop_Nodes = NBunches;
 
 	#pragma omp for
 	for (int i = 0; i < NBunches; i++) {
 	
-		if (D[i].TNode.Target < 0) // not local
-			continue;
+		int level = 0, src = 0;
 		
-	 	int level = transform_bunch_into_top_node(i);
+		if (D[i].TNode.Target > 0) { // local node
+		
+			level = transform_bunch_into_top_node(i);
+			
+			src = Task.MPI_Rank;
+
+		} else { // non-local node
+			
+			src = -D[i].TNode.Target;
+		}
+
+		MPI_Request *request = NULL;
+		void *target = &D[i].TNode.Pos[0];
+		int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
+
+	//MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request);
 	
-		int subtree_size = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
+		if (D[i].TNode.Target < 0) { // not local
+			continue;
+
+		if (D[i].TNode.Npart <= 8) // No subtree needed, target stays ipart
+			continue;
+	
+		int nNodes_subtree = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
 
 		#pragma omp atomic
-		NNodes += subtree_size;
+		NNodes += nNodes_subtree;
+
+		Assert(NNodes < Max_Nodes, "Too many nodes (%d>%d), increase "
+			"NODES_PER_PARTICLE=%g", NNodes, Max_Nodes, NODES_PER_PARTICLE);
 
 		int ipart = D[i].TNode.Target;
 
-		D[i].TNode.Target = NNodes - subtree_size;
+		D[i].TNode.Target = NNodes - nNodes_subtree;
+
+		int nlocal = 0;
 
 		#pragma omp task
-		int Nlocal = build_subtree(ipart, i, level);
+		build_subtree(ipart, i, level, &nlocal);
 
-		printf("Top Node %d has %d tree nodes \n",i, Nlocal);
+		printf("Top Node %d has %d/%d tree nodes \n",
+				i, nlocal, nNodes_subtree);
 	}
+
 
 	Sig.Force_Tree_Build = false;
 
@@ -91,63 +122,10 @@ static int transform_bunch_into_top_node(const int i)
 	double size = Domain.Size / (1ULL << level);
 
 	D[i].TNode.Pos[0] = (floor(px/size) + 0.5) * size + Domain.Origin[0];
-	D[i].TNode.Pos[1] = (floor(px/size) + 0.5) * size + Domain.Origin[1];
-	D[i].TNode.Pos[2] = (floor(px/size) + 0.5) * size + Domain.Origin[2];
+	D[i].TNode.Pos[1] = (floor(py/size) + 0.5) * size + Domain.Origin[1];
+	D[i].TNode.Pos[2] = (floor(pz/size) + 0.5) * size + Domain.Origin[2];
 
 	return level;
-}
-
-
-
-/* 
- * We complete the tree by walking the topnode tree backwards adding bunch node
- * properties. 
- * After the initial build, some inner DNext pointers are 0. This is corrected 
- * setting these pointers and closing the P-H curve through the tree.
- * Finally we do some final operations on the node contents. Computation can 
- * be nicely overlapped with Open MP.
- */
-
-static void finalise_sub_tree(const int istart, const int nNodes)
-{
-	Tree[istart].DNext = 0; 
-
-	int stack[N_PEANO_TRIPLETS + 1] = { 0 }; 
-	int lowest = level;
-
-	for (int i = istart + 1; i < nNodes; i++) {
-		
-		int lvl = Level(i);
-
-		while (lvl <= lowest) { // set pointers
-
-			int node = stack[lowest];
-	
-			if (node > 0)
-				Tree[node].DNext = i - node;
-
-			stack[lowest] = 0;
-
-			lowest--;
-		} 
-		
-		if (Tree[i].DNext == 0) { // add node to stack
-			
-			stack[lvl] = i;
-			
-			lowest = lvl;
-		}
-		
-	} // for
-	
-	for (int i = 0; i < NNodes; i++) {
-	
-		Tree[i].CoM[0] /= Tree[i].Mass;
-		Tree[i].CoM[1] /= Tree[i].Mass;
-		Tree[i].CoM[2] /= Tree[i].Mass;
-	}
-
-	return ;
 }
 
 
@@ -156,7 +134,9 @@ static void finalise_sub_tree(const int istart, const int nNodes)
  * A subtree is build starting at node index "offset", from top node at index 
  * "tnode_idx". The first node is build by hand as a copy of the top node.
  * We use that the particles are in Peano-Hilbert order, i.e. that a 
- * particle will branch off as late as possible from the previous one.
+ * particle will branch off as late as possible from the previous one. This 
+ * means refining a node can be done via a split and reassignment of ipart and
+ * ipart-1.
  * In the tree, DNext is the difference to the next sibling in the walk, if the
  * node is not opened. Opening a node is then node++. If DNext is negative, it 
  * points to Npart particles starting at ipart=-DNext-1, and the next node in 
@@ -173,34 +153,34 @@ static void finalise_sub_tree(const int istart, const int nNodes)
  */
 
 static int build_subtree(const int istart, const int tnode_idx, 
-		const int top_level)
+		const int top_level, int *nNodes_out)
 {
 #ifdef DEBUG
 	printf("DEBUG: (%d:%d) Sub-Tree Build istart=%d npart=%d offs=%d top=%d \n"
 			, Task.Rank, Task.Thread_ID, istart, npart, offset, top);
 #endif
 
-	int nNodes = 0; // local in this subtree
+	int nNodes = 0; // for this subtree, now create first node by hand
 
-	Float px = (P[istart].Pos[0] - Domain.Origin[0]) / Domain.Size;
-	Float py = (P[istart].Pos[1] - Domain.Origin[1]) / Domain.Size;
+	Float px = (P[istart].Pos[0] - Domain.Origin[0]) / Domain.Size; 
+	Float py = (P[istart].Pos[1] - Domain.Origin[1]) / Domain.Size; 
 	Float pz = (P[istart].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
-	peanoKey last_key = Reversed_Peano_Key(px, py, pz) >> top_level;
+	peanoKey last_key = Reversed_Peano_Key(px, py, pz) >> (3*top_level);
 
 	create_node_from_particle(istart, offset, last_key, top_level, &nNodes); 
 
-	Tree[offset].Pos[0] = D.[tnode_idx].Node.Pos[0]; // correct wrong position
-	Tree[offset].Pos[1] = D.[tnode_idx].Node.Pos[1];
-	Tree[offset].Pos[2] = D.[tnode_idx].Node.Pos[2];
+	Tree[offset].Pos[0] = D[tnode_idx].Node.Pos[0]; // correct position
+	Tree[offset].Pos[1] = D[tnode_idx].Node.Pos[1]; // because parent node 
+	Tree[offset].Pos[2] = D[tnode_idx].Node.Pos[2]; // did not exist
 
 	Tree[offset].DUp = tnode_idx;
 	
-	Node_Set(TOP,0);
+	Node_Set(TOP, 0);
 
 	int last_parent = offset;		// last parent of last particle
 
-	last_key >>= 3; 
+	last_key >>= 3; 				// now sort in the rest
 
 	for (int ipart = istart+1; ipart < Task.Npart_Total; ipart++) {
 		
@@ -237,7 +217,9 @@ static int build_subtree(const int istart, const int tnode_idx,
 				parent = node;
 
 				node++; // decline into node
+
 				lvl++;
+				
 				key >>= 3;
 
 			} else { // skip node
@@ -253,19 +235,19 @@ static int build_subtree(const int istart, const int tnode_idx,
 		
 			P[ipart].Tree_Parent = parent;
 			
-			continue; 					// tree cannot be deeper
+			continue;
 		}
 		
 		if (ipart_starts_new_branch) { // collapse particle leaf nodes
 
-			int n = 0; 
-
-			if (Tree[node].Npart <= 8) 
-				n = node;			
-			else if (Tree[last_parent].Npart <= 8) 
+			int n = -1; 
+		
+			if (Tree[node].Npart <= 8)
 				n = last_parent;
-			
-			if (n != 0) {
+			else if (Tree[last_parent].Npart <= 8)
+				n = node;
+
+			if (n != -1) {
 
 				Tree[n].DNext = -ipart + Tree[n].Npart - 1;
 					
@@ -298,7 +280,58 @@ static int build_subtree(const int istart, const int tnode_idx,
 	// copy back
 	// remove ?
 
-	return nNodes;
+	*nNodes_out = nNodes;
+
+	return ;
+}
+
+/* 
+ * After the initial build, some inner DNext pointers are 0. This is corrected 
+ * setting these pointers and closing the P-H curve through the sub tree.
+ * Finally we do some final operations on the node contents. 
+ */
+
+static void finalise_sub_tree(const int istart, const int nNodes, 
+		const int top_level)
+{
+	Tree[istart].DNext = 0; 
+
+	int stack[N_PEANO_TRIPLETS + 1] = { 0 }; 
+	int lowest = top_level;
+
+	for (int i = istart + 1; i < nNodes; i++) {
+		
+		int lvl = Level(i);
+
+		while (lvl <= lowest) { // set pointers
+
+			int node = stack[lowest];
+	
+			if (node > 0)
+				Tree[node].DNext = i - node;
+
+			stack[lowest] = 0;
+
+			lowest--;
+		} 
+		
+		if (Tree[i].DNext == 0) { // add node to stack
+			
+			stack[lvl] = i;
+			
+			lowest = lvl;
+		}
+		
+	} // for
+	
+	for (int i = istart; i < nNodes; i++) {
+	
+		Tree[i].CoM[0] /= Tree[i].Mass;
+		Tree[i].CoM[1] /= Tree[i].Mass;
+		Tree[i].CoM[2] /= Tree[i].Mass;
+	}
+
+	return ;
 }
 
 /*
@@ -319,18 +352,15 @@ static inline bool particle_is_inside_node(const peanoKey key, const int lvl,		c
 
 /*
  * We always add nodes at the end of the subtree. Particle pointers are 
- * negative and offset by one to leave DNext=0 indicating unset.
+ * negative and offset by one to leave DNext=0 indicating unset. We assume
+ * the peano key has reversed triplet order and the least significant bit 
+ * carries the triplet at level "lvl".
  */
 
 static inline void create_node_from_particle(const int ipart,const int parent, 
 		const peanoKey key, const int lvl, int *nNodes)
 {
 	const int node = (*nNodes)++;
-
-#ifdef DEBUG
-	Assert(node < Max_Nodes, "Too many nodes (%d>%d), increase "
-			"NODES_PER_PARTICLE=%g", nNodes, Max_Nodes, NODES_PER_PARTICLE);
-#endif
 
 	Tree[node].DNext = -ipart - 1;
 
@@ -356,10 +386,6 @@ static inline void create_node_from_particle(const int ipart,const int parent,
 
 	return ;
 }
-
-/*
- * Adding a particle or a node to a node is really the same thing ...
- */
 
 static inline void add_particle_to_node(const int ipart, const int node)
 {
@@ -413,7 +439,7 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node)
 
 
 /*
- * Initialise the first tree node
+ * Initialise tree memory
  */
 
 void gravity_tree_init()
@@ -422,6 +448,7 @@ void gravity_tree_init()
 	{
 
 	Max_Nodes = Task.Npart_Total_Max * NODES_PER_PARTICLE;
+	NNodes = 0;
 	
 	size_t nBytes = Max_Nodes * sizeof(*Tree);
 

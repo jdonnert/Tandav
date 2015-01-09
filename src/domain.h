@@ -19,12 +19,12 @@ union Domain_Node_List {
 #ifdef GRAVITY_TREE
 	struct Top_Tree_Node {	//  dynamic top nodes, tree entry points
 		shortKey Key;		// Number of nodes to the parent
-		int Target;	   		// Tree entry index (>0) or MPI rank (<0)
+		int Target;	   		// Tree/part index (>0) or MPI rank (<0)
 		int Npart;			// Number of particles in node
-		Float Pos[3];		// Node Center
-		Float Mass;			// Total Mass of particles inside node
-		Float CoM[3];		// Center of Mass
-		Float Dp[3];		// Velocity of Center of Mass
+		float Pos[3];		// Node Center
+		float Mass;			// Total Mass of particles inside node
+		float CoM[3];		// Center of Mass
+		float Dp[3];		// Velocity of Center of Mass, add above ! 
 	} TNode; 
 #endif //GRAVITY_TREE
 

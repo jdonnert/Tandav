@@ -105,7 +105,7 @@ static void reorder_collisionless_particles()
 
 /* 
  * Construct a 128 bit Peano-Hilbert distance in 3D, input coordinates 
- * have to be normalized between 0 < x < 1. Unfortunately it's not clear if 
+ * have to be normalized as 0 <= x < 1. Unfortunately it's not clear if 
  * a 128bit type would be portable, though all modern CPUs have 128 bit 
  * registers. Bits 0 & 1 are unused, the most significant bit is 63. Input has
  * to be double for full precision.
@@ -190,7 +190,7 @@ peanoKey Peano_Key(const double x, const double y, const double z)
 		key |= col; 
 	} 
 	
-	key <<= 2;
+	key &= ~((peanoKey)1 << 127); // set bit 127 == 0
 
 	return key;
 }
@@ -355,8 +355,9 @@ shortKey Short_Peano_Key(const float x, const float y, const float z)
 
 		key |= col; 
 	} 
-	
-	key <<= 2;
+
+	key >>= 1;
+	key &= ~((shortKey)1 << 63); // set bit  63 == 0
 
 	return key;
 }

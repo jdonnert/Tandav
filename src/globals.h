@@ -6,11 +6,11 @@
 int * restrict Active_Particle_List, NActive_Particles;
 
 extern struct Local_Task_Properties {		
+	int Rank;				// MPI Rank of this thread
+	int Thread_ID;			// OpenMP ID of this thread
 	bool Is_Master;			// == true on global master rank 
 	bool Is_MPI_Master;		// == true on MPI master rank 
 	int Is_Thread_Main;		// == true on local thread masters
-	int Rank;				// MPI Rank of this thread
-	int Thread_ID;			// OpenMP ID of this thread
 	int Npart_Total;		// Sum of Npart
 	int Npart[NPARTYPE];	// Number of particles on this processor
 	uint64_t Npart_Total_Max;	// per task taking into account imbalance.

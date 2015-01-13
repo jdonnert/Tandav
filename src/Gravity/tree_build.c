@@ -15,15 +15,16 @@ void gravity_tree_init();
 
 static int transform_bunch_into_top_node(const int);
 
-static int build_subtree(const int, const int, const int, const int);
+static void build_subtree(const int, const int, const int, int *);
+static void finalise_subtree(const int, const int, const int);
+
 static inline bool particle_is_inside_node(const peanoKey,const int,const int);
 static inline void add_particle_to_node(const int, const int);
 static inline void create_node_from_particle(const int, const int, 
-											const peanoKey, const int, int*);
+		const peanoKey, const int, const int);
+static peanoKey create_first_subtree_node(const int, const int, const int);
 
-static void finalise_tree();
-
-static inline int key_fragment(const int node);
+static inline int key_fragment(const int);
 
 /*
  * This builds the tree in parallel.
@@ -42,58 +43,64 @@ void Gravity_Tree_Build()
 
 	gravity_tree_init();
 
-
 	NTop_Nodes = NBunches;
 
-	#pragma omp for
+	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NBunches; i++) {
 	
 		int level = 0, src = 0;
-		
-		if (D[i].TNode.Target > 0) { // local node
+		printf("TopNode %d, Target=%d \n", i, D[i].TNode.Target);
+		if (D[i].TNode.Target >= 0) { // local node
 		
 			level = transform_bunch_into_top_node(i);
 			
-			src = Task.MPI_Rank;
+			src = Task.Rank;
 
 		} else { // non-local node
 			
 			src = -D[i].TNode.Target;
 		}
 
-		MPI_Request *request = NULL;
-		void *target = &D[i].TNode.Pos[0];
+	/*	MPI_Request *request = NULL;
+		float *target = &D[i].TNode.Pos[0];
 		int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
-
-	//MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request);
+	MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
 	
-		if (D[i].TNode.Target < 0) { // not local
-			continue;
+		if (D[i].TNode.Target < 0)  // not local
+			continue; 
 
 		if (D[i].TNode.Npart <= 8) // No subtree needed, target stays ipart
 			continue;
 	
 		int nNodes_subtree = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
 
-		#pragma omp atomic
-		NNodes += nNodes_subtree;
+		#pragma omp critical
+		{
+		
+		D[i].TNode.Target = NNodes;
 
+		NNodes += nNodes_subtree;
+		
 		Assert(NNodes < Max_Nodes, "Too many nodes (%d>%d), increase "
 			"NODES_PER_PARTICLE=%g", NNodes, Max_Nodes, NODES_PER_PARTICLE);
+		
+		} // omp critical
+
 
 		int ipart = D[i].TNode.Target;
 
-		D[i].TNode.Target = NNodes - nNodes_subtree;
-
 		int nlocal = 0;
+
+printf("Tree Build: ipart=%d bunch=%d lvl=%d NNodes=%d subnodes=%d\n", ipart, i, level, NNodes, nNodes_subtree );
 
 		#pragma omp task
 		build_subtree(ipart, i, level, &nlocal);
 
-		printf("Top Node %d has %d/%d tree nodes \n",
-				i, nlocal, nNodes_subtree);
+		printf("Top Node %d has %d/%d tree nodes, nnodes per part = %g \n",
+				i, nlocal, nNodes_subtree, (double)nlocal / D[i].TNode.Npart);
 	}
 
+	#pragma omp barrier
 
 	Sig.Force_Tree_Build = false;
 
@@ -103,17 +110,17 @@ void Gravity_Tree_Build()
 }
 
 /*
- * Set the "Node" part of the D unions. From here onwards the members are to be
- * understood as a Top Node, not a bunch.
+ * Set the "TNode" part of the D unions. From here onwards the members 
+ * are to be understood as a Top Node, not a bunch.
  */
 
 static int transform_bunch_into_top_node(const int i)
 {	
 	int ipart = D[i].Bunch.First_Part;
 
-	D[i].Node.Target = ipart; // save the particle index
+	D[i].TNode.Target = ipart; // save the particle index
 
-	double px = P[ipart].Pos[0] - Domain.Origin[0];
+	double px = P[ipart].Pos[0] - Domain.Origin[0]; // construct from particle
 	double py = P[ipart].Pos[1] - Domain.Origin[1];
 	double pz = P[ipart].Pos[2] - Domain.Origin[2];
 
@@ -124,6 +131,8 @@ static int transform_bunch_into_top_node(const int i)
 	D[i].TNode.Pos[0] = (floor(px/size) + 0.5) * size + Domain.Origin[0];
 	D[i].TNode.Pos[1] = (floor(py/size) + 0.5) * size + Domain.Origin[1];
 	D[i].TNode.Pos[2] = (floor(pz/size) + 0.5) * size + Domain.Origin[2];
+
+printf("Transform: ipart=%d pr=%g %g %g lvl=%d size=%g pn=%g %g %g \n", ipart, px, py, pz, level, size, D[i].TNode.Pos[0],D[i].TNode.Pos[1],D[i].TNode.Pos[2] );
 
 	return level;
 }
@@ -152,37 +161,26 @@ static int transform_bunch_into_top_node(const int i)
  * node at that level. See Tree definition in gravity.h. 
  */
 
-static int build_subtree(const int istart, const int tnode_idx, 
+static void build_subtree(const int istart, const int tnode_idx, 
 		const int top_level, int *nNodes_out)
 {
-#ifdef DEBUG
-	printf("DEBUG: (%d:%d) Sub-Tree Build istart=%d npart=%d offs=%d top=%d \n"
-			, Task.Rank, Task.Thread_ID, istart, npart, offset, top);
-#endif
+//#ifdef DEBUG
+	printf("DEBUG: (%d:%d) Sub-Tree Build istart=%d npart=%d offs=%d tnode=%d\n"
+		,Task.Rank, Task.Thread_ID, istart, D[tnode_idx].TNode.Npart, 
+		D[tnode_idx].TNode.Target, tnode_idx);
+//#endif
 
-	int nNodes = 0; // for this subtree, now create first node by hand
+	const int subtree_start = D[tnode_idx].TNode.Target; 
 
-	Float px = (P[istart].Pos[0] - Domain.Origin[0]) / Domain.Size; 
-	Float py = (P[istart].Pos[1] - Domain.Origin[1]) / Domain.Size; 
-	Float pz = (P[istart].Pos[2] - Domain.Origin[2]) / Domain.Size;
-		
-	peanoKey last_key = Reversed_Peano_Key(px, py, pz) >> (3*top_level);
+	peanoKey last_key = create_first_subtree_node(istart, tnode_idx, top_level);
 
-	create_node_from_particle(istart, offset, last_key, top_level, &nNodes); 
+	int nNodes = 1; // for this subtree
 
-	Tree[offset].Pos[0] = D[tnode_idx].Node.Pos[0]; // correct position
-	Tree[offset].Pos[1] = D[tnode_idx].Node.Pos[1]; // because parent node 
-	Tree[offset].Pos[2] = D[tnode_idx].Node.Pos[2]; // did not exist
+	int last_parent = subtree_start; // last parent of last particle
 
-	Tree[offset].DUp = tnode_idx;
-	
-	Node_Set(TOP, 0);
+	last_key >>= 3; 
 
-	int last_parent = offset;		// last parent of last particle
-
-	last_key >>= 3; 				// now sort in the rest
-
-	for (int ipart = istart+1; ipart < Task.Npart_Total; ipart++) {
+	for (int ipart = istart + 1; ipart < Task.Npart_Total; ipart++) {
 		
 		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
 		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
@@ -190,13 +188,13 @@ static int build_subtree(const int istart, const int tnode_idx,
 		
 		peanoKey key = Reversed_Peano_Key(px, py, pz);
 
-		int node = offset;	    // current node
-		int lvl = top_level;	// counts current level
-		int parent = node;		// parent of current node
+		int node = subtree_start;   // current node
+		int lvl = top_level;		// counts current level
+		int parent = node;			// parent of current node
 
 		bool ipart_starts_new_branch = true; // flag to remove leaf nodes
 		
-		while (lvl < N_PEANO_TRIPLETS) {
+		while (lvl < N_PEANO_TRIPLETS) { 
 			
 			if (particle_is_inside_node(key, lvl, node)) { // open node	
 				
@@ -204,8 +202,10 @@ static int build_subtree(const int istart, const int tnode_idx,
 	
 					Tree[node].DNext = 0;		
 
+					int new_node = subtree_start + nNodes++;
+
 					create_node_from_particle(ipart-1, node, last_key, lvl+1, 
-							&nNodes); // son of node
+							new_node); 	// new_node is a son of node
 
 					last_key >>= 3;
 				}  
@@ -222,7 +222,7 @@ static int build_subtree(const int istart, const int tnode_idx,
 				
 				key >>= 3;
 
-			} else { // skip node
+			} else { // skip to next node
 				
 				if (Tree[node].DNext == 0 || node == nNodes - 1)   
 					break; // reached end of branch
@@ -238,7 +238,7 @@ static int build_subtree(const int istart, const int tnode_idx,
 			continue;
 		}
 		
-		if (ipart_starts_new_branch) { // collapse particle leaf nodes
+		if (ipart_starts_new_branch) { // collapse last particle's leaf nodes
 
 			int n = -1; 
 		
@@ -268,30 +268,60 @@ static int build_subtree(const int istart, const int tnode_idx,
 		if (Tree[node].DNext == 0) 				// set DNext for internal node
 			Tree[node].DNext = nNodes - node; 	// only delta
 			
-		create_node_from_particle(ipart, parent, key, lvl, &nNodes); // sibling
+		int new_node = subtree_start + nNodes++;
+
+		create_node_from_particle(ipart, parent, key, lvl, new_node); // sibling
 	
 		last_key = key >> 3;
 		last_parent = parent;
 	
 	} // for ipart
 
-	finalise_sub_tree();
-
-	// copy back
-	// remove ?
-
+	finalise_subtree(istart, nNodes, top_level);
+	
 	*nNodes_out = nNodes;
 
 	return ;
 }
 
-/* 
- * After the initial build, some inner DNext pointers are 0. This is corrected 
- * setting these pointers and closing the P-H curve through the sub tree.
- * Finally we do some final operations on the node contents. 
+/*
+ * The first node in the subtree needs special treatment and will later
+ * be overwritten. Its properties are identical with the topnode from the
+ * domain decomposition, which makes a great consistency check.
  */
 
-static void finalise_sub_tree(const int istart, const int nNodes, 
+static peanoKey create_first_subtree_node(const int istart, 
+		const int tnode_idx, const int top_level)
+{
+	const int node = D[tnode_idx].TNode.Target; // where the subtree starts
+
+	Float px = (P[istart].Pos[0] - Domain.Origin[0]) / Domain.Size; 
+	Float py = (P[istart].Pos[1] - Domain.Origin[1]) / Domain.Size; 
+	Float pz = (P[istart].Pos[2] - Domain.Origin[2]) / Domain.Size;
+		
+	peanoKey last_key = Reversed_Peano_Key(px, py, pz) >> (3*top_level);
+
+	create_node_from_particle(istart, node, last_key, top_level, node); 
+
+	Tree[node].Pos[0] = D[tnode_idx].TNode.Pos[0]; // correct position
+	Tree[node].Pos[1] = D[tnode_idx].TNode.Pos[1]; // because parent node 
+	Tree[node].Pos[2] = D[tnode_idx].TNode.Pos[2]; // did not exist
+
+	Tree[node].DUp = tnode_idx; // correct up pointer to lead to topnode
+	
+	Node_Set(TOP, node);
+
+	return last_key;
+}
+
+/* 
+ * After the build, some inner DNext pointers are 0. This is corrected 
+ * setting these pointers and closing the P-H curve through the sub tree.
+ * Finally we do some final operations on the node contents and remove the
+ * top node of the subtree, as it is identical with D.TNode.
+ */
+
+static void finalise_subtree(const int istart, const int nNodes, 
 		const int top_level)
 {
 	Tree[istart].DNext = 0; 
@@ -331,6 +361,17 @@ static void finalise_sub_tree(const int istart, const int nNodes,
 		Tree[i].CoM[2] /= Tree[i].Mass;
 	}
 
+	//copy back Mass, CoM, Dp to D[i].TNode
+
+#ifdef DEBUG
+	compare_topnode_to_subtree_head();
+#endif	
+
+	// void *src =  &Tree[subtree_start+1]; // remove topnode copy
+	// void *dest = &Tree[subtree_start];
+	// size_t nBytes = sizeof(*Tree) * (nNodes-1);
+	// memmove(dest, src, nBytes);
+	
 	return ;
 }
 
@@ -358,10 +399,8 @@ static inline bool particle_is_inside_node(const peanoKey key, const int lvl,		c
  */
 
 static inline void create_node_from_particle(const int ipart,const int parent, 
-		const peanoKey key, const int lvl, int *nNodes)
+		const peanoKey key, const int lvl, const int node)
 {
-	const int node = (*nNodes)++;
-
 	Tree[node].DNext = -ipart - 1;
 
 	int keyfragment = (key & 0x7) << 6;

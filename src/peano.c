@@ -1,5 +1,5 @@
 /* 
- * Here we compute the peano Keys and reorder the particles
+ * Here we compute peano Keys and reorder particles
  */
 
 #include "globals.h"

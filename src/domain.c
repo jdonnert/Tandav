@@ -26,11 +26,13 @@ static double max_cpu_imbal = DBL_MAX;
 /* 
  * Distribute particles in bunches, which are continuous
  * on the Peano curve. The bunches correspond to nodes of the tree. 
- * Bunches also give the ghost nodes in the tree. 
+ * Bunches also give the top nodes in the tree, with some info added. 
  * We keep a global list of all the bunches that also contains the 
  * workload and memory footprint of each bunch. An optimal way of 
  * distributing bunches minimises memory and workload imbalance over all
  * Tasks. 
+ * To achieve this, we measure mem & cpu cost and refine bunches until the
+ * heaviest have roughly equal cost. Then we distribute them across MPI ranks
  */
 
 void Domain_Decomposition()
@@ -151,7 +153,7 @@ void Init_Domain_Decomposition()
 
 	int new = split_bunch(0); // make first 8, new = 1
 
-	memmove(&D[0], &D[new], 8*sizeof(*D));
+	memmove(&D[0], &D[new], 8*sizeof(*D)); // move left by one
 	NBunches--;
 
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
@@ -176,9 +178,9 @@ void make_complete_bunchlist()
 
 /*
  * We split a bunch into 8 sub-bunches/nodes, adding the largest peano key 
- * contained in the bunch. The position of the bunch is set during filling to 
- * a random particle position. From it we can later construct the top node 
- * position during Tree construction.
+ * contained in the bunch. The position of the bunch is set  to a random 
+ * particle position during filling. From it we can later construct the 
+ * top node center during Tree construction.
  */
 
 static int split_bunch(const int parent)
@@ -240,7 +242,7 @@ static void remove_empty_bunches()
 }
 
 /*
- * distribute local particles into bunches
+ * update particle distribution over nBunches, starting for first_bunch
  */
 
 static void fill_bunches(const int first_bunch, const int nBunch, 
@@ -317,7 +319,7 @@ static void fill_bunches(const int first_bunch, const int nBunch,
 
 static void find_imbalance()
 {
-	#pragma omp for reduction(max:max_mem_imbal,max_cpu_imbal)
+	#pragma omp for reduction(max:max_mem_imbal, max_cpu_imbal)
 	for (int i = 0; i < NBunches; i++ ) {
 
 		max_mem_imbal = fmax(max_mem_imbal, D[i].Bunch.Npart);
@@ -332,8 +334,8 @@ static void find_imbalance()
 }
 
 /*
- * This function defines the metric that decides if a bunch has to be refined
- * into eight sub-bunches.
+ * This function defines the metric that estimates if a bunch has 
+ * to be refined into eight sub-bunches.
  */
 
 static bool bunch_is_overloaded(const int b)
@@ -384,7 +386,8 @@ static void communicate_bunch_list()
 }
 	
 /*
- * Find the global domain origin and the maximum extent
+ * Find the global domain origin and the maximum extent. Not much
+ * to do for PERIODIC
  */
 
 double max_x = -DBL_MAX, max_y = -DBL_MAX, max_z = -DBL_MAX, 
@@ -406,7 +409,7 @@ static void find_global_domain()
 #else // ! PERIODIC
 
 	#pragma omp for reduction(max:max_x,max_y,max_z) \
-		reduction(min:min_x,min_y,min_z)
+					reduction(min:min_x,min_y,min_z)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
 		max_x = fmax(max_x, P[ipart].Pos[0]);
@@ -421,7 +424,7 @@ static void find_global_domain()
 	double global_max[3] = { max_x, max_y, max_z  };
 	double global_min[3] = { min_x, min_y, min_z  };
 
-	#pragma omp single // do an MPI reduction
+	#pragma omp single 
 	{
 
 	MPI_Allreduce(MPI_IN_PLACE, &global_max, 3, MPI_DOUBLE, MPI_MAX,

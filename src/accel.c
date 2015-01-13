@@ -1,7 +1,3 @@
-/* 
- * Collect all accelerations on particle ipart 
- */
-
 #include "globals.h"
 #include "accel.h"
 #include "timestep.h"
@@ -10,6 +6,10 @@
 static void accel_gravity();
 
 static void zero_active_particle_accelerations();
+
+/* 
+ * Collect all accelerations on particles 
+ */
 
 void Compute_Acceleration()
 {

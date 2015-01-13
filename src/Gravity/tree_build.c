@@ -42,11 +42,10 @@ void Gravity_Tree_Build()
 
 	gravity_tree_init();
 
-
 	NTop_Nodes = NBunches;
 
 	#pragma omp for
-	for (int i = 0; i < NBunches; i++) {
+	for (int i = 0; i < NTop_Nodes; i++) {
 	
 		int level = 0, src = 0;
 		
@@ -75,20 +74,24 @@ void Gravity_Tree_Build()
 	
 		int nNodes_subtree = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
 
-		#pragma omp atomic
+		int ipart_start = D[i].TNode.Target;
+
+		#pragma omp critical
+		{
+
+		D[i].TNode.Target = NNodes;
+		
 		NNodes += nNodes_subtree;
 
+		}
+		
 		Assert(NNodes < Max_Nodes, "Too many nodes (%d>%d), increase "
 			"NODES_PER_PARTICLE=%g", NNodes, Max_Nodes, NODES_PER_PARTICLE);
-
-		int ipart = D[i].TNode.Target;
-
-		D[i].TNode.Target = NNodes - nNodes_subtree;
 
 		int nlocal = 0;
 
 		#pragma omp task
-		build_subtree(ipart, i, level, &nlocal);
+		build_subtree(ipart_start, i, level, &nlocal);
 
 		printf("Top Node %d has %d/%d tree nodes \n",
 				i, nlocal, nNodes_subtree);
@@ -136,7 +139,8 @@ static int transform_bunch_into_top_node(const int i)
  * We use that the particles are in Peano-Hilbert order, i.e. that a 
  * particle will branch off as late as possible from the previous one. This 
  * means refining a node can be done via a split and reassignment of ipart and
- * ipart-1.
+ * ipart-1 until both are in seperate nodes. ipart+1 can then only fall
+ * into the node of ipart, but not of ipart-1.
  * In the tree, DNext is the difference to the next sibling in the walk, if the
  * node is not opened. Opening a node is then node++. If DNext is negative, it 
  * points to Npart particles starting at ipart=-DNext-1, and the next node in 
@@ -216,7 +220,7 @@ static int build_subtree(const int istart, const int tnode_idx,
 
 				parent = node;
 
-				node++; // decline into node
+				node++; // decline
 
 				lvl++;
 				
@@ -353,8 +357,8 @@ static inline bool particle_is_inside_node(const peanoKey key, const int lvl,		c
 /*
  * We always add nodes at the end of the subtree. Particle pointers are 
  * negative and offset by one to leave DNext=0 indicating unset. We assume
- * the peano key has reversed triplet order and the least significant bit 
- * carries the triplet at level "lvl".
+ * the peano key has reversed triplet order and the least significant 3 bits 
+ * carry the triplet at level "lvl".
  */
 
 static inline void create_node_from_particle(const int ipart,const int parent, 
@@ -415,7 +419,7 @@ static inline int key_fragment(const int node)
 
 int Level(const int node)
 {
-	return Tree[node].Bitfield & 0x3FUL; // return but 0-5
+	return Tree[node].Bitfield & 0x3FUL; // return bit 0-5
 }
 
 bool Node_Is(const enum Tree_Bitfield bit, const int node)

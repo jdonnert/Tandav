@@ -167,6 +167,17 @@ void Init_Memory_Management()
 
 	memset(Memory, 0, NBytes_Left);
 
+	#pragma omp parallel
+	{
+		Task.Buffer_Size = BUFFER_SIZE *1024 *1024 /Sim.NThreads;
+
+		Buffer = Malloc(Task.Buffer_Size, "Buffer");
+	
+	} // omp parallel
+
+	printf("\n   Buffer size = %g MB per thread \n\n", 
+			Task.Buffer_Size/1024.0/1024);
+
 	return;
 }
 

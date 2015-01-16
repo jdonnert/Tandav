@@ -5,6 +5,9 @@
 
 int * restrict Active_Particle_List, NActive_Particles;
 
+extern void * Buffer; // Multi-purpose OpenMP buffer
+#pragma omp threadprivate(Buffer)
+
 extern struct Local_Task_Properties {		
 	int Rank;				// MPI Rank of this thread
 	int Thread_ID;			// OpenMP ID of this thread
@@ -16,6 +19,7 @@ extern struct Local_Task_Properties {
 	uint64_t Npart_Total_Max;	// per task taking into account imbalance.
 	uint64_t Npart_Max[NPARTYPE];// Use this if array size scales with Npart
 	unsigned short Seed[3];	// Thread safe urand48() seed
+	size_t Buffer_Size;		// Size of Multi-purpose buffer			
 } Task;
 #pragma omp threadprivate(Task) // modifications only in parallel env. !!
 

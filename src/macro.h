@@ -5,9 +5,6 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0])) 
 #define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
 
-#define rprintf(...) if(Task.Is_Master) printf(__VA_ARGS__) // root print
-#define mprintf(...) if(Task.MPI_Rank == MASTER) printf(__VA_ARGS__) // mpi
-
 #define MIN(a,b) ((a)<(b)?(a):(b)) // this doesnt always work: c = max(a++, b)
 #define MAX(a,b) ((a)>(b)?(a):(b))
 
@@ -17,4 +14,10 @@
 #define p2(a) ((a)*(a))  
 #define p3(a) ((a)*(a)*(a))
 
+#define rprintf(...) if(Task.Is_Master) printf(__VA_ARGS__) // root print
+#define mprintf(...) if(Task.MPI_Rank == MASTER) printf(__VA_ARGS__) // mpi
+
+#define Print_Int_Bits32(x) Print_Int_Bits(x, 32, 3)
+#define Print_Int_Bits64(x) Print_Int_Bits(x, 64, 1)
+#define Print_Int_Bits128(x) Print_Int_Bits(x, 128, 2)
 

@@ -53,34 +53,24 @@ Float Sign(const Float x)
 }
 
 /*
- * Show bits of an unsigned integer in triplets
+ * Show bits of an unsigned integer in triplets, 'delta' controls the dot 
+ * offset. Has some macros associated to print 128, 64, 32 bit peano keys.
  */
 
-void Print_Int_Bits64(const uint64_t val)
+void Print_Int_Bits(const __uint128_t val, const int length, const int delta)
 {
-	for (int i = 63; i >= 0; i--) {
-		
-		printf("%llu", (val & (1ULL << i) ) >> i);
-		
-		if (i % 3 == 0 && i != 0)
-			printf(".");
-	}
-	printf("\n"); 
-	
-	fflush(stdout);
+	__uint128_t one = 1;
 
-	return ;
-}
+	for (int i = length-1; i >= 0; i--) {
 
-void Print_Int_Bits128(const __uint128_t val)
-{
-	for (int i = 127; i >= 0; i--) {
+		__uint128_t b = val & ( one << i ); 
 
-		printf("%llu", 
-				(unsigned long long ) 
-				((val & (((__uint128_t) 1) << i)) >> i));
-		
-		if ((i-1) % 3 == 0 && i != 0)
+		if (b != 0)
+			printf("1");
+		else
+			printf("0");
+
+		if ((i-delta) % 3 == 0 && i != 0)
 			printf(".");
 	}
 

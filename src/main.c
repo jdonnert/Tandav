@@ -134,12 +134,13 @@ static void preamble(int argc, char *argv[])
 
 		printf("\nUsing %d MPI tasks, %d OpenMP threads \n", 
 				Sim.NRank, Sim.NThreads);
-		
+			
 		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
-		printf("\nsizeof(*D) = %zu byte\n", sizeof(*D)*CHAR_BIT/8);
+		printf("sizeof(*D) = %zu byte\n", sizeof(*D)*CHAR_BIT/8);
 #ifdef GRAVITY_TREE
-		printf("\nsizeof(*Tree) = %zu byte\n", sizeof(*Tree)*CHAR_BIT/8);
+		printf("sizeof(*Tree) = %zu byte\n", sizeof(*Tree)*CHAR_BIT/8);
 #endif
+
 
 	}
 

@@ -28,7 +28,8 @@ void Gravity_Tree_Short_Range();
 
 int Level(const int node); // bitfield functions
 
-enum Tree_Bitfield { LOCAL=10, TOP, UPDATED };
+enum Tree_Bitfield { LOCAL=9, TOP=10, UPDATED=11 }; // offset by one
+
 bool Node_Is(const enum Tree_Bitfield bit, const int node);
 void Node_Set(const enum Tree_Bitfield bit, const int node);
 void Node_Clear(const enum Tree_Bitfield bit, const int node);

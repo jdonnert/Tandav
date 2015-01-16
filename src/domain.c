@@ -17,6 +17,7 @@ static void communicate_bunch_list();
 
 static int compare_bunches_by_key(const void *a, const void *b);
 static int compare_bunches_by_target(const void *a, const void *b); 
+static int compare_bunches_by_npart(const void *a, const void *b); 
 
 union Domain_Node_List *D; 
 
@@ -26,11 +27,13 @@ static double max_cpu_imbal = DBL_MAX;
 /* 
  * Distribute particles in bunches, which are continuous
  * on the Peano curve. The bunches correspond to nodes of the tree. 
- * Bunches also give the ghost nodes in the tree. 
+ * Bunches also give the top nodes in the tree, with some info added. 
  * We keep a global list of all the bunches that also contains the 
  * workload and memory footprint of each bunch. An optimal way of 
  * distributing bunches minimises memory and workload imbalance over all
  * Tasks. 
+ * To achieve this, we measure mem & cpu cost and refine bunches until the
+ * heaviest have roughly equal cost. Then we distribute them across MPI ranks
  */
 
 void Domain_Decomposition()
@@ -52,36 +55,9 @@ void Domain_Decomposition()
 
 	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
 
-	for (int i = 0; i < NBunches; i++) 
-		printf("%d %d %d \n", i, D[i].Bunch.Npart, D[i].Bunch.First_Part);
-
-printf("-----------------------\n");
-
 	remove_empty_bunches();
 
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
-
-for (int i = 0; i < NBunches; i++) {
-printf("%d | %5d | ", i, D[i].Bunch.Npart);
-Print_Int_Bits64(D[i].Bunch.Key);
-printf("            ");
-int ifirst = D[i].Bunch.First_Part;
-
-Float px = (P[ifirst].Pos[0] - Domain.Origin[0]) / Domain.Size;
-Float py = (P[ifirst].Pos[1] - Domain.Origin[1]) / Domain.Size;
-Float pz = (P[ifirst].Pos[2] - Domain.Origin[2]) / Domain.Size;
-peanoKey pkey = Peano_Key(px, py, pz);
-Print_Int_Bits128(pkey);
-		
-int ilast = ifirst + D[i].Bunch.Npart - 1;
-printf("            ");
- px = (P[ilast].Pos[0] - Domain.Origin[0]) / Domain.Size;
- py = (P[ilast].Pos[1] - Domain.Origin[1]) / Domain.Size;
- pz = (P[ilast].Pos[2] - Domain.Origin[2]) / Domain.Size;
- pkey = Peano_Key(px, py, pz);
-Print_Int_Bits128(pkey);
-}
-printf("-----------------------\n");
 
 	int max_level = 1;
 
@@ -92,7 +68,7 @@ printf("-----------------------\n");
 		for (int i = 0; i < old_nBunches; i++ ) {
 	
 			if (bunch_is_overloaded(i)) { // split into 8
-	printf("Split %d \n", i);
+
 				int first_new_bunch = split_bunch(i);
 
 				fill_bunches(first_new_bunch, 8, D[i].Bunch.First_Part, 
@@ -109,6 +85,7 @@ printf("-----------------------\n");
 		remove_empty_bunches();
 
 	//Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_target);
+	//
 		// distribute();
 
 		Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
@@ -120,14 +97,18 @@ printf("-----------------------\n");
 
 	} // while
 	
+	rprintf("Domain: %d Bunches, max level %d, imbalance: mem %g cpu %g \n", 
+			NBunches, max_level, max_mem_imbal,  max_cpu_imbal );
 	
-int sum = 0;
-for (int i = 0; i < NBunches; i++) {
-	sum+= D[i].Bunch.Npart;
-printf("%d | %5d %5d %d  ", i, D[i].Bunch.Npart, sum, D[i].Bunch.Level);
-Print_Int_Bits64(D[i].Bunch.Key);
-}
-printf("\n-----------------------\n");
+	for (int i = 0; i < NBunches; i++) {
+
+		printf("%3d | %5d %5d  %d  ", 
+				i, D[i].Bunch.Npart, D[i].Bunch.First_Part, D[i].Bunch.Level);
+		
+		Print_Int_Bits64(D[i].Bunch.Key);
+	}
+
+	printf("\n-----------------------\n");
 
 	Profile("Domain Decomposition");
 
@@ -142,7 +123,7 @@ void Init_Domain_Decomposition()
 
 	size_t nBytes = 8 * Sim.NTask* DOMAIN_NBUNCHES_PER_THREAD * sizeof(*D); 
 
-	D = Malloc(nBytes, "Bunch Tree List");
+	D = Malloc(nBytes, "Bunchlist");
 
 	memset(D, 0, nBytes);
 
@@ -152,7 +133,7 @@ void Init_Domain_Decomposition()
 
 	int new = split_bunch(0); // make first 8, new = 1
 
-	memmove(&D[0], &D[new], 8*sizeof(*D));
+	memmove(&D[0], &D[new], 8*sizeof(*D)); // move left by one
 	NBunches--;
 
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
@@ -177,9 +158,9 @@ void restore_complete_bunchlist()
 
 /*
  * We split a bunch into 8 sub-bunches/nodes, adding the largest peano key 
- * contained in the bunch. The position of the bunch is set during filling to 
- * a random particle position. From it we can later construct the top node 
- * position during Tree construction.
+ * contained in the bunch. The position of the bunch is set  to a random 
+ * particle position during filling. From it we can later construct the 
+ * top node center during Tree construction.
  */
 
 static int split_bunch(const int parent)
@@ -201,9 +182,9 @@ static int split_bunch(const int parent)
 
 		D[dest].Bunch.Level = D[parent].Bunch.Level + 1;
 
-		int shift = N_SHORT_BITS - 1 - 3 * D[dest].Bunch.Level;
+		int shift = N_SHORT_BITS - 3 * D[dest].Bunch.Level;
 
-		shortKey bitmask = (1ULL << (N_SHORT_BITS - 1)) | (0x7ULL << shift);
+		shortKey bitmask = 0x7ULL << shift;
 		shortKey keyfragment = ((shortKey) i) << shift;
 
 		D[dest].Bunch.Key = (D[parent].Bunch.Key & ~bitmask) | keyfragment;
@@ -238,8 +219,10 @@ static void remove_empty_bunches()
 	
 	}
 
+#ifdef DEBUG
 	printf("(%d:%d) Removed %d bunches, now %d Bunches\n", Task.Rank, 
 			Task.Thread_ID, old_nBunches-NBunches, NBunches);
+#endif
 
 	} // omp single
 
@@ -247,7 +230,7 @@ static void remove_empty_bunches()
 }
 
 /*
- * distribute local particles into bunches
+ * update particle distribution over nBunches, starting for first_bunch
  */
 
 static void fill_bunches(const int first_bunch, const int nBunch, 
@@ -340,6 +323,11 @@ static void find_imbalance()
 	return ;
 }
 
+/*
+ * This function defines the metric that estimates if a bunch has 
+ * to be refined into eight sub-bunches.
+ */
+
 static bool bunch_is_overloaded(const int b)
 {
 	if (D[b].Bunch.Npart == 0)
@@ -350,9 +338,6 @@ static bool bunch_is_overloaded(const int b)
 	
 	double rel_mem_load = (double)(D[b].Bunch.Npart - mean_npart) / mean_npart;
 
-printf("Test Bunch %d, np=%5d mean=%g delta=%g \n",
-b, D[b].Bunch.Npart, mean_npart, rel_mem_load );
-	
 	if (rel_mem_load > DOMAIN_SPLIT_MEM_THRES)
 		return true;
 
@@ -375,6 +360,15 @@ static int compare_bunches_by_target(const void *a, const void *b)
 	return (int) (x->Target > y->Target) - (x->Target < y->Target);
 }
 
+static int compare_bunches_by_npart(const void *a, const void *b) 
+{
+	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
+	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
+
+	return (int) (x->Npart > y->Npart) - (x->Npart < y->Npart);
+}
+
+
 static void communicate_particles()
 {
 	return ;
@@ -386,7 +380,8 @@ static void communicate_bunch_list()
 }
 	
 /*
- * Find the global domain origin, center and the maximum extent
+ * Find the global domain origin and the maximum extent. Not much
+ * to do for PERIODIC
  */
 
 double max_x = -DBL_MAX, max_y = -DBL_MAX, max_z = -DBL_MAX, 
@@ -407,7 +402,7 @@ static void find_global_domain()
 #else // ! PERIODIC
 
 	#pragma omp for reduction(max:max_x,max_y,max_z) \
-		reduction(min:min_x,min_y,min_z)
+					reduction(min:min_x,min_y,min_z)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
 		max_x = fmax(max_x, P[ipart].Pos[0]);
@@ -422,7 +417,7 @@ static void find_global_domain()
 	double global_max[3] = { max_x, max_y, max_z  };
 	double global_min[3] = { min_x, min_y, min_z  };
 
-	#pragma omp single // do an MPI reduction
+	#pragma omp single 
 	{
 
 		MPI_Allreduce(MPI_IN_PLACE, &global_max, 3, MPI_DOUBLE, MPI_MAX,

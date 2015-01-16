@@ -1,5 +1,5 @@
 /* 
- * Here we compute the peano Keys and reorder the particles
+ * Here we compute peano Keys and reorder particles
  */
 
 #include "globals.h"
@@ -8,8 +8,6 @@
 #include "Gravity/gravity.h"
 #include "domain.h"
 #include "sort.h"
-
-#include <gsl/gsl_heapsort.h>
 
 static peanoKey *Keys = NULL;
 static size_t *Idx = NULL;
@@ -109,6 +107,11 @@ static void reorder_collisionless_particles()
  * a 128bit type would be portable, though all modern CPUs have 128 bit 
  * registers. Bits 0 & 1 are unused, the most significant bit is 63. Input has
  * to be double for full precision.
+ *
+ * To be consistent without the loss of accuracy all std keys start with the
+ * first triplet at level 1, i.e. the last 1 or 2 bits are unused. However the
+ * reversed keys carry the zero triplet explicitely, to ease tree traversal.
+ *
  * Yes it's totally arcane, run as fast as you can.
  *
  * Skilling 2004, AIP 707, 381: "Programming the Hilbert Curve"
@@ -119,9 +122,9 @@ static void reorder_collisionless_particles()
 peanoKey Peano_Key(const double x, const double y, const double z)
 {
 #ifdef DEBUG // check input
-	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1] have %g", x);
-	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1] have %g", y);
-	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1] have %g", z);
+	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1[ have %g", x);
+	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1[ have %g", y);
+	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1[ have %g", z);
 #endif
 
 	const uint64_t m = 1UL << 63; // = 2^63;
@@ -172,7 +175,7 @@ peanoKey Peano_Key(const double x, const double y, const double z)
 	/* branch free bit interleave of transpose array X into key */
 
 	peanoKey key = 0; 
-
+	
 	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
 
 	for (int i = 0; i < N_PEANO_TRIPLETS+1; i++) {
@@ -188,9 +191,10 @@ peanoKey Peano_Key(const double x, const double y, const double z)
 		X[2] <<= 1;
 
 		key |= col; 
+
 	} 
 	
-	key &= ~((peanoKey)1 << 127); // set bit 127 == 0
+	key <<= 2;
 
 	return key;
 }
@@ -198,15 +202,15 @@ peanoKey Peano_Key(const double x, const double y, const double z)
 /*
  * This constructs the peano key with reversed triplet order. The order in the 
  * triplets however is the same ! Also level zero is carried explicitely
- * to ease tree construction.
+ * to ease tree construction. The most significant bits are undefined.
  */
 
 peanoKey Reversed_Peano_Key(const double x, const double y, const double z)
 {
 #ifdef DEBUG // check input
-	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1] have %g", x);
-	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1] have %g", y);
-	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1] have %g", z);
+	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1[ have %g", x);
+	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1[ have %g", y);
+	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1[ have %g", z);
 #endif
 
 	const uint64_t m = 1UL << 63; // = 2^63;
@@ -282,15 +286,15 @@ peanoKey Reversed_Peano_Key(const double x, const double y, const double z)
  * Keys of 64 bit length (21 triplets), standard and reversed
  */
 
-shortKey Short_Peano_Key(const float x, const float y, const float z)
+shortKey Short_Peano_Key(const double x, const double y, const double z)
 {
 #ifdef DEBUG // check input
-	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1] have %g", x);
-	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1] have %g", y);
-	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1] have %g", z);
+	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1[ have %g", x);
+	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1[ have %g", y);
+	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1[ have %g", z);
 #endif
 
-	const uint32_t m = 1UL << 31; // = 2^63;
+	const uint64_t m = 1UL << 31; // = 2^31;
 
 	uint32_t X[3] = { y*m, z*m, x*m };
 
@@ -356,22 +360,21 @@ shortKey Short_Peano_Key(const float x, const float y, const float z)
 		key |= col; 
 	} 
 
-	key >>= 1;
-	key &= ~((shortKey)1 << 63); // set bit  63 == 0
+	key <<= 1;
 
 	return key;
 }
 
 
-shortKey Reversed_Short_Peano_Key(const float x, const float y, const float z)
+shortKey Reversed_Short_Peano_Key(const double x,const double y,const double z)
 {
 #ifdef DEBUG // check input
-	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1] have %g", x);
-	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1] have %g", y);
-	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1] have %g", z);
+	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1[ have %g", x);
+	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1[ have %g", y);
+	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1[ have %g", z);
 #endif
 
-	const uint32_t m = 1UL << 31; // = 2^31;
+	const uint64_t m = 1UL << 31; // = 2^31;
 
 	uint32_t X[3] = { y*m, z*m, x*m };
 
@@ -441,14 +444,35 @@ shortKey Reversed_Short_Peano_Key(const float x, const float y, const float z)
 }
 
 
-void test_peanokey()
+void Test_Peanokey()
 {
 	const double box[3]  = { 1.0, 1, 1};
-	float a[3] = { 0 };
+	double a[3] = { 0 };
 	int order = 1;
-	float delta = 1/pow(2.0, order);
+	double delta = 1/pow(2.0, order);
 	int n = roundf(1/delta);
 
+	a[0] = 0.9999999999; // test one value first
+	a[1] = 0.9999999999;
+	a[2] = 0.9999999999;
+	
+	peanoKey stdkey =  Peano_Key(a[0], a[1], a[2]);
+	peanoKey revkey =  Reversed_Peano_Key(a[0], a[1], a[2]);
+
+	printf("a0=%lg a1=%lg a2=%lg 64bit val=%llu  \n", a[0], a[1], a[2], 
+			(unsigned long long)(stdkey >> 64));
+
+	Print_Int_Bits(stdkey, 128, 2);
+	Print_Int_Bits(revkey, 128, 3);
+
+	shortKey stdkey_short = Short_Peano_Key(a[0], a[1], a[2]);
+	shortKey revkey_short = Reversed_Short_Peano_Key(a[0], a[1], a[2]);
+
+	Print_Int_Bits(stdkey_short, 64, 1);
+	Print_Int_Bits(revkey_short, 64, 3);
+
+	printf("\n");
+		
 	for (int i = 0; i < n; i++)
 	for (int j = 0; j < n; j++) 
 	for (int k = 0; k < n; k++) {
@@ -464,10 +488,12 @@ void test_peanokey()
 				(unsigned long long)(stdkey >> 64));
 
 		Print_Int_Bits128(stdkey);
-		Print_Int_Bits128(revkey);
+		Print_Int_Bits(revkey, 128, 3);
 
 		printf("\n");
 	}
+
+	exit(0);
 
 	return ;
 }

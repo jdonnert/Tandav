@@ -10,7 +10,7 @@ union Domain_Node_List {
 	struct Bunch_Node { // Data needed for Domain Decomposition
 		shortKey Key;	// Largest Peano key held by this bunch
 		int Target; 	// MPIRANK
-		int Npart;
+		int Npart;		
 		int Level;
 		float Cost;
 		int First_Part;

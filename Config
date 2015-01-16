@@ -49,4 +49,5 @@ OMEGA_RAD 4.8e-5
 #### ALWAYS RECOMMENDED ####
 
 MEMORY_MANAGER  
+BUFFER_SIZE 100             // in MB per MPI rank
 

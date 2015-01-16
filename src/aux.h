@@ -24,6 +24,4 @@ uint64_t Umax(const uint64_t x, const uint64_t y);
 
 Float Sign(const Float x);
 
-
-void Print_Int_Bits64(const uint64_t val);
-void Print_Int_Bits128(const __uint128_t val);
+void Print_Int_Bits(const __uint128_t val, const int length, const int delta);

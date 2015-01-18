@@ -184,9 +184,10 @@ static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
 }
 
 /*
- * Walk tree an used the B&H opening criterion, which does not require a prior
+ * Walk tree and use the B&H opening criterion, which does not require a prior
  * particle acceleration.
  */
+
 static void gravity_tree_walk_first(const int ipart, Float* Accel, Float *Pot)
 {
 	int node = 1;

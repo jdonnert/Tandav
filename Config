@@ -1,6 +1,6 @@
 #### CODE PARAMETERS ####
 
-#DEBUG						// verbose output
+DEBUG						// verbose output
 
 #PERIODIC					// periodic boundary conditions
 #COMOVING					// time integration in comoving coordinates
@@ -28,9 +28,6 @@ OUTPUT_TOTAL_ACCELERATION 		// total acceleration ACC
 OUTPUT_PARTIAL_ACCELERATIONS	// save & output all ACC components
 OUTPUT_GRAV_POTENTIAL 			// gravitational potential GPOT
 #OUTPUT_PEANO_KEY   			// peano key of particle "PKEY"
-
-#### DOMAIN DECOMPOSITION ####
-
 
 #### CODE UNITS ####
 

@@ -4,40 +4,38 @@
 
 #ifdef GRAVITY_TREE
 
-#define NODES_PER_PARTICLE 1.0
+#define NODES_PER_PARTICLE 0.5
 
-int NNodes = 0;
-int NTop_Nodes = 0;
-int Max_Nodes = 0;
-struct Tree_Node *Tree = NULL;
-
-struct Tree_Node *tree = NULL; // pointer to build target
-#pragma omp threadprivate(tree)
-
-void gravity_tree_init();
-
-static int transform_bunch_into_top_node(const int);
-static int reserve_tree_memory(const int );
-static void build_subtree(const int, const int, const int, int *);
-static int finalise_subtree(const int, const int, const int, int );
+static void gravity_tree_init();
+static void transform_bunch_into_top_node(const int, int*, int*);
+static void reserve_tree_memory(const int, const int);
+static int build_subtree(const int, const int, const int);
+static int finalise_subtree(const int, const int, int );
 static inline bool particle_is_inside_node(const peanoKey,const int,const int);
 static inline void add_particle_to_node(const int, const int);
 static inline void create_node_from_particle(const int, const int, 
 		const peanoKey, const int, const int);
 static peanoKey create_first_subtree_node(const int, const int, const int);
-static void collapse_last_branch(const int,const int,const int,const int,int*);
+static void collapse_last_branch(const int, const int, const int, int*);
 static inline int key_fragment(const int);
 
+
+int NNodes = 0,  NTop_Nodes = 0, Max_Nodes = 0;
+
+struct Tree_Node *Tree = NULL; // pointer to all nodes
+struct Tree_Node *tree = NULL; // pointer to build memory: "*Tree" or "*Buffer"
+#pragma omp threadprivate(tree)
+
 /*
- * This builds the tree in parallel. 
+ * This builds the tree in parallel, particles are assumed PH ordered. 
  * First every local bunch is converted into a topnode. Then we build the 
  * corresponding tree either in the openmp buffer, or directly inside the
- * Tree memory.
+ * Tree memory. 
  * A subtree is build starting from the top node in target pointer "*tree". 
  * Every subtree allocated a fixed amount of memory. 
- * If the number of particles in that top node is <= 8, the subtre is discarded
- * and the topnode target points directly to the particles and the tree walk
- * will use particles directly from the topnode. 
+ * If the number of particles in that top node is <= 8, the subtree is 
+ * discarded and the topnode target points directly to the particles and 
+ * the tree walk will use particles directly from the topnode. 
  * At last the top node is broadcasted.
  */
 
@@ -47,66 +45,61 @@ void Gravity_Tree_Build()
 
 	gravity_tree_init();
 
-	const size_t npart_max = 0; //Task.Buffer_Size/sizeof(*Tree);
+	const double npart_max_buf = Task.Buffer_Size/sizeof(*Tree);
 
-	Warn(npart_max > 1e4, "npart_max < 1e4, increase omp buffer size,  %d MB"
-			, Task.Buffer_Size/1024/1024);
+	Warn(npart_max_buf < 1e3, 
+			"npart_max_buf = %g < 1e3, increase omp buffer size ? %d MB"
+			, npart_max_buf , Task.Buffer_Size/1024/1024);
 
 	NTop_Nodes = NBunches;
 
 	#pragma omp for schedule(static,1)
-	for (int i = 0; i < NTop_Nodes; i++) {
-	
-		int level = 0, src = 0;
+	for (int i = 0; i < NBunches; i++) {
+		
+		int src = D[i].Bunch.Target;
 
-		if (D[i].TNode.Target < 0) { // non-local node, only MPI comm
-
-			src = -D[i].TNode.Target;
-
-		} else { // local node
+		if (D[i].Bunch.Is_Local) {
 			
-			src = Task.Rank;
+		 	src = Task.Rank;
 
-			level = transform_bunch_into_top_node(i);
+			int first_part = 0, level = 0; 
+
+			transform_bunch_into_top_node(i, &level, &first_part);
+
+			if (D[i].TNode.Npart > npart_max_buf) { 
+
+				int nReserved = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
 			
-			int first_part = D[i].TNode.Target; 
+				reserve_tree_memory(i, nReserved);
 
-			int nNeeded = 0, nReserved = 0;
+				tree = &Tree[D[i].TNode.Target]; // build directly in tree
 
-			if (D[i].TNode.Npart > npart_max) { // build directly in tree			
-				tree = Tree; 
+			} else { 
 
-				nReserved = reserve_tree_memory(i);
+				tree = (struct Tree_Node *) Buffer; // build in the buffer
 
-			} else { // build in the buffer
-			
-				tree = (struct Tree_Node *) Buffer; 
+				memset(Buffer, 0, Task.Buffer_Size);
 			}
 
-			build_subtree(first_part, i, level, &nNeeded);
+			int nNeeded = build_subtree(first_part, i, level);
 
-			if (tree == Buffer) { // copy buffer to Tree
+			if ((tree == Buffer)) { // copy buffer to Tree, clear buffer
 			
-				nReserved = reserve_tree_memory(i);
+				reserve_tree_memory(i, nNeeded);
 
 				size_t nBytes = nNeeded * sizeof(*Tree);
 
 				memcpy(&Tree[D[i].TNode.Target], tree, nBytes);
 			}
 
-//#ifdef DEBUG
-			printf("Top Node %d has %d particles and %d/%d = %g tree nodes | "
-					"Tree is %d of max %d Nodes\n",
-				i, D[i].TNode.Npart, nNeeded, nReserved, 
-				((double)nNeeded)/D[i].TNode.Npart, NNodes, Max_Nodes);
-//#endif
-		} // if Target >= 0
+
+		} // if Bunch is local
 
 	/*	MPI_Request *request = NULL;
 			float *target = &D[i].TNode.Pos[0];
 			int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
 		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
-	//if (i == 2) exit(0);
+	//if (i == 1) exit(0);
 	}
 
 	#pragma omp barrier
@@ -120,51 +113,52 @@ exit(0);
 
 /*
  * Set the "TNode" part of the D unions. From here onwards the members 
- * are to be understood as a Top Node, not a bunch.
+ * are to be understood as a Top Node, not a bunch. also returns the first
+ * partincle in "ipart"
  */
 
-static int transform_bunch_into_top_node(const int i)
+static void transform_bunch_into_top_node(const int i, int *level, int *ipart)
 {	
-	const int ipart = D[i].Bunch.First_Part;
+	*ipart = D[i].Bunch.First_Part; 
+	*level = D[i].Bunch.Level;
 
-	D[i].TNode.Target = ipart; // save the particle index
+	double px = P[*ipart].Pos[0] - Domain.Origin[0]; // construct from particle
+	double py = P[*ipart].Pos[1] - Domain.Origin[1];
+	double pz = P[*ipart].Pos[2] - Domain.Origin[2];
 
-	double px = P[ipart].Pos[0] - Domain.Origin[0]; // construct from particle
-	double py = P[ipart].Pos[1] - Domain.Origin[1];
-	double pz = P[ipart].Pos[2] - Domain.Origin[2];
-
-	int level = D[i].Bunch.Level;
-
-	double size = Domain.Size / (1ULL << level);
+	double size = Domain.Size / (1ULL << *level);
 
 	D[i].TNode.Pos[0] = (floor(px/size) + 0.5) * size + Domain.Origin[0];
 	D[i].TNode.Pos[1] = (floor(py/size) + 0.5) * size + Domain.Origin[1];
 	D[i].TNode.Pos[2] = (floor(pz/size) + 0.5) * size + Domain.Origin[2];
 
-	return level;
+	D[i].TNode.Target = -1;
+
+	return ;
 }
 
 /*
  * Reserve memory in the "*Tree" structure in a thread safe way
  */
 
-static int reserve_tree_memory(const int i)
+static void reserve_tree_memory(const int i, const int nNeeded)
 {	
-	int nReserved = ceil(D[i].TNode.Npart*NODES_PER_PARTICLE);
-
+	if (nNeeded == 0)
+		return ;
+	
 	#pragma omp critical
 	{
 		
 		D[i].TNode.Target = NNodes;
 
-		NNodes += nReserved;
+		NNodes += nNeeded;
 	
 	} // omp critical
 
 	Assert(NNodes < Max_Nodes, "Too many nodes (%d>%d), increase "
 		"NODES_PER_PARTICLE=%g", NNodes, Max_Nodes, NODES_PER_PARTICLE);
 
-	return nReserved;
+	return ;
 }
 
 /*
@@ -191,29 +185,26 @@ static int reserve_tree_memory(const int i)
  * node at that level. See Tree definition in gravity.h. 
  */
 
-static void build_subtree(const int istart, const int tnode_idx, 
-		const int top_level, int *nNodes_out)
+static int build_subtree(const int istart, const int tnode_idx, 
+		const int top_level)
 {
 #ifdef DEBUG
-		printf("DEBUG: (%d:%d) Tree Build for top node=%d : "
-		   "first part=%d npart=%d first node=%d \n"
+		printf("DEBUG (%d:%d) Tree Build for top node=%d : "
+		   "first part=%d npart=%d Tree build target=%d \n"
 		,Task.Rank, Task.Thread_ID,  tnode_idx, istart, 
 		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target);
 #endif
-	
-	const int tree_start = D[tnode_idx].TNode.Target; 
-	int tree_end = tree_start; // first empty node
 
-	int last_parent = tree_start; // last parent of last particle
+	peanoKey last_key = create_first_subtree_node(istart,tnode_idx, top_level);
 
-	peanoKey last_key = create_first_subtree_node(istart, tnode_idx, top_level);
+	int nNodes = 1; 
 
-	tree_end++;
+	int last_parent = 0; // last parent of last particle
 
 	const int ilast = istart + D[tnode_idx].TNode.Npart - 1;
 
 	for (int ipart = istart+1; ipart < ilast+1; ipart++) {
-
+		
 		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
 		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
 		double pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
@@ -222,9 +213,9 @@ static void build_subtree(const int istart, const int tnode_idx,
 		
 		key >>= 3 * top_level;
 
-		int node = tree_start;  // current node
-		int lvl = top_level;	// counts current level
-		int parent = node;		// parent of current node
+		int node = 0;  // current node
+		int lvl = top_level; // counts current level
+		int parent = node; // parent of current node
 
 		bool ipart_starts_new_branch = true; // flag to remove leaf nodes
 		
@@ -232,41 +223,38 @@ static void build_subtree(const int istart, const int tnode_idx,
 
 			if (particle_is_inside_node(key, lvl, node)) { // open node	
 
-				if (tree[node].Npart == 1) { 	// refine 
+				if (tree[node].Npart == 1) { 	// refine
 	
 					tree[node].DNext = 0;		
 
-					int new_node = tree_end;
+					int new_node = nNodes; // is a son of "node"
 
 					create_node_from_particle(ipart-1, node, last_key, lvl+1, 
-							new_node); 	// new_node is a son of node
-
-					tree_end++;
+																	new_node);
+					nNodes++;
 
 					last_key >>= 3;
 				}  
 				
 				add_particle_to_node(ipart, node); // add ipart to node
 
-				ipart_starts_new_branch &= (node != last_parent);
-
+				ipart_starts_new_branch = ipart_starts_new_branch 
+													&& (node != last_parent);
 				parent = node;
 
 				node++; // decline
-
 				lvl++;
-				
 				key >>= 3;
 
 			} else { // skip to next node
 				
-				if (tree[node].DNext == 0 || node == tree_end - 1)  
+				if (tree[node].DNext == 0 || node == nNodes - 1)  
 					break; // reached end of branch
 				
 				node += fmax(1, tree[node].DNext);
 			}
 		} // while (lvl < 42)
-		
+
 		if (lvl > N_PEANO_TRIPLETS-1) {	
 		
 			P[ipart].Tree_Parent = parent;
@@ -275,35 +263,39 @@ static void build_subtree(const int istart, const int tnode_idx,
 		}
 		
 		if (ipart_starts_new_branch) 
-			collapse_last_branch(node,last_parent,ipart,tree_start, &tree_end);
+			collapse_last_branch(node, last_parent, ipart, &nNodes);
 	
 		if (tree[node].DNext == 0) 	// set DNext for internal node
-			tree[node].DNext = tree_end - node; 	// only delta
+			tree[node].DNext = nNodes - node; 	// only delta
 			
-		int new_node = tree_end;
+		int new_node = nNodes; // is a sibling of "node"
 
-		create_node_from_particle(ipart, parent, key, lvl, new_node);// sibling
+		create_node_from_particle(ipart, parent, key, lvl, new_node);
 
-		tree_end++;
+		nNodes++;
 	
 		last_key = key >> 3;
 		last_parent = parent;
 
 	} // for ipart
 
-	tree_end = finalise_subtree(tree_start, top_level, tnode_idx, tree_end);
-	
-	*nNodes_out = tree_end - tree_start - 1;
+	nNodes = finalise_subtree(top_level, tnode_idx, nNodes);
 
-#ifdef DEBUG
-	for (int n = tree_start; n<tree_end; n++) {
+/*#ifdef DEBUG
+	for (int n = 0; n < nNodes; n++) {
 		printf("Top %d node=%d lvl=%d dnext=%d npart=%d ",
 			tnode_idx, n, Level(n), tree[n].DNext, tree[n].Npart);
-		Print_Int_Bits32(tree[n].Bitfield);
+	Print_Int_Bits32(tree[n].Bitfield);
 	}
+#endif */
+
+#ifdef DEBUG
+	printf("DEBUG (%d:%d) TNode %d tree done, nNodes %d, %g\n", Task.Rank
+			,Task.Thread_ID, tnode_idx, nNodes,
+			(double)nNodes/D[tnode_idx].TNode.Npart);
 #endif
 
-	return ;
+	return nNodes;
 }
 
 /*
@@ -312,11 +304,9 @@ static void build_subtree(const int istart, const int tnode_idx,
  * domain decomposition.
  */
 
-static peanoKey create_first_subtree_node(const int istart, const int tnode_idx,
-		const int top_level)
+static peanoKey create_first_subtree_node(const int istart, 
+		const int tnode_idx, const int top_level)
 {
-	const int node = D[tnode_idx].TNode.Target; // where the subtree starts
-
 	Float px = (P[istart].Pos[0] - Domain.Origin[0]) / Domain.Size; 
 	Float py = (P[istart].Pos[1] - Domain.Origin[1]) / Domain.Size; 
 	Float pz = (P[istart].Pos[2] - Domain.Origin[2]) / Domain.Size;
@@ -325,19 +315,17 @@ static peanoKey create_first_subtree_node(const int istart, const int tnode_idx,
 
 	key >>= 3 * top_level;
 
-	create_node_from_particle(istart, node, key, top_level, node); 
+	create_node_from_particle(istart, 0, key, top_level, 0); 
 
-	key >>= 3; 
+	tree[0].Pos[0] = D[tnode_idx].TNode.Pos[0]; // correct position
+	tree[0].Pos[1] = D[tnode_idx].TNode.Pos[1]; // because parent node 
+	tree[0].Pos[2] = D[tnode_idx].TNode.Pos[2]; // did not exist
 
-	tree[node].Pos[0] = D[tnode_idx].TNode.Pos[0]; // correct position
-	tree[node].Pos[1] = D[tnode_idx].TNode.Pos[1]; // because parent node 
-	tree[node].Pos[2] = D[tnode_idx].TNode.Pos[2]; // did not exist
-
-	tree[node].DUp = tnode_idx; // correct up pointer to lead to topnode
+	tree[0].DUp = tnode_idx; // correct up pointer to lead to topnode
 	
-	Node_Set(TOP, node);
+	Node_Set(TOP, 0);
 	
-	return key;
+	return key >> 3;
 }
 
 /*
@@ -346,7 +334,7 @@ static peanoKey create_first_subtree_node(const int istart, const int tnode_idx,
  */
 
 static void collapse_last_branch(const int node, const int last_parent, 
-		const int ipart, const int tree_start, int *tree_end)
+		const int ipart, int *nNodes)
 {
 	int n = -1; 
 		
@@ -359,13 +347,13 @@ static void collapse_last_branch(const int node, const int last_parent,
 
 	tree[n].DNext = -ipart + tree[n].Npart - 1;
 
-	int nZero = *tree_end - n - 1;
+	int nZero = *nNodes - n - 1;
 
-	*tree_end -= nZero;
+	*nNodes -= nZero;
 
 	size_t nBytes = nZero * sizeof(*tree);
 
-	memset(&tree[*tree_end], 0, nBytes);
+	memset(&tree[*nNodes], 0, nBytes);
 
 	int first = -(tree[n].DNext + 1); // correct parent pointer
 	int last = first + tree[n].Npart;
@@ -377,46 +365,46 @@ static void collapse_last_branch(const int node, const int last_parent,
 }
 
 /* 
+ * Do some final operations on the node contents.
  * Copy the first node into the top node. If tree contains less than 8 
- * particles, return 0. Remove topnode copy.
+ * particles, return 0. 
  * After the build, some inner DNext pointers are 0. This is corrected 
  * setting these pointers and closing the P-H curve through the sub tree.
- * Finally we do some final operations on the node contents and remove the
- * top node of the subtree, as it is identical with D.TNode.
+ * Remove the top node of the subtree, as it is identical with D.TNode.
  */
 
-static int finalise_subtree(const int start, const int top_level, 
-		const int tnode_idx, int end)
+static int finalise_subtree(const int top_level, const int tnode_idx, 
+		int nNodes)
 {
-	if (tree[start].Npart <= 8) 
-		end = start + 1;
-
-	for (int i = start; i < end; i++) { // final ops
+	for (int i = 0; i < nNodes; i++) { // final ops on all sub tree nodes
 
 		tree[i].CoM[0] /= tree[i].Mass;
 		tree[i].CoM[1] /= tree[i].Mass;
 		tree[i].CoM[2] /= tree[i].Mass;
 	}
 
-	D[tnode_idx].TNode.Mass = tree[start].Mass; // copy first node to top node
+	D[tnode_idx].TNode.Mass = tree[0].Mass; // copy first node to top node
 
 	for (int i = 0; i < 3; i++) {
 
-		D[tnode_idx].TNode.CoM[i] = tree[start].CoM[i];
-		D[tnode_idx].TNode.Dp[i] = tree[start].Dp[i];
+		D[tnode_idx].TNode.CoM[i] = tree[0].CoM[i];
+		D[tnode_idx].TNode.Dp[i] = tree[0].Dp[i];
 	}
 	
-	if (tree[start].Npart <= 8) // small, save only topnode
-		return 0;
+	if (tree[0].Npart <= 8) { // too small, save only topnode
 	
+		memset(tree, 0, nNodes * sizeof(*tree));
+		
+		return 0;
+	}
 	// compact
 
-	tree[start].DNext = 0;  // correct internal DNext
+	tree[0].DNext = 0;  // correct internal DNext
 
 	int stack[N_PEANO_TRIPLETS + 1] = { 0 }; 
 	int lowest = top_level;
 
-	for (int i = start + 1; i < end; i++) {
+	for (int i = 1; i < nNodes; i++) {
 
 		int lvl = Level(i);
 
@@ -441,16 +429,16 @@ static int finalise_subtree(const int start, const int top_level,
 
 	} // for
 
-	void *src =  &tree[start + 1]; // remove topnode copy
-	void *dest = &tree[start];
+	void *src =  &tree[1]; // remove topnode copy
+	void *dest = &tree[0];
 
-	end--;
+	nNodes--;
 
-	size_t nBytes = sizeof(*tree) * (end - start);
+	size_t nBytes = sizeof(*tree) * nNodes;
 
 	memmove(dest, src, nBytes);
 
-	return end;
+	return nNodes;
 }
 
 /*
@@ -559,7 +547,7 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node)
  * Initialise tree memory
  */
 
-void gravity_tree_init()
+static void gravity_tree_init()
 {
 	#pragma omp single
 	{

@@ -14,6 +14,7 @@ union Domain_Node_List {
 		int Level;
 		float Cost;
 		int First_Part;
+		bool Is_Local;
 	} Bunch;
 
 #ifdef GRAVITY_TREE

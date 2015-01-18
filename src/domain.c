@@ -13,7 +13,7 @@ static bool bunch_is_overloaded(const int b);
 static int split_bunch(const int i);
 static void find_imbalance();
 static void communicate_particles();
-static void communicate_bunch_list();
+static void communicate_bunches();
 
 static int compare_bunches_by_key(const void *a, const void *b);
 static int compare_bunches_by_target(const void *a, const void *b); 
@@ -80,7 +80,7 @@ void Domain_Decomposition()
 			}
 		}	
 		
-		// communicate_bunches();
+		communicate_bunches();
 
 		remove_empty_bunches();
 
@@ -216,7 +216,6 @@ static void remove_empty_bunches()
 		} 
 
 		i++;
-	
 	}
 
 #ifdef DEBUG
@@ -265,7 +264,7 @@ static void fill_bunches(const int first_bunch, const int nBunch,
 
 				#pragma omp critical
 				if (first < D[i].Bunch.First_Part)
-					D[i].Bunch.First_Part = first;
+					D[i].Bunch.First_Part = first; 
 			
 				npart = cost = 0;
 				first = INT_MAX;
@@ -374,8 +373,11 @@ static void communicate_particles()
 	return ;
 }
 
-static void communicate_bunch_list()
+static void communicate_bunches()
 {
+	for (int i = 0; i < NBunches; i++)
+		D[i].Bunch.Is_Local = true;
+
 	return ;
 }
 	

@@ -66,7 +66,7 @@ void Domain_Decomposition()
 		int old_nBunches = NBunches;
 	
 		for (int i = 0; i < old_nBunches; i++ ) {
-	
+			
 			if (bunch_is_overloaded(i)) { // split into 8
 
 				int first_new_bunch = split_bunch(i);
@@ -78,6 +78,8 @@ void Domain_Decomposition()
 
 				memset(&D[i].Bunch, 0, sizeof(*D));
 			}
+				
+			#pragma omp barrier
 		}	
 		
 		communicate_bunches();
@@ -97,18 +99,28 @@ void Domain_Decomposition()
 
 	} // while
 	
-	rprintf("Domain: %d Bunches, max level %d, imbalance: mem %g cpu %g \n", 
+	#pragma omp barrier
+	#pragma omp flush (D)
+
+	#pragma omp single
+	{
+	
+	printf("Domain: %d Bunches, max level %d, imbalance: mem %g cpu %g \n", 
 			NBunches, max_level, max_mem_imbal,  max_cpu_imbal );
 	
+	printf(" No | npart  | first  |   task  | lvl |   PH key\n");
+
 	for (int i = 0; i < NBunches; i++) {
 
-		printf("%3d | %5d %5d  %d  ", 
-				i, D[i].Bunch.Npart, D[i].Bunch.First_Part, D[i].Bunch.Level);
+		printf("%3d | %6d | %6d | %6d | %2d ", i, D[i].Bunch.Npart, 
+				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level);
 		
 		Print_Int_Bits64(D[i].Bunch.Key);
 	}
 
-	printf("\n-----------------------\n");
+	}
+
+#pragma omp barrier
 
 	Profile("Domain Decomposition");
 
@@ -256,16 +268,18 @@ static void fill_bunches(const int first_bunch, const int nBunch,
 			
 			if (npart > 0) {
 				
-				#pragma omp atomic update
+				#pragma omp critical
+				{
+				
 				D[i].Bunch.Npart += npart;
 
-				#pragma omp atomic update
 				D[i].Bunch.Cost += cost;
 
-				#pragma omp critical
 				if (first < D[i].Bunch.First_Part)
 					D[i].Bunch.First_Part = first; 
-			
+				
+				} // omp critical
+
 				npart = cost = 0;
 				first = INT_MAX;
 			}

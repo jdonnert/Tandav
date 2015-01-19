@@ -96,10 +96,11 @@ void Gravity_Tree_Build()
 		} // if Bunch is local
 
 	/*	MPI_Request *request = NULL;
-			float *target = &D[i].TNode.Pos[0];
-			int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
+		
+		float *target = &D[i].TNode.Pos[0];
+		int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
+
 		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
-	//if (i == 1) exit(0);
 	}
 
 	#pragma omp barrier

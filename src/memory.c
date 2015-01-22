@@ -24,6 +24,9 @@ static struct memory_block_infos {
 	bool In_Use;
 } Mem_Block[MAXMEMOBJECTS];
 
+static void * buffer;		// Multi-purpose thread-safe buffer: BUFFER_SIZE
+#pragma omp threadprivate(buffer)
+
 void *Malloc_info(const char* file, const char* func, const int line, 
 		size_t size, const char *name)
 {
@@ -139,6 +142,24 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 	return ;
 }
 
+void *Get_Thread_Safe_Buffer (size_t nBytes)
+{
+	Assert(nBytes <= Task.Buffer_Size, 
+			"Requested too much Buffer space %d > %d"
+			"Increase BUFFER_SIZE in 'Config' file. ", 
+			nBytes, Task.Buffer_Size);
+
+	memset(buffer, 0, nBytes);
+
+	return buffer;
+}
+
+/*
+ * Grab a huge chunk of memory and reserve a small chunk for every thread so
+ * we a space to define thread-safe variable larger than the stack. The total
+ * size is controlled by BUFFER_SIZE. 
+ */
+
 void Init_Memory_Management()
 {
 	Mem_Size = Param.Max_Mem_Size * 1024L * 1024L; //  in MBytes
@@ -167,15 +188,18 @@ void Init_Memory_Management()
 
 	memset(Memory, 0, NBytes_Left);
 
+	size_t nBytes = BUFFER_SIZE * 1024 * 1024; // MBytes
+	void *omp_buff = Malloc(nBytes, "Thread-Safe Buffer");
+
 	#pragma omp parallel
 	{
-		Task.Buffer_Size = BUFFER_SIZE *1024 *1024 /Sim.NThreads;
+		Task.Buffer_Size = nBytes / Sim.NThreads;
 
-		Buffer = Malloc(Task.Buffer_Size, "Buffer");
+		buffer = omp_buff + Task.Thread_ID * Task.Buffer_Size;
 	
 	} // omp parallel
 
-	printf("\n   Buffer size = %g MB per thread \n\n", 
+	printf("\n   Thread-Safe Buffer: size = %g MB per thread \n\n", 
 			Task.Buffer_Size/1024.0/1024);
 
 	return;
@@ -203,7 +227,9 @@ void Print_Memory_Usage()
 
 	printf("\nMemory Manager: Reporting Blocks of MPI Rank %d with %g MB "
 			"free memory\n   No  Used      Address      Size (MB)    "
-			"Cumulative     Variable  File:Line\n", 
+			"Cumulative          Variable       File:Line\n"
+			"-----------------------------------------------"
+			"-------------------------------------------------------\n", 
 			Task.Rank, (double) NBytes_Left/1024/1024);
 
 	size_t mem_Cumulative = 0;
@@ -212,7 +238,7 @@ void Print_Memory_Usage()
 			
 		mem_Cumulative += Mem_Block[i].Size;
 
-		printf("    %d   %d    %11p     %7.1f      %8.3f   %10s  %s:%d\n",
+		printf("    %d   %d    %11p     %7.1f      %8.3f   %20s  %s:%d\n",
 			i,Mem_Block[i].In_Use, Mem_Block[i].Start, 
 			(double) Mem_Block[i].Size/1024/1024, 
 			(double) mem_Cumulative/1024/1024, 
@@ -225,7 +251,7 @@ void Print_Memory_Usage()
 	skip: ;
 
 	} // omp single nowait
-	
+
 	return;
 }
 

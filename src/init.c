@@ -13,9 +13,6 @@ struct Global_Simulation_Properties Sim;
 #pragma omp threadprivate(Task)
 struct Local_Task_Properties Task = { 0 };
 
-#pragma omp threadprivate(Buffer)
-void *Buffer = NULL;
-
 struct Particle_Data *P = NULL;
 
 void Read_and_Init() 

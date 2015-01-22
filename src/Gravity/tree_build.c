@@ -23,7 +23,7 @@ static inline int key_fragment(const int);
 int NNodes = 0,  NTop_Nodes = 0, Max_Nodes = 0;
 
 struct Tree_Node *Tree = NULL; // pointer to all nodes
-struct Tree_Node *tree = NULL; // pointer to build memory: "*Tree" or "*Buffer"
+struct Tree_Node *tree = NULL; // pointer to build memory: "*Tree" or "*buffer"
 #pragma omp threadprivate(tree)
 
 /*
@@ -45,10 +45,10 @@ void Gravity_Tree_Build()
 
 	gravity_tree_init();
 
-	const double npart_max_buf = Task.Buffer_Size/sizeof(*Tree);
+	const size_t npart_max_buf = Task.Buffer_Size/sizeof(*Tree);
 
-	Warn(npart_max_buf < 1e3, 
-			"npart_max_buf = %g < 1e3, increase omp buffer size ? %d MB"
+	Warn(npart_max_buf < 1000, 
+			"npart_max_buf = %g < 1e3, increase BUFFER_SIZE = %d MB"
 			, npart_max_buf , Task.Buffer_Size/1024/1024);
 
 	NTop_Nodes = NBunches;
@@ -66,24 +66,24 @@ void Gravity_Tree_Build()
 
 			transform_bunch_into_top_node(i, &level, &first_part);
 
-			if (D[i].TNode.Npart > npart_max_buf) { 
+			bool build_in_buffer = D[i].TNode.Npart < npart_max_buf;
+
+			if (build_in_buffer) { 
+
+				tree = Get_Thread_Safe_Buffer(Task.Buffer_Size); 
+
+			} else { // build directly in *Tree
 
 				int nReserved = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
 			
 				reserve_tree_memory(i, nReserved);
 
-				tree = &Tree[D[i].TNode.Target]; // build directly in tree
-
-			} else { 
-
-				tree = (struct Tree_Node *) Buffer; // build in the buffer
-
-				memset(Buffer, 0, Task.Buffer_Size);
+				tree = &Tree[D[i].TNode.Target]; 
 			}
 
 			int nNeeded = build_subtree(first_part, i, level);
 
-			if ((tree == Buffer)) { // copy buffer to Tree, clear buffer
+			if (build_in_buffer) { // copy buffer to Tree, clear buffer
 			
 				reserve_tree_memory(i, nNeeded);
 
@@ -123,12 +123,20 @@ static void transform_bunch_into_top_node(const int i, int *level, int *ipart)
 	*ipart = D[i].Bunch.First_Part; 
 	*level = D[i].Bunch.Level;
 
+#ifdef DEBUG
+	Assert(D[i].Bunch.Npart < INT_MAX, "Npart %zu in Bunch %d > INT_MAX %d", 
+		   D[i].Bunch.Npart, i, INT_MAX);
+#endif
+
+	const int npart = D[i].Bunch.Npart;
+
 	double px = P[*ipart].Pos[0] - Domain.Origin[0]; // construct from particle
 	double py = P[*ipart].Pos[1] - Domain.Origin[1];
 	double pz = P[*ipart].Pos[2] - Domain.Origin[2];
 
 	double size = Domain.Size / (1ULL << *level);
-
+	
+	D[i].TNode.Npart = npart;
 	D[i].TNode.Pos[0] = (floor(px/size) + 0.5) * size + Domain.Origin[0];
 	D[i].TNode.Pos[1] = (floor(py/size) + 0.5) * size + Domain.Origin[1];
 	D[i].TNode.Pos[2] = (floor(pz/size) + 0.5) * size + Domain.Origin[2];

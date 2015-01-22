@@ -17,3 +17,4 @@ void Init_Memory_Management();
 void Print_Memory_Usage();
 void Finish_Memory_Management();
 void Get_Free_Memory(int *total, int *largest, int *smallest);
+void *Get_Thread_Safe_Buffer (size_t nBytes);

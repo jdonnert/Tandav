@@ -10,11 +10,12 @@ union Domain_Node_List {
 	struct Bunch_Node { // Data needed for Domain Decomposition
 		shortKey Key;	// Largest Peano key held by this bunch
 		int Target; 	// MPIRANK
-		int Npart;		
+		size_t Npart;		
 		int Level;
 		float Cost;
 		int First_Part;
 		bool Is_Local;
+		bool Is_To_Be_Split;
 	} Bunch;
 
 #ifdef GRAVITY_TREE
@@ -36,6 +37,7 @@ struct Domain_Properties { // smallest cubic box containing all particles
 	double Size;	 
 	double Origin[3];	
 	double Center[3];	
+	double Center_Of_Mass[3];
 } Domain;
 
 int NBunches;
@@ -43,6 +45,7 @@ int NLocal_Bunches;
 
 void Domain_Decomposition();
 void Init_Domain_Decomposition();
+void Find_Global_Center_Of_Mass(double *CoM_out);
 
 
 

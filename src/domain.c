@@ -101,6 +101,9 @@ void Domain_Decomposition()
 		distribute();
 	} // while
 
+	rprintf("\nDomain: %d Bunches/Top Nodes, max level %d \n\n", 
+			NBunches, max_level);
+
 #ifdef DEBUG
 	print_domain_decomposition(max_level);
 #endif
@@ -115,15 +118,13 @@ exit(0);
 
 static void print_domain_decomposition (const int max_level)
 {
+	#pragma omp barrier
 	#pragma omp flush(D)
 
 	#pragma omp single
 	{
 	
-	printf("Domain: %d Bunches, max level %d \n", 
-			NBunches, max_level);
-	
-	printf(" No | Split | npart  |   sum  | first  | target | lvl |  PH key\n");
+	printf(" No | Split | npart  |   sum  | first  | trgt  | lvl ||  PH key\n");
 	
 	size_t sum = 0;
 
@@ -131,7 +132,7 @@ static void print_domain_decomposition (const int max_level)
 
 		sum += D[i].Bunch.Npart;
 
-		printf("%3d | %d | %6zu | %6zu | %6d | %2d | %2d |", 
+		printf("%3d |   %d   | %6zu | %6zu | %6d | %5d | %3d || ", 
 				i, D[i].Bunch.Is_To_Be_Split,
 				D[i].Bunch.Npart, sum, D[i].Bunch.First_Part, 
 				D[i].Bunch.Target, D[i].Bunch.Level);
@@ -167,9 +168,11 @@ void Init_Domain_Decomposition()
 
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
-	rprintf("Domain Decomposition: \n"
-			"   Initial size %g, origin at %4g %4g %4g \n\n", 
-			Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2]);
+	rprintf("\nDomain size %g, \n   Origin at x = %4g, y = %4g, z = %4g, \n"
+			"   Com    at x = %4g, y = %4g, z = %4g. \n", Domain.Size,
+			Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
+			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
+			Domain.Center_Of_Mass[2]);
 
 	return;
 }
@@ -189,7 +192,7 @@ static void reallocate_topnodes()
 
 	size_t nBytes = Max_NBunches * sizeof(*D); 
 
-	printf("Increasing Top Node Memory: Now %g MB, %d Nodes, Factor %g \n"
+	printf("Increasing Top Node Memory to %3g MB, %6d Nodes, Factor %4g \n"
 			, nBytes/1024.0/1024.0, Max_NBunches, Top_Node_Alloc_Factor);
 
 	D = Realloc(D, nBytes, "Bunchlist");
@@ -297,11 +300,6 @@ static void remove_empty_bunches()
 
 		i++;
 	}
-
-#ifdef DEBUG
-	printf("DEBUG (%d:%d) Removed %d bunches, now %d Bunches\n", Task.Rank, 
-			Task.Thread_ID, old_nBunches-NBunches, NBunches);
-#endif
 
 	} // omp single
 
@@ -510,11 +508,13 @@ static void find_global_domain()
 	}
 #endif // ! PERIODIC
 
-	rprintf("\nDomain size %g, \n   origin at %4g %4g %4g \n"
-			"   Center of Mass at %4g %4g %4g \n", Domain.Size,
+#ifdef DEBUG
+	rprintf("\nDomain size %g, \n   Origin at x = %4g, y = %4g, z = %4g, \n"
+			"   Com    at x = %4g, y = %4g, z = %4g. \n", Domain.Size,
 			Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
 			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
 			Domain.Center_Of_Mass[2]);
+#endif // DEBUG
 
 	return ;
 }

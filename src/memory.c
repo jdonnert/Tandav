@@ -199,7 +199,7 @@ void Init_Memory_Management()
 	
 	} // omp parallel
 
-	printf("\n   Thread-Safe Buffer: size = %g MB per thread \n\n", 
+	printf("\n   Thread-Safe Buffer: %g MB per thread \n\n", 
 			Task.Buffer_Size/1024.0/1024);
 
 	return;

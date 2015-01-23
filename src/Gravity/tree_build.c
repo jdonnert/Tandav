@@ -20,10 +20,10 @@ static void collapse_last_branch(const int, const int, const int, int*);
 static inline int key_fragment(const int);
 
 
-int NNodes = 0,  NTop_Nodes = 0, Max_Nodes = 0;
+int NNodes = 0,  NTop_Nodes = 0, Max_Nodes = 128;
 
 struct Tree_Node *Tree = NULL; // pointer to all nodes
-struct Tree_Node *tree = NULL; // pointer to build memory: "*Tree" or "*buffer"
+struct Tree_Node *tree = NULL; // pointer to build area: "*Tree" or "*Buffer"
 #pragma omp threadprivate(tree)
 
 /*
@@ -43,8 +43,6 @@ void Gravity_Tree_Build()
 {
 	Profile("Build Gravity Tree");
 
-	gravity_tree_init();
-
 	const size_t npart_max_buf = Task.Buffer_Size/sizeof(*Tree);
 
 	Warn(npart_max_buf < 1000, 
@@ -52,6 +50,9 @@ void Gravity_Tree_Build()
 			, npart_max_buf , Task.Buffer_Size/1024/1024);
 
 	NTop_Nodes = NBunches;
+
+	NNodes = Max_Nodes = 0; 
+	Free(Tree);
 
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NBunches; i++) {
@@ -147,7 +148,8 @@ static void transform_bunch_into_top_node(const int i, int *level, int *ipart)
 }
 
 /*
- * Reserve memory in the "*Tree" structure in a thread safe way
+ * Reserve memory in the "*Tree" structure in a thread safe way. Reallocates
+ * = enlarges the *Tree memory if needed.
  */
 
 static void reserve_tree_memory(const int i, const int nNeeded)
@@ -158,14 +160,29 @@ static void reserve_tree_memory(const int i, const int nNeeded)
 	#pragma omp critical
 	{
 		
-		D[i].TNode.Target = NNodes;
+	if (NNodes + nNeeded >= Max_Nodes) { // reserve more memory
 
-		NNodes += nNeeded;
+		Max_Nodes = (Max_Nodes + nNeeded) * 1.1;
+
+		Max_Nodes = imax(Max_Nodes, 1024);
+
+		size_t nBytes = Max_Nodes * sizeof(*Tree);
+
+		mprintf("Increasing Tree Memory to %g MB, Max %d Nodes, Factor %g \n"
+			, nBytes/1024.0/1024.0, Max_Nodes, 
+			(double)Max_Nodes/Task.Npart_Total); fflush(stdout);
+#ifdef DEBUG
+		Print_Memory_Usage();
+#endif
+		Tree = Realloc(Tree, nBytes, "Tree");
+	}
+
+	D[i].TNode.Target = NNodes;
+
+	NNodes += nNeeded;
 	
 	} // omp critical
 
-	Assert(NNodes < Max_Nodes, "Too many nodes (%d>%d), increase "
-		"NODES_PER_PARTICLE=%g", NNodes, Max_Nodes, NODES_PER_PARTICLE);
 
 	return ;
 }
@@ -194,25 +211,25 @@ static void reserve_tree_memory(const int i, const int nNeeded)
  * node at that level. See Tree definition in gravity.h. 
  */
 
-static int build_subtree(const int istart, const int tnode_idx, 
+static int build_subtree(const int first_part, const int tnode_idx, 
 		const int top_level)
 {
 #ifdef DEBUG
 		printf("DEBUG (%d:%d) Tree Build for top node=%d : "
 		   "first part=%d npart=%d Tree build target=%d \n"
-		,Task.Rank, Task.Thread_ID,  tnode_idx, istart, 
+		,Task.Rank, Task.Thread_ID,  tnode_idx, first_part, 
 		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target);
 #endif
 
-	peanoKey last_key = create_first_subtree_node(istart,tnode_idx, top_level);
+	peanoKey last_key = create_first_subtree_node(first_part,tnode_idx, top_level);
 
 	int nNodes = 1; 
 
 	int last_parent = 0; // last parent of last particle
 
-	const int ilast = istart + D[tnode_idx].TNode.Npart - 1;
+	const int last_part = first_part + D[tnode_idx].TNode.Npart - 1;
 
-	for (int ipart = istart+1; ipart < ilast+1; ipart++) {
+	for (int ipart = first_part+1; ipart < last_part+1; ipart++) {
 		
 		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
 		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
@@ -222,9 +239,9 @@ static int build_subtree(const int istart, const int tnode_idx,
 		
 		key >>= 3 * top_level;
 
-		int node = 0;  // current node
+		int node = 0;        // current node
 		int lvl = top_level; // counts current level
-		int parent = node; // parent of current node
+		int parent = node;   // parent of current node
 
 		bool ipart_starts_new_branch = true; // flag to remove leaf nodes
 		
@@ -271,7 +288,7 @@ static int build_subtree(const int istart, const int tnode_idx,
 			continue; // particles closer than PH resolution, dump in node
 		}
 		
-		if (ipart_starts_new_branch) 
+		if (ipart_starts_new_branch || ipart == last_part) 
 			collapse_last_branch(node, last_parent, ipart, &nNodes);
 	
 		if (tree[node].DNext == 0) 	// set DNext for internal node
@@ -313,18 +330,18 @@ static int build_subtree(const int istart, const int tnode_idx,
  * domain decomposition.
  */
 
-static peanoKey create_first_subtree_node(const int istart, 
+static peanoKey create_first_subtree_node(const int first_part, 
 		const int tnode_idx, const int top_level)
 {
-	Float px = (P[istart].Pos[0] - Domain.Origin[0]) / Domain.Size; 
-	Float py = (P[istart].Pos[1] - Domain.Origin[1]) / Domain.Size; 
-	Float pz = (P[istart].Pos[2] - Domain.Origin[2]) / Domain.Size;
+	Float px = (P[first_part].Pos[0] - Domain.Origin[0]) / Domain.Size; 
+	Float py = (P[first_part].Pos[1] - Domain.Origin[1]) / Domain.Size; 
+	Float pz = (P[first_part].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
 	peanoKey key = Reversed_Peano_Key(px, py, pz);
 
 	key >>= 3 * top_level;
 
-	create_node_from_particle(istart, 0, key, top_level, 0); 
+	create_node_from_particle(first_part, 0, key, top_level, 0); 
 
 	tree[0].Pos[0] = D[tnode_idx].TNode.Pos[0]; // correct position
 	tree[0].Pos[1] = D[tnode_idx].TNode.Pos[1]; // because parent node 
@@ -550,32 +567,6 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node)
 
 	return ;
 }
-
-
-/*
- * Initialise tree memory
- */
-
-static void gravity_tree_init()
-{
-	#pragma omp single
-	{
-
-	Max_Nodes = Task.Npart_Total_Max * NODES_PER_PARTICLE;
-	NNodes = 0;
-	
-	size_t nBytes = Max_Nodes * sizeof(*Tree);
-
-	if (Tree == NULL)
-		Tree = Malloc(nBytes, "Tree");
-	
-	memset(Tree, 0, nBytes);
-
-	} // omp single
-
-	return ;
-}
-
 
 
 void test_gravity_tree(const int nNodes)

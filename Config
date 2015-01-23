@@ -1,50 +1,50 @@
 #### CODE PARAMETERS ####
 
-DEBUG						// verbose output
+DEBUG                       // verbose output
 
-#PERIODIC					// periodic boundary conditions
-#COMOVING					// time integration in comoving coordinates
+#PERIODIC                   // periodic boundary conditions
+#COMOVING                   // time integration in comoving coordinates
 
-TIME_INT_ACCURACY 0.1		// time step parameter, std=0.1
+TIME_INT_ACCURACY 0.1       // time step parameter, std=0.1
 
-GRAV_SOFTENING 20 			// Plummer eq. gravitational softening length 
+GRAV_SOFTENING 20           // Plummer eq. gravitational softening length 
 
-TREE_OPEN_PARAM_BH 0.2 		// Barnes & Hut opening criterion parameter
-TREE_OPEN_PARAM_REL 0.01	// Relative opening criterion parameter
+TREE_OPEN_PARAM_BH 0.2      // Barnes & Hut opening criterion parameter
+TREE_OPEN_PARAM_REL 0.01    // Relative opening criterion parameter
 
-DOMAIN_UPDATE_PARAM	0.1		// npart updated before new domain decomposition
+DOMAIN_UPDATE_PARAM 0.1     // npart updated before new domain decomposition
 
 #### GRAVITY ####
 
-GRAVITY				// gravitational interaction master switch
-GRAVITY_POTENTIAL	// compute gravitational potential
+GRAVITY                     // gravitational interaction master switch
+GRAVITY_POTENTIAL           // compute gravitational potential
 
-#GRAVITY_SIMPLE		// N^2 law
-GRAVITY_TREE		// B&H gravity tree
+#GRAVITY_SIMPLE             // N^2 law
+GRAVITY_TREE                // B&H gravity tree
 
 #### OUTPUT OPTIONS ####
 
-OUTPUT_TOTAL_ACCELERATION 		// total acceleration ACC
-OUTPUT_PARTIAL_ACCELERATIONS	// save & output all ACC components
-OUTPUT_GRAV_POTENTIAL 			// gravitational potential GPOT
-#OUTPUT_PEANO_KEY   			// peano key of particle "PKEY"
+OUTPUT_TOTAL_ACCELERATION   // total acceleration ACC
+OUTPUT_PARTIAL_ACCELERATIONS// save & output all ACC components
+OUTPUT_GRAV_POTENTIAL       // gravitational potential GPOT
+#OUTPUT_PEANO_KEY           // peano key of particle "PKEY"
 
 #### CODE UNITS ####
 
-LENGTH2CGS 3.0856802e+21	// 1 kpc
-MASS2CGS 1.9890000e+43		// 10^10 Msol
-VELOCITY2CGS 1.0e+05		// km/s
+LENGTH2CGS 3.0856802e+21    // 1 kpc
+MASS2CGS 1.9890000e+43      // 10^10 Msol
+VELOCITY2CGS 1.0e+05        // km/s
 
 #### COSMOLOGICAL PARAMETERS ####
 
-HUBBLE_CONST 72				// km/s/Mpc
+HUBBLE_CONST 72             // km/s/Mpc
 OMEGA_LAMBDA 0.7
-OMEGA_BARYON 0.024			// assuming H0=100
+OMEGA_BARYON 0.024          // assuming H0=100
 OMEGA_0 1					
 OMEGA_RAD 4.8e-5			
 
 #### ALWAYS RECOMMENDED ####
 
 MEMORY_MANAGER  
-BUFFER_SIZE 16             // in MB per MPI rank, -> BUFFER_SIZE / NThreads
+BUFFER_SIZE 16              // in MB per MPI rank, -> BUFFER_SIZE / NThreads
 

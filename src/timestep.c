@@ -198,7 +198,7 @@ void Setup_Time_Integration()
 
 	size_t nBytes = Task.Npart_Total_Max * sizeof(*Active_Particle_List);
 
-	Active_Particle_List = Malloc(nBytes, "APList");
+	Active_Particle_List = Malloc(nBytes, "Active Part List");
 
 	NActive_Particles = Task.Npart_Total;
 

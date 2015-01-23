@@ -15,7 +15,7 @@
 #define p3(a) ((a)*(a)*(a))
 
 #define rprintf(...) if(Task.Is_Master) printf(__VA_ARGS__) // root print
-#define mprintf(...) if(Task.MPI_Rank == MASTER) printf(__VA_ARGS__) // mpi
+#define mprintf(...) if(Task.Is_MPI_Master) printf(__VA_ARGS__) // mpi
 
 #define Print_Int_Bits32(x) Print_Int_Bits(x, 32, 3)
 #define Print_Int_Bits64(x) Print_Int_Bits(x, 64, 1)

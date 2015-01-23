@@ -110,60 +110,36 @@ void Domain_Decomposition()
 
 	communicate_particles();
 
-exit(0);
 	Profile("Domain Decomposition");
 
 	return ;
 }
 
-static void print_domain_decomposition (const int max_level)
-{
-	#pragma omp barrier
-	#pragma omp flush(D)
-
-	#pragma omp single
-	{
-	
-	printf(" No | Split | npart  |   sum  | first  | trgt  | lvl ||  PH key\n");
-	
-	size_t sum = 0;
-
-	for (int i = 0; i < NBunches; i++) {
-
-		sum += D[i].Bunch.Npart;
-
-		printf("%3d |   %d   | %6zu | %6zu | %6d | %5d | %3d || ", 
-				i, D[i].Bunch.Is_To_Be_Split,
-				D[i].Bunch.Npart, sum, D[i].Bunch.First_Part, 
-				D[i].Bunch.Target, D[i].Bunch.Level);
-		
-		Print_Int_Bits64(D[i].Bunch.Key);
-	}
-
-	} // omp single
-
-	return ;
-}
 
 void Init_Domain_Decomposition()
 {
 	find_global_domain();
 
-	NBunches = 1;
+	Max_NBunches = 9;
 
-	size_t nBytes = 9 * sizeof(*D); 
+	Top_Node_Alloc_Factor = (double) Max_NBunches / Task.Npart_Total;
 
-	D = Malloc(nBytes, "Bunchlist");
+	size_t nBytes = Max_NBunches * sizeof(*D); 
+
+	D = Malloc(nBytes, "D");
 
 	memset(D, 0, nBytes);
+
+	NBunches = 1;
 
 	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
 	D[0].Bunch.Npart = Sim.Npart_Total;
 	D[0].Bunch.Level = D[0].Bunch.Target = 0;
-
+	
 	int new = split_bunch(0); // make first 8, new = 1
 
 	memmove(&D[0], &D[new], 8*sizeof(*D)); // move left by one
+
 	NBunches--;
 
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
@@ -192,7 +168,7 @@ static void reallocate_topnodes()
 
 	size_t nBytes = Max_NBunches * sizeof(*D); 
 
-	printf("Increasing Top Node Memory to %3g MB, %6d Nodes, Factor %4g \n"
+	mprintf("Increasing Top Node Memory to %g MB, Max %d Nodes, Factor %g \n"
 			, nBytes/1024.0/1024.0, Max_NBunches, Top_Node_Alloc_Factor);
 
 	D = Realloc(D, nBytes, "Bunchlist");
@@ -442,6 +418,35 @@ static void communicate_bunches()
 	return ;
 }
 	
+
+static void print_domain_decomposition (const int max_level)
+{
+	#pragma omp barrier
+	#pragma omp flush(D)
+
+	#pragma omp single
+	{
+	
+	printf(" No | Split | npart  |   sum  | first  | trgt  | lvl ||  PH key\n");
+	
+	size_t sum = 0;
+
+	for (int i = 0; i < NBunches; i++) {
+
+		sum += D[i].Bunch.Npart;
+
+		printf("%3d |   %d   | %6zu | %6zu | %6d | %5d | %3d || ", 
+				i, D[i].Bunch.Is_To_Be_Split, D[i].Bunch.Npart, sum, 
+				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level);
+		
+		Print_Int_Bits64(D[i].Bunch.Key);
+	}
+
+	} // omp single
+
+	return ;
+}
+
 /*
  * Find the global domain origin and the maximum extent. Not much
  * to do for PERIODIC

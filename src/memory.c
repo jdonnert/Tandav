@@ -3,10 +3,10 @@
 
 #define MAXMEMOBJECTS 1024L
 
-void merge_free_memory_blocks(int);
-int find_memory_block_from_ptr(void *);
-int reserve_free_block_from_size(const size_t);
-size_t get_system_memory_size();
+static void merge_free_memory_blocks(int);
+static int find_memory_block_from_ptr(void *);
+static int reserve_free_block_from_size(const size_t);
+static size_t get_system_memory_size();
 
 static void *Memory = NULL; 
 
@@ -34,7 +34,7 @@ void *Malloc_info(const char* file, const char* func, const int line,
 			"Can't allocate an array of size 0 !");
 
 	Assert_Info(file, func, line, NBytes_Left >= size,  
-			"Can't allocate Memory, Bytes: %zu > %zu , %zu total", 
+			"Can't allocate Memory, Bytes: %zu > %zu, %zu total", 
 			size, NBytes_Left, Mem_Size);
 	
 	size = MAX(MEM_ALIGNMENT, size); // don't break alignment
@@ -42,9 +42,7 @@ void *Malloc_info(const char* file, const char* func, const int line,
 	if ( (size % MEM_ALIGNMENT) > 0) // make sure we stay aligned
 		size = (size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
 
-	int i = 0;
-
-	i = reserve_free_block_from_size(size);
+	int i = reserve_free_block_from_size(size);
 
 	Mem_Block[i].In_Use = true;
 
@@ -72,11 +70,22 @@ void *Malloc_info(const char* file, const char* func, const int line,
 void *Realloc_info(const char* file, const char* func, const int line, 
 		void *ptr, size_t new_size, const char *name)
 {
-	Assert_Info(file, func, line, new_size > 0, // check input
-			"Can't re-allocate an array of size 0 !");
+	Assert_Info(file, func, line, new_size >= 0, 
+			"Reallocate on array of negative size !");
 
-	if (ptr == NULL) 
-		return Malloc_info(file, func, line, new_size, name);
+	if (new_size == 0) {
+		
+		Free(ptr);
+	
+		return NULL;
+	}
+
+	if (ptr == NULL) {
+
+		ptr = Malloc(new_size, name);
+
+		return ptr;
+	}
 
 	if ( (new_size % MEM_ALIGNMENT) > 0)
 		new_size = (new_size / MEM_ALIGNMENT + 1) * MEM_ALIGNMENT;
@@ -119,11 +128,16 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 void Free_info(const char* file, const char* func, const int line, void *ptr) 
 {
-	#pragma omp critical
-	{
-	
+#ifdef DEBUG
 	Warn(ptr == NULL, "You tried to free a NULL pointer in file "
 		"%s, function %s() : %d\n", file, func, line);
+#endif
+
+	if (ptr == NULL)
+		return;
+
+	#pragma omp critical
+	{
 
 	const int i = find_memory_block_from_ptr(ptr);
 
@@ -286,7 +300,7 @@ void Finish_Memory_Management()
 	return ;
 }
 
-int find_memory_block_from_ptr(void *ptr)
+static int find_memory_block_from_ptr(void *ptr)
 {
 	int i = 0;
 
@@ -300,26 +314,21 @@ int find_memory_block_from_ptr(void *ptr)
 	return i;
 }
 
-int reserve_free_block_from_size(const size_t size)
+static int reserve_free_block_from_size(const size_t size)
 {
 	int i = 0;
-
-	#pragma omp critical
-	{
 
 	for (i = 0; i < NMem_Blocks; i++)
 		if ( !Mem_Block[i].In_Use && (Mem_Block[i].Size >= size))
 			break;
-	
+
 	Mem_Block[i].In_Use = true;
 	
-	} // omp critical
-
 	return i;
 }
 
 /* merge memory blocks to minimize fragmentation */
-void merge_free_memory_blocks(int i) 
+static void merge_free_memory_blocks(int i) 
 {
 	if (i == NMem_Blocks-1) { // Last, merge right into free
 

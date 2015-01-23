@@ -4,7 +4,7 @@
 
 #ifdef GRAVITY_TREE
 
-#define NODES_PER_PARTICLE 0.5
+#define NODES_PER_PARTICLE 0.6
 
 static void gravity_tree_init();
 static void transform_bunch_into_top_node(const int, int*, int*);
@@ -43,11 +43,11 @@ void Gravity_Tree_Build()
 {
 	Profile("Build Gravity Tree");
 
-	const size_t npart_max_buf = Task.Buffer_Size/sizeof(*Tree);
+	const size_t buf_thres = Task.Buffer_Size/sizeof(*Tree);
 
-	Warn(npart_max_buf < 1000, 
-			"npart_max_buf = %g < 1e3, increase BUFFER_SIZE = %d MB"
-			, npart_max_buf , Task.Buffer_Size/1024/1024);
+	Warn(buf_thres < 1000, 
+			"buf_thres = %g < 1e3, increase BUFFER_SIZE = %d MB"
+			, buf_thres , Task.Buffer_Size/1024/1024);
 
 	NTop_Nodes = NBunches;
 
@@ -67,7 +67,7 @@ void Gravity_Tree_Build()
 
 			transform_bunch_into_top_node(i, &level, &first_part);
 
-			bool build_in_buffer = D[i].TNode.Npart < npart_max_buf;
+			bool build_in_buffer = D[i].TNode.Npart < buf_thres;
 
 			if (build_in_buffer) { 
 
@@ -168,10 +168,12 @@ static void reserve_tree_memory(const int i, const int nNeeded)
 
 		size_t nBytes = Max_Nodes * sizeof(*Tree);
 
-		mprintf("Increasing Tree Memory to %g MB, Max %d Nodes, Factor %g \n"
-			, nBytes/1024.0/1024.0, Max_Nodes, 
-			(double)Max_Nodes/Task.Npart_Total); fflush(stdout);
 #ifdef DEBUG
+		mprintf("DEBUG (%d:%d) Increasing Tree Memory to %g MB, "
+				"Max %d Nodes, Factor %g \n"
+				, Task.Rank, Task.Thread_ID, nBytes/1024.0/1024.0, Max_Nodes, 
+				(double)Max_Nodes/Task.Npart_Total); fflush(stdout);
+
 		Print_Memory_Usage();
 #endif
 		Tree = Realloc(Tree, nBytes, "Tree");
@@ -306,14 +308,6 @@ static int build_subtree(const int first_part, const int tnode_idx,
 	} // for ipart
 
 	nNodes = finalise_subtree(top_level, tnode_idx, nNodes);
-
-/*#ifdef DEBUG
-	for (int n = 0; n < nNodes; n++) {
-		printf("Top %d node=%d lvl=%d dnext=%d npart=%d ",
-			tnode_idx, n, Level(n), tree[n].DNext, tree[n].Npart);
-	Print_Int_Bits32(tree[n].Bitfield);
-	}
-#endif */
 
 #ifdef DEBUG
 	printf("DEBUG (%d:%d) TNode %d tree done, nNodes %d, %g\n", Task.Rank

@@ -216,6 +216,9 @@ void Init_Memory_Management()
 	printf("\n   Thread-Safe Buffer: %g MB per thread \n\n", 
 			Task.Buffer_Size/1024.0/1024);
 
+	Warn(Task.Buffer_Size / sizeof(P) < 10000, "BUFFER_SIZE very small %d MB"
+			, Task.Buffer_Size/1024/1024);
+
 	return;
 }
 
@@ -239,12 +242,12 @@ void Print_Memory_Usage()
 	if (Task.Rank != max_Idx) // no returns inside an omp region
 		goto skip;
 
-	printf("\nMemory Manager: Reporting Blocks of MPI Rank %d with %g MB "
+	printf("\nMemory Manager: Reporting Blocks of (%d:%d) with %g MB "
 			"free memory\n   No  Used      Address      Size (MB)    "
 			"Cumulative          Variable       File:Line\n"
 			"-----------------------------------------------"
 			"-------------------------------------------------------\n", 
-			Task.Rank, (double) NBytes_Left/1024/1024);
+			Task.Rank, Task.Thread_ID, (double) NBytes_Left/1024/1024);
 
 	size_t mem_Cumulative = 0;
 

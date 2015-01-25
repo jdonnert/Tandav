@@ -10,9 +10,9 @@ static void reset_bunchlist();
 static void find_global_domain();
 static void fill_bunches(const int, const int, const int, const int);
 static void remove_empty_bunches();
-static int split_bunch(const int i);
+static int split_bunch(const int, const int);
 static void reallocate_topnodes();
-static void distribute();
+static bool distribute();
 static void communicate_particles();
 static void communicate_bunches();
 static void print_domain_decomposition (const int);
@@ -23,11 +23,10 @@ static int compare_bunches_by_npart(const void *a, const void *b);
 
 union Domain_Node_List *D; 
 
-static bool Keep_Splitting = false;
 static double max_mem_imbal = 0, max_cpu_imbal = 0;
 
-double Top_Node_Alloc_Factor = 0.001;
-int Max_NBunches = 9;
+static double Top_Node_Alloc_Factor = 0;
+static int Max_NBunches = 0;
 
 /* 
  * Distribute particles in bunches, which are continuous
@@ -45,48 +44,66 @@ void Domain_Decomposition()
 {
 	Profile("Domain Decomposition");
 
-	reset_bunchlist();
-
+	//reset_bunchlist();
+	
 	find_global_domain();
  	
 	Sort_Particles_By_Peano_Key();
 		
 	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
 
-	remove_empty_bunches();
-
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
-	distribute();
+	communicate_bunches();
 
-	int max_level = 1;
+	remove_empty_bunches();
 
-	while (Keep_Splitting && (max_level < N_SHORT_TRIPLETS-1)) {
+	bool split_bunches = distribute();
+
+	int max_level = split_bunches = 1;
+
+	while (split_bunches && (max_level < N_SHORT_TRIPLETS-1)) {
 	
 		int old_nBunches = NBunches;
+
+		#pragma omp barrier
 
 		for (int i = 0; i < old_nBunches; i++ ) {
 
 			if (D[i].Bunch.Is_To_Be_Split) { // split into 8
 
-				if (NBunches + 8 >= Max_NBunches) // make more space !
+				if (NBunches + 8 > Max_NBunches) // make more space !
 					break;
 
-				int first_new_bunch = split_bunch(i);
+				#pragma omp barrier
+
+				int first_new_bunch = NBunches;
+
+				NBunches = first_new_bunch + 8;
+
+				split_bunch(i, first_new_bunch);
+				
+				#pragma omp barrier
 
 				max_level = fmax(max_level, 1 + D[i].Bunch.Level);
 
 				fill_bunches(first_new_bunch, 8, D[i].Bunch.First_Part, 
 						D[i].Bunch.Npart);
 				
+				#pragma omp barrier
+
 				memset(&D[i].Bunch, 0, sizeof(*D));
+				
+				#pragma omp barrier
 			}
 		}
-
+		
 		#pragma omp barrier
 		
 		if (NBunches + 8 >= Max_NBunches) { // make more space !
-		
+			
+			#pragma omp barrier		
+
 			reallocate_topnodes();
 
 			continue;
@@ -98,7 +115,8 @@ void Domain_Decomposition()
 
 		Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
-		distribute();
+		split_bunches = distribute();
+
 	} // while
 
 	rprintf("\nDomain: %d Bunches/Top Nodes, max level %d \n\n", 
@@ -112,6 +130,8 @@ void Domain_Decomposition()
 
 	Profile("Domain Decomposition");
 
+#pragma omp barrier
+
 	return ;
 }
 
@@ -120,7 +140,7 @@ void Init_Domain_Decomposition()
 {
 	find_global_domain();
 
-	Max_NBunches = 9;
+	Max_NBunches = imax(64, Sim.NThreads * DOMAIN_NBUNCHES_PER_THREAD);
 
 	Top_Node_Alloc_Factor = (double) Max_NBunches / Task.Npart_Total;
 
@@ -136,7 +156,9 @@ void Init_Domain_Decomposition()
 	D[0].Bunch.Npart = Sim.Npart_Total;
 	D[0].Bunch.Level = D[0].Bunch.Target = 0;
 	
-	int new = split_bunch(0); // make first 8, new = 1
+	NBunches += 8;
+
+	int new = split_bunch(0, 1); // make first 8, new = 1
 
 	memmove(&D[0], &D[new], 8*sizeof(*D)); // move left by one
 
@@ -150,30 +172,32 @@ void Init_Domain_Decomposition()
 			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
 			Domain.Center_Of_Mass[2]);
 
+	#pragma omp parallel copyin(NBunches)
+	{}
+
 	return;
 }
 
 /*
- * This increases the room for Bunches/Topnodes by 20 %, so we can stay minimal
+ * This increases the room for Bunches/Topnodes by 20 %, 
+ * so we can stay minimal in memory.
  */
 
 static void reallocate_topnodes()
 {
-	#pragma omp single
-	{
+	double fac = Top_Node_Alloc_Factor * 1.2;
+
+	Top_Node_Alloc_Factor = fac;
 	
-	Top_Node_Alloc_Factor *= 1.2;
-	
-	Max_NBunches = Sim.Npart_Total* Top_Node_Alloc_Factor;
+	Max_NBunches = Sim.Npart_Total * Top_Node_Alloc_Factor;
 
 	size_t nBytes = Max_NBunches * sizeof(*D); 
 
-	mprintf("Increasing Top Node Memory to %g MB, Max %d Nodes, Factor %g \n"
-			, nBytes/1024.0/1024.0, Max_NBunches, Top_Node_Alloc_Factor);
+	rprintf("Increasing Top Node Memory to %g KB, Max %d Nodes, Factor %4g \n"
+			, nBytes/1024.0, Max_NBunches, Top_Node_Alloc_Factor);
 
+	#pragma omp single
 	D = Realloc(D, nBytes, "Bunchlist");
-
-	} // omp single
 
 	return ;
 }
@@ -215,25 +239,11 @@ void reset_bunchlist()
  * top node center during Tree construction.
  */
 
-static int first_new_bunch = 0;
-
-static int split_bunch(const int parent)
+static int split_bunch(const int parent, const int first)
 {
-	#pragma omp single
-	{
-
-	#pragma omp critical // add new nodes at the end
-	{
-
-	first_new_bunch = NBunches; 
-
-	NBunches += 8;
-
-	} // omp critical
-
 	for (int i = 0; i < 8; i++) {
 
-		int dest = first_new_bunch + i;
+		int dest = first + i;
 
 		D[dest].Bunch.Level = D[parent].Bunch.Level + 1;
 
@@ -249,27 +259,23 @@ static int split_bunch(const int parent)
 		D[dest].Bunch.Is_To_Be_Split = false;
 	}
 
-	} // omp single
-
-	return first_new_bunch;
+	return first;
 }
 
 static void remove_empty_bunches()
 {
-	#pragma omp single
-	{
-
 	int old_nBunches = NBunches;
 
-	int i = 0;
+	int i = 0, n = NBunches;
 
-	while (i < NBunches) {
+	#pragma omp single copyprivate(n)
+	while (i < n) {
 	
 		if (D[i].Bunch.Npart == 0) {  // remove
 	
-			NBunches--;
+			n--;
 
-			memmove(&D[i], &D[i+1], (NBunches - i)*sizeof(*D));
+			memmove(&D[i], &D[i+1], (n-i) * sizeof(*D));
 
 			continue;
 		} 
@@ -277,7 +283,7 @@ static void remove_empty_bunches()
 		i++;
 	}
 
-	} // omp single
+	NBunches = n;
 
 	return ;
 }
@@ -338,9 +344,7 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 		j++;
 	}
 
-	}// omp critical 
-
-	#pragma omp barrier
+	} // omp critical 
 
 	return ;
 }
@@ -350,29 +354,32 @@ static void fill_bunches(const int first_bunch, const int nBunches,
  * into eight sub-bunches. It also sets the target processor.
  */
 
-static void distribute()
+static bool split_bunches = false;
+
+static bool distribute()
 {
 	max_mem_imbal = 0, max_cpu_imbal = 0;
 
 	double mean_npart = Sim.Npart_Total/(Sim.NTask*DOMAIN_NBUNCHES_PER_THREAD);
 
-	Keep_Splitting = false;
+	split_bunches = false;
 
-	#pragma omp for reduction(max:max_mem_imbal)
+	#pragma omp for reduction(max:max_mem_imbal,split_bunches)
 	for (int i = 0; i < NBunches; i++ ) {
 
 		double rel_mem_load = (D[i].Bunch.Npart - mean_npart) / mean_npart;
 
 		max_mem_imbal = fmax(max_mem_imbal, rel_mem_load);
 
-		if (rel_mem_load > DOMAIN_SPLIT_MEM_THRES) {
+		if (rel_mem_load > DOMAIN_SPLIT_MEM_THRES || NBunches < Sim.NTask) {
 
 			D[i].Bunch.Is_To_Be_Split = true;
-			Keep_Splitting = true;
+			
+			split_bunches = true;
 		}
 	}
 
-	return ;
+	return split_bunches;
 }
 
 static int compare_bunches_by_key(const void *a, const void *b) 
@@ -424,10 +431,7 @@ static void print_domain_decomposition (const int max_level)
 	#pragma omp barrier
 	#pragma omp flush(D)
 
-	#pragma omp single
-	{
-	
-	printf(" No | Split | npart  |   sum  | first  | trgt  | lvl ||  PH key\n");
+	rprintf(" No | Split | npart  |   sum  | first  | trgt  | lvl ||  PH key\n");
 	
 	size_t sum = 0;
 
@@ -435,15 +439,15 @@ static void print_domain_decomposition (const int max_level)
 
 		sum += D[i].Bunch.Npart;
 
-		printf("%3d |   %d   | %6zu | %6zu | %6d | %5d | %3d || ", 
+		rprintf("%3d |   %d   | %6zu | %6zu | %6d | %5d | %3d || ", 
 				i, D[i].Bunch.Is_To_Be_Split, D[i].Bunch.Npart, sum, 
 				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level);
-		
-		Print_Int_Bits64(D[i].Bunch.Key);
+
+		if (Task.Is_Master)
+			Print_Int_Bits64(D[i].Bunch.Key);
 	}
 
-	} // omp single
-
+	#pragma omp barrier
 	return ;
 }
 
@@ -489,7 +493,7 @@ static void find_global_domain()
 	double global_max[3] = { max_x, max_y, max_z  };
 	double global_min[3] = { min_x, min_y, min_z  };
 
-	#pragma omp single 
+	#pragma omp single copyprivate(global_max,global_min)
 	{
 
 		MPI_Allreduce(MPI_IN_PLACE, &global_max, 3, MPI_DOUBLE, MPI_MAX,
@@ -511,6 +515,7 @@ static void find_global_domain()
 		Domain.Origin[i] = global_min[i]; 
 		Domain.Center[i] = Domain.Origin[i] + 0.5 * Domain.Size;
 	}
+
 #endif // ! PERIODIC
 
 #ifdef DEBUG

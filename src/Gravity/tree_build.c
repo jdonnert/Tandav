@@ -19,7 +19,6 @@ static peanoKey create_first_subtree_node(const int, const int, const int);
 static void collapse_last_branch(const int, const int, const int, int*);
 static inline int key_fragment(const int);
 
-
 int NNodes = 0,  NTop_Nodes = 0, Max_Nodes = 128;
 
 struct Tree_Node *Tree = NULL; // pointer to all nodes
@@ -52,6 +51,8 @@ void Gravity_Tree_Build()
 	NTop_Nodes = NBunches;
 
 	NNodes = Max_Nodes = 0; 
+
+	#pragma omp single
 	Free(Tree);
 
 	#pragma omp for schedule(static,1)
@@ -107,6 +108,9 @@ void Gravity_Tree_Build()
 	#pragma omp barrier
 
 	Sig.Force_Tree_Build = false;
+
+	rprintf("Tree Build done. %d Nodes, reserved %d MB for max %d Nodes\n", 
+			NNodes, Max_Nodes*sizeof(*Tree)/1024/1024, Max_Nodes);
 
 	Profile("Build Gravity Tree");
 exit(0);
@@ -184,7 +188,6 @@ static void reserve_tree_memory(const int i, const int nNeeded)
 	NNodes += nNeeded;
 	
 	} // omp critical
-
 
 	return ;
 }

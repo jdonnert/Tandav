@@ -41,6 +41,7 @@ struct Domain_Properties { // smallest cubic box containing all particles
 } Domain;
 
 int NBunches;
+#pragma omp threadprivate(NBunches)
 int NLocal_Bunches;
 
 void Domain_Decomposition();

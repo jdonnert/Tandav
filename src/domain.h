@@ -40,13 +40,9 @@ struct Domain_Properties { // smallest cubic box containing all particles
 	double Center_Of_Mass[3];
 } Domain;
 
-int NBunches;
-#pragma omp threadprivate(NBunches)
-int NLocal_Bunches;
+int NLocal_Bunches, NTop_Nodes;
 
 void Domain_Decomposition();
 void Init_Domain_Decomposition();
 void Find_Global_Center_Of_Mass(double *CoM_out);
-
-
 

@@ -21,12 +21,14 @@ static int compare_bunches_by_key(const void *a, const void *b);
 static int compare_bunches_by_target(const void *a, const void *b); 
 static int compare_bunches_by_npart(const void *a, const void *b); 
 
-union Domain_Node_List *D; 
+union Domain_Node_List *D = NULL; 
 
 static double max_mem_imbal = 0, max_cpu_imbal = 0;
-
 static double Top_Node_Alloc_Factor = 0;
+
 static int Max_NBunches = 0;
+static int NBunches = 0;
+#pragma omp threadprivate(NBunches)
 
 /* 
  * Distribute particles in bunches, which are continuous
@@ -79,7 +81,7 @@ void Domain_Decomposition()
 
 				int first_new_bunch = NBunches;
 
-				NBunches = first_new_bunch + 8;
+				NBunches += 8;
 
 				split_bunch(i, first_new_bunch);
 				
@@ -127,6 +129,8 @@ void Domain_Decomposition()
 #endif
 
 	communicate_particles();
+
+	NTop_Nodes = NBunches;
 
 	Profile("Domain Decomposition");
 
@@ -204,7 +208,7 @@ static void reallocate_topnodes()
 
 /*
  * Transform the top nodes back into a bunch list. Add nodes so the complete 
- * domain is covered. We reconstruct the level from the position.
+ * domain is covered. Reconstruct the bunch level from the position. 
  */
 
 void reset_bunchlist()

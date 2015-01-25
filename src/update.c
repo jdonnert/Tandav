@@ -20,6 +20,8 @@ void Update(enum Update_Parameters stage)
 		
 		Domain_Decomposition();
 
+		Print_Memory_Usage();
+
 #ifdef COMOVING
 		Set_Current_Cosmology();
 #endif
@@ -27,6 +29,8 @@ void Update(enum Update_Parameters stage)
 		Sig.Force_Tree_Build = true;
 
 		Compute_Acceleration();
+
+		Print_Memory_Usage();
 
 		if (Time.Begin == Time.Next_Snap) { 
 			

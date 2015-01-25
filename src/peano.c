@@ -9,8 +9,6 @@
 #include "domain.h"
 #include "sort.h"
 
-static peanoKey *Keys = NULL;
-static size_t *Idx = NULL;
 
 int compare_peanoKeys(const void * a, const void *b)
 {
@@ -26,14 +24,15 @@ void Sort_Particles_By_Peano_Key()
 {
 	Profile("Peano-Hilbert order");
 	
-	#pragma omp single
+	peanoKey *keys = NULL;
+	size_t *idx = NULL;
+
+	#pragma omp single copyprivate(idx,keys)
 	{
 
-	if (Keys == NULL)
-		Keys = Malloc(Task.Npart_Total_Max * sizeof(*Keys), "PeanoKeys");
+	keys = Malloc(Task.Npart_Total_Max * sizeof(*keys), "PeanoKeys");
 	
-	if (Idx == NULL)
-		Idx = Malloc(Task.Npart_Total_Max * sizeof(*Idx), "Sort Idx");
+	idx = Malloc(Task.Npart_Total_Max * sizeof(*idx), "Sort Idx");
 	
 	} // omp single
 
@@ -44,14 +43,22 @@ void Sort_Particles_By_Peano_Key()
 		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
 		double pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
 		
-		Keys[ipart] = Peano_Key(px, py, pz);
+		keys[ipart] = Peano_Key(px, py, pz);
 	}
 
-	Qsort_Index(Sim.NThreads, Idx, Keys, Task.Npart_Total, sizeof(*Keys), 
+	Qsort_Index(Sim.NThreads, idx, keys, Task.Npart_Total, sizeof(*keys), 
 			&compare_peanoKeys);
 
-	reorder_collisionless_particles();
+	reorder_collisionless_particles(idx);
 	
+	#pragma omp single copyprivate(idx,keys)
+	{
+	
+	Free(keys); 
+	Free(idx);
+	
+	} // omp single nowait
+
 	Make_Active_Particle_List();
 
 	Profile("Peano-Hilbert order");
@@ -61,38 +68,38 @@ void Sort_Particles_By_Peano_Key()
 
 	
 
-static void reorder_collisionless_particles()
+static void reorder_collisionless_particles(size_t *idx)
 {
 	#pragma omp single 
 	{ 
 
 	for (size_t i = Task.Npart[0]; i < Task.Npart_Total; i++) {
 
-        if (Idx[i] == i)
+        if (idx[i] == i)
             continue;
 
 		size_t dest = i;
 
 		struct Particle_Data Ptmp = P[i];
 
-		size_t src = Idx[i];
+		size_t src = idx[i];
 
         for (;;) {
 
 			P[dest] = P[src];
 
-			Idx[dest] = dest;
+			idx[dest] = dest;
 
 			dest = src;
 
-			src = Idx[dest];
+			src = idx[dest];
 
             if (src == i) 
                 break;
         }
 
 		P[dest] = Ptmp;
-		Idx[dest] = dest;
+		idx[dest] = dest;
 
     } // for i
 	

@@ -9,7 +9,7 @@ NumOutputFiles	1
 LogFileDir		./log/
 
 %% Code Parameters %%
-MaxMemSize		1000
+MaxMemSize		3000
 TimeLimitCPU	20864 
 CommBufSize		1000 
 

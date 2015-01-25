@@ -19,7 +19,7 @@ static peanoKey create_first_subtree_node(const int, const int, const int);
 static void collapse_last_branch(const int, const int, const int, int*);
 static inline int key_fragment(const int);
 
-int NNodes = 0,  NTop_Nodes = 0, Max_Nodes = 128;
+int NNodes = 0, Max_Nodes = 128;
 
 struct Tree_Node *Tree = NULL; // pointer to all nodes
 struct Tree_Node *tree = NULL; // pointer to build area: "*Tree" or "*Buffer"
@@ -48,15 +48,13 @@ void Gravity_Tree_Build()
 			"buf_thres = %g < 1e3, increase BUFFER_SIZE = %d MB"
 			, buf_thres , Task.Buffer_Size/1024/1024);
 
-	NTop_Nodes = NBunches;
-
 	NNodes = Max_Nodes = 0; 
 
 	#pragma omp single
 	Free(Tree);
 
 	#pragma omp for schedule(static,1)
-	for (int i = 0; i < NBunches; i++) {
+	for (int i = 0; i < NTop_Nodes; i++) {
 		
 		int src = D[i].Bunch.Target;
 
@@ -93,9 +91,7 @@ void Gravity_Tree_Build()
 
 				memcpy(&Tree[D[i].TNode.Target], tree, nBytes);
 			}
-
-
-		} // if Bunch is local
+		} // if Bunch local
 
 	/*	MPI_Request *request = NULL;
 		
@@ -113,7 +109,7 @@ void Gravity_Tree_Build()
 			NNodes, Max_Nodes*sizeof(*Tree)/1024/1024, Max_Nodes);
 
 	Profile("Build Gravity Tree");
-exit(0);
+
 	return ;
 }
 

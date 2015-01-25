@@ -38,6 +38,10 @@ static void accel_gravity()
 	if (Sig.Domain_Update || Sig.Force_Tree_Build)
 		Gravity_Tree_Build();
 
+	Print_Memory_Usage();
+
+	exit(0);
+
 	Gravity_Tree_Acceleration();
 	
 	if (Sig.First_Step)

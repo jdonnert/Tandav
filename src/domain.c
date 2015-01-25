@@ -134,8 +134,6 @@ void Domain_Decomposition()
 
 	Profile("Domain Decomposition");
 
-#pragma omp barrier
-
 	return ;
 }
 

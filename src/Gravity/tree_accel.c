@@ -5,12 +5,18 @@
 #include "gravity.h"
 #include "../domain.h"
 
-static void gravity_tree_walk(const int ipart, Float*, Float*);
-static void gravity_tree_walk_first(const int ipart, Float*, Float*);
+static bool interact_with_topnode(const int,  Float*, Float*);
+static void gravity_tree_walk(const int , const int, Float*, Float*);
+static void gravity_tree_walk_first(const int , const int, Float*, Float*);
+
+static void export_to_MPI_rank(const int ipart, const int target);
 
 static void interact(const Float,const Float *,const Float,Float *,Float *);
+static void work_MPI_buffers();
 
 static inline Float node_size(const int node);
+
+static int trigger[Sim.NTask];
 
 /*
  * Walk the tree and estimate gravitational acceleration using two different
@@ -24,12 +30,12 @@ void Gravity_Tree_Acceleration()
 	
 	double max_rel_err = 0;
 	double mean_err = 0;
+
 	int worst_part = -1;
 	int cnt = 0; 
 
 	rprintf("Tree acceleration ");
-//#pragma omp single
-	{
+	
 	#pragma omp for 
 	for (int i = 0; i < NActive_Particles; i++) {
 			
@@ -38,36 +44,27 @@ void Gravity_Tree_Acceleration()
 		Float grav_accel[3] = { 0 };
 		Float pot = 0;
 
-		if (Sig.First_Step)
-			gravity_tree_walk_first(ipart, grav_accel, &pot);
-		else
-			gravity_tree_walk(ipart, grav_accel, &pot);
+		for (int j = 0; j < NTop_Nodes; j++) {
 
-/*
-double rel_err = fabs(ALENGTH3(grav_accel)-ALENGTH3(P[ipart].Acc))
-		/ ALENGTH3(P[ipart].Acc);
+			if (interact_with_topnode(j, grav_accel, &pot))
+				continue;
 
-if (rel_err > max_rel_err) {
-		
-	worst_part = ipart;
-	max_rel_err = rel_err;
-}
+			int target = D[j].TNode.Target;
 
-mean_err += rel_err;
+			if (target < 0) {
+				
+				export_to_MPI_rank(ipart, target);
+				
+				continue;
+			}
 
-if (rel_err > 0.01)
-	cnt++;
+			if (Sig.First_Step)
+				gravity_tree_walk_first(ipart, target, grav_accel, &pot);
+			else
+				gravity_tree_walk(ipart, target, grav_accel, &pot);
 
-if (rel_err > 0.1)
-printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
-	ipart, rel_err,
-	grav_accel[0],grav_accel[1],grav_accel[2],
-	P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2],
-	(grav_accel[0] - P[ipart].Acc[0])/grav_accel[0],
-	(grav_accel[1] - P[ipart].Acc[1])/grav_accel[1],
-	(grav_accel[2] - P[ipart].Acc[2])/grav_accel[2], 
-	P[ipart].Pos[0],P[ipart].Pos[1],P[ipart].Pos[2]); 
-*/
+		}
+
 		P[ipart].Acc[0] = grav_accel[0];
 		P[ipart].Acc[1] = grav_accel[1];
 		P[ipart].Acc[2] = grav_accel[2];
@@ -82,16 +79,40 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
 		P[ipart].Grav_Pot = pot;
 #endif
 
+		work_MPI_buffers();
+
 	} // ipart
 
-//printf("max err %g at %d, %d above threshold, mean err %g \n", 	max_rel_err, worst_part, cnt, mean_err / NActive_Particles);
-
-}
 	rprintf(" done \n");
 	
 	Profile("Grav Tree Walk");
 	
 	return ;
+}
+
+static bool interact_with_topnode(const int ipart,  Float* grav_accel, 
+		Float*grav_pot)
+{
+	Float dr[3] = { P[ipart].Pos[0] - D[i].TNode.Pos[0],	
+		            P[ipart].Pos[1] - D[i].TNode.Pos[1],
+					P[ipart].Pos[2] - D[i].TNode.Pos[2]};
+
+	Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
+
+	Float mpart = P[jpart].Mass;
+
+	if (Sig.First_Step)
+		if ()
+			return false;
+	else
+		if ()
+			return false;
+
+
+	interact(mpart, dr, r2, Accel, Pot); 
+
+
+	return false;
 }
 	
 
@@ -101,9 +122,10 @@ printf("ipart %d, rel err %g | %g %g %g | %g %g %g| %g %g %g |%g %g %g \n",
  * If we encounter a particle bundle we interact with all of them.
  */
 
-static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
+static void gravity_tree_walk(const int ipart, const int top_node,
+		Float* Accel, Float *Pot)
 {
-	int node = 1;
+	int node = top_node;
 
 	const Float fac = ALENGTH3(P[ipart].Acc) / Const.Gravity
 		* TREE_OPEN_PARAM_REL;
@@ -188,9 +210,10 @@ static void gravity_tree_walk(const int ipart, Float* Accel, Float *Pot)
  * particle acceleration.
  */
 
-static void gravity_tree_walk_first(const int ipart, Float* Accel, Float *Pot)
+static void gravity_tree_walk_first(const int ipart, const int top_node, 
+		Float* Accel, Float *Pot)
 {
-	int node = 1;
+	int node = top_node;
 
 	const Float pos_i[3] = {P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2]};
 

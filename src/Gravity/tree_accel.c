@@ -51,13 +51,6 @@ void Gravity_Tree_Acceleration()
 
 			int target = D[j].TNode.Target;
 
-			if (target < 0) {
-				
-				export_to_MPI_rank(ipart, target);
-				
-				continue;
-			}
-
 			if (Sig.First_Step)
 				gravity_tree_walk_first(ipart, target, grav_accel, &pot);
 			else
@@ -79,8 +72,6 @@ void Gravity_Tree_Acceleration()
 		P[ipart].Grav_Pot = pot;
 #endif
 
-		work_MPI_buffers();
-
 	} // ipart
 
 	rprintf(" done \n");
@@ -101,11 +92,13 @@ static bool interact_with_topnode(const int ipart,  Float* grav_accel,
 
 	Float mpart = P[jpart].Mass;
 
+	Float nSize = 1;
+
 	if (Sig.First_Step)
-		if ()
+		if (1)
 			return false;
 	else
-		if ()
+		if (1)
 			return false;
 
 
@@ -115,6 +108,15 @@ static bool interact_with_topnode(const int ipart,  Float* grav_accel,
 	return false;
 }
 	
+/*
+ * Put ipart into export buffer. If full communicate with task
+ */
+
+static void export_to_MPI_rank(const int ipart, const int target)
+{
+
+	return ;
+}
 
 /*
  * This function walks the local tree and computes the gravitational 

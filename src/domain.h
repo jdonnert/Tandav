@@ -10,8 +10,8 @@ union Domain_Node_List {
 	struct Bunch_Node { // Data needed for Domain Decomposition
 		shortKey Key;	// Largest Peano key held by this bunch
 		int Target; 	// MPIRANK
-		size_t Npart;		
 		int Level;
+		size_t Npart;		
 		float Cost;
 		int First_Part;
 		bool Is_Local;
@@ -22,6 +22,7 @@ union Domain_Node_List {
 	struct Top_Tree_Node {	//  dynamic top nodes, tree entry points
 		shortKey Key;		// Number of nodes to the parent
 		int Target;	   		// Tree/part index (>0) or MPI rank (<0)
+		int Level;			// Top node level & negative if kicked during update
 		int Npart;			// Number of particles in node
 		float Pos[3];		// Node Center
 		float Mass;			// Total Mass of particles inside node

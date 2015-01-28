@@ -10,7 +10,7 @@ TIME_INT_ACCURACY 0.1       // time step parameter, std=0.1
 GRAV_SOFTENING 20           // Plummer eq. gravitational softening length 
 
 TREE_OPEN_PARAM_BH 0.2      // Barnes & Hut opening criterion parameter
-TREE_OPEN_PARAM_REL 0.01    // Relative opening criterion parameter
+TREE_OPEN_PARAM_REL 0.005   // Relative opening criterion parameter
 
 DOMAIN_UPDATE_PARAM 0.1     // npart updated before new domain decomposition
 
@@ -19,7 +19,7 @@ DOMAIN_UPDATE_PARAM 0.1     // npart updated before new domain decomposition
 GRAVITY                     // gravitational interaction master switch
 GRAVITY_POTENTIAL           // compute gravitational potential
 
-#GRAVITY_SIMPLE             // N^2 law
+GRAVITY_SIMPLE              // N^2 law, also shows relative errors in acceleration
 GRAVITY_TREE                // B&H gravity tree
 
 #### OUTPUT OPTIONS ####

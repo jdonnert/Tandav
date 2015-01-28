@@ -11,7 +11,7 @@
 void Kick_First_Halfstep() 
 {
 	Profile("First Kick");
-	
+
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 
@@ -42,8 +42,6 @@ void Kick_First_Halfstep()
 #endif // GRAVITY_TREE
 	}
 	
-	//Gravity_Tree_Update_Topnode_Kicks();
-
 	Profile("First Kick");
 
 	return ;
@@ -83,7 +81,7 @@ void Kick_Second_Halfstep()
 #endif // GRAVITY_TREE
 	}
 	
-	Gravity_Tree_Update_Topnode_Kicks();
+	//Gravity_Tree_Update_Topnode_Kicks();
 
 	Profile("Second Kick");
 

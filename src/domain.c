@@ -46,7 +46,7 @@ void Domain_Decomposition()
 {
 	Profile("Domain Decomposition");
 
-	//reset_bunchlist();
+	reset_bunchlist();
 	
 	find_global_domain();
  	
@@ -62,9 +62,9 @@ void Domain_Decomposition()
 
 	bool split_bunches = distribute();
 
-	int max_level = split_bunches = 1;
+	int max_level = 0;  split_bunches = 1;
 
-	while (split_bunches && (max_level < N_SHORT_TRIPLETS-1)) {
+	while (0 && split_bunches && (max_level < N_SHORT_TRIPLETS-1)) {
 	
 		int old_nBunches = NBunches;
 
@@ -155,18 +155,18 @@ void Init_Domain_Decomposition()
 	NBunches = 1;
 
 	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
-	D[0].Bunch.Npart = Sim.Npart_Total;
+	D[0].Bunch.Npart = 0;
 	D[0].Bunch.Level = D[0].Bunch.Target = 0;
 	
-	NBunches += 8;
+//	NBunches += 8;
 
-	int new = split_bunch(0, 1); // make first 8, new = 1
+//	int new = split_bunch(0, 1); // make first 8, new = 1
 
-	memmove(&D[0], &D[new], 8*sizeof(*D)); // move left by one
+//	memmove(&D[0], &D[new], 8*sizeof(*D)); // move left by one
 
-	NBunches--;
+//	NBunches--;
 
-	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
+//	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
 	rprintf("\nDomain size %g, \n   Origin at x = %4g, y = %4g, z = %4g, \n"
 			"   Com    at x = %4g, y = %4g, z = %4g. \n", Domain.Size,
@@ -214,21 +214,10 @@ void reset_bunchlist()
 	#pragma omp for
 	for (int i = 0; i < NBunches; i++) { // reconstruct Bunches from Topnodes
 
-		if (D[i].Bunch.Target < 0)
-			continue;
-
-		D[i].Bunch.Npart = D[i].Bunch.Cost = D[i].Bunch.Level = 0;
+		D[i].Bunch.Npart = D[i].Bunch.Cost = D[i].Bunch.Is_Local = 0;
+		D[i].Bunch.Is_To_Be_Split = 0;
 		D[i].Bunch.First_Part = INT_MAX;
 
-		double size = 0.5 * Domain.Size;
-		double pos = D[i].TNode.Pos[0];
-
-		while (fmod(pos, size) > 1e-6) {
-
-			D[i].Bunch.Level++;
-
-			size *= 0.5;
-		}
 	} // for i < NBunches
 
 	return ;
@@ -492,38 +481,41 @@ static void find_global_domain()
 		min_z = fmin(min_z, P[ipart].Pos[2]);
 	}
 	
+	#pragma omp single 
+	{
+
 	double global_max[3] = { max_x, max_y, max_z  };
 	double global_min[3] = { min_x, min_y, min_z  };
 
-	#pragma omp single copyprivate(global_max,global_min)
-	{
+	MPI_Allreduce(MPI_IN_PLACE, &global_max, 3, MPI_DOUBLE, MPI_MAX,
+		MPI_COMM_WORLD);
 
-		MPI_Allreduce(MPI_IN_PLACE, &global_max, 3, MPI_DOUBLE, MPI_MAX,
-			MPI_COMM_WORLD);
+	MPI_Allreduce(MPI_IN_PLACE, &global_min, 3, MPI_DOUBLE, MPI_MIN,
+		MPI_COMM_WORLD);
 
-		MPI_Allreduce(MPI_IN_PLACE, &global_min, 3, MPI_DOUBLE, MPI_MIN,
-			MPI_COMM_WORLD);
-	
-	} // omp single
-
-	#pragma omp flush
-	
 	Domain.Size = fabs(global_max[0] - global_min[0]);
 	Domain.Size = fmax(Domain.Size, fabs(global_max[1] - global_min[1]));
 	Domain.Size = fmax(Domain.Size, fabs(global_max[2] - global_min[2]));
-
+	
 	for (int i = 0; i < 3; i++) {
 	
 		Domain.Origin[i] = global_min[i]; 
 		Domain.Center[i] = Domain.Origin[i] + 0.5 * Domain.Size;
 	}
 
+	} // omp single
+
+	#pragma omp barrier
+
 #endif // ! PERIODIC
 
 #ifdef DEBUG
-	rprintf("\nDomain size %g, \n   Origin at x = %4g, y = %4g, z = %4g, \n"
-			"   Com    at x = %4g, y = %4g, z = %4g. \n", Domain.Size,
-			Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
+	rprintf("\nDomain size %g, \n"
+			"   Origin at x = %4g, y = %4g, z = %4g, \n"
+			"   Center at x = %4g, y = %4g, z = %4g. \n"
+			"   CoM    at x = %4g, y = %4g, z = %4g. \n",
+			Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
+			Domain.Center[0], Domain.Center[1], Domain.Center[2],
 			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
 			Domain.Center_Of_Mass[2]);
 #endif // DEBUG
@@ -558,12 +550,12 @@ void Find_Global_Center_Of_Mass(double *CoM_out)
 		MPI_Allreduce(MPI_IN_PLACE, &global_m, 1, MPI_DOUBLE, MPI_MIN,
 			MPI_COMM_WORLD);
 
+	for (int i = 0; i < 3; i++) 
+		CoM_out[i] = global_com[i] / global_m;
+
 	} // omp single
 
 	#pragma omp flush
-
-	for (int i = 0; i < 3; i++) 
-		CoM_out[i] = global_com[i] / global_m;
 
 	return ;
 

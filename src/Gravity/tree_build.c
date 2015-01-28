@@ -15,11 +15,11 @@ static inline bool particle_is_inside_node(const peanoKey,const int,const int);
 static inline void add_particle_to_node(const int, const int);
 static inline void create_node_from_particle(const int, const int, 
 		const peanoKey, const int, const int);
-static peanoKey create_first_subtree_node(const int, const int, const int);
+static peanoKey create_first_node(const int, const int, const int);
 static void collapse_last_branch(const int, const int, const int, int*);
 static inline int key_fragment(const int);
 
-int NNodes = 0, Max_Nodes = 128;
+int NNodes = 0, Max_Nodes = 1024;
 
 struct Tree_Node *Tree = NULL; // pointer to all nodes
 struct Tree_Node *tree = NULL; // pointer to build area: "*Tree" or "*Buffer"
@@ -48,10 +48,7 @@ void Gravity_Tree_Build()
 			"buf_thres = %g < 1e3, increase BUFFER_SIZE = %d MB"
 			, buf_thres , Task.Buffer_Size/1024/1024);
 
-	NNodes = Max_Nodes = 0; 
-
-	#pragma omp single
-	Free(Tree);
+	NNodes = 0; 
 
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NTop_Nodes; i++) {
@@ -101,12 +98,10 @@ void Gravity_Tree_Build()
 		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
 	}
 
-	#pragma omp barrier
-
 	Sig.Force_Tree_Build = false;
 
-	rprintf("Tree Build done. %d Nodes, reserved %d MB for max %d Nodes\n", 
-			NNodes, Max_Nodes*sizeof(*Tree)/1024/1024, Max_Nodes);
+	rprintf("Tree Build done. %d Nodes, reserved %g MB for max %d Nodes\n", 
+			NNodes, Max_Nodes*sizeof(*Tree)/1024.0/1024, Max_Nodes);
 
 	Profile("Build Gravity Tree");
 
@@ -114,9 +109,9 @@ void Gravity_Tree_Build()
 }
 
 /*
- * Set the "TNode" part of the D unions. From here onwards the members 
+ * Set the "TNode" part of the "D"omain unions. From here onwards the members 
  * are to be understood as a Top Node, not a bunch. also returns the first
- * partincle in "ipart"
+ * particle in "ipart" and the "level" 
  */
 
 static void transform_bunch_into_top_node(const int i, int *level, int *ipart)
@@ -222,7 +217,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target);
 #endif
 
-	peanoKey last_key = create_first_subtree_node(first_part,tnode_idx, top_level);
+	peanoKey last_key = create_first_node(first_part, tnode_idx, top_level);
 
 	int nNodes = 1; 
 
@@ -323,7 +318,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
  * domain decomposition.
  */
 
-static peanoKey create_first_subtree_node(const int first_part, 
+static peanoKey create_first_node(const int first_part, 
 		const int tnode_idx, const int top_level)
 {
 	Float px = (P[first_part].Pos[0] - Domain.Origin[0]) / Domain.Size; 
@@ -448,15 +443,6 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 
 	} // for
 
-	void *src =  &tree[1]; // remove topnode copy
-	void *dest = &tree[0];
-
-	nNodes--;
-
-	size_t nBytes = sizeof(*tree) * nNodes;
-
-	memmove(dest, src, nBytes);
-
 	return nNodes;
 }
 
@@ -561,6 +547,11 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node)
 	return ;
 }
 
+/*
+ * this tests a sub tree for consistency, by explicitely walking the whole
+ * branch of every node, collecting all contained particles and showing the
+ * results alongside the values stored in the node.
+ */
 
 void test_gravity_tree(const int nNodes)
 {
@@ -576,10 +567,7 @@ void test_gravity_tree(const int nNodes)
 
 		double nSize = Domain.Size / (float)(1ULL << lvl);
 
-		if (Tree[node].DNext < 0)
-			continue;
-
-		while (Level(n) > lvl) {
+		while (Level(n) > lvl ) { // internal node
 
 			if (Tree[n].DNext < 0) {
 			
@@ -606,8 +594,33 @@ void test_gravity_tree(const int nNodes)
 			n++; 
 		}
 
-		printf("%d m=%g,%g N=%d,%d nsize=%g nout=%d\n", node, mass, 
-				Tree[node].Mass, npart, Tree[node].Npart, 	nSize, nout);
+		if (Tree[node].DNext < 0) { // bundle
+			
+			int first = -Tree[node].DNext - 1;
+			int last = first + Tree[node].Npart;
+
+			for (int jpart = first; jpart < last; jpart++ ) {
+
+			 	npart++;
+
+				mass += P[jpart].Mass;
+
+				double dx = fabs(P[jpart].Pos[0] - Tree[node].Pos[0]);
+				double dy = fabs(P[jpart].Pos[1] - Tree[node].Pos[1]);
+				double dz = fabs(P[jpart].Pos[2] - Tree[node].Pos[2]);
+
+				if (dx > nSize * 0.5) 
+					if (dy > nSize * 0.5) 
+						if (dz > nSize * 0.5)
+							nout++;
+			}
+		}
+		
+		printf("node %4d | m %6g =? %6g | Npart %6d =? %6d | lvl %2d | dnext %4d "
+				"dup %4d nsize %8g | nout %3d\n",node, mass,Tree[node].Mass, npart, 
+				Tree[node].Npart, lvl, Tree[node].DNext, Tree[node].DUp, 
+				nSize, nout);
+		Print_Int_Bits32(Tree[node].Bitfield);
 	}
 
 	return ;

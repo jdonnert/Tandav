@@ -34,7 +34,6 @@ static const parameter ParDef[] = {
 	{"\n%% Code Parameters %%\n", "", NULL, COMMENT},
 	{"MaxMemSize", "1000", &Param.Max_Mem_Size, INT},
 	{"TimeLimitCPU", "20864", &Param.Runtime_Limit, DOUBLE},
-	{"CommBufSize", "1000", &Param.Comm_Buf_Size, INT},
 
 	{"\n%% Simulation Characteristics %%\n", "", NULL, COMMENT},
 	{"Boxsize0", "4000", &Sim.Boxsize[0], DOUBLE},

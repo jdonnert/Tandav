@@ -52,7 +52,7 @@ void Update(enum Update_Parameters stage)
 	
 	case BEFORE_FIRST_KICK:
 		
-		Test_For_Domain_Update();
+		//Test_For_Domain_Update();
 
 		break;
 

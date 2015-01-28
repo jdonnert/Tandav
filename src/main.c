@@ -19,6 +19,7 @@ static void preamble(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
+	
 	preamble(argc, argv);
 	
 	Read_and_Init();
@@ -50,7 +51,7 @@ int main(int argc, char *argv[])
  		
 		Drift_To_Sync_Point();
 		
-		if (Sig.Domain_Update)
+		//if (Sig.Domain_Update)
 			Domain_Decomposition();
 
 		Update(BEFORE_FORCES);
@@ -121,7 +122,7 @@ static void preamble(int argc, char *argv[])
 	if (Task.Is_Master) {
 
 		printf("#### Tandav ####\n\n");
-		
+	
 		Assert( (argc >= 2) && (argc < 4), 
 			"Wrong number of arguments, let me help you: \n\n" 
 			"	USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
@@ -132,10 +133,10 @@ static void preamble(int argc, char *argv[])
 
 		Print_compile_time_settings();
 
-		printf("\nUsing %d MPI tasks, %d OpenMP threads \n", 
+		printf("\nUsing %d MPI tasks, %d OpenMP threads \n\n", 
 				Sim.NRank, Sim.NThreads);
 			
-		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
+		printf("sizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
 		printf("sizeof(*D) = %zu byte\n", sizeof(*D)*CHAR_BIT/8);
 #ifdef GRAVITY_TREE
 		printf("sizeof(*Tree) = %zu byte\n", sizeof(*Tree)*CHAR_BIT/8);

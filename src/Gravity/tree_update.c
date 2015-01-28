@@ -30,19 +30,30 @@ void Gravity_Tree_Update_Kicks(const Float dp[3], const int parent)
 
 	} while (!Node_Is(TOP, node));
 
+	int i = Tree[node].DUp;
+
+	if (D[i].TNode.Level > 0)
+		D[i].TNode.Level *= -1; // mark kicked. Will revere after drift
+
+	D[i].TNode.Dp[0] += dp[0] / D[i].TNode.Mass;
+	D[i].TNode.Dp[1] += dp[1] / D[i].TNode.Mass;
+	D[i].TNode.Dp[2] += dp[2] / D[i].TNode.Mass;
+
 	return ;
 }
 
 /*  
- * Advance the Treenodes by the system timestep 
+ * Advance updated/kicked Treenodes by the system timestep. Then do the same
+ * with the top nodes.
  */
+
+static int nUpdate = 0;
 
 void Gravity_Tree_Update_Drift(const double dt)
 {
-
 	rprintf("Tree update ");
 
-	#pragma omp for
+	#pragma omp for nowait
 	for (int i = 0; i < NNodes; i++) {
 
 		if (! Node_Is(UPDATED, i))
@@ -56,23 +67,27 @@ void Gravity_Tree_Update_Drift(const double dt)
 
 		Node_Clear(UPDATED, i);
 	} 
+
+	nUpdate = 0;
+
+	#pragma omp for reduction(+:nUpdate)
+	for (int i = 0; i < NTop_Nodes; i++) {
 	
-	rprintf("done \n");
+		if (D[i].TNode.Level > 0)
+			continue;
+
+		D[i].TNode.CoM[0] += dt / D[i].TNode.Dp[0];
+		D[i].TNode.CoM[1] += dt / D[i].TNode.Dp[1];
+		D[i].TNode.CoM[2] += dt / D[i].TNode.Dp[2];
+
+		D[i].TNode.Level *= -1; // reverse "updated" flag
+
+		nUpdate++;
+	}
+
+	rprintf("Done. Moved %d top nodes \n", nUpdate);
 
 	return ;
 }
 
-/*
- * Communicate the kicks of the bunch leaves and kick the topnode tree.
- * We find all changed bunch leave momenta
- */
-
-void Gravity_Tree_Update_Topnode_Kicks()
-{
-	// Find updated bunch leaves
-	// MPI allscatter bunch leave momenta
-	// update topnode tree
-	
-	return ;
-}
 

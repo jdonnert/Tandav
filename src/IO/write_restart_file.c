@@ -8,7 +8,7 @@ void Write_Restart_File()
 
 	char fname[] = { "restartfiles/restart." };
 
-	rprintf("\nWriting restart files %g \n", fname);
+	rprintf("\nWriting restart files %s \n", fname);
 
 	Profile("Restart File");
 

@@ -151,6 +151,8 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 
 	merge_free_memory_blocks(i);
 	
+	ptr = NULL;
+
 	} // omp critical
 
 	return ;

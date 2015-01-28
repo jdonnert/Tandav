@@ -8,7 +8,7 @@ void Finish()
 	
 	Finish_Memory_Management();
 
-	rprintf("\nLive long and prosper\n\n");
+	rprintf("\nBye\n\n");
 
 	MPI_Finalize();
 

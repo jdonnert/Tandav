@@ -42,7 +42,7 @@ void Sort_Particles_By_Peano_Key()
 		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
 		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
 		double pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
-		
+
 		keys[ipart] = Peano_Key(px, py, pz);
 	}
 
@@ -51,7 +51,7 @@ void Sort_Particles_By_Peano_Key()
 
 	reorder_collisionless_particles(idx);
 	
-	#pragma omp single copyprivate(idx,keys)
+	#pragma omp single 	
 	{
 	
 	Free(keys); 
@@ -134,9 +134,9 @@ peanoKey Peano_Key(const double x, const double y, const double z)
 	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1[ have %g", z);
 #endif
 
-	const uint64_t m = 1UL << 63; // = 2^63;
+	const uint64_t m = ((uint64_t) 1) << 63; // = 2^63;
 
-	uint64_t X[3] = { y*m, z*m, x*m };
+	uint64_t X[3] = { x*m, y*m, z*m };
 
 	/* Inverse undo */
 
@@ -192,13 +192,11 @@ peanoKey Peano_Key(const double x, const double y, const double z)
 					  | (X[2] & 0x2000000000000000)) >> 61;
 		
 		key <<= 3; 
+		key |= col; 
 
 		X[0] <<= 1; 
 		X[1] <<= 1; 
 		X[2] <<= 1;
-
-		key |= col; 
-
 	} 
 	
 	key <<= 2;
@@ -222,7 +220,7 @@ peanoKey Reversed_Peano_Key(const double x, const double y, const double z)
 
 	const uint64_t m = 1UL << 63; // = 2^63;
 
-	uint64_t X[3] = { y*m, z*m, x*m };
+	uint64_t X[3] = { x*m, y*m, z*m };
 
 	/* Inverse undo */
 
@@ -303,7 +301,7 @@ shortKey Short_Peano_Key(const double x, const double y, const double z)
 
 	const uint64_t m = 1UL << 31; // = 2^31;
 
-	uint32_t X[3] = { y*m, z*m, x*m };
+	uint32_t X[3] = { x*m, y*m, z*m };
 
 	/* Inverse undo */
 
@@ -383,7 +381,7 @@ shortKey Reversed_Short_Peano_Key(const double x,const double y,const double z)
 
 	const uint64_t m = 1UL << 31; // = 2^31;
 
-	uint32_t X[3] = { y*m, z*m, x*m };
+	uint32_t X[3] = { x*m, y*m, z*m };
 
 	/* Inverse undo */
 
@@ -455,7 +453,7 @@ void Test_Peanokey()
 {
 	const double box[3]  = { 1.0, 1, 1};
 	double a[3] = { 0 };
-	int order = 1;
+	int order = 10;
 	double delta = 1/pow(2.0, order);
 	int n = roundf(1/delta);
 
@@ -504,3 +502,4 @@ void Test_Peanokey()
 
 	return ;
 }
+

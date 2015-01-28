@@ -3,16 +3,24 @@
 
 static const double h = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
 
+static double mean_error = 0, max_error = 0; 
+static int worst_part = -1;
+
 void Accel_Gravity_Simple()
 {
 	Profile("Gravity_Simple");
 
 	rprintf("Direct Gravity ... ");
 
-	#pragma omp for
-	for (int i = 0; i < Task.Npart_Total; i++) {
+	mean_error = max_error = 0;
+	worst_part = -1;
+
+	#pragma omp for reduction(+:mean_error)
+	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
+
+		double acc[3] = { P[ipart].Acc[0], P[ipart].Acc[1], P[ipart].Acc[2] };
 
 		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
 
@@ -72,10 +80,35 @@ void Accel_Gravity_Simple()
 #endif
 		} // for jpart
 
+	
+		double error[3] = {(acc[0] - P[ipart].Acc[0]) / P[ipart].Acc[0],
+							(acc[1] - P[ipart].Acc[1]) / P[ipart].Acc[1],
+							(acc[2] - P[ipart].Acc[2]) / P[ipart].Acc[2] };
+		
+		double errorl = ALENGTH3(error);
+
+//printf("%d %g | %g %g %g | %g %g %g \n", ipart, errorl, acc[0], acc[1], acc[2],P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
+
+		mean_error += errorl;
+
+		#pragma omp critical
+		{
+		
+		if (errorl > max_error) {
+
+			max_error = ALENGTH3(error);
+			worst_part = ipart;
+		}
+
+		} // omp critical
+	
 	} // for ipart
 
 	rprintf("done\n");
 	
+	rprintf("\nForce test: max error %g @ %d, mean error %g \n\n", 
+			max_error, worst_part, mean_error/NActive_Particles);
+
 	Profile("Gravity_Simple");
 
 	return ;

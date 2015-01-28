@@ -40,7 +40,6 @@ extern struct Parameters_From_File {
 	int Num_IO_Tasks;			// written in parallel
 	int Max_Mem_Size;			// Memory Ceiling in 1024^2 Bytes
 	int Num_Output_Files;		// Number of files per snapshot
-	int Comm_Buf_Size;			// in 1024 Bytes
 	double Runtime_Limit;		// in sec
 } Param;
 

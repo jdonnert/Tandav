@@ -57,8 +57,8 @@ void Drift_To_Sync_Point()
 #endif 
 
 #ifdef GRAVITY_TREE
-	if (! Sig.Domain_Update)
-		Gravity_Tree_Update_Drift(Time.Step);
+	//if (! Sig.Domain_Update)
+		//Gravity_Tree_Update_Drift(Time.Step);
 #endif
 
 	#pragma omp barrier

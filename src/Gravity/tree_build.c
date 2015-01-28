@@ -168,8 +168,6 @@ static void reserve_tree_memory(const int i, const int nNeeded)
 				"Max %d Nodes, Factor %g \n"
 				, Task.Rank, Task.Thread_ID, nBytes/1024.0/1024.0, Max_Nodes, 
 				(double)Max_Nodes/Task.Npart_Total); fflush(stdout);
-
-		Print_Memory_Usage();
 #endif
 		Tree = Realloc(Tree, nBytes, "Tree");
 	}
@@ -413,7 +411,13 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 	}
 	// compact
 
-	tree[0].DNext = 0;  // correct internal DNext
+
+	Node_Set(TOP, nNodes); // add a zero node at the end to terminate tree walk
+	tree[nNodes].Mass = 1; 
+
+	nNodes++; 
+	
+	tree[0].DNext = nNodes-1;  // correct internal DNext
 
 	int stack[N_PEANO_TRIPLETS + 1] = { 0 }; 
 	int lowest = top_level;
@@ -422,7 +426,7 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 
 		int lvl = Level(i);
 
-		while (lvl <= lowest) { // set pointers
+		while (lvl <= lowest) { 
 
 			int node = stack[lowest];
 
@@ -434,14 +438,14 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 			lowest--;
 		} 
 
-		if (tree[i].DNext == 0) { // add node to stack
+		if (tree[i].DNext == 0) { 
 
 			stack[lvl] = i;
 
 			lowest = lvl;
 		}
 
-	} // for
+	} // for i
 
 	return nNodes;
 }
@@ -562,8 +566,10 @@ void test_gravity_tree(const int nNodes)
 		int n = node + 1;
 
 		float mass = 0;
+		float com[3] = { 0, 0, 0};
 		int npart = 0;
 		int nout = 0;
+
 
 		double nSize = Domain.Size / (float)(1ULL << lvl);
 
@@ -579,6 +585,10 @@ void test_gravity_tree(const int nNodes)
 				 	npart++;
 
 					mass += P[jpart].Mass;
+
+					com[0] += P[jpart].Pos[0] * P[jpart].Mass;
+					com[1] += P[jpart].Pos[1] * P[jpart].Mass;
+					com[2] += P[jpart].Pos[2] * P[jpart].Mass;
 	
 					float dx = fabs(P[jpart].Pos[0] - Tree[n].Pos[0]);
 					float dy = fabs(P[jpart].Pos[1] - Tree[n].Pos[1]);
@@ -605,6 +615,10 @@ void test_gravity_tree(const int nNodes)
 
 				mass += P[jpart].Mass;
 
+				com[0] += P[jpart].Pos[0] * P[jpart].Mass;
+				com[1] += P[jpart].Pos[1] * P[jpart].Mass;
+				com[2] += P[jpart].Pos[2] * P[jpart].Mass;
+
 				double dx = fabs(P[jpart].Pos[0] - Tree[node].Pos[0]);
 				double dy = fabs(P[jpart].Pos[1] - Tree[node].Pos[1]);
 				double dz = fabs(P[jpart].Pos[2] - Tree[node].Pos[2]);
@@ -615,12 +629,16 @@ void test_gravity_tree(const int nNodes)
 							nout++;
 			}
 		}
-		
+
+		com[0] /= mass; com[1] /= mass; com[2] /= mass;
+		if (Tree[node].DNext == 0)
 		printf("node %4d | m %6g =? %6g | Npart %6d =? %6d | lvl %2d | dnext %4d "
-				"dup %4d nsize %8g | nout %3d\n",node, mass,Tree[node].Mass, npart, 
-				Tree[node].Npart, lvl, Tree[node].DNext, Tree[node].DUp, 
-				nSize, nout);
-		Print_Int_Bits32(Tree[node].Bitfield);
+				"dup %4d nsize %8g | nout %3d | CoM %g %g %g =? %g %g %g \n",
+				node, mass,Tree[node].Mass, npart, Tree[node].Npart, lvl, 
+				Tree[node].DNext, Tree[node].DUp, nSize, nout, 
+				com[0], com[1], com[2], Tree[node].CoM[0],
+				Tree[node].CoM[1],Tree[node].CoM[2] );
+		//Print_Int_Bits32(Tree[node].Bitfield);
 	}
 
 	return ;

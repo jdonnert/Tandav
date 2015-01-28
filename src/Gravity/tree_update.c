@@ -33,7 +33,7 @@ void Gravity_Tree_Update_Kicks(const Float dp[3], const int parent)
 	int i = Tree[node].DUp;
 
 	if (D[i].TNode.Level > 0)
-		D[i].TNode.Level *= -1; // mark kicked. Will revere after drift
+		D[i].TNode.Level *= -1; // mark kicked. Will reverse after drift
 
 	D[i].TNode.Dp[0] += dp[0] / D[i].TNode.Mass;
 	D[i].TNode.Dp[1] += dp[1] / D[i].TNode.Mass;
@@ -51,7 +51,7 @@ static int nUpdate = 0;
 
 void Gravity_Tree_Update_Drift(const double dt)
 {
-	rprintf("Tree update ");
+	rprintf("Tree update ... ");
 
 	#pragma omp for nowait
 	for (int i = 0; i < NNodes; i++) {
@@ -85,7 +85,7 @@ void Gravity_Tree_Update_Drift(const double dt)
 		nUpdate++;
 	}
 
-	rprintf("Done. Moved %d top nodes \n", nUpdate);
+	rprintf("done. Moved %d top nodes \n", nUpdate);
 
 	return ;
 }

@@ -52,9 +52,9 @@ void Domain_Decomposition()
  	
 	Sort_Particles_By_Peano_Key();
 		
-	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
-
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
+
+	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
 
 	communicate_bunches();
 
@@ -111,11 +111,11 @@ void Domain_Decomposition()
 			continue;
 		}
 		
+		Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
+
 		communicate_bunches();
 
 		remove_empty_bunches();
-
-		Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
 		split_bunches = distribute();
 
@@ -131,6 +131,8 @@ void Domain_Decomposition()
 	communicate_particles();
 
 	NTop_Nodes = NBunches;
+
+	Sig.Force_Domain = false;
 
 	Profile("Domain Decomposition");
 
@@ -443,8 +445,11 @@ static void print_domain_decomposition (const int max_level)
 }
 
 /*
- * Find the global domain origin and the maximum extent. Not much
- * to do for PERIODIC
+ * Find the global domain origin and the maximum extent. We center the domain
+ * of the center of mass which is advantageous for domain decomposition of very 
+ * non-homogeneous mass distributions like the Hernquist halo. The domain is also
+ * made slightly larger to avoid roundoff problems with the PH numbers.
+ * Not much to do for PERIODIC
  */
 
 double max_x = -DBL_MAX, max_y = -DBL_MAX, max_z = -DBL_MAX, 
@@ -493,14 +498,18 @@ static void find_global_domain()
 	MPI_Allreduce(MPI_IN_PLACE, &global_min, 3, MPI_DOUBLE, MPI_MIN,
 		MPI_COMM_WORLD);
 
-	Domain.Size = fabs(global_max[0] - global_min[0]);
-	Domain.Size = fmax(Domain.Size, fabs(global_max[1] - global_min[1]));
-	Domain.Size = fmax(Domain.Size, fabs(global_max[2] - global_min[2]));
-	
+	Domain.Size = 0;
+
 	for (int i = 0; i < 3; i++) {
 	
-		Domain.Origin[i] = global_min[i]; 
-		Domain.Center[i] = Domain.Origin[i] + 0.5 * Domain.Size;
+		Domain.Size = fmax(Domain.Size, 2.05 * fabs(global_max[i]));
+		Domain.Size = fmax(Domain.Size, 2.05 * fabs(global_min[i]));
+	}
+
+	for (int i = 0; i < 3; i++) {
+	
+		Domain.Center[i] = Domain.Center_Of_Mass[i] ;
+		Domain.Origin[i] = Domain.Center[i] - 0.5 * Domain.Size; 
 	}
 
 	} // omp single

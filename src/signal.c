@@ -82,7 +82,8 @@ static int Local_NPart_Updates = 0;
 
 void Test_For_Domain_Update()
 {
-	Sig.Domain_Update = false;
+	Sig.Domain_Update = true;
+	//Sig.Domain_Update = false;
 
 	#pragma omp single
 	{

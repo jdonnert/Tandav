@@ -38,10 +38,10 @@ void Gravity_Tree_Acceleration()
 
 		for (int j = 0; j < NTop_Nodes; j++) {
 
-		//	if (interact_with_topnode(ipart, j, grav_accel, &pot))
-	//			continue;
+			if (interact_with_topnode(ipart, j, grav_accel, &pot))
+				continue;
 		
-			int first_node = D[j].TNode.Target;
+			int first_node = 0;// D[j].TNode.Target;
 
 			if (ASCALPROD3(P[ipart].Acc) == 0)
 				gravity_tree_walk_first(ipart, first_node, grav_accel, &pot);
@@ -100,7 +100,7 @@ static bool interact_with_topnode(const int ipart, const int i, Float *grav_acce
 
 	Float r2 = p2(dx) + p2(dy) + p2(dz);
 
-	if (ASCALPROD(P[ipart].Acc) == 0) {
+	if (ASCALPROD3(P[ipart].Acc) == 0) {
 
 		if (nSize*nSize > r2 * TREE_OPEN_PARAM_BH)
 			return false;
@@ -138,9 +138,11 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 	
 	const Float pos_i[3] = {P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2]};
 
+	const int tree_end = tree_start + Tree[tree_start].DNext;
+
 	int node = tree_start;
-	
-	while (Tree[node].DNext != 0 || node == tree_start) {
+
+	while (node != tree_end) {
 
 		if (Tree[node].DNext < 0) { // encountered particle bundle
 
@@ -187,7 +189,7 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 		
 		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]);
 	
-		if (dx < 0.6 * nSize) { // particle inside node ? Springel 2005
+		if (dx < 0.6 * nSize) { // particle inside node ? 
 
 			Float dy = fabs(pos_i[1] - Tree[node].Pos[1]);
 			
@@ -206,7 +208,7 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 		
 		interact(nMass, dr, r2, Accel, Pot); // use node
 
-		node += fmax(1, Tree[node].DNext);
+		node += Tree[node].DNext; // skip branch
 
 	} // while
 

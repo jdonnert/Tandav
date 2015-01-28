@@ -6,6 +6,13 @@ static const double h = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
 static double mean_error = 0, max_error = 0; 
 static int worst_part = -1;
 
+/*
+ * This computes the gravitational interaction via direct summation and shows
+ * the relative error resp. the old force. Note that the max relative error can 
+ * become large if one component of the force is close to 0 without consequence.
+ * Check to the total force to make sure this is not the case.
+ */
+
 void Accel_Gravity_Simple()
 {
 	Profile("Gravity_Simple");
@@ -80,14 +87,11 @@ void Accel_Gravity_Simple()
 #endif
 		} // for jpart
 
-	
 		double error[3] = {(acc[0] - P[ipart].Acc[0]) / P[ipart].Acc[0],
 							(acc[1] - P[ipart].Acc[1]) / P[ipart].Acc[1],
 							(acc[2] - P[ipart].Acc[2]) / P[ipart].Acc[2] };
 		
 		double errorl = ALENGTH3(error);
-
-//printf("%d %g | %g %g %g | %g %g %g \n", ipart, errorl, acc[0], acc[1], acc[2],P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
 
 		mean_error += errorl;
 
@@ -102,6 +106,10 @@ void Accel_Gravity_Simple()
 
 		} // omp critical
 	
+		//printf("ipart = %d %g | %g %g %g | %g %g %g \n", 
+		//		ipart, errorl, acc[0], acc[1], acc[2],
+		//		P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
+
 	} // for ipart
 
 	rprintf("done\n");

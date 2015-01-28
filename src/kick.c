@@ -80,8 +80,6 @@ void Kick_Second_Halfstep()
 		}
 #endif // GRAVITY_TREE
 	}
-	
-	//Gravity_Tree_Update_Topnode_Kicks();
 
 	Profile("Second Kick");
 

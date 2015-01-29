@@ -54,8 +54,6 @@ void Read_and_Init()
 	Constrain_Particles_To_Box();
 #endif
 	
-	Init_Domain_Decomposition();
-
 	Print_Memory_Usage();
 	
 	Profile("Init");

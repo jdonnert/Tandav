@@ -6,6 +6,8 @@
 #include "../domain.h"
 
 static bool interact_with_topnode(const int, const int, Float*, Float*);
+static void interact_with_topnode_particles(const int, const int, 
+		Float*, Float *pot);
 static void gravity_tree_walk(const int , const int, Float*, Float*);
 static void gravity_tree_walk_first(const int , const int, Float*, Float*);
 
@@ -17,7 +19,9 @@ static void work_MPI_buffers();
 static inline Float node_size(const int node);
 
 /*
- * Walk the tree and estimate gravitational acceleration using two different
+ * Interact with all local topnodes, either with the node directly, or with the 
+ * particles it contains (small top node). Or, walk the tree and estimate 
+ * gravitational acceleration using two different
  * opening criteria. Also open all nodes containing ipart to avoid large 
  * maximum errors. Barnes & Hut 1984, Springel 2006, Dehnen & Read 2012.
  */
@@ -32,21 +36,35 @@ void Gravity_Tree_Acceleration()
 	for (int i = 0; i < NActive_Particles; i++) {
 			
 		int ipart = Active_Particle_List[i];
-		
+
 		Float grav_accel[3] = { 0 };
 		Float pot = 0;
 
 		for (int j = 0; j < NTop_Nodes; j++) {
 
+			//if (D[j].TNode.Target < 0) {
+			//
+			//	export_particle_to_rank(ipart, -target-1);	
+			//
+			//	continue;
+			//}
+
 			if (interact_with_topnode(ipart, j, grav_accel, &pot))
 				continue;
 		
-			int first_node = 0;// D[j].TNode.Target;
+			if (D[j].TNode.Npart <= 8) { // open top leave
+			
+				interact_with_topnode_particles(ipart, j, grav_accel, &pot);
+
+				continue;
+			}
+
+			int tree_start = D[j].TNode.Target;
 
 			if (ASCALPROD3(P[ipart].Acc) == 0)
-				gravity_tree_walk_first(ipart, first_node, grav_accel, &pot);
+				gravity_tree_walk_first(ipart, tree_start, grav_accel, &pot);
 			else
-				gravity_tree_walk(ipart, first_node, grav_accel, &pot);
+				gravity_tree_walk(ipart, tree_start, grav_accel, &pot);
 		} // for j
 
 		P[ipart].Acc[0] = grav_accel[0];
@@ -78,25 +96,17 @@ void Gravity_Tree_Acceleration()
  * the particle and then check the two criteria.
  */
 
-static bool interact_with_topnode(const int ipart, const int i, Float *grav_accel, 
+static bool interact_with_topnode(const int ipart, const int j, Float *grav_accel, 
 		Float *pot)
 {
-	const Float nSize = Domain.Size / ((Float)(1UL << D[i].TNode.Level));
+	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 
-	Float dx = P[ipart].Pos[0] - D[i].TNode.Pos[0];	
+	Float dx = P[ipart].Pos[0] - D[j].TNode.Pos[0];	
+    Float dy = P[ipart].Pos[1] - D[j].TNode.Pos[1];
+	Float dz = P[ipart].Pos[2] - D[j].TNode.Pos[2];
 
-	if (dx < 0.6 * nSize) 
+	if ( (dx < 0.6 * nSize) && (dy < 0.6 * nSize) && (dz < 0.6 * nSize)) 
 		return false; // inside subtree -> always walk
-
-    Float dy = P[ipart].Pos[1] - D[i].TNode.Pos[1];
-
-	if (dy < 0.6 * nSize) 
-		return false;
-
-	Float dz = P[ipart].Pos[2] - D[i].TNode.Pos[2];
-
-	if (dz < 0.6 * nSize)
-		return false;
 
 	Float r2 = p2(dx) + p2(dy) + p2(dz);
 
@@ -107,7 +117,7 @@ static bool interact_with_topnode(const int ipart, const int i, Float *grav_acce
 
 	} else {
 
-		Float nMass = D[i].TNode.Mass;
+		Float nMass = D[j].TNode.Mass;
 
 		Float fac = ALENGTH3(P[ipart].Acc) / Const.Gravity * TREE_OPEN_PARAM_REL;
 		
@@ -115,13 +125,42 @@ static bool interact_with_topnode(const int ipart, const int i, Float *grav_acce
 			return false;
 	}
 
-	Float dr[3] = {P[ipart].Pos[0] - D[i].TNode.CoM[0],
-				P[ipart].Pos[1] - D[i].TNode.CoM[1],
-				P[ipart].Pos[2] - D[i].TNode.CoM[2]};
+	Float dr[3] = {P[ipart].Pos[0] - D[j].TNode.CoM[0],
+				P[ipart].Pos[1] - D[j].TNode.CoM[1],
+				P[ipart].Pos[2] - D[j].TNode.CoM[2]};
 
 	interact(P[ipart].Mass, dr, r2, grav_accel, pot); 
 
 	return true;
+}
+
+/*
+ * Top node with less than 8 particles point not to the tree put to P as targets
+ */
+
+static void interact_with_topnode_particles(const int ipart, const int j, 
+		Float *grav_accel, Float *pot)
+{
+	const int first = D[j].TNode.Target; 
+	const int last = first + D[j].TNode.Npart;
+
+	for (int jpart = first; jpart < last; jpart++) {
+
+		if (jpart == ipart)
+			continue;
+			
+		Float dr[3] = { P[ipart].Pos[0] - P[jpart].Pos[0],	
+			   		    P[ipart].Pos[1] - P[jpart].Pos[1], 
+			            P[ipart].Pos[2] - P[jpart].Pos[2] };
+
+		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
+
+		Float mpart = P[jpart].Mass;
+
+		interact(mpart, dr, r2, grav_accel, pot); 
+	}
+
+	return ;
 }
 
 /*

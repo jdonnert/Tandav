@@ -95,7 +95,7 @@ void *Realloc_info(const char* file, const char* func, const int line,
 	int i_return = i; 
 
 	if (i == NMem_Blocks-1) { // enlarge last block
-
+	
 		const int delta = new_size - Mem_Block[i].Size;
 
 		Assert_Info(file, func,line, delta < NBytes_Left,
@@ -106,10 +106,8 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 		NBytes_Left -= delta;
 
-	} else if (new_size < Mem_Block[i].Size) { // move old to new and free
+	} else if (new_size > Mem_Block[i].Size) { // move old to new and free
 
-		printf("%zu %zu \n",  new_size, Mem_Block[i].Size);
-		
 		void *dest = Malloc_info(file, func, line, new_size, name);
 
 		void *src = Mem_Block[i].Start;
@@ -121,6 +119,8 @@ void *Realloc_info(const char* file, const char* func, const int line,
 		Free(Mem_Block[i].Start);
 
 		i_return = NMem_Blocks - 1;
+	
+		printf("Moving Memory Block %d -> %d \n",i, i_return);
 	}
 
 	return Mem_Block[i_return].Start;
@@ -218,9 +218,10 @@ void Init_Memory_Management()
 	printf("\n   Thread-Safe Buffer: %g MB per thread \n\n", 
 			Task.Buffer_Size/1024.0/1024);
 
-	Warn(Task.Buffer_Size / sizeof(P) < 10000, "BUFFER_SIZE very small %d MB"
-			, Task.Buffer_Size/1024/1024);
-
+	Warn(Task.Buffer_Size/sizeof(*P) < 10000, 
+			"Thread Safe buffer holds less than 1e4 particles "
+			"BUFFER_SIZE > %d MB recommended"
+			, 10000*sizeof(*P)/1024/1024 , Task.Buffer_Size/1024/1024);
 	return;
 }
 
@@ -257,7 +258,7 @@ void Print_Memory_Usage()
 			
 		mem_Cumulative += Mem_Block[i].Size;
 
-		printf("    %d   %d    %11p     %7.1f      %8.3f   %20s  %s:%d\n",
+		printf("    %d   %d    %11p     %7.3f      %8.3f   %20s  %s:%d\n",
 			i,Mem_Block[i].In_Use, Mem_Block[i].Start, 
 			(double) Mem_Block[i].Size/1024/1024, 
 			(double) mem_Cumulative/1024/1024, 

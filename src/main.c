@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 
 	Setup();
 	
-	#pragma omp parallel
+	#pragma omp parallel 
 	{
 	
 	Update(BEFORE_MAIN_LOOP);
@@ -165,6 +165,7 @@ static void preamble(int argc, char *argv[])
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	return ;
+		 	
 }	
 
 

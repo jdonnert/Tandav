@@ -1,6 +1,10 @@
 #include "globals.h"
 #include "timestep.h"
 
+/*
+ * Setup extra modules. In particular, allocate static memory blocks here !
+ */
+
 void Setup() 
 {
 	Profile("Setup");

@@ -8,18 +8,18 @@
 
 static void gravity_tree_init();
 static void transform_bunch_into_top_node(const int, int*, int*);
-static void reserve_tree_memory(const int, const int);
+static int reserve_tree_memory(const int, const int);
 static int build_subtree(const int, const int, const int);
 static int finalise_subtree(const int, const int, int );
 static inline bool particle_is_inside_node(const peanoKey,const int,const int);
 static inline void add_particle_to_node(const int, const int);
 static inline void create_node_from_particle(const int, const int, 
-		const peanoKey, const int, const int);
+											const peanoKey, const int, const int);
 static peanoKey create_first_node(const int, const int, const int);
 static void collapse_last_branch(const int, const int, const int, int*);
 static inline int key_fragment(const int);
 
-int NNodes = 0, Max_Nodes = 1024;
+int NNodes = 0, Max_Nodes = 0;
 
 struct Tree_Node *Tree = NULL; // pointer to all nodes
 struct Tree_Node *tree = NULL; // pointer to build area: "*Tree" or "*Buffer"
@@ -42,13 +42,11 @@ void Gravity_Tree_Build()
 {
 	Profile("Build Gravity Tree");
 
+	rprintf("Tree build ... ");
+
 	const size_t buf_thres = Task.Buffer_Size/sizeof(*Tree);
 
-	Warn(buf_thres < 1000, 
-			"buf_thres = %g < 1e3, increase BUFFER_SIZE = %d MB"
-			, buf_thres , Task.Buffer_Size/1024/1024);
-
-	NNodes = 0; 
+	NNodes = 0;
 
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NTop_Nodes; i++) {
@@ -73,7 +71,8 @@ void Gravity_Tree_Build()
 
 				int nReserved = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
 			
-				reserve_tree_memory(i, nReserved);
+				#pragma omp critical
+				D[i].TNode.Target = reserve_tree_memory(i, nReserved);
 
 				tree = &Tree[D[i].TNode.Target]; 
 			}
@@ -82,7 +81,8 @@ void Gravity_Tree_Build()
 
 			if (build_in_buffer) { // copy buffer to Tree, clear buffer
 			
-				reserve_tree_memory(i, nNeeded);
+				#pragma omp critical
+				D[i].TNode.Target = reserve_tree_memory(i, nNeeded);
 
 				size_t nBytes = nNeeded * sizeof(*Tree);
 
@@ -100,9 +100,15 @@ void Gravity_Tree_Build()
 
 	Sig.Force_Tree_Build = false;
 
-	rprintf("Tree Build done. %d Nodes, reserved %g MB for max %d Nodes\n", 
-			NNodes, Max_Nodes*sizeof(*Tree)/1024.0/1024, Max_Nodes);
+	rprintf("done. %d Nodes, reserved %g MB for max %d Nodes\n", 
+			NNodes, Max_Nodes*sizeof(*Tree)/1024.0/1024, Max_Nodes); 
 
+#ifdef DEBUG
+	for (int i = 0; i < NTop_Nodes; i++)
+		oprintf("DEBUG (%d:%d): Top Node %4d Target %4d nNodes %5d Npart %5d \n",
+				Task.Rank,Task.Thread_ID, i, D[i].TNode.Target, 
+				Tree[D[i].TNode.Target].DNext,D[i].TNode.Npart );
+#endif
 	Profile("Build Gravity Tree");
 
 	return ;
@@ -147,14 +153,11 @@ static void transform_bunch_into_top_node(const int i, int *level, int *ipart)
  * = enlarges the *Tree memory if needed.
  */
 
-static void reserve_tree_memory(const int i, const int nNeeded)
+static int reserve_tree_memory(const int i, const int nNeeded)
 {	
 	if (nNeeded == 0)
-		return ;
+		return 0;
 	
-	#pragma omp critical
-	{
-		
 	if (NNodes + nNeeded >= Max_Nodes) { // reserve more memory
 
 		Max_Nodes = (Max_Nodes + nNeeded) * 1.1;
@@ -172,13 +175,11 @@ static void reserve_tree_memory(const int i, const int nNeeded)
 		Tree = Realloc(Tree, nBytes, "Tree");
 	}
 
-	D[i].TNode.Target = NNodes;
+	int first = NNodes;
 
 	NNodes += nNeeded;
 	
-	} // omp critical
-
-	return ;
+	return first;
 }
 
 /*

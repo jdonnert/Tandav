@@ -21,7 +21,7 @@ union Domain_Node_List {
 #ifdef GRAVITY_TREE
 	struct Top_Tree_Node {	//  dynamic top nodes, tree entry points
 		shortKey Key;		// Number of nodes to the parent
-		int Target;	   		// Tree/part index (>0) or MPI rank (<0)
+		int Target;	   		// Tree/part index (>=0) or MPI rank - 1 (<0)
 		int Level;			// Top node level & negative if kicked during update
 		int Npart;			// Number of particles in node
 		float Pos[3];		// Node Center
@@ -44,6 +44,5 @@ struct Domain_Properties { // smallest cubic box containing all particles
 int NLocal_Bunches, NTop_Nodes;
 
 void Domain_Decomposition();
-void Init_Domain_Decomposition();
 void Find_Global_Center_Of_Mass(double *CoM_out);
 

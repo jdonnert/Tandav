@@ -48,9 +48,11 @@ void Gravity_Tree_Build()
 
 	NNodes = 0;
 
+	Tree = Realloc(Tree, Max_Nodes*sizeof(*Tree), "Tree");
+
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NTop_Nodes; i++) {
-		
+
 		int src = D[i].Bunch.Target;
 
 		if (D[i].Bunch.Is_Local) {
@@ -105,7 +107,7 @@ void Gravity_Tree_Build()
 
 #ifdef DEBUG
 	for (int i = 0; i < NTop_Nodes; i++)
-		oprintf("DEBUG (%d:%d): Top Node %4d Target %4d nNodes %5d Npart %5d \n",
+		oprintf("DEBUG (%d:%d) Top Node %4d Target %4d nNodes %5d Npart %5d\n",
 				Task.Rank,Task.Thread_ID, i, D[i].TNode.Target, 
 				Tree[D[i].TNode.Target].DNext,D[i].TNode.Npart );
 #endif

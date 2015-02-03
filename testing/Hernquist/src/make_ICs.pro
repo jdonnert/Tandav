@@ -6,7 +6,7 @@ pro make_ICs
 
 	seed = 14041981L
 
-	npart = 10000L
+	npart = 20000L
 
 	mass = 1d15 * Msol / tandav.mass ; code units 
 	a_hernq = 924D 		
@@ -17,7 +17,7 @@ pro make_ICs
 
 	pos = make_array(3, npart, /double, val=0)
 	
-	sqrt_q = sqrt(randomu(seed, npart)) * 0.97
+	sqrt_q = sqrt(randomu(seed, npart)) 
 
 	r = a_hernq  * sqrt_q / (1-sqrt_q)
 

@@ -22,7 +22,7 @@ union Domain_Node_List {
 	struct Top_Tree_Node {	//  dynamic top nodes, tree entry points
 		shortKey Key;		// Number of nodes to the parent
 		int Target;	   		// Tree/part index (>=0) or MPI rank - 1 (<0)
-		int Level;			// Top node level & negative if kicked during update
+		int Level;			// Top node level
 		int Npart;			// Number of particles in node
 		float Pos[3];		// Node Center
 		float Mass;			// Total Mass of particles inside node

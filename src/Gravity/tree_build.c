@@ -48,6 +48,7 @@ void Gravity_Tree_Build()
 
 	NNodes = 0;
 
+	#pragma omp single
 	Tree = Realloc(Tree, Max_Nodes*sizeof(*Tree), "Tree");
 
 	#pragma omp for schedule(static,1)

@@ -75,14 +75,15 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 	if (new_size == 0) {
 		
-		Free(ptr);
+		if (ptr != NULL)
+			Free(ptr);
 	
 		return NULL;
 	}
 
 	if (ptr == NULL) {
 
-		ptr = Malloc(new_size, name);
+		ptr = Malloc_info(file, func, line, new_size, name);
 
 		return ptr;
 	}

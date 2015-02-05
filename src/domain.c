@@ -73,15 +73,9 @@ void Domain_Decomposition()
 			
 			if (D[i].Bunch.Is_To_Be_Split) { // split into 8
 
-				if (NBunches + 8 >= Max_NBunches) // make more space !
-					break;
-
-				#pragma omp barrier
-
 				int first_new_bunch = NBunches;
 
-				#pragma omp single
-				NBunches += 8;
+				#pragma omp barrier
 
 				split_bunch(i, first_new_bunch);
 				
@@ -97,15 +91,6 @@ void Domain_Decomposition()
 
 			}
 
-		}
-		
-		#pragma omp barrier
-		
-		if (NBunches + 8 >= Max_NBunches) { // make more space !
-			
-			reallocate_topnodes();
-
-			continue;
 		}
 		
 		Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
@@ -333,6 +318,12 @@ void reset_bunchlist()
 
 static void split_bunch(const int parent, const int first)
 {
+	if (NBunches + 8 >= Max_NBunches) // make more space !
+		reallocate_topnodes();
+
+	#pragma omp single
+		NBunches += 8;
+	
 	#pragma omp for
 	for (int i = 0; i < 8; i++) {
 
@@ -398,20 +389,20 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 {
 	struct Bunch_Node *b = Get_Thread_Safe_Buffer(nBunches*sizeof(*b));
 	
-	int i = first_bunch;
+	int run = first_bunch;
 
-	for (int j = 0; j < nBunches; j++) {
+	for (int i = 0; i < nBunches; i++) {
 	
-		b[j].First_Part = INT_MAX;
-		b[j].Key = D[i++].Bunch.Key;
+		b[i].First_Part = INT_MAX;
+		b[i].Key = D[run++].Bunch.Key;
 	}
 	
-	int j = 0;
+	run = 0;
 	shortKey runkey = D[first_bunch].Bunch.Key;
 
 	const int last_part = first_part + nPart;
 	
-	#pragma omp for 
+	#pragma omp for nowait
 	for (int ipart = first_part; ipart < last_part; ipart++) {
 		
 		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
@@ -420,12 +411,12 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 		
 		shortKey pkey = Short_Peano_Key(px, py, pz);
 
-		while (b[j].Key < pkey)  // particles are ordered by key
-			j++;
+		while (b[run].Key < pkey)  // particles are ordered by key
+			run++;
 		
-		b[j].Npart++;
-		b[j].Cost += P[ipart].Cost;
-		b[j].First_Part = imin(b[j].First_Part, ipart);
+		b[run].Npart++;
+		b[run].Cost += P[ipart].Cost;
+		b[run].First_Part = imin(b[run].First_Part, ipart);
 	}
 
 	#pragma omp critical
@@ -433,15 +424,15 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 	
 	const int last_bunch = first_bunch + nBunches;
 
-	j = 0;
+	run = 0;
 	
 	for (int i = first_bunch; i < last_bunch; i++) {
 
-		D[i].Bunch.Npart += b[j].Npart;
-		D[i].Bunch.Cost += b[j].Cost;
-		D[i].Bunch.First_Part = imin(D[i].Bunch.First_Part, b[j].First_Part);
+		D[i].Bunch.Npart += b[run].Npart;
+		D[i].Bunch.Cost += b[run].Cost;
+		D[i].Bunch.First_Part = imin(D[i].Bunch.First_Part, b[run].First_Part);
 
-		j++;
+		run++;
 	}
 
 	} // omp critical 
@@ -537,8 +528,8 @@ static void print_domain_decomposition (const int max_level)
 	#pragma omp barrier
 	#pragma omp flush(D)
 
-	rprintf(
-		" No | Split | npart  |   sum  | first  | trgt  | lvl ||  PH key\n");
+	rprintf(" No | Split | npart  |   sum  | first  | trgt  | lvl |"
+			"|  PH key\n");
 	
 	size_t sum = 0;
 
@@ -569,6 +560,8 @@ Assert(sum == Task.Npart_Total, "FAIL");
 
 static void find_global_domain_extend()
 {
+	#pragma omp barrier
+
 	Find_Global_Center_Of_Mass(&Domain.Center_Of_Mass[0]);
 
 #ifdef PERIODIC
@@ -612,6 +605,8 @@ static void find_global_domain_extend()
 	Domain.Size *= 2.05;
 	
 	} // omp single
+
+	#pragma omp flush
 
 	for (int i = 0; i < 3; i++) {
 	

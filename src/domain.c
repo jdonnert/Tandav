@@ -567,7 +567,6 @@ Assert(sum == Task.Npart_Total, "FAIL");
  * PH numbers. Not much to do for PERIODIC.
  */
 
-
 static void find_global_domain_extend()
 {
 	Find_Global_Center_Of_Mass(&Domain.Center_Of_Mass[0]);
@@ -604,11 +603,15 @@ static void find_global_domain_extend()
 
 	#pragma omp barrier
 
-	#pragma omp single 
+	#pragma omp single
+	{
+	
 	MPI_Allreduce(MPI_IN_PLACE, &Domain.Size, 1, MPI_DOUBLE, MPI_MAX, 
-			MPI_COMM_WORLD);
+		MPI_COMM_WORLD);
 	
 	Domain.Size *= 2.05;
+	
+	} // omp single
 
 	for (int i = 0; i < 3; i++) {
 	

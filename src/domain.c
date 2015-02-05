@@ -6,9 +6,8 @@
 #define DOMAIN_SPLIT_MEM_THRES -0.6
 #define DOMAIN_NBUNCHES_PER_THREAD 2.0
 
-void init_domain_decomposition();
 static void reset_bunchlist();
-static void find_global_domain();
+static void find_global_domain_extend();
 static void fill_bunches(const int, const int, const int, const int);
 static void remove_empty_bunches(int *nTop_Leaves, int *max_level);
 static void split_bunch(const int, const int);
@@ -29,7 +28,6 @@ static double Top_Node_Alloc_Factor = 0;
 
 static int Max_NBunches = 0;
 static int NBunches = 0;
-#pragma omp threadprivate(NBunches)
 
 /* 
  * Distribute particles in bunches, which are continuous
@@ -47,18 +45,14 @@ void Domain_Decomposition()
 {
 	Profile("Domain Decomposition");
 
-	find_global_domain();
+	find_global_domain_extend();
 	
 	Sort_Particles_By_Peano_Key();
-
-	if (D == NULL)
-	 	init_domain_decomposition();
-	else 
-		reset_bunchlist();
+		
+	reset_bunchlist();
 
 	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
 	
-	print_domain_decomposition(0);
 	communicate_bunches();
 
 	int max_level = 0, nTop_Leaves = 0;
@@ -67,7 +61,7 @@ void Domain_Decomposition()
 
 	int NSplit = distribute();
 
-	while (max_level < 2 && NSplit && (max_level < N_SHORT_TRIPLETS-1)) {
+	while (NSplit && (max_level < N_SHORT_TRIPLETS-1)) {
 	
 		int old_nBunches = NBunches;
 
@@ -84,6 +78,7 @@ void Domain_Decomposition()
 
 				int first_new_bunch = NBunches;
 
+				#pragma omp single
 				NBunches += 8;
 
 				split_bunch(i, first_new_bunch);
@@ -99,7 +94,6 @@ void Domain_Decomposition()
 			}
 
 		}
-	print_domain_decomposition(0);
 		
 		#pragma omp barrier
 		
@@ -134,29 +128,23 @@ void Domain_Decomposition()
 	Sig.Force_Domain = false;
 
 	Profile("Domain Decomposition");
-exit(0);
+
 	return ;
 }
 
 
-void init_domain_decomposition()
+void Init_Domain_Decomposition()
 {
 	Top_Node_Alloc_Factor = (double) 1024 / Task.Npart_Total;
 
 	reallocate_topnodes();
+
+	memset(D, 0, Max_NBunches * sizeof(*D));
 	
 	NBunches = 1;
 
 	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
 	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
-
-	rprintf("\nDomain of size %g is centered on CoM: \n"
-			"   Origin at x = %4g, y = %4g, z = %4g, \n"
-			"   CoM    at x = %4g, y = %4g, z = %4g. \n\n", Domain.Size,
-			Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
-			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
-			Domain.Center_Of_Mass[2]);
-
 
 	return;
 }
@@ -168,7 +156,7 @@ void init_domain_decomposition()
 
 static void reallocate_topnodes()
 {
-	#pragma omp single
+	#pragma omp single 
 	{
 	
 	Top_Node_Alloc_Factor *= 1.2;
@@ -184,7 +172,7 @@ static void reallocate_topnodes()
 
 	} // omp single
 
-	#pragma omp flush(D)
+	#pragma omp flush(NBunches,Max_NBunches, Top_Node_Alloc_Factor)
 
 	return ;
 }
@@ -193,13 +181,16 @@ static void reallocate_topnodes()
  * Transform the top nodes back into a bunch list. 
  * First reset properties overwritten by the union in D. Then add nodes so 
  * the complete domain is covered. This is equivalent to completing every 
- * triplet from bunch i from the bottom up to 7 until the common part of the
- * original keys is reached. Then every triplet is incremented until 
- * the i+1 key triplet is reached, top to bottom.
+ * triplet from bunch i from its level up to 7 until the common part of the
+ * original keys is reached. Then every triplet of i+1 is incremented until 
+ * the key triplet is reached, top to bottom.
  */
 
 void reset_bunchlist()
 {		
+	if (NBunches < 2)
+		return ;
+
 	#pragma omp single
 	if (Tree != NULL)
 		Free(Tree);
@@ -227,6 +218,8 @@ void reset_bunchlist()
 		D[i].Bunch.Key = 0xFFFFFFFFFFFFFF;
 		D[i].Bunch.Target = -INT_MAX;
 	}
+
+	#pragma omp flush 
 	
 	struct Bunch_Node *b = Get_Thread_Safe_Buffer(Task.Buffer_Size);
 
@@ -234,7 +227,7 @@ void reset_bunchlist()
 
 	#pragma omp for nowait
 	for (int i = 0; i < NBunches-1; i++) { // add bunches to cover whole domain
-	
+printf("BUNCH %d \n", i);
 		shortKey akey = D[i].Bunch.Key;
 		shortKey bkey = D[i+1].Bunch.Key;
 
@@ -274,7 +267,6 @@ void reset_bunchlist()
 		
 			uint64_t template = (akey | (0xFFFFFFFFFFFFFFFF >> 3*top))
 														& ~(0x7ULL << shift);
-			
 			b[nNew].Level = top;
 			b[nNew++].Key = template | (k << shift);
 
@@ -288,18 +280,14 @@ void reset_bunchlist()
 		
 			uint64_t template = (bkey | (0xFFFFFFFFFFFFFFFF >> 3*j)) 
 														& ~(0x7ULL << shift);
-
 			for (uint64_t k = 0; k < btriplet; k++) {
 
 				b[nNew].Level = j;
 				b[nNew++].Key = template | (k << shift);
 
-			}
-		}
-	}
-
-	if (nNew == 0)
-		return ;
+			} // for k
+		} // for j
+	} // for i
 
 	int start = 0, end = 0;
 
@@ -307,7 +295,7 @@ void reset_bunchlist()
 	{
 
 	start = NBunches;
-	end = NBunches + nNew;
+	end = start + nNew;
 
 	while (end >= Max_NBunches)
 		reallocate_topnodes();
@@ -566,16 +554,14 @@ static void print_domain_decomposition (const int max_level)
 }
 
 /*
- * Find the global domain origin and the maximum extent. We center the domain
- * of the center of mass which is advantageous for domain decomposition of 
- * very non-homogeneous mass distributions like the Hernquist halo. The 
- * domain is also made slightly larger to avoid roundoff problems with the 
+ * Find the global domain origin and the maximum extent. The 
+ * domain is made slightly larger to avoid roundoff problems with the 
  * PH numbers. Not much to do for PERIODIC.
  */
 
-double max_distance = 0;
+static Float max_distance = 0, min_distance = FLT_MAX;
 
-static void find_global_domain()
+static void find_global_domain_extend()
 {
 	Find_Global_Center_Of_Mass(&Domain.Center_Of_Mass[0]);
 
@@ -586,26 +572,32 @@ static void find_global_domain()
 	Domain.Size = fmax(Sim.Boxsize[0], fmax(Sim.Boxsize[1], Sim.Boxsize[2]));
 
 	for (int i = 0; i < 3; i++)
-		Domain.Center[i] = Domain.Origin[i] + Domain.Size/2;
+		Domain.Center[i] = Domain.Origin[i] + 0.5 * Domain.Size;
 
 #else // ! PERIODIC
 
-	max_distance = 0;
+	max_distance = 0, min_distance = FLT_MAX;
 
-	#pragma omp for reduction(max:max_distance) 
+	#pragma omp for reduction(max:max_distance) reduction(min:min_distance)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
-		max_distance = fmax(max_distance, fabs(P[ipart].Pos[0]));
-		max_distance = fmax(max_distance, fabs(P[ipart].Pos[1]));
-		max_distance = fmax(max_distance, fabs(P[ipart].Pos[2]));
-	}
+		for (int i = 0; i < 3; i++) {
+		
+			if (P[ipart].Pos[i] > max_distance)
+				max_distance = P[ipart].Pos[i];
+		
+			if (P[ipart].Pos[i] < min_distance)
+				min_distance = P[ipart].Pos[i];
+		
+		} // for i
+	} // for ipart
 	
-	double dmax = 0;
+	double dmax = fmax(max_distance, -1 * min_distance);
 
 	#pragma omp single copyprivate(dmax)
-	MPI_Allreduce(&max_distance,&dmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+	MPI_Allreduce(MPI_IN_PLACE, &dmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 	
-	Domain.Size = 2.01 * dmax;
+	Domain.Size = 2.05 * dmax;
 
 	for (int i = 0; i < 3; i++) {
 	
@@ -615,8 +607,7 @@ static void find_global_domain()
 
 #endif // ! PERIODIC
 
-#ifdef DEBUG
-	rprintf("\nDomain size %g, \n"
+	rprintf("\nDomain size is %g, \n"
 			"   Origin at x = %4g, y = %4g, z = %4g, \n"
 			"   Center at x = %4g, y = %4g, z = %4g. \n"
 			"   CoM    at x = %4g, y = %4g, z = %4g. \n",
@@ -624,9 +615,6 @@ static void find_global_domain()
 			Domain.Center[0], Domain.Center[1], Domain.Center[2],
 			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
 			Domain.Center_Of_Mass[2]);
-#endif // DEBUG
-
-	#pragma omp barrier
 
 	return ;
 }

@@ -228,6 +228,7 @@ void Init_Memory_Management()
 
 void Print_Memory_Usage()
 {
+#ifdef MEMORY_MANAGER
 	#pragma omp single nowait
 	{
 
@@ -273,6 +274,7 @@ void Print_Memory_Usage()
 
 	} // omp single nowait
 
+#endif
 	return;
 }
 

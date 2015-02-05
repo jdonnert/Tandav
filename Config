@@ -45,6 +45,6 @@ OMEGA_RAD 4.8e-5
 
 #### ALWAYS RECOMMENDED ####
 
-#MEMORY_MANAGER  
+MEMORY_MANAGER  
 BUFFER_SIZE 16              // in MB per MPI rank, -> BUFFER_SIZE / NThreads
 

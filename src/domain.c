@@ -53,6 +53,8 @@ void Domain_Decomposition()
 
 	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
 	
+	#pragma omp barrier
+
 	communicate_bunches();
 
 	int max_level = 0, nTop_Leaves = 0;
@@ -88,9 +90,11 @@ void Domain_Decomposition()
 				fill_bunches(first_new_bunch, 8, D[i].Bunch.First_Part, 
 						D[i].Bunch.Npart);
 				
+				#pragma omp barrier
+
+				#pragma omp single
 				memset(&D[i].Bunch, 0, sizeof(*D)); // mark for deletion
 
-				#pragma omp barrier
 			}
 
 		}
@@ -200,8 +204,8 @@ void reset_bunchlist()
 	#pragma omp for
 	for (int i = 0; i < NBunches; i++) { // reconstruct Bunches from Topnodes
 
-		D[i].Bunch.Npart = D[i].Bunch.Cost = D[i].Bunch.Is_Local = 0;
-		D[i].Bunch.Is_To_Be_Split = 0;
+		D[i].Bunch.Npart = D[i].Bunch.Is_To_Be_Split = D[i].Bunch.Is_Local = 0;
+	 	D[i].Bunch.Cost =0;
 		D[i].Bunch.First_Part = INT_MAX;
 
 		if (D[i].Bunch.Target >= 0)
@@ -210,12 +214,12 @@ void reset_bunchlist()
 	} // for i < NBunches
 
 	#pragma omp single
-	if (D[NBunches-1].Bunch.Key != 0xFFFFFFFFFFFFFF) { // make end
+	if (D[NBunches-1].Bunch.Key != 0xFFFFFFFFFFFFFFFF) { // make end
 	
 		int i = NBunches++;
 
 		D[i].Bunch.Level = 1;
-		D[i].Bunch.Key = 0xFFFFFFFFFFFFFF;
+		D[i].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
 		D[i].Bunch.Target = -INT_MAX;
 	}
 
@@ -227,7 +231,7 @@ void reset_bunchlist()
 
 	#pragma omp for nowait
 	for (int i = 0; i < NBunches-1; i++) { // add bunches to cover whole domain
-printf("BUNCH %d \n", i);
+
 		shortKey akey = D[i].Bunch.Key;
 		shortKey bkey = D[i+1].Bunch.Key;
 
@@ -312,6 +316,8 @@ printf("BUNCH %d \n", i);
 		D[i].Bunch.Target = -INT_MAX;
 		D[i].Bunch.Level = b[j++].Level;
 	}
+
+	#pragma omp barrier
 
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
@@ -550,6 +556,8 @@ static void print_domain_decomposition (const int max_level)
 
 	#pragma omp barrier
 
+Assert(sum == Task.Npart_Total, "FAIL");
+
 	return ;
 }
 
@@ -559,7 +567,6 @@ static void print_domain_decomposition (const int max_level)
  * PH numbers. Not much to do for PERIODIC.
  */
 
-static Float max_distance = 0, min_distance = FLT_MAX;
 
 static void find_global_domain_extend()
 {
@@ -576,9 +583,9 @@ static void find_global_domain_extend()
 
 #else // ! PERIODIC
 
-	max_distance = 0, min_distance = FLT_MAX;
+	double max_distance = Domain.Size = 0;
 
-	#pragma omp for reduction(max:max_distance) reduction(min:min_distance)
+	#pragma omp for nowait
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
 		for (int i = 0; i < 3; i++) {
@@ -586,18 +593,22 @@ static void find_global_domain_extend()
 			if (P[ipart].Pos[i] > max_distance)
 				max_distance = P[ipart].Pos[i];
 		
-			if (P[ipart].Pos[i] < min_distance)
-				min_distance = P[ipart].Pos[i];
+			if (-1*P[ipart].Pos[i] > max_distance)
+				max_distance = -1*P[ipart].Pos[i];
 		
 		} // for i
 	} // for ipart
-	
-	double dmax = fmax(max_distance, -1 * min_distance);
 
-	#pragma omp single copyprivate(dmax)
-	MPI_Allreduce(MPI_IN_PLACE, &dmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+	#pragma omp critical
+	Domain.Size = fmax(Domain.Size, max_distance);
+
+	#pragma omp barrier
+
+	#pragma omp single 
+	MPI_Allreduce(MPI_IN_PLACE, &Domain.Size, 1, MPI_DOUBLE, MPI_MAX, 
+			MPI_COMM_WORLD);
 	
-	Domain.Size = 2.05 * dmax;
+	Domain.Size *= 2.05;
 
 	for (int i = 0; i < 3; i++) {
 	
@@ -640,10 +651,11 @@ void Find_Global_Center_Of_Mass(double *CoM_out)
 
 	#pragma omp single 
 	{
-		MPI_Allreduce(MPI_IN_PLACE, &global_com, 3, MPI_DOUBLE, MPI_MIN,
+	
+	MPI_Allreduce(MPI_IN_PLACE, &global_com, 3, MPI_DOUBLE, MPI_MIN,
 			MPI_COMM_WORLD);
 		
-		MPI_Allreduce(MPI_IN_PLACE, &global_m, 1, MPI_DOUBLE, MPI_MIN,
+	MPI_Allreduce(MPI_IN_PLACE, &global_m, 1, MPI_DOUBLE, MPI_MIN,
 			MPI_COMM_WORLD);
 
 	for (int i = 0; i < 3; i++) 

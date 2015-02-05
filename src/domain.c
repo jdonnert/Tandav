@@ -48,7 +48,7 @@ void Domain_Decomposition()
 	Profile("Domain Decomposition");
 
 	find_global_domain();
-
+	
 	Sort_Particles_By_Peano_Key();
 
 	if (D == NULL)
@@ -56,10 +56,9 @@ void Domain_Decomposition()
 	else 
 		reset_bunchlist();
 
-	#pragma omp flush(D)
-
 	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
-printf("FILL DONE %d \n", Task.Thread_ID);	fflush(stdout);
+	
+	print_domain_decomposition(0);
 	communicate_bunches();
 
 	int max_level = 0, nTop_Leaves = 0;
@@ -68,7 +67,6 @@ printf("FILL DONE %d \n", Task.Thread_ID);	fflush(stdout);
 
 	int NSplit = distribute();
 
-printf("WHILE \n");	fflush(stdout);
 	while (max_level < 2 && NSplit && (max_level < N_SHORT_TRIPLETS-1)) {
 	
 		int old_nBunches = NBunches;
@@ -92,19 +90,16 @@ printf("WHILE \n");	fflush(stdout);
 				
 				#pragma omp barrier
 
-
-	print_domain_decomposition(0);
 				fill_bunches(first_new_bunch, 8, D[i].Bunch.First_Part, 
 						D[i].Bunch.Npart);
 				
 				memset(&D[i].Bunch, 0, sizeof(*D)); // mark for deletion
 
-	print_domain_decomposition(1000);
-				
 				#pragma omp barrier
 			}
 
 		}
+	print_domain_decomposition(0);
 		
 		#pragma omp barrier
 		
@@ -121,12 +116,10 @@ printf("WHILE \n");	fflush(stdout);
 
 		remove_empty_bunches(&nTop_Leaves, &max_level);
 
-	print_domain_decomposition(max_level);
 		NSplit = distribute();
 	
 	} // while
 
-printf("WHILE DONE\n");	fflush(stdout);
 	rprintf("\nDomain: %d Bunches/Top Nodes, %d Top Leaves, max level %d\n\n", 
 			NBunches, nTop_Leaves, max_level);
 
@@ -141,7 +134,7 @@ printf("WHILE DONE\n");	fflush(stdout);
 	Sig.Force_Domain = false;
 
 	Profile("Domain Decomposition");
-
+exit(0);
 	return ;
 }
 
@@ -411,15 +404,20 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 {
 	struct Bunch_Node *b = Get_Thread_Safe_Buffer(nBunches*sizeof(*b));
 	
-	for (int j = 0; j < nBunches; j++)
+	int i = first_bunch;
+
+	for (int j = 0; j < nBunches; j++) {
+	
 		b[j].First_Part = INT_MAX;
+		b[j].Key = D[i++].Bunch.Key;
+	}
 	
 	int j = 0;
 	shortKey runkey = D[first_bunch].Bunch.Key;
 
 	const int last_part = first_part + nPart;
 	
-	#pragma omp for nowait
+	#pragma omp for 
 	for (int ipart = first_part; ipart < last_part; ipart++) {
 		
 		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
@@ -428,16 +426,15 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 		
 		shortKey pkey = Short_Peano_Key(px, py, pz);
 
-		while (runkey < pkey)  // particles are ordered by key
-			runkey = D[++j].Bunch.Key;
-
+		while (b[j].Key < pkey)  // particles are ordered by key
+			j++;
+		
 		b[j].Npart++;
 		b[j].Cost += P[ipart].Cost;
 		b[j].First_Part = imin(b[j].First_Part, ipart);
 	}
 
-printf("OUT %d \n", Task.Thread_ID); fflush(stdout);
-	#pragma omp critical  
+	#pragma omp critical
 	{
 	
 	const int last_bunch = first_bunch + nBunches;
@@ -576,8 +573,7 @@ static void print_domain_decomposition (const int max_level)
  * PH numbers. Not much to do for PERIODIC.
  */
 
-double max_x = -DBL_MAX, max_y = -DBL_MAX, max_z = -DBL_MAX, 
-	   min_x = DBL_MAX, min_y = DBL_MAX, min_z = DBL_MAX;
+double max_distance = 0;
 
 static void find_global_domain()
 {
@@ -594,51 +590,28 @@ static void find_global_domain()
 
 #else // ! PERIODIC
 
-	max_x = max_y = max_z = -DBL_MAX;
-   	min_x = min_y = min_z = DBL_MAX;
+	max_distance = 0;
 
-	#pragma omp for reduction(max:max_x,max_y,max_z) \
-					reduction(min:min_x,min_y,min_z) 
+	#pragma omp for reduction(max:max_distance) 
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
-		max_x = fmax(max_x, P[ipart].Pos[0]);
-		max_y = fmax(max_y, P[ipart].Pos[1]);
-		max_z = fmax(max_z, P[ipart].Pos[2]);
-
-		min_x = fmin(min_x, P[ipart].Pos[0]);
-		min_y = fmin(min_y, P[ipart].Pos[1]);
-		min_z = fmin(min_z, P[ipart].Pos[2]);
+		max_distance = fmax(max_distance, fabs(P[ipart].Pos[0]));
+		max_distance = fmax(max_distance, fabs(P[ipart].Pos[1]));
+		max_distance = fmax(max_distance, fabs(P[ipart].Pos[2]));
 	}
 	
-	#pragma omp single 
-	{
+	double dmax = 0;
 
-	double global_max[3] = { max_x, max_y, max_z  };
-	double global_min[3] = { min_x, min_y, min_z  };
-
-	MPI_Allreduce(MPI_IN_PLACE, &global_max, 3, MPI_DOUBLE, MPI_MAX,
-		MPI_COMM_WORLD);
-
-	MPI_Allreduce(MPI_IN_PLACE, &global_min, 3, MPI_DOUBLE, MPI_MIN,
-		MPI_COMM_WORLD);
-
-	Domain.Size = 0;
-
-	for (int i = 0; i < 3; i++) {
+	#pragma omp single copyprivate(dmax)
+	MPI_Allreduce(&max_distance,&dmax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 	
-		Domain.Size = fmax(Domain.Size, 2.05 * fabs(global_max[i]));
-		Domain.Size = fmax(Domain.Size, 2.05 * fabs(global_min[i]));
-	}
+	Domain.Size = 2.01 * dmax;
 
 	for (int i = 0; i < 3; i++) {
 	
 		Domain.Origin[i] = - 0.5 * Domain.Size; 
 		Domain.Center[i] = Domain.Origin[i] + 0.5 * Domain.Size ;
 	}
-
-	} // omp single
-
-	#pragma omp flush 
 
 #endif // ! PERIODIC
 

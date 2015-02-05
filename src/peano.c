@@ -42,7 +42,7 @@ void Sort_Particles_By_Peano_Key()
 		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
 		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
 		double pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
-
+		
 		keys[ipart] = Peano_Key(px, py, pz);
 	}
 
@@ -51,13 +51,13 @@ void Sort_Particles_By_Peano_Key()
 
 	reorder_collisionless_particles(idx);
 	
-	#pragma omp single 	
+	#pragma omp single copyprivate(idx,keys)
 	{
 	
 	Free(keys); 
 	Free(idx);
 	
-	} // omp single nowait
+	} // omp single
 
 	Make_Active_Particle_List();
 

@@ -100,17 +100,27 @@ void Gravity_Tree_Build()
 
 		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
 	}
-
+	
 	Sig.Force_Tree_Build = false;
+
+	#pragma omp barrier
 
 	rprintf("done. %d Nodes, reserved %g MB for max %d Nodes\n", 
 			NNodes, Max_Nodes*sizeof(*Tree)/1024.0/1024, Max_Nodes); 
 
 #ifdef DEBUG
-	for (int i = 0; i < NTop_Nodes; i++)
+	for (int i = 0; i < NTop_Nodes; i++) {
+	
+		int nNodes = Tree[D[i].TNode.Target].DNext;
+
+		if (D[i].TNode.Npart < 8)
+			nNodes = 0;
+		
 		oprintf("DEBUG (%d:%d) Top Node %4d Target %4d nNodes %5d Npart %5d\n",
 				Task.Rank,Task.Thread_ID, i, D[i].TNode.Target, 
-				Tree[D[i].TNode.Target].DNext,D[i].TNode.Npart );
+				nNodes, D[i].TNode.Npart );
+
+	}
 #endif
 	Profile("Build Gravity Tree");
 

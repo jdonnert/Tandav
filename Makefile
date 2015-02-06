@@ -18,7 +18,8 @@ FFT_LIBS =
 # machine specifics
 ifeq ($(SYSTYPE),DARWIN)
 CC       =  mpicc
-OPTIMIZE = -O3 -g -Wall -lmpich -mtune=native -march=corei7 #-ftree-vectorizer-verbose=2
+OPTIMIZE =  -Wall -g -lmpich -O3 -openmp  -finline -finline-functions \
+			-funroll-loops  -xhost  -mkl  -ipo 
 MPI_LIBS = 
 MPI_INCL = 
 GSL_INCL =  

@@ -17,7 +17,7 @@ void Write_Snapshot()
 { 
 	Profile("Write Snap");
 
-	#pragma omp single
+	#pragma omp master
 	{
 
 	const int nFiles = Param.Num_Output_Files;
@@ -53,7 +53,7 @@ void Write_Snapshot()
 
 	printf("\n");
 
-	} // omp single
+	} // omp  master
 
 	Profile("Write Snap");
 

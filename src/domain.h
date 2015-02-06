@@ -7,15 +7,15 @@
 
 union Domain_Node_List { 
 	
-	struct Bunch_Node { // Data needed for Domain Decomposition
-		shortKey Key;	// Largest Peano key held by this bunch
-		int Target; 	// MPIRANK
+	struct Bunch_Node { 	// Data needed for Domain Decomposition
+		shortKey Key;		// Largest Peano key held by this bunch
+		int Target; 		// MPIRANK
 		int Level;
 		size_t Npart;		
 		float Cost;
 		int First_Part;
-		bool Is_Local;
-		bool Is_To_Be_Split;
+		bool Is_Local;		// on this rank
+		int Modify;			// split or merge this bunch
 	} Bunch;
 
 #ifdef GRAVITY_TREE

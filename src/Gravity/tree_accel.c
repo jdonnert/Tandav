@@ -87,6 +87,8 @@ void Gravity_Tree_Acceleration()
 
 	Profile("Grav Tree Walk");
 
+	#pragma omp barrier
+
 	return ;
 }
 

@@ -3,7 +3,7 @@
 #include "domain.h"
 #include "peano.h"
 
-#define DOMAIN_SPLIT_MEM_THRES -0.6
+#define DOMAIN_SPLIT_MEM_THRES -0.8
 #define DOMAIN_NBUNCHES_PER_THREAD 2.0
 
 static void reset_bunchlist();
@@ -55,16 +55,18 @@ void Domain_Decomposition()
 	
 	#pragma omp barrier
 
-	communicate_bunches();
+	int max_level = 0, nTop_Leaves = 0, NSplit = 1;
 
-	int max_level = 0, nTop_Leaves = 0;
-
-	remove_empty_bunches(&nTop_Leaves, &max_level);
-
-	int NSplit = distribute();
-
-	while (NSplit && (max_level < N_SHORT_TRIPLETS-1)) {
+	while ( (NSplit != 0) && (max_level < N_SHORT_TRIPLETS-1) ) {
 	
+		Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
+
+		communicate_bunches();
+
+		remove_empty_bunches(&nTop_Leaves, &max_level);
+
+		NSplit = distribute();
+
 		int old_nBunches = NBunches;
 
 		#pragma omp barrier
@@ -89,18 +91,8 @@ void Domain_Decomposition()
 				#pragma omp single
 				memset(&D[i].Bunch, 0, sizeof(*D)); // mark for deletion
 
-			}
-
-		}
-		
-		Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
-
-		communicate_bunches();
-
-		remove_empty_bunches(&nTop_Leaves, &max_level);
-
-		NSplit = distribute();
-	
+			} // if Split
+		} // for i
 	} // while
 
 	rprintf("\nDomain: %d Bunches/Top Nodes, %d Top Leaves, max level %d\n\n", 
@@ -185,18 +177,6 @@ void reset_bunchlist()
 		Free(Tree);
 
 	Tree = NULL;
-
-	#pragma omp for
-	for (int i = 0; i < NBunches; i++) { // reconstruct Bunches from Topnodes
-
-		D[i].Bunch.Npart = D[i].Bunch.Is_To_Be_Split = D[i].Bunch.Is_Local = 0;
-	 	D[i].Bunch.Cost =0;
-		D[i].Bunch.First_Part = INT_MAX;
-
-		if (D[i].Bunch.Target >= 0)
-			D[i].Bunch.Target = Task.Rank;
-
-	} // for i < NBunches
 
 	#pragma omp single
 	if (D[NBunches-1].Bunch.Key != 0xFFFFFFFFFFFFFFFF) { // make end
@@ -302,7 +282,18 @@ void reset_bunchlist()
 		D[i].Bunch.Level = b[j++].Level;
 	}
 
-	#pragma omp barrier
+	#pragma omp for
+	for (int i = 0; i < NBunches; i++) { // reset values in all bunches
+
+		D[i].Bunch.Npart = 0;
+		D[i].Bunch.Is_To_Be_Split = D[i].Bunch.Is_Local = 0;
+	 	D[i].Bunch.Cost = 0;
+		D[i].Bunch.First_Part = INT_MAX;
+
+		if (D[i].Bunch.Target >= 0)
+			D[i].Bunch.Target = Task.Rank;
+
+	} // for i < NBunches
 
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
@@ -322,7 +313,7 @@ static void split_bunch(const int parent, const int first)
 		reallocate_topnodes();
 
 	#pragma omp single
-		NBunches += 8;
+	NBunches += 8;
 	
 	#pragma omp for
 	for (int i = 0; i < 8; i++) {
@@ -358,8 +349,8 @@ static void remove_empty_bunches(int *nTop_Leaves, int *max_level)
 		if (D[i].Bunch.Npart == 0) {  // remove
 	
 			n--;
-
-			memmove(&D[i], &D[i+1], (n-i) * sizeof(*D));
+			
+			memmove(&D[i], &D[i+1], (n-i) * sizeof(*D)); // fine for n == i 
 
 			continue;
 		} 
@@ -465,6 +456,9 @@ static bool distribute()
 
 		max_mem_imbal = fmax(max_mem_imbal, rel_mem_load);
 
+		if (D[i].Bunch.Level == 4)
+			continue;
+
 		if (rel_mem_load > DOMAIN_SPLIT_MEM_THRES || NBunches < Sim.NTask) {
 
 			D[i].Bunch.Is_To_Be_Split = true;
@@ -529,7 +523,7 @@ static void print_domain_decomposition (const int max_level)
 	#pragma omp flush(D)
 
 	rprintf(" No | Split | npart  |   sum  | first  | trgt  | lvl |"
-			"|  PH key\n");
+			"|  PH key, Max_level %d \n", max_level);
 	
 	size_t sum = 0;
 
@@ -547,7 +541,7 @@ static void print_domain_decomposition (const int max_level)
 
 	#pragma omp barrier
 
-Assert(sum == Task.Npart_Total, "FAIL");
+	Assert(sum == Task.Npart_Total, "FAIL");
 
 	return ;
 }
@@ -557,6 +551,8 @@ Assert(sum == Task.Npart_Total, "FAIL");
  * domain is made slightly larger to avoid roundoff problems with the 
  * PH numbers. Not much to do for PERIODIC.
  */
+
+double max_distance = 0;
 
 static void find_global_domain_extend()
 {
@@ -575,9 +571,10 @@ static void find_global_domain_extend()
 
 #else // ! PERIODIC
 
-	double max_distance = Domain.Size = 0;
+	#pragma omp single
+	max_distance = 0;
 
-	#pragma omp for nowait
+	#pragma omp for reduction(max:max_distance)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
 		for (int i = 0; i < 3; i++) {
@@ -591,20 +588,15 @@ static void find_global_domain_extend()
 		} // for i
 	} // for ipart
 
-	#pragma omp critical
-	Domain.Size = fmax(Domain.Size, max_distance);
-
-	#pragma omp barrier
-
 	#pragma omp single
 	{
 	
-	MPI_Allreduce(MPI_IN_PLACE, &Domain.Size, 1, MPI_DOUBLE, MPI_MAX, 
+	MPI_Allreduce(MPI_IN_PLACE, &max_distance, 1, MPI_DOUBLE, MPI_MAX, 
 		MPI_COMM_WORLD);
 	
-	Domain.Size *= 2.05;
-	
 	} // omp single
+
+	Domain.Size = 2.05 * max_distance;
 
 	#pragma omp flush
 
@@ -632,6 +624,7 @@ static double com_x = 0, com_y = 0, com_z = 0, m = 0;
 
 void Find_Global_Center_Of_Mass(double *CoM_out)
 {
+	#pragma omp single
 	com_x = com_y = com_z = m = 0;
 
 	#pragma omp for reduction(+:com_x,com_y,com_z,m) 

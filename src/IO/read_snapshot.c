@@ -64,7 +64,7 @@ void Read_Snapshot(char *input_name)
 
 		nIOTasks = fmin(nIOTasks,rest_Files);
 		
-		int groupSize = ceil( (float)nRank / (float)nIOTasks );
+		int groupSize = ceil( (double)nRank / (double)nIOTasks );
 		int groupMaster = round(Task.Rank / groupSize) * groupSize;
 		int groupRank = Task.Rank - groupMaster;
 

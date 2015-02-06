@@ -179,6 +179,7 @@ void *Get_Thread_Safe_Buffer (size_t nBytes)
 
 void Init_Memory_Management()
 {
+#ifdef MEMORY_MANAGER
 	Mem_Size = Param.Max_Mem_Size * 1024L * 1024L; //  in MBytes
 
 	size_t nBytesMax = get_system_memory_size();
@@ -205,9 +206,11 @@ void Init_Memory_Management()
 
 	memset(Memory, 0, NBytes_Left);
 
+#endif // MEMORY_MANAGER
+
 	size_t nBytes = BUFFER_SIZE * 1024 * 1024; // MBytes
 	void *omp_buff = Malloc(nBytes, "Thread-Safe Buffer");
-
+	
 	#pragma omp parallel
 	{
 		Task.Buffer_Size = nBytes / Sim.NThreads;
@@ -218,7 +221,7 @@ void Init_Memory_Management()
 
 	printf("\n   Thread-Safe Buffer: %g MB per thread \n\n", 
 			Task.Buffer_Size/1024.0/1024);
-
+	
 	Warn(Task.Buffer_Size/sizeof(*P) < 10000, 
 			"Thread Safe buffer holds less than 1e4 particles "
 			"BUFFER_SIZE > %d MB recommended"

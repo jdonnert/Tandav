@@ -3,8 +3,8 @@
 #define TIMESTEP_H
 
 struct TimeData {
-	double Begin;
-	double Current;			// if COMOVING is set, this is "a"
+	double Begin;			// if COMOVING is set, these are expansion fact a
+	double Current;			
 	double Next;
 	double End;
 	double First_Snap;

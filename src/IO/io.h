@@ -36,9 +36,9 @@ static const parameter ParDef[] = {
 	{"TimeLimitCPU", "20864", &Param.Runtime_Limit, DOUBLE},
 
 	{"\n%% Simulation Characteristics %%\n", "", NULL, COMMENT},
-	{"Boxsize0", "4000", &Sim.Boxsize[0], DOUBLE},
-	{"Boxsize1", "4000", &Sim.Boxsize[1], DOUBLE},
-	{"Boxsize2", "4000", &Sim.Boxsize[2], DOUBLE},
+	{"Boxsize0", "-1", &Sim.Boxsize[0], DOUBLE},
+	{"Boxsize1", "-1", &Sim.Boxsize[1], DOUBLE},
+	{"Boxsize2", "-1", &Sim.Boxsize[2], DOUBLE},
 	{"TimeBegin", "0", &Time.Begin, DOUBLE},
 	{"TimeEnd", "10", &Time.End, DOUBLE},
 	{"TimeOfFirstSnaphot", "0", &Time.First_Snap, DOUBLE},

@@ -63,6 +63,9 @@ int main(int argc, char *argv[])
 		Update(AFTER_STEP);
 	}
 
+	if (Time.Current = Time.End) 
+		Write_Snapshot();
+
 	} // omp parallel 
 
 	if (Sig.Write_Restart_File) 

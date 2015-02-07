@@ -42,7 +42,7 @@ void Finish_Profiler()
 void Profile_Info(const char* file, const char* func, const int line, 
 		const char *name)
 {
-	#pragma omp single 
+	#pragma omp single nowait
 	{
 
 	const int i = find_index_from_name(name);

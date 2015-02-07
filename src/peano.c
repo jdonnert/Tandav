@@ -299,7 +299,7 @@ shortKey Short_Peano_Key(const double x, const double y, const double z)
 	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1[ have %g", z);
 #endif
 
-	const uint64_t m = 1UL << 31; // = 2^31;
+	const uint64_t m = 1UL << (N_SHORT_BITS/2 - 1); // = 2^31;
 
 	uint32_t X[3] = { x*m, y*m, z*m };
 

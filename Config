@@ -5,12 +5,12 @@
 #PERIODIC                   // periodic boundary conditions
 #COMOVING                   // time integration in comoving coordinates
 
-TIME_INT_ACCURACY 0.1       // time step parameter, std=0.1
+TIME_INT_ACCURACY 0.4       // time step parameter, std=0.4
 
-GRAV_SOFTENING 20           // Plummer eq. gravitational softening length 
+GRAV_SOFTENING 10           // Plummer eq. gravitational softening length 
 
-TREE_OPEN_PARAM_BH 0.2      // Barnes & Hut opening criterion parameter
-TREE_OPEN_PARAM_REL 0.01    // Relative opening criterion parameter
+TREE_OPEN_PARAM_BH 0.4      // Barnes & Hut opening criterion parameter
+TREE_OPEN_PARAM_REL 0.05    // Relative opening criterion parameter
 
 DOMAIN_UPDATE_PARAM 0.1     // npart updated before new domain decomposition
 

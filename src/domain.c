@@ -5,7 +5,7 @@
 
 #define DOMAIN_SPLIT_MEM_THRES -0.8
 #define DOMAIN_SPLIT_CPU_THRES -1
-#define DOMAIN_NBUNCHES_PER_THREAD 2.0
+#define DOMAIN_NBUNCHES_PER_THREAD 4.0
 
 static void reset_bunchlist();
 static void find_global_domain_extend();
@@ -103,12 +103,12 @@ void Domain_Decomposition()
 
 	#pragma omp barrier
 
-	rprintf("\nDomain: %d Bunches/Top Nodes, %d Top Leaves, max level %d\n\n", 
+	rprintf("        Finished %d Top Nodes, %d Top Leaves, max level %d\n\n", 
 			NBunches, nTop_Leaves, max_level);
 
-//#ifdef DEBUG
+#ifdef DEBUG
 	print_domain_decomposition(max_level);
-//#endif
+#endif
 
 	communicate_particles();
 
@@ -122,12 +122,12 @@ void Domain_Decomposition()
 }
 
 /*
- * Make room for 1024 bunches and build the first node manually.
+ * Make room for some bunches and build the first node manually.
  */
 
 void Init_Domain_Decomposition()
 {
-	Top_Node_Alloc_Factor = (double) 1024 / Task.Npart_Total;
+	Top_Node_Alloc_Factor = (double) 4096 / Task.Npart_Total;
 
 	reallocate_topnodes();
 
@@ -138,6 +138,22 @@ void Init_Domain_Decomposition()
 	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
 	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
 
+	#pragma omp parallel
+	{
+	
+	find_global_domain_extend();
+
+	rprintf("\nInitial Domain size is %g, \n"
+			"   Origin at x = %4g, y = %4g, z = %4g, \n"
+			"   Center at x = %4g, y = %4g, z = %4g. \n"
+			"   CoM    at x = %4g, y = %4g, z = %4g. \n",
+			Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
+			Domain.Center[0], Domain.Center[1], Domain.Center[2],
+			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
+			Domain.Center_Of_Mass[2]);
+
+	} // omp parallel
+	
 	return;
 }
 
@@ -176,6 +192,12 @@ void reset_bunchlist()
 	if (NBunches < 2)
 		return ;
 
+	rprintf("Domain: Reconstruction %d -> ", NBunches);
+
+	const int nOld_Bunches = NBunches;
+	
+	#pragma omp barrier 
+
 	#pragma omp single
 	{
 
@@ -195,14 +217,14 @@ void reset_bunchlist()
 
 	} // omp single
 
-	#pragma omp flush 
+	#pragma omp flush (D)
 	
 	struct Bunch_Node *b = Get_Thread_Safe_Buffer(Task.Buffer_Size);
 
 	int nNew = 0;
 
-	#pragma omp for nowait
-	for (int i = 0; i < NBunches-1; i++) { // add bunches to cover whole domain
+	#pragma omp for nowait 			
+	for (int i = 0; i < nOld_Bunches-1; i++) { // fill to cover whole domain
 
 		shortKey akey = D[i].Bunch.Key;
 		shortKey bkey = D[i+1].Bunch.Key;
@@ -309,6 +331,8 @@ void reset_bunchlist()
 			D[i].Bunch.Is_Local = true;
 
 	} // for i < NBunches
+
+	rprintf("%d bunches\n", NBunches-nOld_Bunches);
 
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
@@ -466,7 +490,6 @@ static bool imbalance_small(const int nTop_Leaves)
 
 	const double mean_npart = Sim.Npart_Total 
 								/ (Sim.NTask * DOMAIN_NBUNCHES_PER_THREAD);
-
 	#pragma omp single
 	{
 	
@@ -583,8 +606,9 @@ static void print_domain_decomposition (const int max_level)
 	#pragma omp barrier
 
 #ifdef DEBUG
-	Assert(sum == Task.Npart_Total, "More particles in D than on CPU");
+	Assert(sum == Sim.Npart_Total, "More particles in D than in Sim");
 #endif
+
 	return ;
 }
 
@@ -650,6 +674,7 @@ static void find_global_domain_extend()
 
 #endif // ! PERIODIC
 
+#ifdef DEBUG
 	rprintf("\nDomain size is %g, \n"
 			"   Origin at x = %4g, y = %4g, z = %4g, \n"
 			"   Center at x = %4g, y = %4g, z = %4g. \n"
@@ -658,6 +683,7 @@ static void find_global_domain_extend()
 			Domain.Center[0], Domain.Center[1], Domain.Center[2],
 			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
 			Domain.Center_Of_Mass[2]);
+#endif
 
 	return ;
 }

@@ -26,7 +26,7 @@ bool Time_Is_Up()
 	
 	if (Int_Time.Current == Int_Time.End) {
 		
-		rprintf("EndTime reached: %g \n", Time.End);
+		rprintf("\nEndTime reached: %g \n", Time.End);
 		
 		Sig.Endrun = true;
 	}

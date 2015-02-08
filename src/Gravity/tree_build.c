@@ -1,6 +1,7 @@
 #include "../globals.h"
 #include "gravity.h"
 #include "../domain.h"
+#include "../peano.h"
 
 #ifdef GRAVITY_TREE
 
@@ -18,6 +19,7 @@ static inline void create_node_from_particle(const int, const int,
 static peanoKey create_first_node(const int, const int, const int);
 static void collapse_last_branch(const int, const int, const int, int*);
 static inline int key_fragment(const int);
+static inline void node_set(const enum Tree_Bitfield, const int);
 
 int NNodes = 0, Max_Nodes = 0;
 
@@ -46,10 +48,15 @@ void Gravity_Tree_Build()
 
 	const size_t buf_thres = Task.Buffer_Size/sizeof(*Tree);
 
+	#pragma omp single
+	{
+	
 	NNodes = 0;
 
-	#pragma omp single
 	Tree = Realloc(Tree, Max_Nodes*sizeof(*Tree), "Tree");
+	
+	} // omp single
+	#pragma omp flush(NNodes, Tree)
 
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NTop_Nodes; i++) {
@@ -91,6 +98,16 @@ void Gravity_Tree_Build()
 
 				memcpy(&Tree[D[i].TNode.Target], tree, nBytes);
 			}
+			
+			int last_part = first_part + D[i].TNode.Npart;
+
+			if (D[i].TNode.Target != 0)
+				for (int ipart = first_part; ipart < last_part; ipart++) 
+					P[ipart].Tree_Parent += D[i].TNode.Target;
+			else
+				for (int ipart = first_part; ipart < last_part; ipart++) 
+					P[ipart].Tree_Parent = -i - 1;
+		
 		} // if Bunch local
 
 	/*	MPI_Request *request = NULL;
@@ -101,10 +118,6 @@ void Gravity_Tree_Build()
 		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
 	}
 	
-	Sig.Force_Tree_Build = false;
-
-	#pragma omp barrier
-
 	rprintf("done. %d Nodes, reserved %g MB for max %d Nodes\n", 
 			NNodes, Max_Nodes*sizeof(*Tree)/1024.0/1024, Max_Nodes); 
 
@@ -116,12 +129,15 @@ void Gravity_Tree_Build()
 		if (D[i].TNode.Npart < 8)
 			nNodes = 0;
 		
-		oprintf("DEBUG (%d:%d) Top Node %4d Target %4d nNodes %5d Npart %5d\n",
-				Task.Rank,Task.Thread_ID, i, D[i].TNode.Target, 
-				nNodes, D[i].TNode.Npart );
-
+		oprintf("DEBUG (%d:%d) Top Node %4d Target %4d nNodes %5d Npart %5d"
+				" Pos %g %g %g, CoM %g %g %g \n",
+				Task.Rank,Task.Thread_ID, i, D[i].TNode.Target, nNodes, 
+				D[i].TNode.Npart, 
+				D[i].TNode.Pos[0], D[i].TNode.Pos[1], D[i].TNode.Pos[2], 
+				D[i].TNode.CoM[0], D[i].TNode.CoM[1], D[i].TNode.CoM[2]);
 	}
 #endif
+
 	Profile("Build Gravity Tree");
 
 	return ;
@@ -223,7 +239,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 		const int top_level)
 {
 #ifdef DEBUG
-		printf("DEBUG (%d:%d) Tree Build for top node=%d : "
+	printf("DEBUG (%d:%d) Tree Build for top node=%d : "
 		   "first part=%d npart=%d Tree build target=%d \n"
 		,Task.Rank, Task.Thread_ID,  tnode_idx, first_part, 
 		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target);
@@ -349,7 +365,7 @@ static peanoKey create_first_node(const int first_part,
 
 	tree[0].DUp = tnode_idx; // correct up pointer to lead to topnode
 	
-	Node_Set(TOP, 0);
+	node_set(TOP, 0);
 	
 	return key >> 3;
 }
@@ -410,12 +426,9 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 	}
 
 	D[tnode_idx].TNode.Mass = tree[0].Mass; // copy first node to top node
-
-	for (int i = 0; i < 3; i++) {
-
-		D[tnode_idx].TNode.CoM[i] = tree[0].CoM[i];
-		D[tnode_idx].TNode.Dp[i] = tree[0].Dp[i];
-	}
+	D[tnode_idx].TNode.CoM[0] = tree[0].CoM[0];
+	D[tnode_idx].TNode.CoM[1] = tree[0].CoM[1];
+	D[tnode_idx].TNode.CoM[2] = tree[0].CoM[2];
 	
 	if (tree[0].Npart <= 8) { // too small, save only topnode
 	
@@ -423,10 +436,8 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 		
 		return 0;
 	}
-	// compact
 
-
-	Node_Set(TOP, nNodes); // add a zero node at the end to terminate tree walk
+	node_set(TOP, nNodes); // add a zero node at the end to terminate tree walk
 	tree[nNodes].Mass = 1; 
 
 	nNodes++; 
@@ -438,7 +449,7 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 
 	for (int i = 1; i < nNodes; i++) {
 
-		int lvl = Level(i);
+		int lvl = tree[i].Bitfield & 0x3FUL; // bit 0-5
 
 		while (lvl <= lowest) { 
 
@@ -541,26 +552,10 @@ static inline int key_fragment(const int node)
 	return (tree[node].Bitfield & bitmask) >> 6; // return bit 6-8
 }
 
-int Level(const int node)
-{
-	return tree[node].Bitfield & 0x3FUL; // return bit 0-5
-}
 
-bool Node_Is(const enum Tree_Bitfield bit, const int node)
-{
-	return tree[node].Bitfield & (1UL << bit);
-}
-
-void Node_Set(const enum Tree_Bitfield bit, const int node)
+static inline void node_set(const enum Tree_Bitfield bit, const int node)
 {
 	tree[node].Bitfield |= 1UL << bit;
-
-	return ;
-}
-
-void Node_Clear(const enum Tree_Bitfield bit, const int node)
-{
-	tree[node].Bitfield &= ~(1UL << bit);
 
 	return ;
 }

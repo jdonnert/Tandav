@@ -6,17 +6,17 @@
 int * restrict Active_Particle_List, NActive_Particles;
 
 extern struct Local_Task_Properties {		
-	int Rank;				// MPI Rank of this thread
-	int Thread_ID;			// OpenMP ID of this thread
-	bool Is_Master;			// == true on global master rank 
-	bool Is_MPI_Master;		// == true on MPI master rank 
-	int Is_Thread_Main;		// == true on local thread masters
-	int Npart_Total;		// Sum of Npart
-	int Npart[NPARTYPE];	// Number of particles on this processor
+	int Rank;					// MPI Rank of this thread
+	int Thread_ID;				// OpenMP ID of this thread
+	bool Is_Master;				// == true on global master rank 
+	bool Is_MPI_Master;			// == true on MPI master rank 
+	int Is_Thread_Main;			// == true on local thread masters
+	int Npart_Total;			// Sum of Npart
+	int Npart[NPARTYPE];		// Number of particles on this processor
 	uint64_t Npart_Total_Max;	// per task taking into account imbalance.
 	uint64_t Npart_Max[NPARTYPE];// Use this if array size scales with Npart
-	unsigned short Seed[3];	// Thread safe urand48() seed
-	size_t Buffer_Size;		// Size of thread-safe buffer: BUFFER_SIZE/nThreads	
+	unsigned short Seed[3];		// Thread safe urand48() seed
+	size_t Buffer_Size; 		// for Thread Safe Buffer
 } Task;
 #pragma omp threadprivate(Task) // modifications only in parallel env. !!
 
@@ -49,7 +49,7 @@ extern struct Particle_Data {
 	intime_t Int_Time_Pos;		// position on integer timeline
 	float Cost;					// computational weight of particle
 #ifdef GRAVITY_TREE
-	int Tree_Parent;			// Tree node containing particle
+	int Tree_Parent;			// Tree node leave, negative if top node only
 #endif
 	ID_t ID; // add below 
 	Float Pos[3];

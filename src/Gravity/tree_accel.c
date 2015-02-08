@@ -41,7 +41,7 @@ void Gravity_Tree_Acceleration()
 		Float pot = 0;
 
 		for (int j = 0; j < NTop_Nodes; j++) {
-
+			
 			//if (D[j].TNode.Target < 0) {
 			//
 			//	export_particle_to_rank(ipart, -target-1);	
@@ -85,6 +85,7 @@ void Gravity_Tree_Acceleration()
 
 	rprintf(" done \n");
 
+
 	Profile("Grav Tree Walk");
 
 	#pragma omp barrier
@@ -121,15 +122,16 @@ static bool interact_with_topnode(const int ipart, const int j, Float *grav_acce
 
 		Float nMass = D[j].TNode.Mass;
 
-		Float fac = ALENGTH3(P[ipart].Acc) / Const.Gravity * TREE_OPEN_PARAM_REL;
+		Float fac = ALENGTH3(P[ipart].Acc) 
+								/ Const.Gravity * TREE_OPEN_PARAM_REL;
 		
 		if (nMass*nSize*nSize > r2*r2 * fac)
 			return false;
 	}
 
 	Float dr[3] = {P[ipart].Pos[0] - D[j].TNode.CoM[0],
-				P[ipart].Pos[1] - D[j].TNode.CoM[1],
-				P[ipart].Pos[2] - D[j].TNode.CoM[2]};
+				   P[ipart].Pos[1] - D[j].TNode.CoM[1],
+				   P[ipart].Pos[2] - D[j].TNode.CoM[2]};
 
 	interact(P[ipart].Mass, dr, r2, grav_accel, pot); 
 
@@ -369,6 +371,10 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 	return ;
 }
 
+/*
+ * Bitfield function on global Tree
+ */
+
 static inline Float node_size(const int node)
 {
 	int lvl = Tree[node].Bitfield & 0x3F; // level
@@ -376,5 +382,28 @@ static inline Float node_size(const int node)
 	return Domain.Size / ((Float) (1ULL << lvl)); // Domain.Size/2^level
 }
 
+int Level(const int node)
+{
+	return Tree[node].Bitfield & 0x3FUL; // return bit 0-5
+}
+
+bool Node_Is(const enum Tree_Bitfield bit, const int node)
+{
+	return Tree[node].Bitfield & (1UL << bit);
+}
+
+void Node_Set(const enum Tree_Bitfield bit, const int node)
+{
+	Tree[node].Bitfield |= 1UL << bit;
+
+	return ;
+}
+
+void Node_Clear(const enum Tree_Bitfield bit, const int node)
+{
+	Tree[node].Bitfield &= ~(1UL << bit);
+
+	return ;
+}
 
 #endif // GRAVITY_TREE

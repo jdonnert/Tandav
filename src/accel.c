@@ -30,9 +30,9 @@ static void accel_gravity()
 {
 	Profile("Gravity");
 
-
 #ifdef GRAVITY_TREE
-	//if (Sig.Domain_Update || Sig.Force_Tree_Build)
+
+	if (Sig.Tree_Update)
 		Gravity_Tree_Build();
 
 	Gravity_Tree_Acceleration();
@@ -40,16 +40,20 @@ static void accel_gravity()
 	if (Sig.First_Step) 
 		Gravity_Tree_Acceleration();
 
-#ifdef GRAVITY_SIMPLE
-	Accel_Gravity_Simple();
-#endif
-
 #ifdef PERIODIC
 	 Gravity_Tree_Ewald_Correction();
 #endif	
 
 #endif // GRAVITY_TREE
 
+#ifdef GRAVITY_SIMPLE
+	Accel_Gravity_Simple();
+#endif
+
+#ifdef GRAVITY_GRID
+	if (Sig.Full_Step)
+		Gravity_Grid_Long_Range
+#endif
 	Profile("Gravity");
 
 	return ;

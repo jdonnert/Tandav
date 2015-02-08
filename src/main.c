@@ -31,6 +31,8 @@ int main(int argc, char *argv[])
 	
 	Update(BEFORE_MAIN_LOOP);
 
+Sig.Domain_Update = true;
+Sig.Tree_Update = true;
 	#pragma omp barrier
 
 	for (;;) { // run, Forest, run !
@@ -51,13 +53,13 @@ int main(int argc, char *argv[])
  		
 		Drift_To_Sync_Point();
 		
-		//if (Sig.Domain_Update)
+		if (Time_For_Domain_Update())
 			Domain_Decomposition();
 
 		Update(BEFORE_FORCES);
 
 		Compute_Acceleration();
-
+		
 		Kick_Second_Halfstep();
 
 		Update(AFTER_STEP);

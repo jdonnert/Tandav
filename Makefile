@@ -18,7 +18,7 @@ FFT_LIBS =
 # machine specifics
 ifeq ($(SYSTYPE),DARWIN)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -lmpich -O3 -openmp  -finline -finline-functions \
+OPTIMIZE =  -Wall -g -lmpich -O0 #  -finline -finline-functions \
 			-funroll-loops  -xhost  -mkl  -ipo 
 MPI_LIBS = 
 MPI_INCL = 

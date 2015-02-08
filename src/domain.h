@@ -1,8 +1,9 @@
 
 /*
- * The Domain decomposition creates bunches in *D that will later be made
- * into the top nodes. The walk then traverses the topnode list and kicks
- * off particle export or local tree walk.
+ * The Domain decomposition creates bunches in *D that will later be 
+ * transformed into top nodes. The tree walk during acceleration then 
+ * traverses the topnode list and kicks off particle export 
+ * or local tree walk.
  */
 
 union Domain_Node_List { 
@@ -15,7 +16,7 @@ union Domain_Node_List {
 		float Cost;
 		int First_Part;
 		bool Is_Local;		// on this rank
-		int Modify;			// split or merge this bunch
+		int Modify;			// split  this bunch
 	} Bunch;
 
 #ifdef GRAVITY_TREE

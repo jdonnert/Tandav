@@ -1,14 +1,10 @@
-/* 
- * Here we compute peano Keys and reorder particles
- */
-
 #include "globals.h"
 #include "timestep.h"
 #include "peano.h"
-#include "Gravity/gravity.h"
 #include "domain.h"
 #include "sort.h"
 
+static void reorder_collisionless_particles();
 
 int compare_peanoKeys(const void * a, const void *b)
 {
@@ -18,7 +14,9 @@ int compare_peanoKeys(const void * a, const void *b)
 	return (int) (*x > *y) - (*x < *y);
 }
 
-static void reorder_collisionless_particles();
+/* 
+ * Here we compute peano Keys and reorder particles
+ */
 
 void Sort_Particles_By_Peano_Key()
 {
@@ -35,7 +33,10 @@ void Sort_Particles_By_Peano_Key()
 	idx = Malloc(Task.Npart_Total_Max * sizeof(*idx), "Sort Idx");
 	
 	} // omp single
-
+	
+	#pragma omp flush (idx,keys)
+	
+printf("I am HERE ! %d %p %p \n", Task.Thread_ID, keys, idx);
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
@@ -54,9 +55,9 @@ void Sort_Particles_By_Peano_Key()
 	#pragma omp single copyprivate(idx,keys)
 	{
 	
-	Free(keys); 
-	Free(idx);
-	
+	Free(keys); Free(idx); 
+	keys = NULL; idx = NULL;
+
 	} // omp single
 
 	Make_Active_Particle_List();

@@ -12,6 +12,8 @@ void Kick_First_Halfstep()
 {
 	Profile("First Kick");
 
+if (!Sig.Domain_Update) printf("FK update \n");
+
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 
@@ -30,18 +32,13 @@ void Kick_First_Halfstep()
 		P[ipart].Vel[2] += dt * P[ipart].Acc[2];
 
 #ifdef GRAVITY_TREE
-		if (!Sig.Domain_Update) {
-
-			Float m_dt = P[ipart].Mass * dt; // kick tree nodes
-
-			Float dp[3] = { m_dt*P[ipart].Acc[0], m_dt*P[ipart].Acc[1], 
-				m_dt*P[ipart].Acc[2] };
-
-			Gravity_Tree_Update_Kicks(dp, P[ipart].Tree_Parent); 
-		}
-#endif // GRAVITY_TREE
+		if (!Sig.Domain_Update) 
+			Gravity_Tree_Update_Kicks(ipart, dt); 
+#endif 
 	}
-	
+
+#pragma omp barrier
+
 	Profile("First Kick");
 
 	return ;
@@ -50,6 +47,10 @@ void Kick_First_Halfstep()
 void Kick_Second_Halfstep() 
 {
 	Profile("Second Kick");
+
+
+		if (!Sig.Domain_Update) 
+			printf("SK update");
 
 	#pragma omp  for
 	for (int i = 0; i < NActive_Particles; i++) {
@@ -71,14 +72,9 @@ void Kick_Second_Halfstep()
 		P[ipart].Int_Time_Pos = Int_Time.Next;
 
 #ifdef GRAVITY_TREE
-		if (!Sig.Domain_Update) {
-
-			Float dv[3] = { dt*P[ipart].Acc[0], dt*P[ipart].Acc[1], 
-				dt*P[ipart].Acc[2] };
-
-			Gravity_Tree_Update_Kicks(dv, P[ipart].Tree_Parent); 
-		}
-#endif // GRAVITY_TREE
+		if (!Sig.Domain_Update) 
+			Gravity_Tree_Update_Kicks(ipart, dt); 
+#endif 
 	}
 
 	Profile("Second Kick");

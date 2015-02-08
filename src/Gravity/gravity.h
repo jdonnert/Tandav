@@ -20,7 +20,7 @@ int Max_Nodes;
 
 void Gravity_Tree_Build();
 void Gravity_Tree_Acceleration();
-void Gravity_Tree_Update_Kicks(const Float* dp, const int node);
+void Gravity_Tree_Update_Kicks(const int ipart, const double dt);
 void Gravity_Tree_Update_Drift(const double dt);
 void Gravity_Tree_Update_Topnode_Kicks();
 void Gravity_Tree_Ewald_Correction();

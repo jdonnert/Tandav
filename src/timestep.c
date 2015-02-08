@@ -1,23 +1,19 @@
 #include "globals.h"
 #include "timestep.h"
 
-#define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
+static int max_active_time_bin();
+static void set_particle_timebins();
+static void set_global_timestep(const int, const int);
+static int timestep2timebin(const double dt);
+static void print_timebins();
+static float cosmological_timestep(const int ipart);
 
 /* 
  * The number of bins is given by the number of bits in an integer time 
  */
 
 #define N_INT_BINS (sizeof(intime_t) * CHAR_BIT) 
-
-void Make_Active_Particle_List();
-
-static int max_active_time_bin();
-static void set_particle_timebins();
-static void set_global_timestep(const int, const int);
-static int timestep2timebin(const double dt);
-static void print_timebins();
-
-static float cosmological_timestep(const int ipart);
+#define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
 
 struct TimeData Time = { 0 };
 struct IntegerTimeLine Int_Time = { 0 };
@@ -32,9 +28,6 @@ static int local_bin_min, local_bin_max;
 void Set_New_Timesteps()
 {
 	Profile("Timesteps");
-
-	local_bin_min = N_INT_BINS-1; 
-	local_bin_max = 0;
 
 	set_particle_timebins();
 	
@@ -55,6 +48,8 @@ void Set_New_Timesteps()
 	Time.Max_Active_Bin = max_active_time_bin();
 
 	} // omp single
+
+	#pragma omp flush (Time)
 
 	Make_Active_Particle_List();
 
@@ -77,7 +72,7 @@ void Set_New_Timesteps()
 
 /*
  * The highest active time bin is the last set bit in the current
- * integer time. Think about it ...
+ * integer time.  
  */
 
 static int max_active_time_bin()
@@ -92,6 +87,15 @@ static int max_active_time_bin()
 
 static void set_particle_timebins()
 {
+	#pragma omp single
+	{
+	
+	local_bin_min = N_INT_BINS-1; 
+	local_bin_max = 0;
+
+	}
+	#pragma omp flush(local_bin_min,local_bin_max)
+
 	#pragma omp for reduction(min:local_bin_min) reduction(max:local_bin_max)
 	for (int i = 0; i < NActive_Particles; i++) {
 		
@@ -108,8 +112,10 @@ static void set_particle_timebins()
 
 		dt = fmin(dt, Time.Step_Max);
 		
-		Assert(dt >= Time.Step_Min, "Timestep too small or not finite !"
-				" Ipart=%d, dt=%g", ipart, dt);
+		Assert(dt >= Time.Step_Min, "Timestep too small or not finite ! \n"
+				"        ipart=%d, ID=%d, dt=%g, acc=(%g,%g,%g)", 
+				ipart, P[ipart].ID, dt, 
+				P[ipart].Acc[0], P[ipart].Acc[1], P[ipart].Acc[2]);
 
 		int want = timestep2timebin(dt);
 

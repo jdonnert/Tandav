@@ -18,15 +18,14 @@ void Update(enum Update_Parameters stage)
 
 	case BEFORE_MAIN_LOOP:
 		
-		Domain_Decomposition();
-
-		Print_Memory_Usage();
-
 #ifdef COMOVING
 		Set_Current_Cosmology();
 #endif
 
-		Sig.Force_Tree_Build = true;
+		Domain_Decomposition();
+
+
+		Print_Memory_Usage();
 
 		Compute_Acceleration();
 
@@ -51,8 +50,6 @@ void Update(enum Update_Parameters stage)
 		break;
 	
 	case BEFORE_FIRST_KICK:
-		
-		Test_For_Domain_Update();
 
 		break;
 
@@ -61,7 +58,7 @@ void Update(enum Update_Parameters stage)
 		break;
 		
 	case BEFORE_DRIFT:
-		
+
 		break;
 
 	case BEFORE_FORCES:
@@ -77,12 +74,13 @@ void Update(enum Update_Parameters stage)
 	
 	case AFTER_STEP:
 
+		#pragma omp single
 		Sig.First_Step = false;
 
 		break;
 
 	default:
-		Assert(false, "Update Stage %d not handled", stage);
+		Assert(false, "Update Switch %d not handled", stage);
 	}
 
 	return;

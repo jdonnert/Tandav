@@ -200,6 +200,8 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 	for (size_t i = 0; i < nData; i++ ) 
 		perm[i] = i; 
 
+	#pragma omp flush	
+
 	#pragma omp single
 	{
 

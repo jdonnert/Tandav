@@ -3,11 +3,7 @@
 #include "domain.h"
 #include "peano.h"
 
-#define DOMAIN_SPLIT_MEM_THRES -0.8
-#define DOMAIN_SPLIT_CPU_THRES -1
-#define DOMAIN_NBUNCHES_PER_THREAD 4.0
-
-static void reset_bunchlist();
+static void reconstruct_complete_bunch_list();
 static void find_global_domain_extend();
 static void fill_bunches(const int, const int, const int, const int);
 static void remove_empty_bunches(int *nTop_Leaves, int *max_level);
@@ -17,10 +13,14 @@ static bool imbalance_small(const int);
 static void communicate_particles();
 static void communicate_bunches();
 static void print_domain_decomposition (const int);
-
 static int compare_bunches_by_key(const void *a, const void *b);
 static int compare_bunches_by_target(const void *a, const void *b); 
 static int compare_bunches_by_npart(const void *a, const void *b); 
+
+
+#define DOMAIN_SPLIT_MEM_THRES -0.8
+#define DOMAIN_SPLIT_CPU_THRES -1
+#define DOMAIN_NBUNCHES_PER_THREAD 4.0
 
 union Domain_Node_List *D = NULL; 
 
@@ -31,9 +31,10 @@ static int Max_NBunches = 0;
 static int NBunches = 0;
 
 /* 
- * Distribute particles in bunches, which are continuous
- * on the Peano curve. The bunches correspond to nodes of the tree. 
- * Bunches also give the top nodes in the tree, with some info added. 
+ * Distribute particles in bunches, which are continuous  on the Peano curve
+ * but at different level in the tree. The bunches correspond to nodes of 
+ * the tree. Bunches also give the top nodes in the tree, with some info 
+ * added. 
  * We keep a global list of all the bunches that also contains the 
  * workload and memory footprint of each bunch. An optimal way of 
  * distributing bunches minimises memory and workload imbalance over all
@@ -53,7 +54,9 @@ void Domain_Decomposition()
 	
 	Sort_Particles_By_Peano_Key();
 		
-	reset_bunchlist();
+	reconstruct_complete_bunch_list();
+
+	#pragma omp barrier
 
 	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
 	
@@ -94,16 +97,15 @@ void Domain_Decomposition()
 				
 				#pragma omp barrier
 
-				#pragma omp single
+				#pragma omp single 
 				memset(&D[i].Bunch, 0, sizeof(*D)); // mark for deletion
-
 			} // if 
 		} // for i
 	} // for (;;)
 
 	#pragma omp barrier
 
-	rprintf("        Finished %d Top Nodes, %d Top Leaves, max level %d\n\n", 
+	rprintf("Domain: Finished, %d Top Nodes, %d Top Leaves, max level %d\n\n", 
 			NBunches, nTop_Leaves, max_level);
 
 #ifdef DEBUG
@@ -112,9 +114,18 @@ void Domain_Decomposition()
 
 	communicate_particles();
 
+	#pragma omp single 
+	{
+	
+	Sig.Tree_Update = true;
+	
 	NTop_Nodes = NBunches;
 
-	Sig.Force_Domain = false;
+	} // ompt single
+
+	#pragma omp flush(NTop_Nodes, Sig)
+
+	#pragma omp barrier
 
 	Profile("Domain Decomposition");
 
@@ -179,20 +190,27 @@ static void reallocate_topnodes()
 }
 
 /*
- * Transform the top nodes back into a bunch list. 
- * First reset properties overwritten by the union in D. Then add nodes so 
+ * Transform the top nodes back into a bunch list. Add nodes so 
  * the complete domain is covered. This is equivalent to completing every 
- * triplet from bunch i from its level up to 7 until the common part of the
- * original keys is reached. Then every triplet of i+1 is incremented until 
- * the key triplet is reached, top to bottom.
+ * triplet from bunch i up to 7 (111) until the common part of the
+ * original keys (top) is reached. Then every triplet of i+1 is 
+ * incremented with decreasing level until the bkey triplet is reached.
+ *
+ *      akey  000.010.010.111.111.111  ->  bkey 010.001.110.001.111.111
+ *
+ *	000.010.010.111.111.111, 000.111.111.111.111.111, 010.000.111.111.111.111
+ *	         ^                ^                            ^
+ *      <- start 010->111    fill top triplet            start -> 000 -> 001
+ *
+ * fill every triplet up to 111, fill triplet "top",  fill triplets downwards
+ * All new keys * level are kept in the OmP buffer and later copied back 
+ * into D. At last, reset properties overwritten by the union in D.
  */
 
-void reset_bunchlist()
+void reconstruct_complete_bunch_list()
 {		
 	if (NBunches < 2)
 		return ;
-
-	rprintf("Domain: Reconstruction %d -> ", NBunches);
 
 	const int nOld_Bunches = NBunches;
 	
@@ -226,8 +244,8 @@ void reset_bunchlist()
 	#pragma omp for nowait 			
 	for (int i = 0; i < nOld_Bunches-1; i++) { // fill to cover whole domain
 
-		shortKey akey = D[i].Bunch.Key;
-		shortKey bkey = D[i+1].Bunch.Key;
+		shortKey akey = D[i].Bunch.Key; 	// lowest key
+		shortKey bkey = D[i+1].Bunch.Key; 	// highest key
 
 		int top = 1; // highest level where akey != bkey
 	
@@ -239,18 +257,18 @@ void reset_bunchlist()
 			mask >>= 3;
 		}
 
-		for (int j = D[i].Bunch.Level; j > top; j--) { // fill upwards
+		for (int j = D[i].Bunch.Level; j > top; j--) { // fill akey upwards
 
 			int shift = N_SHORT_BITS - 3 * j;
 
 			uint64_t atriplet = (akey >> shift) & 0x7;
 
-			for (int k = atriplet + 1; k < 8; k++) {
+			for (uint64_t k = atriplet + 1; k < 8; k++) {
 				
 				uint64_t template = 
 					(akey | (0xFFFFFFFFFFFFFFFF >> 3*j)) & ~(0x7ULL << shift);
 					
-				b[nNew].Key = template | ( (uint64_t)k << shift);
+				b[nNew].Key = template | (k << shift);
 				b[nNew].Level = j;
 
 				nNew++;
@@ -308,6 +326,8 @@ void reset_bunchlist()
 
 	} // omp critical
 	
+	#pragma omp barrier
+
 	int j = 0;
 	
 	for (int i = start; i < end; i++) {
@@ -316,8 +336,6 @@ void reset_bunchlist()
 		D[i].Bunch.Target = -INT_MAX;
 		D[i].Bunch.Level = b[j++].Level;
 	}
-
-	#pragma omp barrier
 
 	#pragma omp for
 	for (int i = 0; i < NBunches; i++) { // reset values in all bunches
@@ -332,7 +350,8 @@ void reset_bunchlist()
 
 	} // for i < NBunches
 
-	rprintf("%d bunches\n", NBunches-nOld_Bunches);
+	rprintf("Domain: Reconstruction %d -> %d bunches\n", nOld_Bunches, 
+			NBunches);
 
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
@@ -509,7 +528,7 @@ static bool imbalance_small(const int nTop_Leaves)
 		max_mem_imbal = fmax(max_mem_imbal, rel_mem_load);
 		max_cpu_imbal = fmax(max_cpu_imbal, rel_cpu_load);
 		
-		if (NBunches > Sim.NTask * 16) // too deep
+		if (NBunches > Sim.NTask * 64) // too deep
 			continue;
 		else if (D[i].Bunch.Level == N_SHORT_TRIPLETS-1)
 			continue;
@@ -705,12 +724,13 @@ void Find_Global_Center_Of_Mass(double *CoM_out)
 		m += P[ipart].Mass;
 	}
 
-	double global_com[3] = { com_x, com_y, com_z  };
-	double global_m = m;
 
 	#pragma omp single 
 	{
 	
+	double global_com[3] = { com_x, com_y, com_z  };
+	double global_m = m;
+
 	MPI_Allreduce(MPI_IN_PLACE, &global_com, 3, MPI_DOUBLE, MPI_MIN,
 			MPI_COMM_WORLD);
 		
@@ -722,7 +742,7 @@ void Find_Global_Center_Of_Mass(double *CoM_out)
 
 	} // omp single
 
-	#pragma omp flush
+	#pragma omp flush (CoM_out)
 
 	return ;
 

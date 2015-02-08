@@ -19,6 +19,7 @@ void Drift_To_Sync_Point()
 
 	double time_snap = 0; 
 
+	#pragma omp single copyprivate(time_snap)
 	if (Sig.Drifted_To_Snaptime) { // handle out of sync integer timeline
 
 		Sig.Drifted_To_Snaptime = false;
@@ -57,8 +58,8 @@ void Drift_To_Sync_Point()
 #endif 
 
 #ifdef GRAVITY_TREE
-	//if (! Sig.Domain_Update)
-		//Gravity_Tree_Update_Drift(Time.Step);
+	if (! Sig.Domain_Update)
+		Gravity_Tree_Update_Drift(Time.Step);
 #endif
 
 	#pragma omp barrier

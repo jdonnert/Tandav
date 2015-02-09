@@ -28,10 +28,11 @@ int main(int argc, char *argv[])
 	
 	#pragma omp parallel 
 	{
-	
+
 	Update(BEFORE_MAIN_LOOP);
 
-	#pragma omp barrier
+Sig.Domain_Update = true;
+#pragma omp barrier
 
 	for (;;) { // run, Forest, run !
 
@@ -40,7 +41,6 @@ int main(int argc, char *argv[])
 
 		Update(BEFORE_STEP);
 
-printf("B %d : %p %d \n", Task.Thread_ID, Tree, NNodes); fflush(stdout);
 		Set_New_Timesteps();
 
 		Update(BEFORE_FIRST_KICK);
@@ -51,14 +51,18 @@ printf("B %d : %p %d \n", Task.Thread_ID, Tree, NNodes); fflush(stdout);
 			Write_Snapshot();
  		
 		Drift_To_Sync_Point();
-		
-		if (Time_For_Domain_Update())
+#pragma omp barrier
+printf("A %d \n", Task.Thread_ID); fflush(stdout);
+#pragma omp barrier
+		if (Time_For_Domain_Update() || true)
 			Domain_Decomposition();
-
+#pragma omp barrier
+printf("B %d \n", Task.Thread_ID); fflush(stdout);
+#pragma omp barrier
 		Update(BEFORE_FORCES);
 
 		Compute_Acceleration();
-		
+
 		Kick_Second_Halfstep();
 
 		Update(AFTER_STEP);

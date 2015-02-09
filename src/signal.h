@@ -12,3 +12,4 @@ extern struct Simulation_Signals { // communicate an event across the code
 	bool Domain_Update;			// do domain decomposition & tree build now
 	bool Tree_Update;			// use only with Domain_Update
 } Sig;
+#pragma omp threadprivate(Sig)  // the compiler hates this to be public

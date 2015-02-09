@@ -21,11 +21,11 @@ int compare_peanoKeys(const void * a, const void *b)
 void Sort_Particles_By_Peano_Key()
 {
 	Profile("Peano-Hilbert order");
-	
-	peanoKey *keys = NULL;
-	size_t *idx = NULL;
 
-	#pragma omp single copyprivate(idx,keys)
+ 	peanoKey *keys = NULL;
+	size_t *idx = NULL;
+	
+	#pragma omp single copyprivate(keys,idx)
 	{
 
 	keys = Malloc(Task.Npart_Total_Max * sizeof(*keys), "PeanoKeys");
@@ -34,8 +34,6 @@ void Sort_Particles_By_Peano_Key()
 	
 	} // omp single
 
-	#pragma omp flush (idx,keys)
-	
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
@@ -49,15 +47,18 @@ void Sort_Particles_By_Peano_Key()
 	Qsort_Index(Sim.NThreads, idx, keys, Task.Npart_Total, sizeof(*keys), 
 			&compare_peanoKeys);
 
-	reorder_collisionless_particles(idx);
+	#pragma omp barrier
 	
-	#pragma omp single copyprivate(idx,keys)
+	#pragma omp single
 	{
 	
-	Free(keys); Free(idx); 
-	keys = NULL; idx = NULL;
+	reorder_collisionless_particles(idx);
 
+	Free(keys); Free(idx); 
+	
 	} // omp single
+
+	keys = NULL; idx = NULL;
 
 	Make_Active_Particle_List();
 
@@ -70,9 +71,6 @@ void Sort_Particles_By_Peano_Key()
 
 static void reorder_collisionless_particles(size_t *idx)
 {
-	#pragma omp single 
-	{ 
-
 	for (size_t i = Task.Npart[0]; i < Task.Npart_Total; i++) {
 
         if (idx[i] == i)
@@ -102,8 +100,6 @@ static void reorder_collisionless_particles(size_t *idx)
 		idx[dest] = dest;
 
     } // for i
-	
-	} // omp single
 
 	return ;
 }

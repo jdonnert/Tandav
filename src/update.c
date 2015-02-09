@@ -24,7 +24,6 @@ void Update(enum Update_Parameters stage)
 
 		Domain_Decomposition();
 
-
 		Print_Memory_Usage();
 
 		Compute_Acceleration();
@@ -74,7 +73,6 @@ void Update(enum Update_Parameters stage)
 	
 	case AFTER_STEP:
 
-		#pragma omp single
 		Sig.First_Step = false;
 
 		break;

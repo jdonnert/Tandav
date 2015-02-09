@@ -4,6 +4,7 @@
 
 static bool test_for_stop_file();
 
+#pragma omp threadprivate(Sig)
 struct Simulation_Signals Sig;
 
 /*
@@ -12,9 +13,6 @@ struct Simulation_Signals Sig;
 
 bool Time_Is_Up()
 {
-	#pragma omp master
-	{
-
 	if (Sig.Endrun)
 		rprintf("Encountered Signal: Endrun, t=%g", Time.Current);
 
@@ -44,7 +42,6 @@ bool Time_Is_Up()
 		Sig.Endrun = true;
 	}
 
-	} // omp master
 
 	#pragma omp flush (Sig)
 
@@ -69,7 +66,6 @@ bool Time_For_Snapshot()
 
 	if (Sig.Write_Snapshot) {
 
-		#pragma omp single
 		Sig.Write_Snapshot = false;
 	
 		rprintf("\nEncountered Signal: Write Snapshot %d at t=%g \n", 
@@ -77,8 +73,6 @@ bool Time_For_Snapshot()
 
 		return true;
 	}
-
-	#pragma omp flush(Sig)
 
 	return false;
 }
@@ -95,42 +89,45 @@ bool Time_For_Domain_Update()
 {
 	const double max_npart_updates = DOMAIN_UPDATE_PARAM*Sim.Npart_Total;
 
-	#pragma omp single
-	{
+	bool return_val = false;
 
 	Sig.Domain_Update = false;
 	Sig.Tree_Update = false;
+
+	#pragma omp single 
+	{
 
 	Local_NPart_Updates += NActive_Particles;
 		
 	MPI_Allreduce(&Local_NPart_Updates, &Global_NPart_Updates, 1, 
 			MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
+	} // omp single
+
+	#pragma omp flush (Global_NPart_Updates,Local_NPart_Updates)
+
 	if (Sig.Fullstep || (Global_NPart_Updates > max_npart_updates)) {
 		
+		#pragma omp single
 		Global_NPart_Updates = Local_NPart_Updates = 0;
 		
 		Sig.Domain_Update = true;
 		Sig.Tree_Update = true;
-		
 	}
 	
-	} // omp single
+		Sig.Domain_Update = true;
+		Sig.Tree_Update = true;
+	#pragma omp flush
 
-	#pragma omp flush(Sig,Global_NPart_Updates,Local_NPart_Updates)
-	
 	return Sig.Domain_Update;
 }
 
-static int result = 0;
+static int endrun = false;
 
 static bool test_for_stop_file()
 {
-
-	#pragma omp single
+	#pragma omp single 
 	{
-
-	int endrun = false;
 
 	if (Task.Is_MPI_Master) {
 			
@@ -144,12 +141,12 @@ static bool test_for_stop_file()
 		}
 	}
 
-	MPI_Bcast(&endrun, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+	//MPI_Bcast(&endrun, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
 
 	} // omp single
 
-	#pragma omp flush(result)
+	#pragma omp flush
 
-	return (bool) result;
+	return endrun;
 }
 

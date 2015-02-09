@@ -3,7 +3,7 @@
 
 static int max_active_time_bin();
 static void set_particle_timebins();
-static void set_global_timestep(const int, const int);
+static void set_global_timestep();
 static int timestep2timebin(const double dt);
 static void print_timebins();
 static float cosmological_timestep(const int ipart);
@@ -18,7 +18,7 @@ static float cosmological_timestep(const int ipart);
 struct TimeData Time = { 0 };
 struct IntegerTimeLine Int_Time = { 0 };
 
-static int local_bin_min, local_bin_max;
+static int time_bin_min = N_INT_BINS-1, time_bin_max = 0;
 
 /* 
  * All active particles get a new step that is smaller than or equal to 
@@ -28,26 +28,24 @@ static int local_bin_min, local_bin_max;
 void Set_New_Timesteps()
 {
 	Profile("Timesteps");
-
+	
 	set_particle_timebins();
 	
 	#pragma omp single 
 	{
 	
-	int global_bin_min = N_INT_BINS-1;
-	int global_bin_max = 0;
-
-	MPI_Allreduce(&local_bin_min, &global_bin_min, 1, MPI_INT, MPI_MIN, 
+	MPI_Allreduce(MPI_IN_PLACE, &time_bin_min, 1, MPI_INT, MPI_MIN, 
 			MPI_COMM_WORLD);
 
-	MPI_Allreduce(&local_bin_max, &global_bin_max, 1, MPI_INT, MPI_MAX,
+	MPI_Allreduce(MPI_IN_PLACE, &time_bin_max, 1, MPI_INT, MPI_MAX,
 			MPI_COMM_WORLD);
-
-	set_global_timestep(global_bin_max, global_bin_min);
-
-	Time.Max_Active_Bin = max_active_time_bin();
 
 	} // omp single
+
+	set_global_timestep(time_bin_max, time_bin_min);
+
+	#pragma omp single 
+	Time.Max_Active_Bin = max_active_time_bin();
 
 	#pragma omp flush (Time)
 
@@ -64,8 +62,6 @@ void Set_New_Timesteps()
 #endif
 
 	print_timebins();
-
-	#pragma omp barrier
 
 	Profile("Timesteps");
 
@@ -90,15 +86,9 @@ static int max_active_time_bin()
 static void set_particle_timebins()
 {
 	#pragma omp single
-	{
+	time_bin_min = N_INT_BINS-1, time_bin_max = 0;
 	
-	local_bin_min = N_INT_BINS-1; 
-	local_bin_max = 0;
-
-	}
-	#pragma omp flush(local_bin_min,local_bin_max)
-
-	#pragma omp for reduction(min:local_bin_min) reduction(max:local_bin_max)
+	#pragma omp for reduction(min:time_bin_min) reduction(max:time_bin_max)
 	for (int i = 0; i < NActive_Particles; i++) {
 		
 		int ipart = Active_Particle_List[i];
@@ -125,9 +115,9 @@ static void set_particle_timebins()
 
 		P[ipart].Time_Bin = MIN(want, allowed);
 
-		local_bin_min = MIN(local_bin_min, P[ipart].Time_Bin);
+		time_bin_min = MIN(time_bin_min, P[ipart].Time_Bin);
 
-		local_bin_max = MAX(local_bin_max, P[ipart].Time_Bin);
+		time_bin_max = MAX(time_bin_max, P[ipart].Time_Bin);
 	}
 
 	return ;
@@ -140,10 +130,12 @@ static void set_particle_timebins()
  * multiple of it.
  */
 
-static void set_global_timestep(const int global_bin_max, 
-		const int global_bin_min)
+static void set_global_timestep()
 {
-	intime_t step_bin = (intime_t) 1 << global_bin_min; // step down
+	#pragma omp single
+	{
+
+	intime_t step_bin = (intime_t) 1 << time_bin_min; // step down
 
 	intime_t step_sync =   
 		(intime_t) 1 << COUNT_TRAILING_ZEROS(Int_Time.Current); // stay synced 
@@ -161,18 +153,24 @@ static void set_global_timestep(const int global_bin_max,
 
 	Time.Step = Time.Next - Time.Current;
 
+	if (Sig.First_Step) // correct first step
+	//if (Int_Time.Current == Int_Time.Beg) // correct first step
+		Time.Max_Active_Bin = time_bin_min;
+
+	} // omp single
+
+	#pragma omp flush
+
 	Sig.Fullstep = false;
 
 	if (Int_Time.Current == Int_Time.Next_Full_Step) {
 		
 		Sig.Fullstep = true;
 
+		#pragma omp single
 		Int_Time.Next_Full_Step = Umin(Int_Time.End,  
-				Int_Time.Current + ((intime_t) 1 << global_bin_max) );
+						Int_Time.Current + ((intime_t) 1 << time_bin_max) );
 	}
-
-	if (Int_Time.Current == Int_Time.Beg) // correct beginning
-		Time.Max_Active_Bin = global_bin_min;
 
 	return ;
 }
@@ -231,7 +229,9 @@ void Make_Active_Particle_List()
 
 	NActive_Particles = i;
 
-	Assert(NActive_Particles > 0, "No Active Particles, instead %d", i);	
+	Assert(NActive_Particles > 0, 
+			"No Active Particles, instead %d, bin max %d"
+			, i, Time.Max_Active_Bin);	
 	
 	} // omp single
 

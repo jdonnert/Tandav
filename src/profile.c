@@ -91,7 +91,7 @@ void Profile_Info(const char* file, const char* func, const int line,
 
 void Profile_Report(FILE *stream)
 {
-	#pragma omp single nowait
+	#pragma omp single 
 	{
 
 	for (int i = 0; i < NProfObjs; i++) { 
@@ -141,8 +141,9 @@ void Profile_Report(FILE *stream)
 
 	skip:;
 
-	} // omp single nowait
-	
+	} // omp single 
+
+	#pragma omp barrier
 
 	return ;
 }
@@ -150,7 +151,7 @@ void Profile_Report(FILE *stream)
 
 void Profile_Report_Last(FILE *stream)
 {
-	#pragma omp single nowait
+	#pragma omp single 
 	{
 
 	const double now = measure_time();

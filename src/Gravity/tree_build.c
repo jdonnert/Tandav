@@ -46,10 +46,6 @@ void Gravity_Tree_Build()
 
 	rprintf("Tree build ... ");
 
-	const size_t buf_thres = Task.Buffer_Size/sizeof(*Tree);
-
-printf("A %d : %p %d \n", Task.Thread_ID, Tree, NNodes); fflush(stdout);
-#pragma omp barrier
 	#pragma omp single
 	{
 	
@@ -59,13 +55,10 @@ printf("A %d : %p %d \n", Task.Thread_ID, Tree, NNodes); fflush(stdout);
 		Tree = Realloc(Tree, Max_Nodes*sizeof(*Tree), "Tree");
 	
 	} // omp single
+
 	#pragma omp flush (NNodes,Tree)
 
-printf("B %d : %p %d %d \n", Task.Thread_ID, Tree, NNodes, Max_Nodes); 
-fflush(stdout);
-#pragma omp barrier
-
-	Print_Memory_Usage();
+	const size_t buf_thres = Task.Buffer_Size/sizeof(*Tree);
 
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NTop_Nodes; i++) {
@@ -90,7 +83,6 @@ fflush(stdout);
 
 				int nReserved = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
 			
-				#pragma omp critical
 				D[i].TNode.Target = reserve_tree_memory(i, nReserved);
 
 				tree = &Tree[D[i].TNode.Target]; 
@@ -100,7 +92,6 @@ fflush(stdout);
 
 			if (build_in_buffer) { // copy buffer to Tree, clear buffer
 			
-				#pragma omp critical
 				D[i].TNode.Target = reserve_tree_memory(i, nNeeded);
 
 				size_t nBytes = nNeeded * sizeof(*Tree);
@@ -110,7 +101,7 @@ fflush(stdout);
 			
 			int last_part = first_part + D[i].TNode.Npart;
 
-			if (D[i].TNode.Target != 0)
+			if (D[i].TNode.Target != 0) // correct particle pointer
 				for (int ipart = first_part; ipart < last_part; ipart++) 
 					P[ipart].Tree_Parent += D[i].TNode.Target;
 			else
@@ -130,7 +121,6 @@ fflush(stdout);
 	rprintf("done. %d Nodes, reserved %g MB for max %d Nodes\n", 
 			NNodes, Max_Nodes*sizeof(*Tree)/1024.0/1024, Max_Nodes); 
 
-	Print_Memory_Usage();
 #ifdef DEBUG
 	for (int i = 0; i < NTop_Nodes; i++) {
 	
@@ -148,7 +138,6 @@ fflush(stdout);
 	}
 #endif
 	
-	#pragma omp single
 	Sig.Tree_Update = false;
 
 	Profile("Build Gravity Tree");
@@ -199,7 +188,12 @@ static int reserve_tree_memory(const int i, const int nNeeded)
 {	
 	if (nNeeded == 0)
 		return 0;
-	
+
+	int first = 0;
+
+	#pragma omp critical
+	{
+
 	if (NNodes + nNeeded >= Max_Nodes) { // reserve more memory
 
 		Max_Nodes = (Max_Nodes + nNeeded) * 1.1;
@@ -217,10 +211,12 @@ static int reserve_tree_memory(const int i, const int nNeeded)
 		Tree = Realloc(Tree, nBytes, "Tree");
 	}
 
-	int first = NNodes;
+	first = NNodes;
 
 	NNodes += nNeeded;
 	
+	} // omp critical
+
 	return first;
 }
 

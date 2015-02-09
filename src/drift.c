@@ -13,19 +13,21 @@ static void Constrain_Particles_To_Box();
  * remaining time to the next integertime 
  */
 
+static double time_snap = 0; 
+
 void Drift_To_Sync_Point() 
 {
 	Profile("Drift");
-
-	double time_snap = 0; 
-
-	#pragma omp single copyprivate(time_snap)
+	
 	if (Sig.Drifted_To_Snaptime) { // handle out of sync integer timeline
 
 		Sig.Drifted_To_Snaptime = false;
 	
+		#pragma omp single
 		time_snap = Time.Current;
 	}
+
+	#pragma omp flush (time_snap)
  
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
@@ -44,7 +46,7 @@ void Drift_To_Sync_Point()
 
 	}
 	
-	#pragma omp single nowait
+	#pragma omp single 
 	{
 
 	Int_Time.Current += Int_Time.Step;
@@ -97,14 +99,10 @@ void Drift_To_Snaptime()
 	Constrain_Particles_To_Box();
 #endif
 
-	#pragma omp single
-	{
-	
 	Sig.Drifted_To_Snaptime = true;
-		
+
+	#pragma omp single
 	Time.Current = Time.Next_Snap;
-	
-	}
 
 	return ;
 }

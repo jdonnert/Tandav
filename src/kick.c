@@ -11,7 +11,7 @@
 void Kick_First_Halfstep() 
 {
 	Profile("First Kick");
-
+ 
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 

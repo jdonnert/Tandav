@@ -232,7 +232,7 @@ void Init_Memory_Management()
 void Print_Memory_Usage()
 {
 #ifdef MEMORY_MANAGER
-	#pragma omp single nowait
+	#pragma omp single 
 	{
 
 	size_t nBytes_Left_Global[Sim.NRank];

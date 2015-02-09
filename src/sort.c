@@ -186,6 +186,9 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 		const int nData, const size_t datasize, 
 		int (*cmp) (const void *, const void *))
 {
+	Assert(perm != NULL, "*perm is a NULL pointer, no space to sort");
+	Assert(data != NULL, "*data is a NULL pointer, no space to sort");
+
 	if (nData < PARALLEL_THRES_HEAPSORT || nThreads == 1) { 
 
 		#pragma omp single

@@ -33,10 +33,9 @@ void Sort_Particles_By_Peano_Key()
 	idx = Malloc(Task.Npart_Total_Max * sizeof(*idx), "Sort Idx");
 	
 	} // omp single
-	
+
 	#pragma omp flush (idx,keys)
 	
-printf("I am HERE ! %d %p %p \n", Task.Thread_ID, keys, idx);
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 

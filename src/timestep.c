@@ -65,6 +65,8 @@ void Set_New_Timesteps()
 
 	print_timebins();
 
+	#pragma omp barrier
+
 	Profile("Timesteps");
 
 	return ;

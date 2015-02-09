@@ -48,15 +48,24 @@ void Gravity_Tree_Build()
 
 	const size_t buf_thres = Task.Buffer_Size/sizeof(*Tree);
 
+printf("A %d : %p %d \n", Task.Thread_ID, Tree, NNodes); fflush(stdout);
+#pragma omp barrier
 	#pragma omp single
 	{
 	
 	NNodes = 0;
 
-	Tree = Realloc(Tree, Max_Nodes*sizeof(*Tree), "Tree");
+	if (Tree == NULL)
+		Tree = Realloc(Tree, Max_Nodes*sizeof(*Tree), "Tree");
 	
 	} // omp single
-	#pragma omp flush(NNodes, Tree)
+	#pragma omp flush (NNodes,Tree)
+
+printf("B %d : %p %d %d \n", Task.Thread_ID, Tree, NNodes, Max_Nodes); 
+fflush(stdout);
+#pragma omp barrier
+
+	Print_Memory_Usage();
 
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NTop_Nodes; i++) {
@@ -121,6 +130,7 @@ void Gravity_Tree_Build()
 	rprintf("done. %d Nodes, reserved %g MB for max %d Nodes\n", 
 			NNodes, Max_Nodes*sizeof(*Tree)/1024.0/1024, Max_Nodes); 
 
+	Print_Memory_Usage();
 #ifdef DEBUG
 	for (int i = 0; i < NTop_Nodes; i++) {
 	
@@ -137,6 +147,9 @@ void Gravity_Tree_Build()
 				D[i].TNode.CoM[0], D[i].TNode.CoM[1], D[i].TNode.CoM[2]);
 	}
 #endif
+	
+	#pragma omp single
+	Sig.Tree_Update = false;
 
 	Profile("Build Gravity Tree");
 

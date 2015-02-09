@@ -117,9 +117,6 @@ bool Time_For_Domain_Update()
 	
 	} // omp single
 
-Sig.Domain_Update = true;
-Sig.Tree_Update = true;
-
 	#pragma omp flush(Sig,Global_NPart_Updates,Local_NPart_Updates)
 	
 	return Sig.Domain_Update;

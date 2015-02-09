@@ -7,12 +7,12 @@
 
 TIME_INT_ACCURACY 0.4       // [0.4] cosmological time step accuracy parameter
 
-GRAV_SOFTENING 1            // Plummer eq. gravitational softening length 
+GRAV_SOFTENING 10            // Plummer eq. gravitational softening length 
 
 TREE_OPEN_PARAM_BH 0.4      // [0.4] Barnes & Hut opening criterion parameter
 TREE_OPEN_PARAM_REL 0.05    // [0.05] Relative opening criterion parameter
 
-DOMAIN_UPDATE_PARAM 0.1     // [0.1]  npart moved before new domain / treebuild
+DOMAIN_UPDATE_PARAM 0.25     // [0.1]  npart moved before new domain/treebuild
 
 #### GRAVITY ####
 

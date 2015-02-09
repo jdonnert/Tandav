@@ -31,8 +31,6 @@ int main(int argc, char *argv[])
 	
 	Update(BEFORE_MAIN_LOOP);
 
-Sig.Domain_Update = true;
-Sig.Tree_Update = true;
 	#pragma omp barrier
 
 	for (;;) { // run, Forest, run !
@@ -42,12 +40,13 @@ Sig.Tree_Update = true;
 
 		Update(BEFORE_STEP);
 
+printf("B %d : %p %d \n", Task.Thread_ID, Tree, NNodes); fflush(stdout);
 		Set_New_Timesteps();
 
 		Update(BEFORE_FIRST_KICK);
 
 		Kick_First_Halfstep();
-
+		
 		if (Time_For_Snapshot()) 
 			Write_Snapshot();
  		

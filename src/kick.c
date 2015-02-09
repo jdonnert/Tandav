@@ -12,8 +12,6 @@ void Kick_First_Halfstep()
 {
 	Profile("First Kick");
 
-if (!Sig.Domain_Update) printf("FK update \n");
-
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 
@@ -47,10 +45,6 @@ if (!Sig.Domain_Update) printf("FK update \n");
 void Kick_Second_Halfstep() 
 {
 	Profile("Second Kick");
-
-
-		if (!Sig.Domain_Update) 
-			printf("SK update");
 
 	#pragma omp  for
 	for (int i = 0; i < NActive_Particles; i++) {

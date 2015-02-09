@@ -108,9 +108,9 @@ void Domain_Decomposition()
 	rprintf("Domain: Finished, %d Top Nodes, %d Top Leaves, max level %d\n\n", 
 			NBunches, nTop_Leaves, max_level);
 
-#ifdef DEBUG
+//#ifdef DEBUG
 	print_domain_decomposition(max_level);
-#endif
+//#endif
 
 	communicate_particles();
 
@@ -121,11 +121,9 @@ void Domain_Decomposition()
 	
 	NTop_Nodes = NBunches;
 
-	} // ompt single
+	} // omp single
 
 	#pragma omp flush(NTop_Nodes, Sig)
-
-	#pragma omp barrier
 
 	Profile("Domain Decomposition");
 

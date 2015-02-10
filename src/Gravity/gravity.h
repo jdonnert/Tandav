@@ -4,7 +4,7 @@ void Accel_Gravity_Simple();
 
 #ifdef GRAVITY_TREE
 
-struct Tree_Node {
+extern struct Tree_Node {
 	int DNext;		   	// Distance to the next node; or particle -DNext-1
 	uint32_t Bitfield; 	// bit 0-5:level, 6-8:key, 9:local, 10:top, 11-31:free
 	int DUp;			// Number of nodes to the parent
@@ -16,7 +16,6 @@ struct Tree_Node {
 } *Tree;
 
 int NNodes;
-int Max_Nodes;
 
 void Gravity_Tree_Build();
 void Gravity_Tree_Acceleration();

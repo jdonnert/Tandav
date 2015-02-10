@@ -24,7 +24,7 @@ static struct memory_block_infos {
 	bool In_Use;
 } Mem_Block[MAXMEMOBJECTS];
 
-static void * buffer;		// Multi-purpose thread-safe buffer: BUFFER_SIZE
+static void * buffer; // Multi-purpose thread-safe buffer: BUFFER_SIZE
 #pragma omp threadprivate(buffer)
 
 void *Malloc_info(const char* file, const char* func, const int line, 
@@ -137,9 +137,6 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 	if (ptr == NULL)
 		return;
 
-	#pragma omp critical
-	{
-
 	const int i = find_memory_block_from_ptr(ptr);
 
 	memset(Mem_Block[i].Start, 0, Mem_Block[i].Size);
@@ -153,8 +150,6 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 	merge_free_memory_blocks(i);
 	
 	ptr = NULL;
-
-	} // omp critical
 
 	return ;
 }

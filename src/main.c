@@ -51,14 +51,10 @@ Sig.Domain_Update = true;
 			Write_Snapshot();
  		
 		Drift_To_Sync_Point();
-#pragma omp barrier
-printf("A %d \n", Task.Thread_ID); fflush(stdout);
-#pragma omp barrier
+
 		if (Time_For_Domain_Update() || true)
 			Domain_Decomposition();
-#pragma omp barrier
-printf("B %d \n", Task.Thread_ID); fflush(stdout);
-#pragma omp barrier
+
 		Update(BEFORE_FORCES);
 
 		Compute_Acceleration();

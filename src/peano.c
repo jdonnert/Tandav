@@ -18,14 +18,14 @@ int compare_peanoKeys(const void * a, const void *b)
  * Here we compute peano Keys and reorder particles
  */
 
+peanoKey *keys = NULL;
+size_t *idx = NULL;
+
 void Sort_Particles_By_Peano_Key()
 {
 	Profile("Peano-Hilbert order");
 
- 	peanoKey *keys = NULL;
-	size_t *idx = NULL;
-	
-	#pragma omp single copyprivate(keys,idx)
+	#pragma omp single 
 	{
 
 	keys = Malloc(Task.Npart_Total_Max * sizeof(*keys), "PeanoKeys");
@@ -34,7 +34,7 @@ void Sort_Particles_By_Peano_Key()
 	
 	} // omp single
 
-	#pragma omp for
+	#pragma omp single
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
 		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
@@ -57,8 +57,6 @@ void Sort_Particles_By_Peano_Key()
 	Free(keys); Free(idx); 
 	
 	} // omp single
-
-	keys = NULL; idx = NULL;
 
 	Make_Active_Particle_List();
 

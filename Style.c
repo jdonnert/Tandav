@@ -12,6 +12,7 @@ This is the Style Guide :
 	https://www.youtube.com/watch?v=4XpnKHJAok8
 	- http://www.kroah.com/linux/talks/ols_2002_kernel_codingstyle_paper/codingstyle.ps
 				
+* We format like the Linux kernel - Linus is right, but a tab is just 4 spaces.
 
 * If code is broader than 79 characters, you are doing it wrong. Except if it
   is a formula. Broad code is hard to read and usually obscures the algorithm.
@@ -47,8 +48,6 @@ This is the Style Guide :
 * Self-explaining code doesn't need many comments. If you modulerize properly
   you will call many static functions whose names will explain most of what
   needs to be known. These function will be optimised away by modern compilers.
-
-* We format like the Linux kernel - Linus is right, but a tab is just 4 spaces.
 
 * C99: Variables are initialised when declared. Use the const keyword for 
   input parameters to avoid bugs. 

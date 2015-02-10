@@ -1,16 +1,14 @@
 #include "globals.h"
 #include "timestep.h"
+#include "drift.h"
 #include "Gravity/gravity.h"
 
-#ifdef PERIODIC
-static void Constrain_Particles_To_Box();
-#endif
-
 /* 
- * This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 
+ * This is the drift part of the KDK scheme 
+ * (Dehnen & Read 2012, Springel 05). 
  * As a snapshot time may not fall onto an integertime, we have to 
  * drift to the snapshot time, write the snapshot and then drift the 
- * remaining time to the next integertime 
+ * remaining time to the next integertime. We use signal 
  */
 
 static double time_snap = 0; 
@@ -27,8 +25,6 @@ void Drift_To_Sync_Point()
 		time_snap = Time.Current;
 	}
 
-	#pragma omp flush (time_snap)
- 
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 		
@@ -45,7 +41,14 @@ void Drift_To_Sync_Point()
 		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2];
 
 	}
-	
+
+	Constrain_Particles_To_Box(); // PERIODIC
+
+#ifdef GRAVITY_TREE
+	if (! Sig.Domain_Update)
+		Gravity_Tree_Update_Drift(Time.Step); 
+#endif
+
 	#pragma omp single 
 	{
 
@@ -53,16 +56,7 @@ void Drift_To_Sync_Point()
 
 	Time.Current = Integer2Physical_Time(Int_Time.Current);
 
-	}
-
-#ifdef PERIODIC
-	Constrain_Particles_To_Box();
-#endif 
-
-#ifdef GRAVITY_TREE
-	if (! Sig.Domain_Update)
-		Gravity_Tree_Update_Drift(Time.Step);
-#endif
+	} // omp single
 
 	#pragma omp barrier
 
@@ -95,9 +89,7 @@ void Drift_To_Snaptime()
 		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2];
 	}
 
-#ifdef PERIODIC
-	Constrain_Particles_To_Box();
-#endif
+	Constrain_Particles_To_Box(); // PERIODIC
 
 	Sig.Drifted_To_Snaptime = true;
 

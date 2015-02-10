@@ -85,7 +85,7 @@ bool Time_For_Snapshot()
 static int Global_NPart_Updates = 0;
 static int Local_NPart_Updates = 0;
 
-bool Time_For_Domain_Update()
+void Check_For_Domain_Update()
 {
 	const double max_npart_updates = DOMAIN_UPDATE_PARAM*Sim.Npart_Total;
 
@@ -114,12 +114,8 @@ bool Time_For_Domain_Update()
 		Sig.Domain_Update = true;
 		Sig.Tree_Update = true;
 	}
-	
-		Sig.Domain_Update = true;
-		Sig.Tree_Update = true;
-	#pragma omp flush
 
-	return Sig.Domain_Update;
+	return ;
 }
 
 static int endrun = false;

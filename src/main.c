@@ -31,9 +31,6 @@ int main(int argc, char *argv[])
 
 	Update(BEFORE_MAIN_LOOP);
 
-Sig.Domain_Update = true;
-#pragma omp barrier
-
 	for (;;) { // run, Forest, run !
 
 		if (Time_Is_Up())
@@ -50,9 +47,11 @@ Sig.Domain_Update = true;
 		if (Time_For_Snapshot()) 
 			Write_Snapshot();
  		
+		Check_For_Domain_Update();
+
 		Drift_To_Sync_Point();
 
-		if (Time_For_Domain_Update() || true)
+		if (Sig.Domain_Update)
 			Domain_Decomposition();
 
 		#pragma omp barrier
@@ -66,13 +65,13 @@ Sig.Domain_Update = true;
 		Update(AFTER_STEP);
 	}
 
-	if (Time.Current = Time.End) 
+	if (Sig.Write_Restart_File) 
+		Write_Restart_File();
+	else
 		Write_Snapshot();
 
 	} // omp parallel 
 
-	if (Sig.Write_Restart_File) 
-		Write_Restart_File();
 
 	Finish();
 

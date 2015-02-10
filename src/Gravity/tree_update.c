@@ -17,7 +17,8 @@ void Gravity_Tree_Update_Kicks(const int ipart, const double dt)
 						  m_dt*P[ipart].Acc[1], 
 						  m_dt*P[ipart].Acc[2] };
 	
-	int i = 0, node = P[ipart].Tree_Parent;
+	int i = 0;
+	int node = P[ipart].Tree_Parent;
 
 //printf("FK Update ipart=%d parent %d \n", ipart, node);
 
@@ -45,7 +46,7 @@ void Gravity_Tree_Update_Kicks(const int ipart, const double dt)
 	} else { // topnode only
 
 		i = -node + 1;
-		printf("Top node only ipart %d node %d \n", ipart, i);
+		//printf("Top node only ipart %d node %d \n", ipart, i);
 	}
 	
 	if (D[i].TNode.Level > 0)
@@ -67,7 +68,7 @@ static int nUpdate = 0;
 
 void Gravity_Tree_Update_Drift(const double dt)
 {
-	rprintf("Tree update ... ");
+	rprintf("Tree update. ");
 
 	#pragma omp for nowait
 	for (int i = 0; i < NNodes; i++) {
@@ -103,7 +104,7 @@ void Gravity_Tree_Update_Drift(const double dt)
 		nUpdate++;
 	}
 
-	rprintf("done. Moved %d top nodes \n", nUpdate);
+	rprintf("Moved %d top nodes \n", nUpdate);
 
 	return ;
 }

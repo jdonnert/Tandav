@@ -12,14 +12,14 @@ GRAV_SOFTENING 10            // Plummer eq. gravitational softening length
 TREE_OPEN_PARAM_BH 0.4      // [0.4] Barnes & Hut opening criterion parameter
 TREE_OPEN_PARAM_REL 0.05    // [0.05] Relative opening criterion parameter
 
-DOMAIN_UPDATE_PARAM 0.25     // [0.1]  npart moved before new domain/treebuild
+DOMAIN_UPDATE_PARAM 0.1     // [0.1]  npart moved before new domain/treebuild
 
 #### GRAVITY ####
 
 GRAVITY                     // gravitational interaction master switch
 GRAVITY_POTENTIAL           // compute gravitational potential
 
-#GRAVITY_SIMPLE              // N^2 law, also shows relative errors in acceleration
+#GRAVITY_SIMPLE              // N^2 law, also shows grav force errors 
 GRAVITY_TREE                // B&H gravity tree
 
 #### OUTPUT OPTIONS ####
@@ -45,6 +45,6 @@ OMEGA_RAD 4.8e-5
 
 #### ALWAYS RECOMMENDED ####
 
-#MEMORY_MANAGER  
+MEMORY_MANAGER  
 BUFFER_SIZE 16              // in MB per MPI rank, -> BUFFER_SIZE / NThreads
 

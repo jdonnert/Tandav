@@ -1,6 +1,6 @@
 bool Time_Is_Up();
 bool Time_For_Snapshot();
-bool Time_For_Domain_Update();
+void Check_For_Domain_Update();
 
 extern struct Simulation_Signals { // communicate an event across the code
 	bool Fullstep;				// Current step is fullstep

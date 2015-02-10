@@ -40,27 +40,28 @@ void Set_New_Timesteps()
 	MPI_Allreduce(MPI_IN_PLACE, &time_bin_max, 1, MPI_INT, MPI_MAX,
 			MPI_COMM_WORLD);
 
-	} // omp single
-
 	set_global_timestep(time_bin_max, time_bin_min);
 
-	#pragma omp single 
 	Time.Max_Active_Bin = max_active_time_bin();
 
-	#pragma omp flush (Time)
+	} // omp single
+	
+	Sig.Fullstep = false;
+
+	if (Int_Time.Current == Int_Time.Next_Full_Step) {
+		
+		Sig.Fullstep = true;
+		
+		#pragma omp barrier
+
+		#pragma omp single
+		Int_Time.Next_Full_Step = Umin(Int_Time.End,  
+						Int_Time.Current + (1ULL << time_bin_max) );
+	}
 
 	Make_Active_Particle_List();
 
-#ifndef COMOVING
-	rprintf("\nStep <%d> t = %g -> %g\n\n", 
-			Time.Step_Counter++, Time.Current, 
-			Integer2Physical_Time(Int_Time.Next) );
-#else
-	rprintf("\nStep <%d> a = %g -> %g\n\n", 
-			Time.Step_Counter++, Time.Current, Int_Time.Current, 
-			Integer2Physical_Time(Int_Time.Next));
-#endif
-
+	#pragma omp single
 	print_timebins();
 
 	Profile("Timesteps");
@@ -132,13 +133,9 @@ static void set_particle_timebins()
 
 static void set_global_timestep()
 {
-	#pragma omp single
-	{
-
 	intime_t step_bin = (intime_t) 1 << time_bin_min; // step down
 
-	intime_t step_sync =   
-		(intime_t) 1 << COUNT_TRAILING_ZEROS(Int_Time.Current); // stay synced 
+	intime_t step_sync = 1ULL << COUNT_TRAILING_ZEROS(Int_Time.Current);  
 
 	if (Int_Time.Current == Int_Time.Beg) // treat beginning t0
 		step_sync = step_bin;
@@ -153,24 +150,10 @@ static void set_global_timestep()
 
 	Time.Step = Time.Next - Time.Current;
 
-	if (Sig.First_Step) // correct first step
-	//if (Int_Time.Current == Int_Time.Beg) // correct first step
-		Time.Max_Active_Bin = time_bin_min;
+	if (Sig.First_Step) 
+		Time.Max_Active_Bin = time_bin_min; // correct first step
 
-	} // omp single
-
-	#pragma omp flush
-
-	Sig.Fullstep = false;
-
-	if (Int_Time.Current == Int_Time.Next_Full_Step) {
-		
-		Sig.Fullstep = true;
-
-		#pragma omp single
-		Int_Time.Next_Full_Step = Umin(Int_Time.End,  
-						Int_Time.Current + ((intime_t) 1 << time_bin_max) );
-	}
+	
 
 	return ;
 }
@@ -268,8 +251,15 @@ static int timestep2timebin(const double dt)
 
 static void print_timebins()
 {
-	#pragma omp single nowait
-	{
+#ifndef COMOVING
+	rprintf("\nStep <%d> t = %g -> %g\n\n", 
+			Time.Step_Counter++, Time.Current, 
+			Integer2Physical_Time(Int_Time.Next) );
+#else
+	rprintf("\nStep <%d> a = %g -> %g\n\n", 
+			Time.Step_Counter++, Time.Current, Int_Time.Current, 
+			Integer2Physical_Time(Int_Time.Next));
+#endif
 
 	int npart[N_INT_BINS] = { 0 };
 	
@@ -318,8 +308,6 @@ static void print_timebins()
 				Integer2Physical_Time(Int_Time.Next_Full_Step));
 
 	skip:;
-
-	} // omp single nowait
 
 	return ;
 }

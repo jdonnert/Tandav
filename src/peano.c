@@ -18,8 +18,8 @@ int compare_peanoKeys(const void * a, const void *b)
  * Here we compute peano Keys and reorder particles
  */
 
-peanoKey *keys = NULL;
-size_t *idx = NULL;
+static peanoKey *keys = NULL;
+static size_t *idx = NULL;
 
 void Sort_Particles_By_Peano_Key()
 {
@@ -34,7 +34,7 @@ void Sort_Particles_By_Peano_Key()
 	
 	} // omp single
 
-	#pragma omp single
+	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
 		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;

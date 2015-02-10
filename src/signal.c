@@ -89,8 +89,6 @@ bool Time_For_Domain_Update()
 {
 	const double max_npart_updates = DOMAIN_UPDATE_PARAM*Sim.Npart_Total;
 
-	bool return_val = false;
-
 	Sig.Domain_Update = false;
 	Sig.Tree_Update = false;
 
@@ -108,6 +106,8 @@ bool Time_For_Domain_Update()
 
 	if (Sig.Fullstep || (Global_NPart_Updates > max_npart_updates)) {
 		
+		#pragma omp barrier
+
 		#pragma omp single
 		Global_NPart_Updates = Local_NPart_Updates = 0;
 		

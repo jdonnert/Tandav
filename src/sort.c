@@ -213,7 +213,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 	} // omp single
 
-	int delta = desNumPar << 1; //twice the distance of entries in shared stack
+	int delta = desNumPar << 1; // twice the distance of entries in shared stack
 
 	/* First stage: subpartitions, roughly NThreads */
 	
@@ -290,7 +290,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 	/* Second stage, every thread: Qsort on subpartition *beg to *end */
 
-	#pragma omp flush
+	#pragma omp barrier
 
 	size_t *beg = shared_stack_sizet[Task.Thread_ID].lo;
 	size_t *end = shared_stack_sizet[Task.Thread_ID].hi;

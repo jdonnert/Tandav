@@ -19,7 +19,7 @@ Boxsize1		0
 Boxsize2		0 
 
 TimeBegin		0 
-TimeEnd			1
+TimeEnd			0.25
 TimeOfFirstSnaphot		0 
 TimeBetSnapshots		0.05
 

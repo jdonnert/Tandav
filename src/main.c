@@ -55,6 +55,8 @@ Sig.Domain_Update = true;
 		if (Time_For_Domain_Update() || true)
 			Domain_Decomposition();
 
+		#pragma omp barrier
+
 		Update(BEFORE_FORCES);
 
 		Compute_Acceleration();
@@ -136,9 +138,6 @@ static void preamble(int argc, char *argv[])
 			"	 10  : Dump a valid parameter file for this Config\n");
 
 		Print_compile_time_settings();
-
-		printf("\nUsing %d MPI tasks, %d OpenMP threads \n\n", 
-				Sim.NRank, Sim.NThreads);
 			
 		printf("sizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
 		printf("sizeof(*D) = %zu byte\n", sizeof(*D)*CHAR_BIT/8);
@@ -146,6 +145,8 @@ static void preamble(int argc, char *argv[])
 		printf("sizeof(*Tree) = %zu byte\n", sizeof(*Tree)*CHAR_BIT/8);
 #endif
 
+		printf("\nUsing %d MPI tasks, %d OpenMP threads \n\n", 
+				Sim.NRank, Sim.NThreads);
 
 	}
 

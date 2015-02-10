@@ -42,7 +42,7 @@ struct Domain_Properties { // smallest cubic box containing all particles
 	double Center_Of_Mass[3];
 } Domain;
 
-int NLocal_Bunches, NTop_Nodes;
+int NTop_Nodes;
 
 void Init_Domain_Decomposition();
 void Domain_Decomposition();

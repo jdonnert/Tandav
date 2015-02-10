@@ -15,14 +15,14 @@ static int finalise_subtree(const int, const int, int );
 static inline bool particle_is_inside_node(const peanoKey,const int,const int);
 static inline void add_particle_to_node(const int, const int);
 static inline void create_node_from_particle(const int, const int, 
-											const peanoKey, const int, const int);
+									const peanoKey, const int, const int);
 static peanoKey create_first_node(const int, const int, const int);
 static void collapse_last_branch(const int, const int, const int, int*);
 static inline int key_fragment(const int);
 static inline void node_set(const enum Tree_Bitfield, const int);
 
 int NNodes = 0;
-static int Max_Nodes = 0;
+static int Max_Nodes = 4096;
 
 struct Tree_Node *Tree = NULL; // pointer to all nodes
 
@@ -48,8 +48,14 @@ void Gravity_Tree_Build()
 
 	rprintf("Tree build: ");
 
-	#pragma omp single nowait	
+	#pragma omp single
+	{
+	
 	NNodes = 0;
+
+	Tree = Realloc(Tree, Max_Nodes * sizeof(*Tree), "Tree");
+	
+	} // omp single
 
 	const size_t buf_thres = Task.Buffer_Size/sizeof(*Tree);
 
@@ -240,7 +246,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 	printf("DEBUG (%d:%d) Tree Build for top node=%d : "
 		   "first part=%d npart=%d Tree build target=%d \n"
 		,Task.Rank, Task.Thread_ID,  tnode_idx, first_part, 
-		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target);
+		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target); fflush(stdout);
 #endif
 
 	peanoKey last_key = create_first_node(first_part, tnode_idx, top_level);

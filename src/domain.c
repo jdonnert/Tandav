@@ -42,7 +42,7 @@ static int Max_NBunches = 0, NTop_Leaves = 0, NBunches = 0;
  * completing the Peano key on every level separately.
  */
 
-int max_level = 0;
+static int max_level = 0;
 
 void Domain_Decomposition()
 {
@@ -54,6 +54,8 @@ void Domain_Decomposition()
 		
 	reconstruct_complete_bunch_list();
 	
+	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
+
 	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
 
 	for (;;) {
@@ -62,12 +64,10 @@ void Domain_Decomposition()
 
 		communicate_bunches();
 
-		#pragma omp single
+		#pragma omp single 
 		max_level = remove_empty_bunches();
 
-		#pragma omp flush 
-
-		if (check_distribution()) 
+		if (check_distribution() == 0) 
 			break;
 
 		int old_nBunches = NBunches;
@@ -109,7 +109,7 @@ void Domain_Decomposition()
 	#pragma omp single 
 	NTop_Nodes = NBunches;
 
-	#pragma omp flush(NTop_Nodes)
+	#pragma omp flush
 
 	Profile("Domain Decomposition");
 
@@ -193,6 +193,8 @@ static void reallocate_topnodes()
 
 void reconstruct_complete_bunch_list()
 {
+	const int nOld_Bunches = NBunches;
+
 	if (NBunches == 1)
 		goto skip_reconstruction;
 	
@@ -214,13 +216,11 @@ void reconstruct_complete_bunch_list()
 
 	} // omp single
 
-	const int nOld_Bunches = NBunches;
-
 	struct Bunch_Node *b = Get_Thread_Safe_Buffer(Task.Buffer_Size);
 
 	int nNew = 0;
 
-	#pragma omp for  			
+	#pragma omp for nowait
 	for (int i = 0; i < nOld_Bunches-1; i++) { // fill to cover whole domain
 
 		shortKey akey = D[i].Bunch.Key; 	// lowest key
@@ -318,6 +318,7 @@ void reconstruct_complete_bunch_list()
 
 	skip_reconstruction:;
 
+
 	#pragma omp for
 	for (int i = 0; i < NBunches; i++) { // reset values in all bunches
 
@@ -334,7 +335,6 @@ void reconstruct_complete_bunch_list()
 	rprintf("Domain: Reconstruction %d -> %d bunches\n", nOld_Bunches, 
 			NBunches);
 
-	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
 	return ;
 }
@@ -457,7 +457,7 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 
 		D[i].Bunch.Npart += b[run].Npart;
 		D[i].Bunch.Cost += b[run].Cost;
-		D[i].Bunch.First_Part = imin(D[i].Bunch.First_Part, b[run].First_Part);
+		D[i].Bunch.First_Part = imin(D[i].Bunch.First_Part,b[run].First_Part);
 
 		run++;
 	}
@@ -479,26 +479,14 @@ static int nSplit = 0;
 
 static int check_distribution()
 {
-	const int nHeavy_Leaves = NBunches - NTop_Leaves;
-	
-	const double mean_npart = Sim.Npart_Total 
-								/ (Sim.NTask * DOMAIN_NBUNCHES_PER_THREAD);
-#pragma omp barrier
-#pragma omp critical
-printf("%d nHeavy %d nBunches %d nTopLeaves %d\n", 
-		Task.Thread_ID, nHeavy_Leaves,NBunches, NTop_Leaves); fflush(stdout);
-#pragma omp barrier
-
 	if (NBunches >= Sim.NTask * 4) // too deep
 		return 0;
 
-	#pragma omp single
-	{
-	
-	max_mem_imbal = max_cpu_imbal = 0;
-	nSplit = 0;
-
-	}
+	const int nHeavy_Leaves = NBunches - NTop_Leaves;
+	const double mean_npart = Sim.Npart_Total 
+								/ (Sim.NTask * DOMAIN_NBUNCHES_PER_THREAD);
+	#pragma omp single 
+	max_mem_imbal = max_cpu_imbal = nSplit = 0;
 	
 	#pragma omp for reduction(max: max_mem_imbal,max_cpu_imbal) \
 					reduction(+:nSplit)
@@ -513,7 +501,9 @@ printf("%d nHeavy %d nBunches %d nTopLeaves %d\n",
 		if (D[i].Bunch.Level == N_SHORT_TRIPLETS-1) // can't go deeper
 			continue;
 
-		if (rel_mem_load > DOMAIN_SPLIT_MEM_THRES) 
+		if (NBunches < Sim.NTask * 4)
+			D[i].Bunch.Modify = 1;
+		else if (rel_mem_load > DOMAIN_SPLIT_MEM_THRES) 
 			D[i].Bunch.Modify = 1;
 		//else if (rel_cpu_load > DOMAIN_SPLIT_CPU_THRES) 
 		//	D[i].Bunch.Modify = 1;
@@ -522,7 +512,7 @@ printf("%d nHeavy %d nBunches %d nTopLeaves %d\n",
 
 		nSplit++; // here come the (de-)refinement recipies
 	}
-
+	
 	return nSplit;
 }
 
@@ -604,6 +594,8 @@ static void print_domain_decomposition (const int max_level)
 
 	} // omp master
 
+	#pragma omp barrier
+
 	return ;
 }
 
@@ -617,7 +609,7 @@ double max_distance = 0;
 
 static void find_global_domain_extend()
 {
-//	Find_Global_Center_Of_Mass(&Domain.Center_Of_Mass[0]);
+	Find_Global_Center_Of_Mass(&Domain.Center_Of_Mass[0]);
 
 #ifdef PERIODIC
 	
@@ -685,6 +677,7 @@ static double com_x = 0, com_y = 0, com_z = 0, m = 0;
 
 void Find_Global_Center_Of_Mass(double *CoM_out)
 {
+	#pragma omp single
 	com_x = com_y = com_z = m = 0;
 
 	#pragma omp barrier
@@ -698,7 +691,6 @@ void Find_Global_Center_Of_Mass(double *CoM_out)
 		
 		m += P[ipart].Mass;
 	}
-
 
 	#pragma omp single 
 	{
@@ -716,8 +708,6 @@ void Find_Global_Center_Of_Mass(double *CoM_out)
 		CoM_out[i] = global_com[i] / global_m;
 
 	} // omp single
-
-	#pragma omp flush (CoM_out)
 
 	return ;
 

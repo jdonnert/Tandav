@@ -432,11 +432,7 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 	#pragma omp for nowait
 	for (int ipart = first_part; ipart < last_part; ipart++) {
 		
-		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
-		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
-		double pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
-		
-		shortKey pkey = Short_Peano_Key(px, py, pz);
+		shortKey pkey = Short_Peano_Key(P[ipart].Pos);
 
 		while (b[run].Key < pkey) // particles are ordered by key
 			run++;
@@ -645,7 +641,7 @@ static void find_global_domain_extend()
 	MPI_Allreduce(MPI_IN_PLACE, &max_distance, 1, MPI_DOUBLE, MPI_MAX, 
 		MPI_COMM_WORLD);
 	
-	Domain.Size = 2.05 * max_distance;
+	Domain.Size = 2.0 * max_distance; // a little larger for unique PH keys
 
 	for (int i = 0; i < 3; i++) {
 	

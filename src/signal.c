@@ -115,6 +115,8 @@ void Check_For_Domain_Update()
 		Sig.Tree_Update = true;
 	}
 
+		Sig.Domain_Update = true;
+		Sig.Tree_Update = true;
 	return ;
 }
 

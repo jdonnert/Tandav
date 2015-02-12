@@ -5,10 +5,10 @@
 
 void Sort_Particles_By_Peano_Key();
 
-peanoKey Peano_Key(const double x, const double y, const double z);
-peanoKey Reversed_Peano_Key(const double, const double, const double);
+peanoKey Peano_Key(const Float pos[3]);
+peanoKey Reversed_Peano_Key(const Float pos[3]);
 
-shortKey Short_Peano_Key(const double, const double, const double);
-shortKey Reversed_Short_Peano_Key(const double, const double, const double);
+shortKey Short_Peano_Key(const Float pos[3]);
+shortKey Reversed_Short_Peano_Key(const Float pos[3]);
 
 void Test_Peanokey();

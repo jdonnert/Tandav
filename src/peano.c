@@ -35,14 +35,8 @@ void Sort_Particles_By_Peano_Key()
 	} // omp single
 
 	#pragma omp for
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-
-		double px = (P[ipart].Pos[0] - Domain.Origin[0]) / Domain.Size;
-		double py = (P[ipart].Pos[1] - Domain.Origin[1]) / Domain.Size;
-		double pz = (P[ipart].Pos[2] - Domain.Origin[2]) / Domain.Size;
-		
-		keys[ipart] = Peano_Key(px, py, pz);
-	}
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) 
+		keys[ipart] = Peano_Key(P[ipart].Pos);
 
 	Qsort_Index(Sim.NThreads, idx, keys, Task.Npart_Total, sizeof(*keys), 
 			&compare_peanoKeys);
@@ -64,8 +58,6 @@ void Sort_Particles_By_Peano_Key()
 
 	return ;
 }
-
-	
 
 static void reorder_collisionless_particles(size_t *idx)
 {
@@ -109,7 +101,11 @@ static void reorder_collisionless_particles(size_t *idx)
  * registers. Bits 0 & 1 are unused, the most significant bit is 63. Input has
  * to be double for full precision.
  *
- * To be consistent without the loss of accuracy all std keys start with the
+ * The normalisation of the position can run into floating point precision 
+ * issue for very large domains. Hence we pull the conversion factor 'm' into
+ * the conversion first.
+ *
+ * To be consistent without loss of accuracy all std keys start with the
  * first triplet at level 1, i.e. the last 1 or 2 bits are unused. However the
  * reversed keys carry the zero triplet explicitely, to ease tree traversal.
  *
@@ -120,17 +116,15 @@ static void reorder_collisionless_particles(size_t *idx)
  * Campbell+03 'Dynamic Octree Load Balancing Using Space-Filling Curves' 
  */
 
-peanoKey Peano_Key(const double x, const double y, const double z)
+peanoKey Peano_Key(const Float pos[3])
 {
-#ifdef DEBUG // check input
-	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1[ have %g", x);
-	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1[ have %g", y);
-	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1[ have %g", z);
-#endif
+	const uint64_t m = ((uint64_t) 1) << 63;
 
-	const uint64_t m = ((uint64_t) 1) << 63; // = 2^63;
+	const double fac = m / Domain.Size; // don't run into precision issues ...
 
-	uint64_t X[3] = { x*m, y*m, z*m };
+	uint64_t X[3] = { (pos[0] - Domain.Origin[0]) * fac,  
+					  (pos[1] - Domain.Origin[1]) * fac, 
+					  (pos[2] - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
 
@@ -204,17 +198,15 @@ peanoKey Peano_Key(const double x, const double y, const double z)
  * to ease tree construction. The most significant bits are undefined.
  */
 
-peanoKey Reversed_Peano_Key(const double x, const double y, const double z)
+peanoKey Reversed_Peano_Key(const Float pos[3])
 {
-#ifdef DEBUG // check input
-	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1[ have %g", x);
-	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1[ have %g", y);
-	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1[ have %g", z);
-#endif
+	const uint64_t m = ((uint64_t) 1) << 63;
 
-	const uint64_t m = 1UL << 63; // = 2^63;
+	const double fac = m / Domain.Size; 
 
-	uint64_t X[3] = { x*m, y*m, z*m };
+	uint64_t X[3] = { (pos[0] - Domain.Origin[0]) * fac, 
+					  (pos[1] - Domain.Origin[1]) * fac, 
+					  (pos[2] - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
 
@@ -285,17 +277,15 @@ peanoKey Reversed_Peano_Key(const double x, const double y, const double z)
  * Keys of 64 bit length (21 triplets), standard and reversed
  */
 
-shortKey Short_Peano_Key(const double x, const double y, const double z)
+shortKey Short_Peano_Key(const Float pos[3])
 {
-#ifdef DEBUG // check input
-	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1[ have %g", x);
-	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1[ have %g", y);
-	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1[ have %g", z);
-#endif
+	const uint32_t m = ((uint32_t) 1) << 31;
 
-	const uint64_t m = 1UL << (N_SHORT_BITS/2 - 1); // = 2^31;
+	const double fac = m / Domain.Size; 
 
-	uint32_t X[3] = { x*m, y*m, z*m };
+	uint32_t X[3] = { (pos[0] - Domain.Origin[0]) * fac, 
+					  (pos[1] - Domain.Origin[1]) * fac, 
+					  (pos[2] - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
 
@@ -365,17 +355,15 @@ shortKey Short_Peano_Key(const double x, const double y, const double z)
 }
 
 
-shortKey Reversed_Short_Peano_Key(const double x,const double y,const double z)
+shortKey Reversed_Short_Peano_Key(const Float pos[3])
 {
-#ifdef DEBUG // check input
-	Assert(x >= 0 && x <= 1, "X coordinate of out range [0,1[ have %g", x);
-	Assert(y >= 0 && y <= 1, "Y coordinate of out range [0,1[ have %g", y);
-	Assert(z >= 0 && z <= 1, "Z coordinate of out range [0,1[ have %g", z);
-#endif
+	const uint32_t m = ((uint32_t) 1) << 31;
 
-	const uint64_t m = 1UL << 31; // = 2^31;
+	const double fac = m / Domain.Size; 
 
-	uint32_t X[3] = { x*m, y*m, z*m };
+	uint32_t X[3] = { (pos[0] - Domain.Origin[0]) * fac, 
+					  (pos[1] - Domain.Origin[1]) * fac, 
+					  (pos[2] - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
 
@@ -455,8 +443,8 @@ void Test_Peanokey()
 	a[1] = 0.9999999999;
 	a[2] = 0.9999999999;
 	
-	peanoKey stdkey =  Peano_Key(a[0], a[1], a[2]);
-	peanoKey revkey =  Reversed_Peano_Key(a[0], a[1], a[2]);
+	peanoKey stdkey =  Peano_Key(a);
+	peanoKey revkey =  Reversed_Peano_Key(a);
 
 	printf("a0=%lg a1=%lg a2=%lg 64bit val=%llu  \n", a[0], a[1], a[2], 
 			(unsigned long long)(stdkey >> 64));
@@ -464,8 +452,8 @@ void Test_Peanokey()
 	Print_Int_Bits(stdkey, 128, 2);
 	Print_Int_Bits(revkey, 128, 3);
 
-	shortKey stdkey_short = Short_Peano_Key(a[0], a[1], a[2]);
-	shortKey revkey_short = Reversed_Short_Peano_Key(a[0], a[1], a[2]);
+	shortKey stdkey_short = Short_Peano_Key(a);
+	shortKey revkey_short = Reversed_Short_Peano_Key(a);
 
 	Print_Int_Bits(stdkey_short, 64, 1);
 	Print_Int_Bits(revkey_short, 64, 3);
@@ -480,8 +468,8 @@ void Test_Peanokey()
 		a[1] = (j + 0.5) * delta / box[1];
 		a[2] = (k + 0.5) * delta / box[2];
 
-		peanoKey stdkey =  Peano_Key(a[0], a[1], a[2]);
-		peanoKey revkey =  Reversed_Peano_Key(a[0], a[1], a[2]);
+		peanoKey stdkey =  Peano_Key(a);
+		peanoKey revkey =  Reversed_Peano_Key(a);
 
 		printf("%g %g %g %llu  \n", a[0], a[1], a[2], 
 				(unsigned long long)(stdkey >> 64));

@@ -6,7 +6,7 @@ pro make_ICs
 
 	seed = 14041981L
 
-	npart = 100000L
+	npart = 50000L
 
 	mass = 1d15 * Msol / tandav.mass ; code units 
 	a_hernq = 924D 		
@@ -17,7 +17,7 @@ pro make_ICs
 
 	pos = make_array(3, npart, /double, val=0)
 	
-	sqrt_q = sqrt(randomu(seed, npart)) * 0.98
+	sqrt_q = sqrt(randomu(seed, npart)) 
 
 	r = a_hernq  * sqrt_q / (1-sqrt_q)
 
@@ -28,8 +28,8 @@ pro make_ICs
 	pos[1,*] = r * sin(theta) * sin(phi)
 	pos[2,*] = r * cos(theta) 
 
-	print, minmax(r)
-
+	print, 'npart = '+strn(npart), minmax(r) 
+	print, 'bounds', minmax(pos[0,*]), minmax(pos[1,*]), minmax(pos[2,*])
 
 	plot, pos[0,*], pos[1,*], /iso, psym=3
 

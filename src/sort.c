@@ -11,7 +11,7 @@
 #define PARALLEL_THRES_QSORT 15000 // use serial sort below this limit
 #define PARALLEL_THRES_HEAPSORT 15000
 
-#define INSERT_THRES 8 // insertion sort threshold
+#define INSERT_THRES 8 // insertion8sort threshold
 
 #define SWAP(a, b, size)     		\
   	do {						    \
@@ -194,6 +194,8 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 		#pragma omp single
   		gsl_heapsort_index(perm, data, nData, datasize, cmp); 
   		
+		#pragma omp flush
+
   		return ;
   	}
 	

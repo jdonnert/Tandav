@@ -203,18 +203,17 @@ void Init_Memory_Management()
 
 #endif // MEMORY_MANAGER
 
-	size_t nBytes = BUFFER_SIZE * 1024 * 1024; // MBytes
-	void *omp_buff = Malloc(nBytes, "Thread-Safe Buffer");
 	
 	#pragma omp parallel
 	{
-		Task.Buffer_Size = nBytes / Sim.NThreads;
+	
+	Task.Buffer_Size = BUFFER_SIZE * 1024 * 1024 / Sim.NThreads;
 
-		buffer = omp_buff + Task.Thread_ID * Task.Buffer_Size;
+	buffer = Malloc(Task.Buffer_Size, "Thread Buffer");
 	
 	} // omp parallel
 
-	printf("\n   Thread-Safe Buffer: %g MB per thread \n\n", 
+	printf("\nThread-Safe Buffer: %g MB per thread \n\n", 
 			Task.Buffer_Size/1024.0/1024);
 	
 	Warn(Task.Buffer_Size/sizeof(*P) < 10000, 

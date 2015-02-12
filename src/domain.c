@@ -497,7 +497,7 @@ static int check_distribution()
 		if (D[i].Bunch.Level == N_SHORT_TRIPLETS-1) // can't go deeper
 			continue;
 
-		if (NBunches < Sim.NTask * 4)
+		if (NBunches < Sim.NTask * 8)
 			D[i].Bunch.Modify = 1;
 		else if (rel_mem_load > DOMAIN_SPLIT_MEM_THRES) 
 			D[i].Bunch.Modify = 1;

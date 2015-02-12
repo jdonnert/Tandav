@@ -175,7 +175,10 @@ void *Get_Thread_Safe_Buffer (size_t nBytes)
 void Init_Memory_Management()
 {
 #ifdef MEMORY_MANAGER
+	
 	Mem_Size = Param.Max_Mem_Size * 1024L * 1024L; //  in MBytes
+
+	Mem_Size -= BUFFER_SIZE * 1024L * 1024L; // in MBytes
 
 	size_t nBytesMax = get_system_memory_size();
 
@@ -209,13 +212,11 @@ void Init_Memory_Management()
 	
 	Task.Buffer_Size = BUFFER_SIZE * 1024 * 1024 / Sim.NThreads;
 
-	buffer = Malloc(Task.Buffer_Size, "Thread Buffer");
+	#pragma omp critical
+	buffer = malloc(Task.Buffer_Size); // let the system take a fast chunk
 	
 	} // omp parallel
 
-	printf("\nThread-Safe Buffer: %g MB per thread \n\n", 
-			Task.Buffer_Size/1024.0/1024);
-	
 	Warn(Task.Buffer_Size/sizeof(*P) < 10000, 
 			"Thread Safe buffer holds less than 1e4 particles "
 			"BUFFER_SIZE > %d MB recommended"
@@ -244,12 +245,13 @@ void Print_Memory_Usage()
 	if (Task.Rank != max_Idx) // no returns inside an omp region
 		goto skip;
 
-	printf("\nMemory Manager: Reporting Blocks of (%d:%d) with %g MB "
+	printf("\nMemory Manager: Reporting Blocks of (%d:%d) with %g / %d MB "
 			"free memory\n   No  Used      Address      Size (MB)    "
 			"Cumulative          Variable       File:Line\n"
 			"-----------------------------------------------"
 			"-------------------------------------------------------\n", 
-			Task.Rank, Task.Thread_ID, (double) NBytes_Left/1024/1024);
+			Task.Rank, Task.Thread_ID, (double) NBytes_Left/1024/1024,
+			Param.Max_Mem_Size);
 
 	size_t mem_Cumulative = 0;
 
@@ -265,6 +267,9 @@ void Print_Memory_Usage()
 			Mem_Block[i].Line);
 	}
 
+	printf("\nExternal Thread-Safe Buffer: %d x %g = %g MB\n\n", 
+			Sim.NThreads, Task.Buffer_Size/1024.0/1024, (float)BUFFER_SIZE);
+	
 	printf("\n");
 	
 	skip: ;

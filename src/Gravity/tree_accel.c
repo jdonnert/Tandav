@@ -32,7 +32,7 @@ void Gravity_Tree_Acceleration()
 	
 	rprintf("Tree acceleration ");
 
-	#pragma omp for  
+	#pragma omp for schedule(dynamic)
 	for (int i = 0; i < NActive_Particles; i++) {
 			
 		int ipart = Active_Particle_List[i];

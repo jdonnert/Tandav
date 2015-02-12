@@ -29,10 +29,10 @@ int main(int argc, char *argv[])
 	#pragma omp parallel 
 	{
 
-	Update(BEFORE_MAIN_LOOP);
-
 		Sig.Domain_Update = true;
 		Sig.Tree_Update = true;
+	Update(BEFORE_MAIN_LOOP);
+
 	for (;;) { // run, Forest, run !
 
 		if (Time_Is_Up())
@@ -73,7 +73,6 @@ int main(int argc, char *argv[])
 		Write_Snapshot();
 
 	} // omp parallel 
-
 
 	Finish();
 

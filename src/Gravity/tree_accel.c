@@ -49,15 +49,15 @@ void Gravity_Tree_Acceleration()
 			//	continue;
 			//}
 
-			//if (interact_with_topnode(ipart, j, grav_accel, &pot))
-		//		continue;
+			if (interact_with_topnode(ipart, j, grav_accel, &pot))
+				continue;
 		
-		//	if (D[j].TNode.Npart <= 8) { // open top leave
+			if (D[j].TNode.Npart <= 8) { // open top leave
 			
-		//		interact_with_topnode_particles(ipart, j, grav_accel, &pot);
+				interact_with_topnode_particles(ipart, j, grav_accel, &pot);
 
-		//		continue;
-		//	}
+				continue;
+			}
 
 			int tree_start = D[j].TNode.Target;
 

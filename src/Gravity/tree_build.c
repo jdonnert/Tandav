@@ -637,7 +637,7 @@ void test_gravity_tree(const int nNodes)
 
 		com[0] /= mass; com[1] /= mass; com[2] /= mass;
 
-		//if (Tree[node].DNext == 0)
+		if (Tree[node].DNext == 0)
 			printf("node %4d | m %6g =? %6g | Npart %6d =? %6d | lvl %2d "
 				"| dnext %4d "
 				"dup %4d nsize %8g | nout %3d | CoM %g %g %g =? %g %g %g \n",
@@ -645,7 +645,7 @@ void test_gravity_tree(const int nNodes)
 				tree[node].DNext, tree[node].DUp, nSize, nout, 
 				com[0], com[1], com[2], tree[node].CoM[0],
 				tree[node].CoM[1],tree[node].CoM[2] );
-		//Print_Int_Bits32(tree[node].Bitfield);
+		Print_Int_Bits32(tree[node].Bitfield);
 	}
 
 	return ;

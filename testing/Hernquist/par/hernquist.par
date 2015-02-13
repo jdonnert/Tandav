@@ -2,7 +2,7 @@
 
 
 %% Files %%
-InputFile		IC_Hernquist_Halo
+InputFile		IC_Hernquist_Halo_10e6
 OutputFileBase		snap 
 NumIOTasks		1 
 NumOutputFiles	1 

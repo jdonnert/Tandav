@@ -20,8 +20,8 @@ int NNodes;
 void Gravity_Tree_Build();
 void Gravity_Tree_Acceleration();
 void Gravity_Tree_Update_Kicks(const int ipart, const double dt);
-void Gravity_Tree_Update_Drift(const double dt);
 void Gravity_Tree_Update_Topnode_Kicks();
+void Gravity_Tree_Update_Drift(const double dt);
 void Gravity_Tree_Ewald_Correction();
 void Gravity_Tree_Short_Range();
 
@@ -40,5 +40,10 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node);
 void Gravity_Multi_Long_Range();
 
 #endif // GRAVITY_MULTI_GRID
+
+#else // ! GRAVITY
+void Gravity_Tree_Update_Kicks(const int ipart, const double dt) {};
+void Gravity_Tree_Update_Topnode_Kicks() {};
+void Gravity_Tree_Update_Drift(const double dt) {};
 
 #endif // GRAVITY

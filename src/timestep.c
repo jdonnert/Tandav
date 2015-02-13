@@ -61,8 +61,10 @@ void Set_New_Timesteps()
 
 	Make_Active_Particle_List();
 
-	#pragma omp single
+	#pragma omp master
 	print_timebins();
+
+	#pragma omp barrier
 
 	Profile("Timesteps");
 

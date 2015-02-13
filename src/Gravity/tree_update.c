@@ -2,6 +2,8 @@
 #include "../domain.h"
 #include "gravity.h"
 
+#ifdef GRAVITY_TREE
+
 /*
  * Dynamically update the tree with the kicks of this timestep. We
  * start at the parent of the current particle and walk the tree backwards
@@ -98,5 +100,7 @@ void Gravity_Tree_Update_Drift(const double dt)
 
 	return ;
 }
+
+#endif // GRAVITY_TREE
 
 

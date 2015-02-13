@@ -65,6 +65,7 @@ void Update(enum Update_Parameters stage)
 #ifdef COMOVING
 		Set_Current_Cosmology();
 #endif
+
 		break;
 
 	case BEFORE_SECOND_KICK:

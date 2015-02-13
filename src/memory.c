@@ -221,7 +221,7 @@ void Init_Memory_Management()
 void Print_Memory_Usage()
 {
 #ifdef MEMORY_MANAGER
-	#pragma omp single 
+	#pragma omp master
 	{
 
 	size_t nBytes_Left_Global[Sim.NRank];
@@ -268,7 +268,10 @@ void Print_Memory_Usage()
 	
 	skip: ;
 
-	} // omp single nowait
+	} // omp single 
+
+	#pragma omp flush
+	#pragma omp barrier
 
 #endif
 	return;

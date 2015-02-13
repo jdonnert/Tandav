@@ -44,10 +44,9 @@ void Drift_To_Sync_Point()
 
 	Constrain_Particles_To_Box(); // PERIODIC
 
-#ifdef GRAVITY_TREE
+
 	if (! Sig.Domain_Update)
 		Gravity_Tree_Update_Drift(Time.Step); 
-#endif
 
 	#pragma omp single 
 	{

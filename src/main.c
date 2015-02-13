@@ -51,8 +51,8 @@ int main(int argc, char *argv[])
 
 		if (Time_For_Domain_Update())
 			Domain_Decomposition();
-
-		#pragma omp barrier
+		else
+			Gravity_Tree_Update_Drift(Time.Step); 
 
 		Update(BEFORE_FORCES);
 

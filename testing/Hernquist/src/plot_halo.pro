@@ -19,7 +19,7 @@ pro show_halo, snap=snap
 	return
 end
 
-pro density_profile, snap=snap
+pro density_profile, nsnap=nsnap
 	
 	; we expect a little evolution here, because f(E) in the ICs 
 	; does not account for softening (Barnes 2012)
@@ -42,32 +42,33 @@ pro density_profile, snap=snap
 
 	plot, r, rho_analytic, /ylog, /xlog, xrange=[rmin, rmax]
 
-	if not keyword_set(snap) then $
-		fname = 'IC_Hernquist_Halo' $
-	else $
+	for snap = 0, nsnap-1 do begin
+
 		fname = 'snap_'+strn(snap, len=3, padc='0')
 
-	pos = tandav.readsnap(fname, 'POS', head=head)
+		pos = tandav.readsnap(fname, 'POS', head=head)
 
-	pos[0,*] -= median(pos[0,*])
-	pos[1,*] -= median(pos[1,*])
-	pos[2,*] -= median(pos[2,*])
+		pos[0,*] -= median(pos[0,*])
+		pos[1,*] -= median(pos[1,*])
+		pos[2,*] -= median(pos[2,*])
 
-	r = sqrt(pos[0,*]^2 + pos[1,*]^2 + pos[2,*]^2)
+		r = sqrt(pos[0,*]^2 + pos[1,*]^2 + pos[2,*]^2)
 
-	one = r * 0 + 1
+		one = r * 0 + 1
 
-	tmp = bin_arr(one, pos=r , bin_pos=bin_pos, nbins=100, cnt=cnt, /log)
+		tmp = bin_arr(one, pos=r , bin_pos=bin_pos, nbins=100, cnt=cnt, /log)
 
-	Vshell = make_array(100, /double, val=0)
-	Vshell[0] = 4D*!pi/3D * bin_pos[0]^3
+		Vshell = make_array(100, /double, val=0)
+		Vshell[0] = 4D*!pi/3D * bin_pos[0]^3
 
-	for i = 0L, 99 do $
-		Vshell[i] =  4D*!pi/3D * (bin_pos[i]^3 - bin_pos[i-1]^3)
+		for i = 0L, 99 do $
+			Vshell[i] =  4D*!pi/3D * (bin_pos[i]^3 - bin_pos[i-1]^3)
 
-	rho = cnt * head.massarr[1] / Vshell
+		rho = cnt * head.massarr[1] / Vshell
 
-	oplot, bin_pos, rho, psym=10
+		oplot, bin_pos, rho, psym=10
+
+	end
 
 	return
 end
@@ -256,3 +257,7 @@ function hernquist_distribution_function, E, a, mass
 
 	return, fE
 end
+
+
+
+

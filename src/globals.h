@@ -49,7 +49,7 @@ extern struct Particle_Data {
 	intime_t Int_Time_Pos;		// position on integer timeline
 	float Cost;					// computational weight of particle
 #ifdef GRAVITY_TREE
-	int Tree_Parent;			// Tree node leave, negative if top node only
+	int Tree_Parent;			// Tree node leave, negative-1 if top node only
 #endif
 	ID_t ID; // add below 
 	Float Pos[3];

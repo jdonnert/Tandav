@@ -49,15 +49,15 @@ void Gravity_Tree_Acceleration()
 			//	continue;
 			//}
 
-			if (interact_with_topnode(ipart, j, grav_accel, &pot))
-				continue;
+			//if (interact_with_topnode(ipart, j, grav_accel, &pot))
+		//		continue;
 		
-			if (D[j].TNode.Npart <= 8) { // open top leave
+		//	if (D[j].TNode.Npart <= 8) { // open top leave
 			
-				interact_with_topnode_particles(ipart, j, grav_accel, &pot);
+		//		interact_with_topnode_particles(ipart, j, grav_accel, &pot);
 
-				continue;
-			}
+		//		continue;
+		//	}
 
 			int tree_start = D[j].TNode.Target;
 
@@ -99,8 +99,8 @@ void Gravity_Tree_Acceleration()
  * the particle and then check the two criteria.
  */
 
-static bool interact_with_topnode(const int ipart, const int j, Float *grav_accel, 
-		Float *pot)
+static bool interact_with_topnode(const int ipart, const int j, 
+									Float *grav_accel, Float *pot)
 {
 	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 

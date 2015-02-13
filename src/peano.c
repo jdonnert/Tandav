@@ -434,7 +434,7 @@ shortKey Reversed_Short_Peano_Key(const Float pos[3])
 void Test_Peanokey()
 {
 	const double box[3]  = { 1.0, 1, 1};
-	double a[3] = { 0 };
+	Float a[3] = { 0 };
 	int order = 10;
 	double delta = 1/pow(2.0, order);
 	int n = roundf(1/delta);

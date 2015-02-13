@@ -29,8 +29,6 @@ int main(int argc, char *argv[])
 	#pragma omp parallel 
 	{
 
-		Sig.Domain_Update = true;
-		Sig.Tree_Update = true;
 	Update(BEFORE_MAIN_LOOP);
 
 	for (;;) { // run, Forest, run !
@@ -49,11 +47,9 @@ int main(int argc, char *argv[])
 		if (Time_For_Snapshot()) 
 			Write_Snapshot();
  		
-		Check_For_Domain_Update();
-
 		Drift_To_Sync_Point();
 
-		if (Sig.Domain_Update || true)
+		if (Time_For_Domain_Update())
 			Domain_Decomposition();
 
 		#pragma omp barrier

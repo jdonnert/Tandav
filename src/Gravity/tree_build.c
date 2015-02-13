@@ -103,12 +103,12 @@ void Gravity_Tree_Build()
 			
 			int last_part = first_part + D[i].TNode.Npart;
 
-			if (D[i].TNode.Target != 0) // correct particle parent pointer
+			if (D[i].TNode.Target > 0) // correct particle parent pointer
 				for (int ipart = first_part; ipart < last_part; ipart++) 
 					P[ipart].Tree_Parent += D[i].TNode.Target;
-			else
+			else if (D[i].TNode.Target < 0)
 				for (int ipart = first_part; ipart < last_part; ipart++) 
-					P[ipart].Tree_Parent = -i - 1;
+					P[ipart].Tree_Parent = -i - 1; // top node w/o tree
 		
 		} // if Bunch local
 

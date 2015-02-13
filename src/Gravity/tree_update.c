@@ -16,16 +16,12 @@ void Gravity_Tree_Update_Kicks(const int ipart, const double dt)
 	const Float dp[3] = { m_dt*P[ipart].Acc[0],
 						  m_dt*P[ipart].Acc[1], 
 						  m_dt*P[ipart].Acc[2] };
-	
 	int i = 0;
 	int node = P[ipart].Tree_Parent;
-
-//printf("FK Update ipart=%d parent %d \n", ipart, node);
-
-	if (node >= 0) {
 	
-		while (!Node_Is(TOP, node)) { // topnode & tree
-//printf("node %d next %d up %d  npart %d level %d \n", node, Tree[node].DNext, Tree[node].DUp, Tree[node].Npart, Level(node));
+	if (node >= 0) { // kick sub tree nodes
+	
+		while (! Node_Is(TOP, node)) { 
 	
 			#pragma omp atomic
 			Tree[node].Dp[0] += dp[0] / Tree[node].Mass;
@@ -38,16 +34,12 @@ void Gravity_Tree_Update_Kicks(const int ipart, const double dt)
 			Tree[node].Bitfield |= 1UL << UPDATED; // = Node_Set(UPDATED,node)
 
 			node -= Tree[node].DUp;
-		} // while not top node
-//printf("node %d next %d up %d  npart %d level %d \n", node, Tree[node].DNext, Tree[node].DUp, Tree[node].Npart, Level(node));
+		} // while 
 
 		i = Tree[node].DUp;
 
-	} else { // topnode only
-
-		i = -node + 1;
-		//printf("Top node only ipart %d node %d \n", ipart, i);
-	}
+	} else  // kick top node only
+		i = -node - 1;
 	
 	if (D[i].TNode.Level > 0)
 		D[i].TNode.Level *= -1; // mark kicked. Will reverse after drift
@@ -68,8 +60,6 @@ static int nUpdate = 0;
 
 void Gravity_Tree_Update_Drift(const double dt)
 {
-	rprintf("Tree update. ");
-
 	#pragma omp for nowait
 	for (int i = 0; i < NNodes; i++) {
 
@@ -92,7 +82,7 @@ void Gravity_Tree_Update_Drift(const double dt)
 	
 		if (D[i].TNode.Level > 0)
 			continue;
-
+		
 		D[i].TNode.CoM[0] += dt * D[i].TNode.Dp[0];
 		D[i].TNode.CoM[1] += dt * D[i].TNode.Dp[1];
 		D[i].TNode.CoM[2] += dt * D[i].TNode.Dp[2];
@@ -104,7 +94,7 @@ void Gravity_Tree_Update_Drift(const double dt)
 		nUpdate++;
 	}
 
-	rprintf("Moved %d top nodes \n", nUpdate);
+	rprintf("Tree update: Moved %d top nodes \n", nUpdate);
 
 	return ;
 }

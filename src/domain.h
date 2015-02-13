@@ -4,17 +4,23 @@
  * transformed into top nodes. The tree walk during acceleration then 
  * traverses the topnode list and kicks off particle export 
  * or local tree walk.
+ * The top nodes store a "Target" which is the node where the subtree starts in 
+ * "*Tree", if it is positive. If "Target" is negative, it points to the MPI 
+ * rank that holds the subtree. This corresponds to the "P[ipart].Tree_Parent" 
+ * index, that point to the parent leave of particle ipart in *Tree if 
+ * positive and to a top node index "-1*P[ipart].Tree_Parent - 1" if 
+ * negative to avoid the degeneracy of index "0".
  */
 
 union Domain_Node_List { 
 	
 	struct Bunch_Node { 	// Data needed for Domain Decomposition
 		shortKey Key;		// Largest Peano key held by this bunch
-		int Target; 		// MPIRANK
+		int Target; 		// MPI rank
 		int Level;
 		size_t Npart;		
-		float Cost;
-		int First_Part;
+		float Cost;			// cpu times
+		int First_Part;		// starts the tree build
 		bool Is_Local;		// on this rank
 		int Modify;			// split  this bunch
 	} Bunch;

@@ -9,9 +9,9 @@ NumOutputFiles	1
 LogFileDir		./log/
 
 %% Code Parameters %%
-MaxMemSize		500
+MaxMemSize		2048
 TimeLimitCPU	20864 
-CommBufSize		1000 
+BufferSize		128
 
 %% Simulation Characteristics %%
 Boxsize0		0

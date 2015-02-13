@@ -23,7 +23,7 @@ static inline int key_fragment(const int);
 static inline void node_set(const enum Tree_Bitfield, const int);
 
 int NNodes = 0;
-static int Max_Nodes = 4096;
+static int Max_Nodes = 1024; 
 
 struct Tree_Node *Tree = NULL; // pointer to all nodes
 
@@ -47,8 +47,6 @@ void Gravity_Tree_Build()
 {
 	Profile("Build Gravity Tree");
 
-	rprintf("Tree build: ");
-
 	#pragma omp single
 	{
 	
@@ -57,7 +55,7 @@ void Gravity_Tree_Build()
 	Tree = Realloc(Tree, Max_Nodes * sizeof(*Tree), "Tree");
 	
 	} // omp single
-
+	
 	const size_t buf_thres = Task.Buffer_Size/sizeof(*Tree);
 
 	#pragma omp for schedule(static,1)
@@ -120,7 +118,7 @@ void Gravity_Tree_Build()
 		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
 	}
 	
-	rprintf("%d of %d Nodes used (%g MB)\n", 
+	rprintf("Tree build: %d of %d Nodes used (%g MB)\n", 
 			NNodes, Max_Nodes, Max_Nodes*sizeof(*Tree)/1024.0/1024); 
 
 #ifdef DEBUG

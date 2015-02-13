@@ -32,7 +32,8 @@ static const parameter ParDef[] = {
 	{"NumOutputFiles", "1", &Param.Num_Output_Files, INT},
 
 	{"\n%% Code Parameters %%\n", "", NULL, COMMENT},
-	{"MaxMemSize", "1000", &Param.Max_Mem_Size, INT},
+	{"MaxMemSize", "1024", &Param.Max_Mem_Size, INT},
+	{"BufferSize", "32", &Param.Buffer_Size, INT}, // in MB per MPI rank
 	{"TimeLimitCPU", "20864", &Param.Runtime_Limit, DOUBLE},
 
 	{"\n%% Simulation Characteristics %%\n", "", NULL, COMMENT},

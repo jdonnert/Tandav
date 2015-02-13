@@ -361,15 +361,15 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 	Warn(head.Num_Files != nFiles, "NumFiles in Header (%d) doesnt match "
 			"number of files found (%d) \n\n", head.Num_Files, nFiles);
 
-	Warn(head.Omega0 != Cosmo.Omega_0, 
+	Warn(head.Omega0 - Cosmo.Omega_0 < 1e-3, 
 			"Omega_0 in snapshot different from code: %g <-> %g", 
 			head.Omega0, Cosmo.Omega_0);
 
-	Warn(head.Omega_Lambda != Cosmo.Omega_Lambda, 
+	Warn(head.Omega_Lambda - Cosmo.Omega_Lambda < 1e-3, 
 			"Omega_Lambda in snapshot different from code: %g <-> %g", 
 			head.Omega_Lambda, Cosmo.Omega_Lambda);
 	
-	Warn(head.Hubble_Param != Cosmo.Hubble_Constant, 
+	Warn(head.Hubble_Param - Cosmo.Hubble_Constant < 1e-3, 
 			"h_0 in snapshot different from code: %g <-> %g", 
 			head.Hubble_Param, Cosmo.Hubble_Constant/100);
 

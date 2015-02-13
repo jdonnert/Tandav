@@ -39,6 +39,7 @@ extern struct Parameters_From_File {
 	int Start_Flag;				// invokation mode
 	int Num_IO_Tasks;			// written in parallel
 	int Max_Mem_Size;			// Memory Ceiling in 1024^2 Bytes
+	int Buffer_Size;			// Total size of thread safe buffer
 	int Num_Output_Files;		// Number of files per snapshot
 	double Runtime_Limit;		// in sec
 } Param;

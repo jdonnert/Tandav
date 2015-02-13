@@ -130,6 +130,14 @@ void sanity_check_input_parameters()
 	
 	Assert(Param.Num_IO_Tasks > 0, "NumIOTasks has to be > 0");
 	
+	Assert(Param.Buffer_Size < Param.Max_Mem_Size / 8,
+			"BufferSize should be much smaller than MaxMemSize");
+
+	Warn((double)Param.Buffer_Size*p2(1024)/sizeof(*P) < 1000.0, 
+		"Thread Safe buffer holds less than 1e3 particles "
+		"Task.Buffer_Size > %d MB recommended, have %g"
+		, 10000*sizeof(*P)/1024/1024 , Param.Buffer_Size/1024.0/1024.0);
+
 	Warn(Param.Num_IO_Tasks > Sim.NRank, 
 		"NRank (=%d) can't be smaller than No_IOTasks (=%d)", 
 		Sim.NRank,  Param.Num_Output_Files);
@@ -141,7 +149,7 @@ void sanity_check_input_parameters()
 		Param.Num_IO_Tasks,  Param.Num_Output_Files);
 	
 	Param.Num_Output_Files = MIN(Param.Num_Output_Files, Sim.NRank);
-	
+
 	/* Add your own ! */
 
 	return ;

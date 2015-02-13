@@ -49,7 +49,7 @@ void Gravity_Tree_Acceleration()
 			//	continue;
 			//}
 
-			if (interact_with_topnode(ipart, j, grav_accel, &pot))
+			if (interact_with_topnode(ipart, j, &grav_accel[0], &pot))
 				continue;
 		
 			if (D[j].TNode.Npart <= 8) { // open top leave
@@ -139,7 +139,8 @@ static bool interact_with_topnode(const int ipart, const int j,
 }
 
 /*
- * Top node with less than 8 particles point not to the tree put to P as targets
+ * Top node with less than 8 particles point not to the tree but to P as 
+ * targets
  */
 
 static void interact_with_topnode_particles(const int ipart, const int j, 

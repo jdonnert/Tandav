@@ -2,9 +2,7 @@
 
 SHELL = /bin/bash # This should always be present in a Makefile
 
-ifndef SYSTYPE # set this in your ~/.bashrc or ~/.tcshrc
 SYSTYPE := ${shell hostname}
-endif
 
 CC	 	 = mpicc
 OPTIMIZE = -Wall -g -O2 

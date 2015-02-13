@@ -176,9 +176,7 @@ void Init_Memory_Management()
 {
 #ifdef MEMORY_MANAGER
 	
-	Mem_Size = Param.Max_Mem_Size * 1024L * 1024L; //  in MBytes
-
-	Mem_Size -= BUFFER_SIZE * 1024L * 1024L; // in MBytes
+	Mem_Size = (Param.Max_Mem_Size - Param.Buffer_Size) * 1024L * 1024L; // MB
 
 	size_t nBytesMax = get_system_memory_size();
 
@@ -196,9 +194,10 @@ void Init_Memory_Management()
 			maxNbytes, maxNbytes/1024/1024, minNbytes, 
 			minNbytes/1024/1024, Mem_Size, Mem_Size/1024/1024);
 
-	int fail = posix_memalign(&Memory, MEM_ALIGNMENT, Mem_Size);
+	int success = posix_memalign(&Memory, MEM_ALIGNMENT, Mem_Size);
 
-	Assert(!fail, "Couldn't allocate Memory. MaxMem_Size too large ?");
+	Assert(success, "Couldn't allocate Memory. MaxMemSize %d too large ?",
+			Param.Max_Mem_Size);
 
 	NBytes_Left = Mem_Size;
 
@@ -206,21 +205,16 @@ void Init_Memory_Management()
 
 #endif // MEMORY_MANAGER
 
-	
 	#pragma omp parallel
 	{
 	
-	Task.Buffer_Size = BUFFER_SIZE * 1024 * 1024 / Sim.NThreads;
+	Task.Buffer_Size = Param.Buffer_Size * 1024 * 1024 / Sim.NThreads;
 
 	#pragma omp critical
-	buffer = malloc(Task.Buffer_Size); // let the system take a fast chunk
+	buffer = malloc(Task.Buffer_Size); // let the system take a local chunk
 	
 	} // omp parallel
 
-	Warn(Task.Buffer_Size/sizeof(*P) < 10000, 
-			"Thread Safe buffer holds less than 1e4 particles "
-			"BUFFER_SIZE > %d MB recommended"
-			, 10000*sizeof(*P)/1024/1024 , Task.Buffer_Size/1024/1024);
 	return;
 }
 

@@ -2,46 +2,48 @@ This is the Style Guide :
 
 	“First off, Id suggest printing out a copy of
 	 the GNU coding standards, and NOT read it.
-	 
-	 Burn them, its a great symbolic gesture.”
-												~ Linus Torvalds 
 
-* Literature: 
- 	- Kernighan & Pike - "The practice of programming"
-	- Linus Torvalds on git at google 2007: 
+	 Burn them, its a great symbolic gesture.”
+												~ Linus Torvalds
+
+* Literature:
+	- Kernighan & Pike - "The practice of programming"
+	- http://youtu.be/LLBrBBImJt4
+	- Linus Torvalds on git at google 2007:
 	https://www.youtube.com/watch?v=4XpnKHJAok8
 	- http://www.kroah.com/linux/talks/ols_2002_kernel_codingstyle_paper/codingstyle.ps
-				
+
+
 * We format like the Linux kernel - Linus is right, but a tab is just 4 spaces.
 
 * If code is broader than 79 characters, you are doing it wrong. Except if it
   is a formula. Broad code is hard to read and usually obscures the algorithm.
   This can often be solved by introducing new variables, which the
-  compiler might later optimize away, but which explain the algorithm. 
+  compiler might later optimize away, but which explain the algorithm.
   For example compare :
-	
+
         int my_array = malloc(Task.Npart*N_BINS*sizeof(*my_array));
 
-  with 
+  with
 
 		size_t nBytes = Task.Npart * N_BINS * sizeof(*my_array);
 		int my_array = malloc(nBytes);
-	
+
   Avoid a large number of nested loops and conditions. Rewrite conditions
   using continue to ease reading, e.g.:
 
 		for (...) {
-  
-		  	if (A) {
+
+			if (A) {
 				...
-		  	}
+			}
 		}
 
 		for (...) {
-		
+
 			if (!A)
 				continue;
-			
+
 			...
 		}
 
@@ -49,30 +51,30 @@ This is the Style Guide :
   you will call many static functions whose names will explain most of what
   needs to be known. These function will be optimised away by modern compilers.
 
-* C99: Variables are initialised when declared. Use the const keyword for 
-  input parameters to avoid bugs. 
-  
-* Minimize scope! Even declare variables in loop heads like this: 
+* C99: Variables are initialised when declared. Use the const keyword for
+  input parameters to avoid bugs.
+
+* Minimize scope! Even declare variables in loop heads like this:
   for(int i = 0; i < N; i++). This is sometimes even faster in OpenMP.
-	
-* Global variables should have long meaningful names, start with a capital 
-  letter. Scope should be visible and global variables have to be 
-  understandable and unambiguous. You might not want to use these names 
-  locally, but define a local variable using the const keyword. Code-wide 
-  variables should be embedded in the existing structures, if possible. 
+
+* Global variables should have long meaningful names, start with a capital
+  letter. Scope should be visible and global variables have to be
+  understandable and unambiguous. You might not want to use these names
+  locally, but define a local variable using the const keyword. Code-wide
+  variables should be embedded in the existing structures, if possible.
   Minimize the use of global variable if reasonably possible.
 
-* Local variables are short and start with a small letter. Don't do this : 
-			
+* Local variables are short and start with a small letter. Don't do this :
+
 			int IamAVeryLongVariableName = 0;
   instead
-  			int I_Am_A_Very_Long_Variable_Name = 0;
+			int I_Am_A_Very_Long_Variable_Name = 0;
 
-* If subroutines return multiple values make that clear by declaring them 
+* If subroutines return multiple values make that clear by declaring them
   void and return all values by pointer:
 
-  			void my_routine(const int, double *, double *);
-  
+			void my_routine(const int, double *, double *);
+
 			my_routine(ipart, &return_var_1, &return_var_2);
 
 * Modulerize: Every .c file has a corresponding .h header file of the same 

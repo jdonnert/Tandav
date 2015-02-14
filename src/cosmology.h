@@ -1,4 +1,3 @@
-
 struct CurrentCosmologyInCodeUnits {
 	const double Hubble_Constant; // Constants
 	const double Omega_Lambda;
@@ -13,7 +12,20 @@ struct CurrentCosmologyInCodeUnits {
 	double Critical_Density;
 } Cosmo;
 
+#ifdef COMOVING
+
 void Set_Current_Cosmology();
+
 double Hubble_Parameter(const double a);
 double E_Hubble(const double a);
-double Critical_Density(double); 
+double Critical_Density(double);
+
+#else // ! COMOVING
+
+inline void Set_Current_Cosmology(){};
+
+inline double Hubble_Parameter(const double a){return 0;};
+inline double E_Hubble(const double a){return 0;};
+inline double Critical_Density(double a){return 0;};
+
+#endif // ! COMOVING

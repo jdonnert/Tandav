@@ -16,22 +16,22 @@ void Gravity_Tree_Update_Kicks(const int ipart, const double dt)
 	Float m_dt = P[ipart].Mass * dt; // kick tree nodes
 
 	const Float dp[3] = { m_dt*P[ipart].Acc[0],
-						  m_dt*P[ipart].Acc[1], 
+						  m_dt*P[ipart].Acc[1],
 						  m_dt*P[ipart].Acc[2] };
 	int i = 0;
 	int node = P[ipart].Tree_Parent;
-	
+
 	if (node >= 0) { // kick sub tree nodes
-	
-		while (! Node_Is(TOP, node)) { 
-	
+
+		while (! Node_Is(TOP, node)) {
+
 			#pragma omp atomic
 			Tree[node].Dp[0] += dp[0] / Tree[node].Mass;
 			#pragma omp atomic
 			Tree[node].Dp[1] += dp[1] / Tree[node].Mass;
 			#pragma omp atomic
 			Tree[node].Dp[2] += dp[2] / Tree[node].Mass;
-		
+
 			#pragma omp atomic
 			Tree[node].Bitfield |= 1UL << UPDATED; // = Node_Set(UPDATED,node)
 
@@ -42,7 +42,7 @@ void Gravity_Tree_Update_Kicks(const int ipart, const double dt)
 
 	} else  // kick top node only
 		i = -node - 1;
-	
+
 	if (D[i].TNode.Level > 0)
 		D[i].TNode.Level *= -1; // mark kicked. Will reverse after drift
 
@@ -75,22 +75,22 @@ void Gravity_Tree_Update_Drift(const double dt)
 		Tree[i].Dp[0] = Tree[i].Dp[1] = Tree[i].Dp[2] = 0;
 
 		Node_Clear(UPDATED, i);
-	} 
+	}
 
 	nUpdate = 0;
 
 	#pragma omp for reduction(+:nUpdate)
 	for (int i = 0; i < NTop_Nodes; i++) {
-	
+
 		if (D[i].TNode.Level > 0)
 			continue;
-		
+
 		D[i].TNode.CoM[0] += dt * D[i].TNode.Dp[0];
 		D[i].TNode.CoM[1] += dt * D[i].TNode.Dp[1];
 		D[i].TNode.CoM[2] += dt * D[i].TNode.Dp[2];
 
 		D[i].TNode.Dp[0] = D[i].TNode.Dp[1] = D[i].TNode.Dp[2] = 0;
-			
+
 		D[i].TNode.Level *= -1; // reverse "updated" flag
 
 		nUpdate++;

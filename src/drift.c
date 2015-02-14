@@ -4,51 +4,38 @@
 #include "Gravity/gravity.h"
 
 /* 
- * This is the drift part of the KDK scheme 
- * (Dehnen & Read 2012, Springel 05). 
+ * This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 
  * As a snapshot time may not fall onto an integertime, we have to 
  * drift to the snapshot time, write the snapshot and then drift the 
  * remaining time to the next integertime. We use signal 
  */
 
-static double time_snap = 0; 
-
-void Drift_To_Sync_Point() 
+void Drift_To_Sync_Point()
 {
 	Profile("Drift");
-	
-	if (Sig.Drifted_To_Snaptime) { // handle out of sync integer timeline
-
-		Sig.Drifted_To_Snaptime = false;
-	
-		#pragma omp single
-		time_snap = Time.Current;
-	}
 
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
-		
+
 		int ipart = Active_Particle_List[i];
 
-		double time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
+		double dt = Particle_Drift_Step(ipart, Time.Next);
 
-		time_part = fmax(time_part, time_snap);
-
-		double dt = Time.Next - time_part;
-		
-		P[ipart].Pos[0] += 	dt * P[ipart].Vel[0];
-		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1];
-		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2];
+		P[ipart].Pos[0] += dt * P[ipart].Vel[0];
+		P[ipart].Pos[1] += dt * P[ipart].Vel[1];
+		P[ipart].Pos[2] += dt * P[ipart].Vel[2];
 
 	}
 
-	Constrain_Particles_To_Box(); // PERIODIC
+	if (Sig.Drifted_To_Snaptime)  // handled out of sync integer timeline
+		Sig.Drifted_To_Snaptime = false;
 
+	if (!Sig.Domain_Update)
+		Gravity_Tree_Update_Drift(Time.Step);
 
-	if (! Sig.Domain_Update)
-		Gravity_Tree_Update_Drift(Time.Step); 
+	Periodic_Constrain_Particles_To_Box();
 
-	#pragma omp single 
+	#pragma omp single
 	{
 
 	Int_Time.Current += Int_Time.Step;
@@ -60,15 +47,14 @@ void Drift_To_Sync_Point()
 	#pragma omp barrier
 
 	Profile("Drift");
-	
+
 	return;
 }
 
 /* 
- * drift the system forward only to the snaptime 
- * the system is then NOT synchronized with the 
- * integer timeline. This is corrected during the next
- * drift.
+ * Drift the system forward only to the snaptime the system is then 
+ * NOT synchronized with the integer timeline. This is corrected during 
+ * the next drift.
  */
 
 void Drift_To_Snaptime()
@@ -77,18 +63,17 @@ void Drift_To_Snaptime()
 
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
-		
+
 		int ipart = Active_Particle_List[i];
 
-		double dt = Time.Next_Snap 
-			- Integer2Physical_Time(P[ipart].Int_Time_Pos);
+		double dt = Particle_Drift_Step(ipart, Time.Next_Snap);
 
-	 	P[ipart].Pos[0] += 	dt * P[ipart].Vel[0];
-		P[ipart].Pos[1] += 	dt * P[ipart].Vel[1];
-		P[ipart].Pos[2] += 	dt * P[ipart].Vel[2];
+		P[ipart].Pos[0] +=	dt * P[ipart].Vel[0];
+		P[ipart].Pos[1] +=	dt * P[ipart].Vel[1];
+		P[ipart].Pos[2] +=	dt * P[ipart].Vel[2];
 	}
 
-	Constrain_Particles_To_Box(); // PERIODIC
+	Periodic_Constrain_Particles_To_Box();
 
 	Sig.Drifted_To_Snaptime = true;
 
@@ -98,31 +83,51 @@ void Drift_To_Snaptime()
 	return ;
 }
 
+/*
+ * Return the amount of time since the last kick of particle ipart. For
+ * cosmological time integration this is the kick factor in comov.c
+ */
+
+#ifndef COMOVING 
+double Particle_Drift_Step(const int ipart, const double time_next)
+{
+	double time_part = 0;
+
+	if (Sig.Drifted_To_Snaptime)
+		time_part = Time.Current;
+	else
+		time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
+
+	return (time_next - time_part);
+}
+#endif
+
+
 #ifdef PERIODIC
-static void Constrain_Particles_To_Box()
+static void Periodic_Constrain_Particles_To_Box()
 {
 	const Float boxsize[3] = {Sim.Boxsize[0], Sim.Boxsize[1], Sim.Boxsize[2]};
 
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
-		
+
 		int ipart = Active_Particle_List[i];
 
 		while (P[ipart].Pos[0] < 0)
 			P[ipart].Pos[0] += boxsize[0];
-		
+
 		while (P[ipart].Pos[0] >= boxsize[0])
 			P[ipart].Pos[0] -= boxsize[0];
 
 		while (P[ipart].Pos[1] < 0)
 			P[ipart].Pos[1] += boxsize[1];
-		
+
 		while (P[ipart].Pos[1] >= boxsize[1])
 			P[ipart].Pos[1] -= boxsize[1];
 
 		while (P[ipart].Pos[2] < 0)
 			P[ipart].Pos[2] += boxsize[2];
-		
+
 		while (P[ipart].Pos[2] >= boxsize[2])
 			P[ipart].Pos[2] -= boxsize[2];
 	} // for i

@@ -6,8 +6,8 @@
 #include "../domain.h"
 
 static bool interact_with_topnode(const int, const int, Float*, Float*);
-static void interact_with_topnode_particles(const int, const int, 
-		Float*, Float *pot);
+static void interact_with_topnode_particles(const int, const int,
+															Float*, Float *pot);
 static void gravity_tree_walk(const int , const int, Float*, Float*);
 static void gravity_tree_walk_first(const int , const int, Float*, Float*);
 
@@ -29,19 +29,19 @@ static inline Float node_size(const int node);
 void Gravity_Tree_Acceleration()
 {
 	Profile("Grav Tree Walk");
-	
+
 	rprintf("Tree acceleration ");
 
 	#pragma omp for schedule(dynamic)
 	for (int i = 0; i < NActive_Particles; i++) {
-			
+
 		int ipart = Active_Particle_List[i];
 
 		Float grav_accel[3] = { 0 };
 		Float pot = 0;
 
 		for (int j = 0; j < NTop_Nodes; j++) {
-			
+
 			//if (D[j].TNode.Target < 0) {
 			//
 			//	export_particle_to_rank(ipart, -target-1);	
@@ -51,9 +51,9 @@ void Gravity_Tree_Acceleration()
 
 			if (interact_with_topnode(ipart, j, &grav_accel[0], &pot))
 				continue;
-		
+
 			if (D[j].TNode.Npart <= 8) { // open top leave
-			
+
 				interact_with_topnode_particles(ipart, j, grav_accel, &pot);
 
 				continue;
@@ -75,7 +75,7 @@ void Gravity_Tree_Acceleration()
 		P[ipart].Grav_Acc[0] = grav_accel[0];
 		P[ipart].Grav_Acc[1] = grav_accel[1];
 		P[ipart].Grav_Acc[2] = grav_accel[2];
-#endif 
+#endif
 
 #ifdef GRAVITY_POTENTIAL
 		P[ipart].Grav_Pot = pot;
@@ -99,16 +99,16 @@ void Gravity_Tree_Acceleration()
  * the particle and then check the two criteria.
  */
 
-static bool interact_with_topnode(const int ipart, const int j, 
+static bool interact_with_topnode(const int ipart, const int j,
 									Float *grav_accel, Float *pot)
 {
 	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 
-	Float dx = P[ipart].Pos[0] - D[j].TNode.Pos[0];	
+	Float dx = P[ipart].Pos[0] - D[j].TNode.Pos[0];
     Float dy = P[ipart].Pos[1] - D[j].TNode.Pos[1];
 	Float dz = P[ipart].Pos[2] - D[j].TNode.Pos[2];
 
-	if ( (dx < 0.6 * nSize) && (dy < 0.6 * nSize) && (dz < 0.6 * nSize)) 
+	if ( (dx < 0.6 * nSize) && (dy < 0.6 * nSize) && (dz < 0.6 * nSize))
 		return false; // inside subtree -> always walk
 
 	Float r2 = p2(dx) + p2(dy) + p2(dz);
@@ -122,9 +122,8 @@ static bool interact_with_topnode(const int ipart, const int j,
 
 		Float nMass = D[j].TNode.Mass;
 
-		Float fac = ALENGTH3(P[ipart].Acc) 
-								/ Const.Gravity * TREE_OPEN_PARAM_REL;
-		
+		Float fac = ALENGTH3(P[ipart].Acc)/Const.Gravity * TREE_OPEN_PARAM_REL;
+
 		if (nMass*nSize*nSize > r2*r2 * fac)
 			return false;
 	}
@@ -133,7 +132,7 @@ static bool interact_with_topnode(const int ipart, const int j,
 				   P[ipart].Pos[1] - D[j].TNode.CoM[1],
 				   P[ipart].Pos[2] - D[j].TNode.CoM[2]};
 
-	interact(P[ipart].Mass, dr, r2, grav_accel, pot); 
+	interact(P[ipart].Mass, dr, r2, grav_accel, pot);
 
 	return true;
 }
@@ -143,26 +142,26 @@ static bool interact_with_topnode(const int ipart, const int j,
  * targets
  */
 
-static void interact_with_topnode_particles(const int ipart, const int j, 
+static void interact_with_topnode_particles(const int ipart, const int j,
 		Float *grav_accel, Float *pot)
 {
-	const int first = D[j].TNode.Target; 
+	const int first = D[j].TNode.Target;
 	const int last = first + D[j].TNode.Npart;
 
 	for (int jpart = first; jpart < last; jpart++) {
 
 		if (jpart == ipart)
 			continue;
-			
-		Float dr[3] = { P[ipart].Pos[0] - P[jpart].Pos[0],	
-			   		    P[ipart].Pos[1] - P[jpart].Pos[1], 
+
+		Float dr[3] = { P[ipart].Pos[0] - P[jpart].Pos[0],
+					    P[ipart].Pos[1] - P[jpart].Pos[1],
 			            P[ipart].Pos[2] - P[jpart].Pos[2] };
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
 		Float mpart = P[jpart].Mass;
 
-		interact(mpart, dr, r2, grav_accel, pot); 
+		interact(mpart, dr, r2, grav_accel, pot);
 	}
 
 	return ;
@@ -179,7 +178,7 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 {
 	const Float fac = ALENGTH3(P[ipart].Acc) / Const.Gravity
 		* TREE_OPEN_PARAM_REL;
-	
+
 	const Float pos_i[3] = {P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2]};
 
 	const int tree_end = tree_start + Tree[tree_start].DNext;
@@ -197,25 +196,25 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 
 				if (jpart == ipart)
 					continue;
-			
-				Float dr[3] = { pos_i[0] - P[jpart].Pos[0],	
-					   		    pos_i[1] - P[jpart].Pos[1], 
+
+				Float dr[3] = { pos_i[0] - P[jpart].Pos[0],
+							    pos_i[1] - P[jpart].Pos[1],
 					            pos_i[2] - P[jpart].Pos[2] };
 
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
 				Float mpart = P[jpart].Mass;
 
-				interact(mpart, dr, r2, Accel, Pot); 
+				interact(mpart, dr, r2, Accel, Pot);
 			}
 
 			node++;
-			
+
 			continue;
 		}
-	
-		Float dr[3] = { pos_i[0] - Tree[node].CoM[0],	
-					    pos_i[1] - Tree[node].CoM[1], 
+
+		Float dr[3] = { pos_i[0] - Tree[node].CoM[0],
+					    pos_i[1] - Tree[node].CoM[1],
 					    pos_i[2] - Tree[node].CoM[2] };
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
@@ -226,30 +225,30 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 
 		if (nMass*nSize*nSize > r2*r2 * fac) { // relative criterion
 
-			node++; 
+			node++;
 
 			continue;
 		}
-		
+
 		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]);
-	
+
 		if (dx < 0.6 * nSize) { // particle inside node ? 
 
 			Float dy = fabs(pos_i[1] - Tree[node].Pos[1]);
-			
+
 			if (dy < 0.6 * nSize) {
 
 				Float dz = fabs(pos_i[2] - Tree[node].Pos[2]);
-				
+
 				if (dz < 0.6 * nSize) {
 
-					node++; 
+					node++;
 
 					continue;
 				}
 			}
 		}
-		
+
 		interact(nMass, dr, r2, Accel, Pot); // use node
 
 		node += Tree[node].DNext; // skip branch
@@ -264,15 +263,15 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
  * particle acceleration.
  */
 
-static void gravity_tree_walk_first(const int ipart, const int tree_start, 
+static void gravity_tree_walk_first(const int ipart, const int tree_start,
 		Float* Accel, Float *Pot)
 {
 	const Float pos_i[3] = {P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2]};
-	
+
 	int node = tree_start;
 
 	while (Tree[node].DNext != 0 || node == tree_start) {
-		
+
 		if (Tree[node].DNext < 0) { // encountered particle bundle
 
 			int first = -(Tree[node].DNext + 1); // part index is offset by 1
@@ -282,25 +281,25 @@ static void gravity_tree_walk_first(const int ipart, const int tree_start,
 
 				if (jpart == ipart)
 					continue;
-			
-				Float dr[3] = { pos_i[0] - P[jpart].Pos[0],	
-					   		    pos_i[1] - P[jpart].Pos[1], 
+
+				Float dr[3] = { pos_i[0] - P[jpart].Pos[0],
+							    pos_i[1] - P[jpart].Pos[1],
 					            pos_i[2] - P[jpart].Pos[2] };
 
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
 				Float mpart = P[jpart].Mass;
 
-				interact(mpart, dr, r2, Accel, Pot); 
+				interact(mpart, dr, r2, Accel, Pot);
 			}
 
 			node++;
-			
+
 			continue;
 		}
-	
-		Float dr[3] = { pos_i[0] - Tree[node].CoM[0],	
-					    pos_i[1] - Tree[node].CoM[1], 
+
+		Float dr[3] = { pos_i[0] - Tree[node].CoM[0],
+					    pos_i[1] - Tree[node].CoM[1],
 					    pos_i[2] - Tree[node].CoM[2] };
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
@@ -317,7 +316,7 @@ static void gravity_tree_walk_first(const int ipart, const int tree_start,
 		}
 
 		interact(nMass, dr, r2, Accel, Pot); // use node
-		
+
 		node += fmax(1, Tree[node].DNext);
 
 	} // while
@@ -331,13 +330,13 @@ static void gravity_tree_walk_first(const int ipart, const int tree_start,
  * value corresponding to Plummer softening.
  */
 
-static void interact(const Float mass, const Float dr[3], const Float r2, 
+static void interact(const Float mass, const Float dr[3], const Float r2,
 		Float Accel[3], Float *Pot)
 {
 	const Float h_grav = GRAV_SOFTENING / 3.0; // Plummer equiv softening
-	
+
 	const Float r = sqrt(r2);
-	
+
 	Float r_inv = 1/r;
 
 #ifdef GRAVITY_POTENTIAL
@@ -345,20 +344,19 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 #endif
 
 	if (r < h_grav) { // soften 1/r with Wendland C2 kernel
-	
+
 		Float u = r/h_grav;
 		Float u2 = u*u;
 		Float u3 = u2*u;
-			
-		r_inv = sqrt(14*u - 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3) 
-			/ h_grav;
+
+		r_inv = sqrt(14*u - 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3) / h_grav;
 
 #ifdef GRAVITY_POTENTIAL
 		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3)
 			/ h_grav;
 #endif
-	} 
-	
+	}
+
 	Float acc_mag = -Const.Gravity * mass * p2(r_inv);
 
 	Accel[0] += acc_mag * dr[0] * r_inv;

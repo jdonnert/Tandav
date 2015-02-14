@@ -18,9 +18,7 @@ void Update(enum Update_Parameters stage)
 
 	case BEFORE_MAIN_LOOP:
 		
-#ifdef COMOVING
 		Set_Current_Cosmology();
-#endif
 		
 		Domain_Decomposition();
 
@@ -62,9 +60,7 @@ void Update(enum Update_Parameters stage)
 
 	case BEFORE_FORCES:
 
-#ifdef COMOVING
 		Set_Current_Cosmology();
-#endif
 
 		break;
 

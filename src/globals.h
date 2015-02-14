@@ -5,7 +5,7 @@
 
 int * restrict Active_Particle_List, NActive_Particles;
 
-extern struct Local_Task_Properties {		
+extern struct Local_Task_Properties {
 	int Rank;					// MPI Rank of this thread
 	int Thread_ID;				// OpenMP ID of this thread
 	bool Is_Master;				// == true on global master rank 
@@ -16,23 +16,23 @@ extern struct Local_Task_Properties {
 	uint64_t Npart_Total_Max;	// per task taking into account imbalance.
 	uint64_t Npart_Max[NPARTYPE];// Use this if array size scales with Npart
 	unsigned short Seed[3];		// Thread safe urand48() seed
-	size_t Buffer_Size; 		// for Thread Safe Buffer
+	size_t Buffer_Size;		// for Thread Safe Buffer
 } Task;
 #pragma omp threadprivate(Task) // modifications only in parallel env. !!
 
-extern struct Global_Simulation_Properties {	
+extern struct Global_Simulation_Properties {
 	int Master;					// Global Rank Master
 	int NRank;					// Number of MPI tasks
 	int NThreads;				// Number of OpenMP threads
 	int NTask;					// NRank * NThreads
 	uint64_t Npart_Total;		// total global number of particles
-	uint64_t Npart[NPARTYPE]; 	// global number of particles
-	double Mpart[NPARTYPE]; 	// Global Masses  from header
+	uint64_t Npart[NPARTYPE];	// global number of particles
+	double Mpart[NPARTYPE];		// Global Masses from header
 	double Boxsize[3];			// Now in 3D !
 } Sim;
 
 extern struct Parameters_From_File {
-	char File[CHARBUFSIZE]; 	// parameter file name
+	char File[CHARBUFSIZE];		// parameter file name
 	char Input_File[CHARBUFSIZE];
 	char Output_File_Base[CHARBUFSIZE];
 	char Log_File_Dir[CHARBUFSIZE];

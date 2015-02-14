@@ -6,7 +6,7 @@ pro make_ICs
 
 	seed = 14041981L
 
-	npart = 10000000L
+	npart = 100000L
 
 	mass = 1d15 * Msol / tandav.mass ; code units 
 	a_hernq = 924D 		
@@ -17,9 +17,9 @@ pro make_ICs
 
 	pos = make_array(3, npart, /double, val=0)
 	
-	sqrt_q = sqrt(randomu(seed, npart)) 
+	sqrt_q = sqrt(randomu(seed, npart)) * 0.97
 
-	r = a_hernq  * sqrt_q / (1-sqrt_q)
+	r = a_hernq  * sqrt_q / (1-sqrt_q) 
 
 	theta = acos(2 * randomu(seed, npart) - 1)
 	phi = 2*!pi * randomu(seed, npart) 
@@ -82,6 +82,9 @@ pro make_ICs
 	head.redshift = 0
 	head.num_files = 1
 	head.boxsize = 1d15
+	head.Omega0 = 1D
+	head.OmegaLambda = 0.7D
+	head.HubbleParam = 0.7200D
 
 	fname = './IC_Hernquist_Halo'
 

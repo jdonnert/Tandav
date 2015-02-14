@@ -36,13 +36,13 @@ static void accel_gravity()
 		Gravity_Tree_Build();
 
 	Gravity_Tree_Acceleration();
-	
-	if (Sig.First_Step) 
+
+	if (Sig.First_Step)
 		Gravity_Tree_Acceleration();
 
 #ifdef PERIODIC
 	 Gravity_Tree_Ewald_Correction();
-#endif	
+#endif
 
 #endif // GRAVITY_TREE
 
@@ -63,12 +63,12 @@ static void accel_gravity()
 static void zero_active_particle_accelerations()
 {
 	#pragma omp for
-	for (int i = 0; i < NActive_Particles; i++) { 
-			
+	for (int i = 0; i < NActive_Particles; i++) {
+
 		int ipart = Active_Particle_List[i];
-	
+
 		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
 	}
-		
+
 	return ;
 }

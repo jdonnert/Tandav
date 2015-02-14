@@ -17,7 +17,7 @@ uint32_t umin(const uint32_t x, const uint32_t y)
 {
   return y ^ ((x ^ y) & -(x < y));
 }
- 
+
 uint32_t umax(const uint32_t x, const uint32_t y)
 {
   return x ^ ((x ^ y) & -(x < y));
@@ -27,7 +27,7 @@ int64_t Imin(const int64_t x, const int64_t y)
 {
   return y ^ ((x ^ y) & -(x < y));
 }
- 
+
 int64_t Imax(const int64_t x, const int64_t y)
 {
   return x ^ ((x ^ y) & -(x < y));
@@ -37,7 +37,7 @@ uint64_t Umin(const uint64_t x, const uint64_t y)
 {
   return y ^ ((x ^ y) & -(x < y));
 }
- 
+
 uint64_t Umax(const uint64_t x, const uint64_t y)
 {
   return x ^ ((x ^ y) & -(x < y));
@@ -47,7 +47,7 @@ uint64_t Umax(const uint64_t x, const uint64_t y)
  * Branch free sign function for "Float" type
  */
 
-Float Sign(const Float x)  
+Float Sign(const Float x)
 {
 	return ((Float)0 < x) - (x < (Float)0);
 }
@@ -63,7 +63,7 @@ void Print_Int_Bits(const __uint128_t val, const int length, const int delta)
 
 	for (int i = length-1; i >= 0; i--) {
 
-		__uint128_t b = val & ( one << i ); 
+		__uint128_t b = val & ( one << i );
 
 		if (b != 0)
 			printf("1");
@@ -75,7 +75,7 @@ void Print_Int_Bits(const __uint128_t val, const int length, const int delta)
 	}
 
 	printf("\n");
-	
+
 	fflush(stdout);
 
 	return ;
@@ -92,27 +92,27 @@ void Print_Int_Bits(const __uint128_t val, const int length, const int delta)
  * limit set by PARTALLOCFACTOR. 
  */
 
-void Reallocate_P_Info(const char *func, const char *file, int line, 
+void Reallocate_P_Info(const char *func, const char *file, int line,
 		int dNpart[NPARTYPE], size_t offset_out[NPARTYPE])
 {
 
-	#pragma omp single 
+	#pragma omp single
 	for (int i = 0; i < NPARTYPE; i++)
-		Assert(Task.Npart[i] + dNpart[i] <= Task.Npart_Max[i], 
+		Assert(Task.Npart[i] + dNpart[i] <= Task.Npart_Max[i],
 			"Too many particles type %d on this task. \n"
-			"Have %d, want %d, max %d \nCurrent PARTALLOCFACTOR = %g", 
+			"Have %d, want %d, max %d \nCurrent PARTALLOCFACTOR = %g",
 			i, Task.Npart[i], dNpart[i], Task.Npart_Max[i], PARTALLOCFACTOR);
 
 	int offset[NPARTYPE] = { 0 }, new_npart_total = 0;
 	int new_npart[NPARTYPE] = { 0 };
-	
+
 	#pragma omp single
 	for (int type = 0; type < NPARTYPE; type++) { // calc offset
 
 		new_npart[type] = Task.Npart[type] + dNpart[type];
-		
+
 		new_npart_total += new_npart[type];
-		
+
         Assert(new_npart[type] >= 0, "Can't alloc negative particles,"
 			" type %d, delta %d, current %d,\n"
 			"requested from %s, %s(), line %d", 

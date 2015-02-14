@@ -20,7 +20,7 @@ static void generate_masses_from_header();
 void Read_Snapshot(char *input_name)
 {
 	const int nRank = Sim.NRank;
-	
+
 	int nIOTasks = Param.Num_IO_Tasks;
 
 	int nFiles = 0;
@@ -32,14 +32,14 @@ void Read_Snapshot(char *input_name)
 	if (Task.Is_Master) {
 
 		nFiles = find_files(input_name);
-		
-		rprintf("\nParallel Reading of %d files on %d tasks\n\n", 
+
+		rprintf("\nParallel Reading of %d files on %d tasks\n\n",
 				nFiles, nIOTasks);
 
 		strncpy(filename, input_name, CHARBUFSIZE);
 
 		if (nFiles > 1)
-        	sprintf(filename, "%s.0", input_name);
+			sprintf(filename, "%s.0", input_name);
 
 		FILE *fp = fopen(filename, "r");
 
@@ -357,26 +357,26 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 		(long long unsigned int) Sim.Npart[3], Sim.Mpart[3], 
 		(long long unsigned int) Sim.Npart[4], Sim.Mpart[4], 
 		(long long unsigned int) Sim.Npart[5], Sim.Mpart[5], sum);
-	
+
 	Warn(head.Num_Files != nFiles, "NumFiles in Header (%d) doesnt match "
 			"number of files found (%d) \n\n", head.Num_Files, nFiles);
 
-	Warn(head.Omega0 - Cosmo.Omega_0 < 1e-3, 
-			"Omega_0 in snapshot different from code: %g <-> %g", 
+	Warn(head.Omega0 != Cosmo.Omega_0,
+			"Omega_0 in snapshot different from code: %g <-> %g",
 			head.Omega0, Cosmo.Omega_0);
 
-	Warn(head.Omega_Lambda - Cosmo.Omega_Lambda < 1e-3, 
-			"Omega_Lambda in snapshot different from code: %g <-> %g", 
+	Warn(head.Omega_Lambda != Cosmo.Omega_Lambda,
+			"Omega_Lambda in snapshot different from code: %g <-> %g",
 			head.Omega_Lambda, Cosmo.Omega_Lambda);
-	
-	Warn(head.Hubble_Param - Cosmo.Hubble_Constant < 1e-3, 
-			"h_0 in snapshot different from code: %g <-> %g", 
+
+	Warn(head.Hubble_Param != Cosmo.Hubble_Constant,
+			"h_0 in snapshot different from code: %g <-> %g",
 			head.Hubble_Param, Cosmo.Hubble_Constant/100);
 
 	return ;
 }
 
-static void generate_masses_from_header() 
+static void generate_masses_from_header()
 {
 	bool mass_in_header = false;
 
@@ -388,9 +388,9 @@ static void generate_masses_from_header()
 		return;
 
 	int iMin = 0;
-	
+
 	for (int type = 0; type < NPARTYPE; type++) {
-		
+
 		int iMax = iMin + Task.Npart[type];
 
 		for (int ipart = iMin; ipart < iMax; ipart++)

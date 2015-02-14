@@ -1,5 +1,6 @@
 #include "globals.h"
 #include "timestep.h"
+#include "kick.h"
 #include "Gravity/gravity.h"
 
 /* 
@@ -8,31 +9,23 @@
  * nodes are kicked as well.
  */
 
-void Kick_First_Halfstep() 
+void Kick_First_Halfstep()
 {
 	Profile("First Kick");
- 
+
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
 
-		double time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
-
-#ifdef COMOVING 
-		double dt = 0.5 * Cosmo_Kick_Factor(Sim.Current_Time); // Quinn+97
-#else
-		double dt = 0.5 * (Time.Next - time_part);
-#endif // COMOVING
+		double dt = Particle_Kick_Step(ipart);
 
 		P[ipart].Vel[0] += dt * P[ipart].Acc[0];
-		P[ipart].Vel[1] += dt * P[ipart].Acc[1]; 
+		P[ipart].Vel[1] += dt * P[ipart].Acc[1];
 		P[ipart].Vel[2] += dt * P[ipart].Acc[2];
 
-#ifdef GRAVITY_TREE
-		if (!Sig.Domain_Update) 
-			Gravity_Tree_Update_Kicks(ipart, dt); 
-#endif 
+		if (!Sig.Domain_Update)
+			Gravity_Tree_Update_Kicks(ipart, dt);
 	}
 
 #pragma omp barrier
@@ -42,7 +35,7 @@ void Kick_First_Halfstep()
 	return ;
 }
 
-void Kick_Second_Halfstep() 
+void Kick_Second_Halfstep()
 {
 	Profile("Second Kick");
 
@@ -51,27 +44,33 @@ void Kick_Second_Halfstep()
 
 		int ipart = Active_Particle_List[i];
 
-		double time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
-
-#ifdef COMOVING 
-		double dt = 0.5 * Cosmo_Kick_Factor(Sim.Current_Time); // Quinn+97
-#else
-		double dt = 0.5 * (Time.Next - time_part);
-#endif // COMOVING
+		double dt = Particle_Kick_Step(ipart);
 
 		P[ipart].Vel[0] += dt * P[ipart].Acc[0];
-		P[ipart].Vel[1] += dt * P[ipart].Acc[1]; 
+		P[ipart].Vel[1] += dt * P[ipart].Acc[1];
 		P[ipart].Vel[2] += dt * P[ipart].Acc[2];
 
 		P[ipart].Int_Time_Pos = Int_Time.Next;
 
-#ifdef GRAVITY_TREE
-		if (!Sig.Domain_Update) 
+		if (!Sig.Domain_Update)
 			Gravity_Tree_Update_Kicks(ipart, dt); 
-#endif 
 	}
 
 	Profile("Second Kick");
 
 	return ;
 }
+
+/*
+ * Return half the amount of time since the last kick of particle ipart. For
+ * cosmological time integration this is the kick factor in comov.c
+ */
+
+#ifndef COMOVING 
+double Particle_Kick_Step(const int ipart)
+{
+	double time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
+
+	return 0.5 * (Time.Next - time_part);
+}
+#endif

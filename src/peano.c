@@ -25,31 +25,29 @@ void Sort_Particles_By_Peano_Key()
 {
 	Profile("Peano-Hilbert order");
 
-	#pragma omp single 
+	#pragma omp single
 	{
 
 	keys = Malloc(Task.Npart_Total_Max * sizeof(*keys), "PeanoKeys");
-	
+
 	idx = Malloc(Task.Npart_Total_Max * sizeof(*idx), "Sort Idx");
-	
+
 	} // omp single
 
 	#pragma omp for
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) 
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
 		keys[ipart] = Peano_Key(P[ipart].Pos);
 
-	Qsort_Index(Sim.NThreads, idx, keys, Task.Npart_Total, sizeof(*keys), 
+	Qsort_Index(Sim.NThreads, idx, keys, Task.Npart_Total, sizeof(*keys),
 			&compare_peanoKeys);
 
-	#pragma omp barrier
-	
 	#pragma omp single
 	{
-	
+
 	reorder_collisionless_particles(idx);
 
-	Free(keys); Free(idx); 
-	
+	Free(keys); Free(idx);
+
 	} // omp single
 
 	Make_Active_Particle_List();

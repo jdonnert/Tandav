@@ -194,9 +194,9 @@ void Init_Memory_Management()
 			maxNbytes, maxNbytes/1024/1024, minNbytes, 
 			minNbytes/1024/1024, Mem_Size, Mem_Size/1024/1024);
 
-	int success = posix_memalign(&Memory, MEM_ALIGNMENT, Mem_Size);
+	int fail = posix_memalign(&Memory, MEM_ALIGNMENT, Mem_Size);
 
-	Assert(success, "Couldn't allocate Memory. MaxMemSize %d too large ?",
+	Assert(!fail, "Couldn't allocate Memory. MaxMemSize %d too large ?",
 			Param.Max_Mem_Size);
 
 	NBytes_Left = Mem_Size;
@@ -262,7 +262,8 @@ void Print_Memory_Usage()
 	}
 
 	printf("\nExternal Thread-Safe Buffer: %d x %g = %g MB\n\n", 
-			Sim.NThreads, Task.Buffer_Size/1024.0/1024, (float)BUFFER_SIZE);
+			Sim.NThreads, Task.Buffer_Size/1024.0/1024, 
+			(float)Param.Buffer_Size);
 	
 	printf("\n");
 	

@@ -12,19 +12,25 @@ static void reallocate_topnodes(); // not thread safe
 static int check_distribution();
 static void communicate_particles();
 static void communicate_bunches();
-static void print_domain_decomposition (const int);
+static int cost_metric(const int ipart);
 static int compare_bunches_by_key(const void *a, const void *b);
-static int compare_bunches_by_target(const void *a, const void *b); 
-static int compare_bunches_by_npart(const void *a, const void *b); 
+static int compare_bunches_by_target(const void *a, const void *b);
+static int compare_bunches_by_cost(const void *a, const void *b);
+static int compare_load(const void *a, const void *b);
+static void print_domain_decomposition (const int);
 
-#define DOMAIN_SPLIT_MEM_THRES -0.8
-#define DOMAIN_SPLIT_CPU_THRES -1
-#define DOMAIN_NBUNCHES_PER_THREAD 4.0
+#define DOMAIN_SPLIT_MEM_THRES 0.5
+#define DOMAIN_SPLIT_CPU_THRES 0.5
 
-union Domain_Node_List *D = NULL; 
-static double max_mem_imbal = 0, max_cpu_imbal = 0;
+union Domain_Node_List *D = NULL;
+
 static double Top_Node_Alloc_Factor = 0;
+
 static int Max_NBunches = 0, NTop_Leaves = 0, NBunches = 0;
+static int *Npart = NULL;
+
+static double total_cost = 0, max_mem_imbal = 0, max_cost_imbal = 0;
+static double *Cost = NULL;
 
 /* 
  * Distribute particles in bunches, which are continuous  on the Peano curve
@@ -49,26 +55,28 @@ void Domain_Decomposition()
 	Profile("Domain Decomposition");
 
 	find_global_domain_extend();
-	
+
 	Sort_Particles_By_Peano_Key();
-		
+
 	reconstruct_complete_bunch_list();
-	
+
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
-	fill_bunches(0, NBunches, 0, Task.Npart_Total); // let's see what we have
+	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
 	for (;;) {
-	
+
 		Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
 		communicate_bunches();
 
-		#pragma omp single 
+		#pragma omp single
 		max_level = remove_empty_bunches();
 
-		if (check_distribution() == 0) 
+		if (check_distribution() == 0)
 			break;
+
+	print_domain_decomposition(max_level);
 
 		int old_nBunches = NBunches;
 
@@ -83,11 +91,11 @@ void Domain_Decomposition()
 					reallocate_topnodes();
 
 				split_bunch(i, first_new_bunch);
-				
-				fill_bunches(first_new_bunch, 8, D[i].Bunch.First_Part, 
+
+				fill_bunches(first_new_bunch, 8, D[i].Bunch.First_Part,
 						D[i].Bunch.Npart);
-				
-				#pragma omp single 
+
+				#pragma omp single
 				memset(&D[i].Bunch, 0, sizeof(*D)); // mark for deletion
 			} // if 
 		} // for i
@@ -95,21 +103,21 @@ void Domain_Decomposition()
 
 	#pragma omp barrier
 
-	rprintf("Domain: %d Top Nodes, %d Top Leaves, max level %d\n\n", 
-			NBunches, NTop_Leaves, max_level);
+	rprintf("Domain: %d Top Nodes, %d Top Leaves, max level %d\n"
+			"   Imbalance: Mem %g, Cost %g \n\n",
+			NBunches, NTop_Leaves, max_level, max_mem_imbal, max_cost_imbal);
 
-#ifdef DEBUG
+//#ifdef DEBUG
 	print_domain_decomposition(max_level);
-#endif
+//#endif
 
 	communicate_particles();
 
 	Sig.Tree_Update = true;
 
-	#pragma omp single 
+	#pragma omp single
 	NTop_Nodes = NBunches;
 
-	#pragma omp flush
 
 	Profile("Domain Decomposition");
 
@@ -122,20 +130,24 @@ void Domain_Decomposition()
 
 void Init_Domain_Decomposition()
 {
+	Cost = Malloc(Sim.NTask * sizeof(Cost), "Cost");
+	Npart = Malloc(Sim.NTask * sizeof(Npart), "Npart");
+
 	Top_Node_Alloc_Factor = (double) 1024 / Task.Npart_Total;
 
 	reallocate_topnodes();
 
 	memset(D, 0, Max_NBunches * sizeof(*D));
-	
+
 	NBunches = 1;
 
 	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
 	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
 
+
 	#pragma omp parallel
 	{
-	
+
 	find_global_domain_extend();
 
 	rprintf("\nInitial Domain size is %g, \n"
@@ -148,7 +160,7 @@ void Init_Domain_Decomposition()
 			Domain.Center_Of_Mass[2]);
 
 	} // omp parallel
-	
+
 	return;
 }
 
@@ -160,10 +172,10 @@ void Init_Domain_Decomposition()
 static void reallocate_topnodes()
 {
 	Top_Node_Alloc_Factor *= 1.2;
-	
+
 	Max_NBunches = Sim.Npart_Total * Top_Node_Alloc_Factor;
 
-	size_t nBytes = Max_NBunches * sizeof(*D); 
+	size_t nBytes = Max_NBunches * sizeof(*D);
 
 	printf("Increasing Top Node Memory to %g KB, Max %d Nodes, Factor %4g \n"
 			, nBytes/1024.0, Max_NBunches, Top_Node_Alloc_Factor);
@@ -182,13 +194,13 @@ static void reallocate_topnodes()
  *
  *      akey  000.010.010.111.111.111  ->  bkey 010.001.110.001.111.111
  *
- *	000.010.010.111.111.111, 000.111.111.111.111.111, 010.000.111.111.111.111
- *	         ^                ^                            ^
- *      <- start 010->111    fill top triplet            start -> 000 -> 001
+ *	000.010.010.111.111.111 > 000.111.111.111.111.111 > 010.000.111.111.111.111
+ *	         ^                ^                          ^
+ *      <- start 010->111    fill top triplet           start -> 000 -> 001
  *
  * fill every triplet up to 111, fill triplet "top",  fill triplets downwards
- * All new keys * level are kept in the OmP buffer and later copied back 
- * into D. At last, reset properties overwritten by the union in D.
+ * All new keys are kept in the OmP buffer and later copied back 
+ * into "D". At last, we reset properties overwritten by the union in D.
  */
 
 void reconstruct_complete_bunch_list()
@@ -197,8 +209,8 @@ void reconstruct_complete_bunch_list()
 
 	if (NBunches == 1)
 		goto skip_reconstruction;
-	
-	#pragma omp single 
+
+	#pragma omp single
 	{
 
 	Free(Tree);
@@ -206,7 +218,7 @@ void reconstruct_complete_bunch_list()
 	Tree = NULL;
 
 	if (D[NBunches-1].Bunch.Key != 0xFFFFFFFFFFFFFFFF) { // make end
-	
+
 		int i = NBunches++;
 
 		D[i].Bunch.Level = 1;
@@ -223,11 +235,11 @@ void reconstruct_complete_bunch_list()
 	#pragma omp for nowait
 	for (int i = 0; i < nOld_Bunches-1; i++) { // fill to cover whole domain
 
-		shortKey akey = D[i].Bunch.Key; 	// lowest key
-		shortKey bkey = D[i+1].Bunch.Key; 	// highest key
+		shortKey akey = D[i].Bunch.Key;	// lowest key
+		shortKey bkey = D[i+1].Bunch.Key; // highest key
 
 		int top = 1; // highest level where akey != bkey
-	
+
 		uint64_t mask = 0x7ULL << (N_SHORT_BITS-3);
 
 		while ((akey & mask) == (bkey & mask)) {
@@ -242,33 +254,32 @@ void reconstruct_complete_bunch_list()
 
 			uint64_t atriplet = (akey >> shift) & 0x7;
 
+			uint64_t template = (akey | (0xFFFFFFFFFFFFFFFF >> 3*j))
+												& ~(0x7ULL << shift);
+
 			for (uint64_t k = atriplet + 1; k < 8; k++) {
-				
-				uint64_t template = 
-					(akey | (0xFFFFFFFFFFFFFFFF >> 3*j)) & ~(0x7ULL << shift);
-					
+
 				b[nNew].Key = template | (k << shift);
 				b[nNew].Level = j;
 
 				nNew++;
-				
 			}
 		}
 
 		int shift = N_SHORT_BITS - 3 * top; // fill at level 'top'
 
 		uint64_t atriplet = (akey >> shift) & 0x7;
-		uint64_t btriplet = (bkey >> shift) & 0x7; 
+		uint64_t btriplet = (bkey >> shift) & 0x7;
+
+		uint64_t template = (akey | (0xFFFFFFFFFFFFFFFF >> 3*top))
+											 & ~(0x7ULL << shift);
 
 		for (uint64_t k = atriplet + 1; k < btriplet; k++) {
-		
-			uint64_t template = 
-				(akey | (0xFFFFFFFFFFFFFFFF >> 3*top)) & ~(0x7ULL << shift);
+
 			b[nNew].Level = top;
 			b[nNew].Key = template | (k << shift);
 
 			nNew++;
-
 		}
 
 		for (int j = top+1; j <= D[i+1].Bunch.Level; j++) { // fill downwards
@@ -276,8 +287,8 @@ void reconstruct_complete_bunch_list()
 			int shift = N_SHORT_BITS - 3 * j;
 
 			uint64_t btriplet = (bkey >> shift) & 0x7;
-		
-			uint64_t template = (bkey | (0xFFFFFFFFFFFFFFFF >> 3*j)) 
+
+			uint64_t template = (bkey | (0xFFFFFFFFFFFFFFFF >> 3*j))
 														& ~(0x7ULL << shift);
 			for (uint64_t k = 0; k < btriplet; k++) {
 
@@ -285,7 +296,6 @@ void reconstruct_complete_bunch_list()
 				b[nNew].Key = template | (k << shift);
 
 				nNew++;
-
 			} // for k
 		} // for j
 	} // for i
@@ -304,13 +314,13 @@ void reconstruct_complete_bunch_list()
 	NBunches += nNew;
 
 	} // omp critical
-	
+
 	#pragma omp barrier
 
 	int j = 0;
-	
+
 	for (int i = start; i < end; i++) {
-	
+
 		D[i].Bunch.Key = b[j].Key;
 		D[i].Bunch.Target = -INT_MAX;
 		D[i].Bunch.Level = b[j++].Level;
@@ -318,13 +328,12 @@ void reconstruct_complete_bunch_list()
 
 	skip_reconstruction:;
 
-
 	#pragma omp for
 	for (int i = 0; i < NBunches; i++) { // reset values in all bunches
 
 		D[i].Bunch.Npart = 0;
 		D[i].Bunch.Modify = 0;
-	 	D[i].Bunch.Cost = 0;
+		D[i].Bunch.Cost = 0;
 		D[i].Bunch.First_Part = INT_MAX;
 
 		if (D[i].Bunch.Target >= 0)
@@ -332,9 +341,8 @@ void reconstruct_complete_bunch_list()
 
 	} // for i < NBunches
 
-	rprintf("Domain: Reconstruction %d -> %d bunches\n", nOld_Bunches, 
+	rprintf("Domain: Reconstruction %d -> %d bunches\n", nOld_Bunches,
 			NBunches);
-
 
 	return ;
 }
@@ -350,7 +358,7 @@ static void split_bunch(const int parent, const int first)
 {
 	#pragma omp single
 	NBunches += 8;
-	
+
 	#pragma omp for
 	for (int i = 0; i < 8; i++) {
 
@@ -375,20 +383,20 @@ static void split_bunch(const int parent, const int first)
 
 static int remove_empty_bunches()
 {
-	int i = 0; 
-	
+	int i = 0;
+
 	int n = NBunches, nLeaves = 0, max_lvl = -1;
 
 	while (i < n) {
-	
+
 		if (D[i].Bunch.Npart == 0) {  // remove
-	
+
 			n--;
-			
+
 			memmove(&D[i], &D[i+1], (n-i) * sizeof(*D)); // fine for n == i 
 
 			continue;
-		} 
+		}
 
 		if (D[i].Bunch.Npart <= 8)
 			nLeaves++;
@@ -400,7 +408,6 @@ static int remove_empty_bunches()
 
 	NTop_Leaves = nLeaves;
 	NBunches = n;
-	
 
 	return max_lvl;
 }
@@ -410,17 +417,17 @@ static int remove_empty_bunches()
  * Every thread works inside the omp buffer, which are later reduced
  */
 
-static void fill_bunches(const int first_bunch, const int nBunches, 
+static void fill_bunches(const int first_bunch, const int nBunches,
 		 const int first_part, const int nPart)
 {
 	const int last_part = first_part + nPart;
 
 	struct Bunch_Node *b = Get_Thread_Safe_Buffer(nBunches*sizeof(*b));
-	
+
 	int run = first_bunch;
 
 	for (int i = 0; i < nBunches; i++) {
-	
+
 		b[i].First_Part = INT_MAX;
 		b[i].Key = D[run].Bunch.Key;
 
@@ -428,27 +435,27 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 	}
 
 	run = 0;
-	
+
 	#pragma omp for nowait
 	for (int ipart = first_part; ipart < last_part; ipart++) {
-		
+
 		shortKey pkey = Short_Peano_Key(P[ipart].Pos);
 
 		while (b[run].Key < pkey) // particles are ordered by key
 			run++;
 
 		b[run].Npart++;
-		b[run].Cost += P[ipart].Cost;
+		b[run].Cost += cost_metric(ipart);
 		b[run].First_Part = imin(b[run].First_Part, ipart);
 	}
 
 	#pragma omp critical
 	{
-	
+
 	const int last_bunch = first_bunch + nBunches;
 
 	run = 0;
-	
+
 	for (int i = first_bunch; i < last_bunch; i++) {
 
 		D[i].Bunch.Npart += b[run].Npart;
@@ -461,58 +468,126 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 	} // omp critical 
 
 	#pragma omp barrier
-	
+
 	return ;
 }
 
+static int cost_metric(const int ipart)
+{
+	return 1;
+}
+
 /*
- * This function defines the metric that decides if a bunch has to be refined
- * into eight sub-bunches. It sets the target processor, by setiing target to 
- * a negative MPI rank value + 1.
+ * This function defines the algorithm that decides if a bunch has to be refined
+ * into eight sub-bunches. It sets the target processor setting target to 
+ * a negative MPI rank value -1.
  */
 
-static int nSplit = 0;
 
 static int check_distribution()
 {
-	if (NBunches >= Sim.NTask * 4) // too deep
+	#pragma omp single // find total cost and means
+	{
+
+	total_cost = 0;
+	} // single
+
+	#pragma omp for reduction(+:total_cost)
+	for (int i = 0; i < NBunches; i++)
+		total_cost += D[i].Bunch.Cost;
+
+	//MPI_Allreduce();
+
+	const double mean_cost = total_cost / Sim.NTask;
+	const double mean_npart = (double) Sim.Npart_Total / Sim.NTask;
+
+	max_mem_imbal = max_cost_imbal = 0;
+
+	#pragma omp single // distribute
+	{
+
+	memset(Cost, 0, Sim.NTask * sizeof(*Cost));
+	memset(Npart, 0, Sim.NTask * sizeof(*Npart));
+
+	int task = 0;
+
+	for (int i = 0; i < NBunches; i++) {
+
+		if (Cost[task] + D[i].Bunch.Cost > mean_cost * 1.01)
+			task++;
+
+		if (task == Sim.NTask)
+			break;
+
+		Cost[task] += D[i].Bunch.Cost;
+		Npart[task] += D[i].Bunch.Npart;
+
+		D[i].Bunch.Target = -task - 1;
+	}
+
+	} // omp single
+
+	#pragma omp for reduction(max:max_mem_imbal,max_cost_imbal)
+	for (int i = 0; i < Sim.NTask; i++ ) { // find max imbalance
+
+		double cost_imbal = (Cost[i] - mean_cost) / mean_cost;
+
+		if (cost_imbal > max_cost_imbal)
+			max_cost_imbal = cost_imbal;
+
+		double npart_imbal = (Npart[i] - mean_npart) / mean_npart;
+
+		if (npart_imbal > max_mem_imbal)
+			max_mem_imbal = npart_imbal;
+	}
+
+	int nSplit = 0;
+
+	if (max_mem_imbal < 0.01 && max_cost_imbal < 0.01)
 		return 0;
 
-	const int nHeavy_Leaves = NBunches - NTop_Leaves;
-	const double mean_npart = Sim.Npart_Total 
-								/ (Sim.NTask * DOMAIN_NBUNCHES_PER_THREAD);
-	#pragma omp single 
-	max_mem_imbal = max_cpu_imbal = nSplit = 0;
-	
-	#pragma omp for reduction(max: max_mem_imbal,max_cpu_imbal) \
-					reduction(+:nSplit)
-	for (int i = 0; i < NBunches; i++ ) {
+	#pragma omp single copyprivate(nSplit) // find split
+	{
 
-		double rel_mem_load = (D[i].Bunch.Npart - mean_npart) / mean_npart;
-		double rel_cpu_load = 0;
+	int task = 0;
+	int b = 0;
+	double imbalance = 0;
 
-		max_mem_imbal = fmax(max_mem_imbal, rel_mem_load);
-		max_cpu_imbal = fmax(max_cpu_imbal, rel_cpu_load);
-		
-		if (D[i].Bunch.Level == N_SHORT_TRIPLETS-1) // can't go deeper
-			continue;
+	while(task != Sim.NTask) {
 
-		if (NBunches < Sim.NTask * 8)
-			D[i].Bunch.Modify = 1;
-		else if (rel_mem_load > DOMAIN_SPLIT_MEM_THRES) 
-			D[i].Bunch.Modify = 1;
-		//else if (rel_cpu_load > DOMAIN_SPLIT_CPU_THRES) 
-		//	D[i].Bunch.Modify = 1;
-		else 
-			continue;
+		int i_max_cost = -1;
+		double max_cost = 0;
 
-		nSplit++; // here come the (de-)refinement recipies
-	}
-	
+		while (D[b].Bunch.Target == -task-1) {
+
+			if (D[b].Bunch.Cost > max_cost) {
+
+				i_max_cost = b;
+				max_cost = D[i_max_cost].Bunch.Cost;
+			}
+
+			b++;
+		}
+
+		if (Cost[task]/mean_cost > 0.5) {
+
+			D[i_max_cost].Bunch.Modify = 1;
+
+			nSplit++;
+		}
+
+		task++;
+	} // while task
+
+	} // omp single
+
+	print_domain_decomposition(max_level);
+
+	if (NBunches > 150) exit(0);
 	return nSplit;
 }
 
-static int compare_bunches_by_key(const void *a, const void *b) 
+static int compare_bunches_by_key(const void *a, const void *b)
 {
 	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
 	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
@@ -520,7 +595,7 @@ static int compare_bunches_by_key(const void *a, const void *b)
 	return (int) (x->Key > y->Key) - (x->Key < y->Key);
 }
 
-static int compare_bunches_by_target(const void *a, const void *b) 
+static int compare_bunches_by_target(const void *a, const void *b)
 {
 	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
 	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
@@ -528,14 +603,13 @@ static int compare_bunches_by_target(const void *a, const void *b)
 	return (int) (x->Target > y->Target) - (x->Target < y->Target);
 }
 
-static int compare_bunches_by_npart(const void *a, const void *b) 
+static int compare_bunches_by_cost(const void *a, const void *b)
 {
 	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
 	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
 
-	return (int) (x->Npart > y->Npart) - (x->Npart < y->Npart);
+	return (int) (x->Cost > y->Cost) - (x->Cost < y->Cost);
 }
-
 
 static void communicate_particles()
 {
@@ -553,47 +627,18 @@ static void communicate_bunches()
 	#pragma omp for
 	for (int i = 0; i < NBunches; i++) {
 
-		D[i].Bunch.Target = 0;
+		//D[i].Bunch.Target = 0;
 
 		D[i].Bunch.Is_Local = true;
 	}
-	
+
+
 	// MPI_Ibcast();
-	
-	return ;
-}
-	
-
-static void print_domain_decomposition (const int max_level)
-{
-	#pragma omp master
-	{
-
-	rprintf(" No | Split | npart  |   sum  | first  | trgt  | lvl |"
-			"| Max PH key,   Max_level %d \n", max_level);
-	
-	size_t sum = 0;
-
-	for (int i = 0; i < NBunches; i++) {
-
-		sum += D[i].Bunch.Npart;
-
-		rprintf("%3d |   %d   | %6zu | %6zu | %6d | %5d | %3d || ", 
-				i, D[i].Bunch.Modify, D[i].Bunch.Npart, sum, 
-				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level);
-
-		if (Task.Is_Master)
-			Print_Int_Bits64(D[i].Bunch.Key);
-	}
-
-	Assert(sum == Sim.Npart_Total, "More or less particles in D than in Sim");
-
-	} // omp master
-
-	#pragma omp barrier
 
 	return ;
 }
+
+
 
 /*
  * Find the global domain origin and the maximum extent. The 
@@ -608,7 +653,7 @@ static void find_global_domain_extend()
 	Find_Global_Center_Of_Mass(&Domain.Center_Of_Mass[0]);
 
 #ifdef PERIODIC
-	
+
 	Domain.Origin[0] = Domain.Origin[1] = Domain.Origin[2] = 0;
 
 	Domain.Size = fmax(Sim.Boxsize[0], fmax(Sim.Boxsize[1], Sim.Boxsize[2]));
@@ -623,32 +668,32 @@ static void find_global_domain_extend()
 
 	#pragma omp for reduction(max:max_distance)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-	
+
 		for (int i = 0; i < 3; i++) {
-		
+
 			if (P[ipart].Pos[i] > max_distance)
 				max_distance = P[ipart].Pos[i];
-		
+
 			if (-1*P[ipart].Pos[i] > max_distance)
 				max_distance = -1*P[ipart].Pos[i];
-		
+
 		} // for i
 	} // for ipart
 
 	#pragma omp single
 	{
-	
-	MPI_Allreduce(MPI_IN_PLACE, &max_distance, 1, MPI_DOUBLE, MPI_MAX, 
+
+	MPI_Allreduce(MPI_IN_PLACE, &max_distance, 1, MPI_DOUBLE, MPI_MAX,
 		MPI_COMM_WORLD);
-	
+
 	Domain.Size = 2.0 * max_distance; // a little larger for unique PH keys
 
 	for (int i = 0; i < 3; i++) {
-	
-		Domain.Origin[i] = - 0.5 * Domain.Size; 
+
+		Domain.Origin[i] = - 0.5 * Domain.Size;
 		Domain.Center[i] = Domain.Origin[i] + 0.5 * Domain.Size ;
 	}
-	
+
 	} // omp single (Domain)
 
 	#pragma omp flush
@@ -678,33 +723,78 @@ void Find_Global_Center_Of_Mass(double *CoM_out)
 
 	#pragma omp barrier
 
-	#pragma omp for reduction(+:com_x,com_y,com_z,m) 
+	#pragma omp for reduction(+:com_x,com_y,com_z,m)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-	
+
 		com_x += P[ipart].Mass * P[ipart].Pos[0];
 		com_y += P[ipart].Mass * P[ipart].Pos[1];
 		com_z += P[ipart].Mass * P[ipart].Pos[2];
-		
+
 		m += P[ipart].Mass;
 	}
 
-	#pragma omp single 
+	#pragma omp single
 	{
-	
+
 	double global_com[3] = { com_x, com_y, com_z  };
 	double global_m = m;
 
 	MPI_Allreduce(MPI_IN_PLACE, &global_com, 3, MPI_DOUBLE, MPI_MIN,
 			MPI_COMM_WORLD);
-		
+
 	MPI_Allreduce(MPI_IN_PLACE, &global_m, 1, MPI_DOUBLE, MPI_MIN,
 			MPI_COMM_WORLD);
 
-	for (int i = 0; i < 3; i++) 
+	for (int i = 0; i < 3; i++)
 		CoM_out[i] = global_com[i] / global_m;
 
 	} // omp single
 
 	return ;
 
+}
+
+static void print_domain_decomposition (const int max_level)
+{
+
+	#pragma omp flush
+
+	#pragma omp master
+	{
+
+	rprintf(" No | Split | npart  |   sum  | first  | trgt  | lvl | cumCost |"
+			"| Max PH key,   Max_level %d \n", max_level);
+
+	size_t sum = 0;
+	double csum = 0;
+	int last_target = -1;
+
+	for (int i = 0; i < NBunches; i++) {
+
+		sum += D[i].Bunch.Npart;
+
+		if (last_target != D[i].Bunch.Target){
+
+			last_target = D[i].Bunch.Target;
+			csum = 0;
+		}
+
+		csum += D[i].Bunch.Cost;
+
+		rprintf("%3d |   %d   | %6zu | %6zu | %6d | %5d | %3d | %6g || ",
+				i, D[i].Bunch.Modify, D[i].Bunch.Npart, sum,
+				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level,
+				csum);
+
+		if (Task.Is_Master)
+			Print_Int_Bits64(D[i].Bunch.Key);
+	}
+
+	Assert(sum == Sim.Npart_Total, "More or less particles in D than in Sim");
+
+	} // omp master
+
+	#pragma omp barrier
+
+	return ;
 }

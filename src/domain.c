@@ -10,6 +10,8 @@ static int remove_empty_bunches();
 static void split_bunch(const int, const int);
 static void reallocate_topnodes(); // not thread safe
 static int check_distribution();
+static int remove_excess_bunches();
+static void merge_bunch (const int);
 static void communicate_particles();
 static void communicate_bunches();
 static int cost_metric(const int ipart);
@@ -96,15 +98,23 @@ void Domain_Decomposition()
 		} // for i
 	} // for (;;)
 
-	#pragma omp barrier
+print_domain_decomposition(max_level);
+	int nMerged = -1;
 
-	rprintf("\nDomain: %d Top Nodes, %d Top Leaves, max level %d\n"
-			"        Imbalance: Mem %g, Cost %g \n\n",
-			NBunches, NTop_Leaves, max_level, max_mem_imbal, max_cost_imbal);
+	while (nMerged != 0)
+		nMerged = remove_excess_bunches() ;
 
-#ifdef DEBUG
+	#pragma omp single copyprivate(max_level)
+	max_level = remove_empty_bunches();
+
+
+	rprintf("\nDomain: %d Top Nodes, %d Top Leaves, max level %d  merged %d\n"
+			"        Imbalance: Mem %g, Cost %g \n\n", NBunches, NTop_Leaves,
+			max_level, nMerged, max_mem_imbal, max_cost_imbal);
+
+//#ifdef DEBUG
 	print_domain_decomposition(max_level);
-#endif
+//#endif
 
 	communicate_particles();
 
@@ -340,6 +350,82 @@ void reconstruct_complete_bunch_list()
 }
 
 /*
+ * Find topnodes to merge, because they are on the same Rank & level 
+ * and are complete. Every thread works on "nTarget" target tasks, starting
+ * from "start_target". 
+ */
+
+static int nMerged = 0;
+
+static int remove_excess_bunches ()
+{
+	if (NBunches <= Sim.NTask*4)
+		return 0;
+
+	int first = 0;
+
+	nMerged = 0;
+
+	#pragma omp for reduction(+:nMerged)
+	for (int i = 0; i < Sim.NTask; i++) {
+
+		int target = -i - 1;
+
+		while (D[first].Bunch.Target != target) // find first bunch of target
+			first++;
+
+		int last = first + 8;
+
+		while (last < NBunches) {
+
+			if (D[last].Bunch.Target != target)
+				break;
+
+			int j = first + 1;
+
+			while (D[j].Bunch.Level == D[first].Bunch.Level)
+				j++;
+
+			if (j == last) { // merge
+
+				#pragma omp critical
+				merge_bunch(first);
+
+				first += 8;
+				last += 8;
+
+				nMerged++;
+
+				continue;
+			}
+
+			first++;
+			last++;
+		} // while target
+	} // omp for target
+
+	return nMerged;
+}
+
+static void merge_bunch (const int first)
+{
+	D[first].Bunch.Level--;
+	D[first].Bunch.Modify = 0;
+	D[first].Bunch.Key |= 0xFFFFFFFFFFFFFFFF >> (3*D[first].Bunch.Level);
+
+	for (int j = first+1; j < first+8; j++) {
+
+		D[first].Bunch.Npart += D[j].Bunch.Npart;
+		D[first].Bunch.Cost += D[j].Bunch.Cost;
+
+		D[j].Bunch.Npart = 0; // mark for removal
+	}
+
+	return ;
+}
+
+
+/*
  * We split a bunch into 8 sub-bunches/nodes, adding the largest peano key 
  * contained in the bunch. The position of the bunch is set  to a random 
  * particle position during filling. From it we can later construct the 
@@ -405,8 +491,8 @@ static int remove_empty_bunches()
 }
 
 /*
- * update particle distribution over nBunches, starting for first_bunch.
- * Every thread works inside the omp buffer, which are later reduced
+ * Update particle distribution over NBunches, starting from first_bunch.
+ * Every thread works inside its omp buffer, which are later reduced.
  */
 
 static void fill_bunches(const int first_bunch, const int nBunches,
@@ -415,11 +501,11 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 	const int last_part = first_part + nPart;
 	const int last_bunch = first_bunch + nBunches;
 
-	struct Bunch_Node *b = Get_Thread_Safe_Buffer(nBunches*sizeof(*b));
+	struct Bunch_Node *b = Get_Thread_Safe_Buffer(nBunches * sizeof(*b));
 
 	int run = first_bunch;
 
-	for (int i = 0; i < nBunches; i++) {
+	for (int i = 0; i < nBunches; i++) { // init omp buffer
 
 		b[i].First_Part = INT_MAX;
 		b[i].Key = D[run].Bunch.Key;
@@ -429,15 +515,17 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 
 	run = 0;
 
-	#pragma omp single
-	for (int i = first_bunch; i < last_bunch; i++) {
+	#pragma omp for
+	for (int i = first_bunch; i < last_bunch; i++) { // reset D
 
 		D[i].Bunch.Npart = D[i].Bunch.Cost = 0;
 		D[i].Bunch.First_Part = INT_MAX;
 	}
 
+	#pragma omp flush
+
 	#pragma omp for nowait
-	for (int ipart = first_part; ipart < last_part; ipart++) {
+	for (int ipart = first_part; ipart < last_part; ipart++) { // sort in
 
 		shortKey pkey = Short_Peano_Key(P[ipart].Pos);
 
@@ -454,7 +542,7 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 
 	run = 0;
 
-	for (int i = first_bunch; i < last_bunch; i++) {
+	for (int i = first_bunch; i < last_bunch; i++) { // reduce
 
 		D[i].Bunch.Npart += b[run].Npart;
 		D[i].Bunch.Cost += b[run].Cost;
@@ -477,10 +565,10 @@ static int cost_metric(const int ipart)
 
 /*
  * This function defines the algorithm that decides if a bunch has to be refined
- * into eight sub-bunches. It sets the target processor setting target to 
- * a negative MPI rank value -1.
+ * into eight sub-bunches. It sets the target processor setting 
+ * "target = -rank -1".
  * First we find mean npart and mean cost per bunch, then distribute top down
- * along the PH curve. If a Rank is
+ * along the PH curve. 
  */
 
 
@@ -493,12 +581,10 @@ static int check_distribution()
 	for (int i = 0; i < NBunches; i++)
 		total_cost += D[i].Bunch.Cost;
 
-	//MPI_Allreduce();
-
 	const double mean_cost = total_cost / Sim.NTask;
 	const double mean_npart = (double) Sim.Npart_Total / Sim.NTask;
 
-	max_mem_imbal = max_cost_imbal = 0;
+	max_mem_imbal = max_cost_imbal = -DBL_MAX;
 
 	bool all_done = true;
 
@@ -531,25 +617,25 @@ static int check_distribution()
 
 	} // omp single
 
-	#pragma omp for reduction(max:max_mem_imbal,max_cost_imbal)
-	for (int i = 0; i < Sim.NTask; i++ ) { // find max imbalance
+	#pragma omp for reduction(max:max_mem_imbal,max_cost_imbal) //  max imbalance
+	for (int i = 0; i < Sim.NTask; i++ ) {
 
 		double cost_imbal = (Cost[i] - mean_cost) / mean_cost;
 
 		if (cost_imbal > max_cost_imbal)
 			max_cost_imbal = cost_imbal;
 
-		double npart_imbal = (Npart[i] - mean_npart) / mean_npart;
+		double npart_imbal = ((double)Npart[i] - mean_npart) / mean_npart;
 
 		if (npart_imbal > max_mem_imbal)
 			max_mem_imbal = npart_imbal;
 	}
 
-	int nSplit = 0;
-
-	if (max_mem_imbal < DOMAIN_IMBAL_CEIL && max_cost_imbal < DOMAIN_IMBAL_CEIL
-		&& all_done)
+	if ((fabs(max_mem_imbal) < DOMAIN_IMBAL_CEIL)
+	&& (fabs(max_cost_imbal) < DOMAIN_IMBAL_CEIL) && all_done)
 		return 0;
+
+	int nSplit = 0;
 
 	#pragma omp single copyprivate(nSplit) // find split
 	{
@@ -573,9 +659,17 @@ static int check_distribution()
 			i++;
 		}
 
-		if (Cost[task]/mean_cost > 0.5) {
+		if (Cost[task]/mean_cost > DOMAIN_SPLIT_THRES) {
 
-			D[i_max_cost].Bunch.Modify = 1;
+			double cost = 0;
+
+			while (cost < Cost[task]-mean_cost) {
+				cost += D[i--].Bunch.Cost;
+				i--;
+
+			}
+
+			D[i].Bunch.Modify = 1;
 
 			nSplit++;
 		}
@@ -642,9 +736,10 @@ static void communicate_bunches()
 
 
 /*
- * Find the global domain origin and the maximum extent. The 
- * domain is made slightly larger to avoid roundoff problems with the 
- * PH numbers. Not much to do for PERIODIC.
+ * Find the global domain origin and the maximum extent. We center the domain 
+ * on the center of mass to make the decomposition effectively Lagrangian if
+ * the simulation is not PERIODIC. For PERIODIC simulations there is little to
+ * do.
  */
 
 double max_distance = 0;

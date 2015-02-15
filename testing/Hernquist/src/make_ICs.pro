@@ -66,7 +66,7 @@ pro make_ICs
  		theta = acos(2 * randomu(seed) - 1)
  		phi =  2 * !pi * randomu(seed)
 
- 		vel[0,i] = v * sin(theta) * cos(phi)
+ 		vel[0,i] = v * sin(theta) * cos(phi)+100
  		vel[1,i] = v * sin(theta) * sin(phi)
  		vel[2,i] = v * cos(theta)
  	end

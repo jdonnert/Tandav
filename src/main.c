@@ -60,8 +60,6 @@ int main(int argc, char *argv[])
 		Update(AFTER_STEP);
 	}
 
-	exit_trap:;
-
 	if (Sig.Write_Restart_File)
 		Write_Restart_File();
 	else

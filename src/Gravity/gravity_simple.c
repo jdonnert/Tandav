@@ -53,14 +53,14 @@ void Accel_Gravity_Simple()
 			double rinv = 1/r;
 
 			if (r < h) {
-	
+
 				double u = r/h;
 				double u2 = u*u;
 				double u3 = u2*u;
-			
+
 				rinv = sqrt(14*u-84*u3+140*u2*u2-90*u2*u3+21*u3*u3)/h;
 			} 
-	
+
 			double acc_mag = Const.Gravity * P[jpart].Mass * p2(rinv);
 
 			P[ipart].Acc[0] += -acc_mag * dx * rinv;

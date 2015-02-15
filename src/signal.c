@@ -105,12 +105,12 @@ bool Time_For_Domain_Update()
 	#pragma omp flush (Global_NPart_Updates,Local_NPart_Updates)
 
 	if (Sig.Fullstep || (Global_NPart_Updates > max_npart_updates)) {
-		
+
 		#pragma omp barrier
 
 		#pragma omp single
 		Global_NPart_Updates = Local_NPart_Updates = 0;
-		
+
 		Sig.Domain_Update = true;
 		Sig.Tree_Update = true;
 	}
@@ -126,11 +126,11 @@ static bool test_for_stop_file()
 	{
 
 	if (Task.Is_MPI_Master) {
-			
+
 		FILE *fp = fopen("./stop", "r");
-			
+
 		if (fp != NULL) {
-			
+
 			fclose(fp);
 
 			endrun = true;

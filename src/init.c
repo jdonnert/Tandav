@@ -1,7 +1,6 @@
 #include "globals.h"
 #include "IO/io.h"
 #include "Gravity/gravity.h"
-#include "domain.h"
 
 struct Parameters_From_File Param;
 struct Global_Simulation_Properties Sim;
@@ -51,10 +50,6 @@ void Read_and_Init()
 	Constrain_Particles_To_Box();
 #endif
 
-	Init_Domain_Decomposition();
-
-	Print_Memory_Usage();
-
 	Profile("Init");
 
 	return ;
@@ -67,15 +62,15 @@ void Allocate_Particle_Structures()
 
 	const double npart_per_rank = (double) Sim.Npart_Total/(double) Sim.NRank;
 
-	Task.Npart_Total_Max = npart_per_rank * PARTALLOCFACTOR;
+	Task.Npart_Total_Max = npart_per_rank * PART_ALLOC_FACTOR;
 
 	for (int i = 0; i < NPARTYPE; i++)
-		Task.Npart_Max[i] = (double)Sim.Npart[i] / Sim.NRank * PARTALLOCFACTOR;
+		Task.Npart_Max[i] = (double)Sim.Npart[i]/Sim.NRank * PART_ALLOC_FACTOR;
 
 	} // omp parallel
 
 	rprintf("\nReserving space for %llu particles per task, factor %g\n",
-			Task.Npart_Total_Max, PARTALLOCFACTOR);
+			Task.Npart_Total_Max, PART_ALLOC_FACTOR);
 
 	P = Malloc(Task.Npart_Total_Max * sizeof(*P), "P");
 	//G = Malloc(Task.Npart_Max[0] * sizeof(*G), "G");

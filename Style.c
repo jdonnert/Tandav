@@ -9,14 +9,14 @@ This is the Style Guide :
 * Literature:
 	- Kernighan & Pike - "The practice of programming"
 	- http://youtu.be/LLBrBBImJt4
-	- Linus Torvalds on git at google 2007:
-	https://www.youtube.com/watch?v=4XpnKHJAok8
+	- Linus Torvalds on git 2007:
+	  https://www.youtube.com/watch?v=4XpnKHJAok8
 	- http://www.kroah.com/linux/talks/ols_2002_kernel_codingstyle_paper/codingstyle.ps
 
 
-* We format like the Linux kernel - Linus is right, but a tab is just 4 spaces.
+* We format like the Linux kernel, but a tab is just 4 spaces (we have math).
 
-* If code is broader than 79 characters, you are doing it wrong. Except if it
+* If code is broader than 80 characters, you are doing it wrong. Except if it
   is a formula. Broad code is hard to read and usually obscures the algorithm.
   This can often be solved by introducing new variables, which the
   compiler might later optimize away, but which explain the algorithm.
@@ -29,6 +29,8 @@ This is the Style Guide :
 		size_t nBytes = Task.Npart * N_BINS * sizeof(*my_array);
 		int my_array = malloc(nBytes);
 
+  Write short functions, whose name is a description of what you are doing.
+  No comment necessary to explain what is happening.
   Avoid a large number of nested loops and conditions. Rewrite conditions
   using continue to ease reading, e.g.:
 
@@ -46,6 +48,7 @@ This is the Style Guide :
 
 			...
 		}
+
 
 * Self-explaining code doesn't need many comments. If you modulerize properly
   you will call many static functions whose names will explain most of what
@@ -102,6 +105,8 @@ This is the Style Guide :
 
 * return ; is not a function, no brackets ().
 
+* goto is OK only if you skip forward inside one function.
+
 * The C idiom for infinite loops is for(;;)
 
 * strcpy() is deprecated, always use strncpy(), it's safer.
@@ -110,30 +115,31 @@ This is the Style Guide :
 
 * If you fiddle with bits, set constants in hex format : int a = 0x0A;
 
-* Mark what you are closing in preprocessor macros : 
+* Mark what you are closing in preprocessor macros :
 
 		#ifdef PMGRID
 			...
 		#endif // PMGRID
 
-* inline functions should not contain if () statements depending on function 
-  input. Keep them short as well.
+* No #ifdefs in C code. Write a function and an empty "inline void F(){};"
+  prototype in the header file. Start the function name with the macro name. 
+  See the handling of Periodic_Constrain_Particles_To_Box() in drift.[ch]
 
-* All integers are int for simplicity, if there is no good reason. Otherwise 
-  use int64_t, uint32_t etc. long and int are architecture dependent and
-  discouraged.
+* All integers are int for simplicity, if there is no good reason. Otherwise
+  use int64_t, uint32_t etc. long and int are architecture dependent.
 
-* Parallelisation is exposed as far up as possible in the call hierachy. 
+* Parallelisation is exposed as far up as possible in the call hierachy.
   Usually that means that all of the MPI, OpenMP and OpenACC calls/directives
   are in the first function of a module, to clearly expose the structure of
   the algorithm. The subroutines then contain the actual physics. Thereby most
-  subroutines are NOT thread safe, e.g. all memory function have to be 
-  enclosed in #pragma omp single ! This also avoids bugs. 
+  subroutines are NOT thread safe, e.g. all memory function have to be
+  enclosed in #pragma omp single ! This also avoids bugs as a #pragma critical 
+  inside a #pragma single will lead to a segfault and erratic behaviour.
 
 * All OpenMP globals are public by default and their modification has to be
-  protected by single, critical etc. 
+  protected by single, critical, etc to avoid race conditions. Sig is private
 
-* Comments are // on the side, /* */ on the line.
+* Comments are // on the side, /* */ on the line. 
   Saves lines, increases readability.
 
 

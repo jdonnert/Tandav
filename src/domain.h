@@ -41,6 +41,7 @@ union Domain_Node_List {
 
 } *D;
 
+int NBunches;
 
 struct Domain_Properties { // smallest cubic box containing all particles
 	double Size;
@@ -49,8 +50,6 @@ struct Domain_Properties { // smallest cubic box containing all particles
 	double Center_Of_Mass[3];
 } Domain;
 
-int NTop_Nodes;
-
-void Init_Domain_Decomposition();
+void Setup_Domain_Decomposition();
 void Domain_Decomposition();
 void Find_Global_Center_Of_Mass(double *CoM_out);

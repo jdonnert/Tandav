@@ -15,7 +15,7 @@ extern struct Tree_Node {
 	Float Dp[3];		// Velocity of Center of Mass
 } *Tree;
 
-int NNodes;
+int NNodes, NTop_Nodes;
 
 void Gravity_Tree_Build();
 void Gravity_Tree_Acceleration();
@@ -43,8 +43,8 @@ void Gravity_Multi_Long_Range();
 
 #else // ! GRAVITY
 
-void Gravity_Tree_Update_Kicks(const int ipart, const double dt) {};
-void Gravity_Tree_Update_Topnode_Kicks() {};
-void Gravity_Tree_Update_Drift(const double dt) {};
+inline void Gravity_Tree_Update_Kicks(const int ipart, const double dt) {};
+inline void Gravity_Tree_Update_Topnode_Kicks() {};
+inline void Gravity_Tree_Update_Drift(const double dt) {};
 
 #endif // GRAVITY

@@ -89,7 +89,7 @@ void Print_Int_Bits(const __uint128_t val, const int length, const int delta)
  * Contracts P so that the last nPart[type] particles are removed 
  * Note that actually no real allocation is taking place, because
  * that would fragment memory. Instead this needs to stay with in the
- * limit set by PARTALLOCFACTOR. 
+ * limit set by PART_ALLOC_FACTOR. 
  */
 
 void Reallocate_P_Info(const char *func, const char *file, int line,
@@ -101,7 +101,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 		Assert(Task.Npart[i] + dNpart[i] <= Task.Npart_Max[i],
 			"Too many particles type %d on this task. \n"
 			"Have %d, want %d, max %d \nCurrent PARTALLOCFACTOR = %g",
-			i, Task.Npart[i], dNpart[i], Task.Npart_Max[i], PARTALLOCFACTOR);
+			i, Task.Npart[i], dNpart[i], Task.Npart_Max[i], PART_ALLOC_FACTOR);
 
 	int offset[NPARTYPE] = { 0 }, new_npart_total = 0;
 	int new_npart[NPARTYPE] = { 0 };
@@ -115,29 +115,29 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 
         Assert(new_npart[type] >= 0, "Can't alloc negative particles,"
 			" type %d, delta %d, current %d,\n"
-			"requested from %s, %s(), line %d", 
+			"requested from %s, %s(), line %d",
 			type, dNpart[type], Task.Npart[type], file, func, line);
 
-		if (dNpart[type] == 0) 
+		if (dNpart[type] == 0)
 			continue; // don't need offset here
 
-		for (int i=0; i <= type; i++) 
+		for (int i=0; i <= type; i++)
 			offset[type] += new_npart[i];
 
 		offset[type] -= MAX(0, dNpart[type]); // correct for dNpart>0
 	}
- 
+
 	int nMove = Task.Npart_Total; // move particles left
-	
+
 	#pragma omp single
-	for (int type = 0; type < NPARTYPE; type++) { 
+	for (int type = 0; type < NPARTYPE; type++) {
 
 		nMove -= Task.Npart[type];
 
 		if (dNpart[type] >= 0 || Task.Npart[type] == 0 || nMove == 0)
 			continue;
 
-		int src = offset[type] + fabs(dNpart[type]); 
+		int src = offset[type] + fabs(dNpart[type]);
 		int dest = offset[type];
 
 		memmove(&P[dest], &P[src], nMove*sizeof(*P));
@@ -146,7 +146,7 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 	nMove = Task.Npart_Total; // move particles right
 
 	#pragma omp single
-	for (int type = 0; type < NPARTYPE-1; type++) { 
+	for (int type = 0; type < NPARTYPE-1; type++) {
 
 		nMove -= Task.Npart[type];
 
@@ -155,22 +155,22 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 
 		int src = offset[type];
 		int dest = offset[type] + dNpart[type];
-		
+
 		memmove(&P[dest], &P[src], nMove*sizeof(*P));
-	} 
+	}
 
 	#pragma omp parallel  // book-keeping
 	{
 
 	Task.Npart_Total = new_npart_total;
-	
-	for (int type = 0; type < NPARTYPE; type++) 
+
+	for (int type = 0; type < NPARTYPE; type++)
 		Task.Npart[type] = new_npart[type];
 	}
 
 	if (offset_out != NULL) // return ptrs to freed space
 		memcpy(offset_out, offset, NPARTYPE*sizeof(*offset));
-	
+
 	return ;
 }
 
@@ -187,13 +187,13 @@ void Assert_Info(const char *func, const char *file, int line,
 
 	va_start(varArgList, errmsg);
 
-	fprintf(stderr, "\nERROR (%d:%d) %s : %d : %s() :\n\n	", 
+	fprintf(stderr, "\nERROR (%d:%d) %s : %d : %s() :\n\n	",
 			Task.Rank,  Task.Thread_ID, file, line , func);
 
-	vfprintf(stderr, errmsg, varArgList); 
-	
-	fprintf(stderr, "\n\n"); 
-	
+	vfprintf(stderr, errmsg, varArgList);
+
+	fprintf(stderr, "\n\n");
+
 	fflush(stderr);
 
 	va_end(varArgList);
@@ -216,13 +216,13 @@ void Warn_Info(const char *func, const char *file, int line,
 	va_start(varArgList, errmsg);
 
     fprintf(stderr, "\nWARNING (%d:%d): In file %s,\n"
-			          "                function %s(), line %d :\n\n		", 
+			          "                function %s(), line %d :\n\n		",
 			 Task.Rank, Task.Thread_ID, file, func, line);
 
-	vfprintf(stderr, errmsg, varArgList); 
-	
-	fprintf(stderr, "\n\n"); 
-	
+	vfprintf(stderr, errmsg, varArgList);
+
+	fprintf(stderr, "\n\n");
+
 	fflush(stderr);
 
 	va_end(varArgList);

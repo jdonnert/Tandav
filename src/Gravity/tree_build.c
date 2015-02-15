@@ -26,7 +26,7 @@ static inline void node_set(const enum Tree_Bitfield, const int);
 int NNodes = 0;
 static int Max_Nodes = 1024;
 
-struct Tree_Node *Tree = NULL; // pointer to all nodes
+struct Tree_Node  *Tree = NULL; // pointer to all nodes
 
 static struct Tree_Node *tree = NULL; //  build pointer "*Tree" or "*Buffer"
 #pragma omp threadprivate(tree)
@@ -50,6 +50,8 @@ void Gravity_Tree_Build()
 
 	#pragma omp single
 	{
+
+	NTop_Nodes = NBunches;
 
 	NNodes = 0;
 

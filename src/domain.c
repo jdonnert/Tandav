@@ -6,13 +6,14 @@
 static void reconstruct_complete_bunch_list();
 static void find_global_domain_extend();
 static void fill_bunches(const int, const int, const int, const int);
+static void find_mean_cost();
 static int remove_empty_bunches();
 static void split_bunch(const int, const int);
 static void reallocate_topnodes(); // not thread safe
-static int check_distribution();
+static int check_distribution(const bool);
 static void remove_excess_bunches(int *, int *);
-static bool distribute(const double, const double);
-static void merge_bunch (const int);
+static bool distribute();
+static void merge_bunch (const int, const int);
 static void communicate_particles();
 static void communicate_bunches();
 static int cost_metric(const int ipart);
@@ -31,6 +32,7 @@ static double Top_Node_Alloc_Factor = 0;
 static double max_mem_imbal = 0, max_cost_imbal = 0;
 static float *Cost = NULL;
 
+static double mean_cost = 0, mean_npart = 0;
 /* 
  * Distribute particles in bunches, which are continuous on the Peano curve,
  * but at different level in the tree. The bunches correspond to nodes of 
@@ -41,7 +43,7 @@ static float *Cost = NULL;
  * distributing bunches minimises memory and workload imbalance over all
  * Tasks. 
  * To achieve this, we measure mem & cpu cost and refine bunches at the border
- * between tasks: "Split_Idx".  Then we distribute them top to bottom across 
+ * between tasks: "Split_Idx".  Then we "distribute" them top to bottom across 
  * MPI ranks. This way particle communication is minimised and we avoid the
  * big particle shuffle.
  * Upon reentry we reconstruct the bunchlist to cover the whole domain by 
@@ -62,19 +64,34 @@ void Domain_Decomposition()
 
 	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
+	find_mean_cost();
+
 	int max_level = 0;
 
 	for (;;) {
+
+		#pragma omp single
+		remove_empty_bunches();
 
 		Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
 		communicate_bunches();
 
-		#pragma omp single copyprivate(max_level)
-		max_level = remove_empty_bunches();
+		bool all_done = true;
 
-		if (check_distribution() == 0)
+		#pragma omp single copyprivate(all_done)
+		{
+
+		all_done = distribute();
+
+		max_mem_imbal = max_cost_imbal = -DBL_MAX;
+
+		}
+
+		if ((check_distribution(all_done) == 0) && all_done)
 			break;
+
+print_domain_decomposition(max_level);
 
 		int old_nBunches = NBunches;
 
@@ -93,11 +110,11 @@ void Domain_Decomposition()
 				fill_bunches(first_new_bunch, 8, D[i].Bunch.First_Part,
 						D[i].Bunch.Npart);
 
-				#pragma omp single 
+				#pragma omp single
 				D[i].Bunch.Npart = 0; // mark for deletion
 			} // if 
 		} // for i
-	} // for (;;)
+	} // forever
 
 print_domain_decomposition(max_level);
 	int nMerged = 0;
@@ -360,51 +377,54 @@ static void remove_excess_bunches(int *nMerged_total, int *max_level)
 	*nMerged_total = 0;
 
 	nMerged = 1;
-	int first = 0;
 
 	while (nMerged != 0) { // merge recursively
 
-		#pragma omp for reduction(+:nMerged)
+		nMerged = 0;
+
+		#pragma omp single
+		//#pragma omp for reduction(+:nMerged)
 		for (int i = 0; i < Sim.NTask; i++) {
 
 			int target = -i - 1;
+			int first = 1;
 
-			while (D[first].Bunch.Target != target) // find first of target
+			while (D[first].Bunch.Target != target) // find first of target i
 				first++;
+printf("start i %d target %d first %d \n", i, target, first);
 
-			int last = first + 8;
+			while (first < NBunches-1) {
 
-			while (last < NBunches) {
+				int curr_level = D[first].Bunch.Level;
+				int last = 0;
 
-				if (D[last].Bunch.Target != target) // avoid segfault @end
+				for (last = first+1; last < NBunches; last++) {
+
+					if (D[last].Bunch.Level != curr_level)
+						break;
+				}
+printf("   currlvl %d first %d last %d \n", curr_level,first,last );
+
+				if (D[last].Bunch.Target != target)
 					break;
 
-				int j = first + 1;
-
-				while (D[j].Bunch.Level == D[first].Bunch.Level)
-					j++;
-	
-				if (j == last) { // merge
-printf("MERGING %d %d \n", first, last);
+				if (D[last].Bunch.Level < curr_level
+				 && D[first-1].Bunch.Level < curr_level) { // merge
+printf("   Merger first %d last %d \n",first, last);
 					#pragma omp critical
-					merge_bunch(first);
+					merge_bunch(first, last);
 
-					first += 8;
-					last += 8;
-
-					nMerged++;
-
-					continue;
+					nMerged += last-first;
 				}
 
-				first++;
-				last++;
+				first = last;
+
 			} // while target
 		} // omp for target
 
-		#pragma omp single 
+		#pragma omp single
 		{
-		
+
 		*max_level = remove_empty_bunches();
 		*nMerged_total += nMerged;
 
@@ -415,13 +435,13 @@ printf("MERGING %d %d \n", first, last);
 	return ;
 }
 
-static void merge_bunch (const int first)
+static void merge_bunch(const int first, const int last)
 {
 	D[first].Bunch.Level--;
 	D[first].Bunch.Modify = 0;
 	D[first].Bunch.Key |= 0xFFFFFFFFFFFFFFFF >> (3*D[first].Bunch.Level);
 
-	for (int j = first+1; j < first+8; j++) { // collapse into first
+	for (int j = first+1; j < last; j++) { // collapse into first
 
 		D[first].Bunch.Npart += D[j].Bunch.Npart;
 		D[first].Bunch.Cost += D[j].Bunch.Cost;
@@ -571,6 +591,26 @@ static int cost_metric(const int ipart)
 	return 1;
 }
 
+static void find_mean_cost()
+{
+	#pragma omp single // do cost and npart mean
+	mean_cost = 0;
+
+	#pragma omp for reduction(+:mean_cost)
+	for (int i = 0; i < NBunches; i++)
+		mean_cost += D[i].Bunch.Cost;
+
+	#pragma omp single
+	{
+
+	mean_cost /= Sim.NTask;
+	mean_npart = ((double) Sim.Npart_Total) / Sim.NTask;
+
+	}
+
+	return ;
+}
+
 /*
  * This function defines the algorithm that decides if a bunch has to be refined
  * into eight sub-bunches. It sets the target processor setting 
@@ -579,47 +619,40 @@ static int cost_metric(const int ipart)
  */
 
 
-static int check_distribution()
+static int check_distribution(const bool all_done)
 {
-	if (NBunches == 1) { // always split the first
+	if (NBunches == 1 && (Sim.NTask != 1)) { // always split the first
 
 		D[0].Bunch.Modify = 1;
 
-		return (Sim.NTask != 1);
+		return 1;
 	}
 
-	double total_cost = 0; // find total and means of costs
+	if (NBunches < Sim.NTask * 4){ // split all
 
-	#pragma omp single copyprivate(total_cost)
-	for (int i = 0; i < NBunches; i++)
-		total_cost += D[i].Bunch.Cost;
+		for (int i = 0; i < NBunches; i++)
+			D[i].Bunch.Modify = 2;
 
-	const double mean_cost = total_cost / Sim.NTask;
-	const double mean_npart = (double) Sim.Npart_Total / Sim.NTask;
-
-	bool all_done = true;
-
-	#pragma omp single copyprivate(all_done) 
-	all_done = distribute(mean_cost, mean_npart);
-
-	max_mem_imbal = max_cost_imbal = -DBL_MAX;
+		return NBunches;
+	}
 
 	#pragma omp for reduction(max:max_mem_imbal,max_cost_imbal) // imbalance
 	for (int i = 0; i < Sim.NTask; i++ ) {
 
-		double cost_imbal = (Cost[i] - mean_cost) / mean_cost;
+		double cost_imbal = fabs(Cost[i] - mean_cost) / mean_cost;
 
 		if (cost_imbal > max_cost_imbal)
 			max_cost_imbal = cost_imbal;
 
-		double npart_imbal = (Npart[i] - mean_npart) / mean_npart;
+		double npart_imbal = fabs(Npart[i] - mean_npart) / mean_npart;
 
 		if (npart_imbal > max_mem_imbal)
 			max_mem_imbal = npart_imbal;
+		printf("%d %g %g \n",i, cost_imbal, npart_imbal);
 	}
 
-	if ((fabs(max_mem_imbal) < PART_ALLOC_FACTOR-1) // check if we are OK
-	&& (fabs(max_cost_imbal) < DOMAIN_IMBAL_CEIL) && all_done)
+	if ((max_mem_imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
+	&& (max_cost_imbal < DOMAIN_IMBAL_CEIL))
 		return 0;
 
 	int nSplit = 0;
@@ -631,12 +664,14 @@ static int check_distribution()
 
 	for (int task = 0; task < Sim.NTask; task++) {
 
-		if (Cost[task]/mean_cost > DOMAIN_SPLIT_THRES && Split_Idx[task] > 0) {
+		if ((Cost[task]/mean_cost > DOMAIN_SPLIT_THRES || ! all_done)
+			&& Split_Idx[task] > -1) {
 
 			D[Split_Idx[task]].Bunch.Modify = 1;
 
 			nSplit++;
 		}
+
 	} // for task
 
 	} // omp single
@@ -648,7 +683,7 @@ static int check_distribution()
  * Assign tasks to bunches, top to bottom and measure cost.
  */
 
-static bool distribute(const double mean_cost, const double mean_npart)
+static bool distribute()
 {
 	const double max_npart = mean_npart * PART_ALLOC_FACTOR; // per task
 
@@ -669,26 +704,27 @@ static bool distribute(const double mean_cost, const double mean_npart)
 
 		if ((Cost[task] > mean_cost) || (Npart[task] > max_npart)) {
 
-			if (D[i-1].Bunch.Cost > D[i].Bunch.Cost)
-				Split_Idx[task] = i-1;
-			else
+			if (D[i].Bunch.Cost > D[i+1].Bunch.Cost)
 				Split_Idx[task] = i;
-	
+			else
+				Split_Idx[task] = i+1;
+
 			task++;
 		}
-		
+
 		if (task == Sim.NTask) {
 
 			all_done = false;
-				
+
 			Split_Idx[Sim.NTask-1] = i;
 
 			break;
 		}
 	} // for i
 
+
 	return all_done;
-}	
+}
 
 static int compare_bunches_by_key(const void *a, const void *b)
 {

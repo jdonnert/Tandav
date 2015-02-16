@@ -1,7 +1,6 @@
 #include "globals.h"
 #include "timestep.h"
 
-
 struct CurrentCosmologyInCodeUnits Cosmo = {
 	HUBBLE_CONST,
 	OMEGA_LAMBDA,

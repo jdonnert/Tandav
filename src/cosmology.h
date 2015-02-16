@@ -12,20 +12,16 @@ struct CurrentCosmologyInCodeUnits {
 	double Critical_Density;
 } Cosmo;
 
-#ifdef COMOVING
-
-void Set_Current_Cosmology();
-
 double Hubble_Parameter(const double a);
 double E_Hubble(const double a);
 double Critical_Density(double);
 
+#ifdef COMOVING
+
+void Set_Current_Cosmology();
+
 #else // ! COMOVING
 
-inline void Set_Current_Cosmology(){};
-
-inline double Hubble_Parameter(const double a){return 0;};
-inline double E_Hubble(const double a){return 0;};
-inline double Critical_Density(double a){return 0;};
+static inline void Set_Current_Cosmology(){};
 
 #endif // ! COMOVING

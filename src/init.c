@@ -21,7 +21,7 @@ void Read_and_Init()
 	Init_Memory_Management();
 
 	Init_Logs();
-
+	
 	switch (Param.Start_Flag) {
 
 	case 0:

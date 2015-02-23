@@ -53,3 +53,4 @@ struct Domain_Properties { // smallest cubic box containing all particles
 void Setup_Domain_Decomposition();
 void Domain_Decomposition();
 void Find_Global_Center_Of_Mass(double *CoM_out);
+

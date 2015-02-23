@@ -10,9 +10,10 @@ static void find_mean_cost();
 static int remove_empty_bunches();
 static void split_bunch(const int, const int);
 static void reallocate_topnodes(); // not thread safe
-static int check_distribution(const bool);
+static int check_distribution();
 static void remove_excess_bunches(int *, int *);
-static bool distribute();
+static void reset_bunchlist();
+static void distribute();
 static void merge_bunch (const int, const int);
 static void communicate_particles();
 static void communicate_bunches();
@@ -33,6 +34,7 @@ static double max_mem_imbal = 0, max_cost_imbal = 0;
 static float *Cost = NULL;
 
 static double mean_cost = 0, mean_npart = 0;
+
 /* 
  * Distribute particles in bunches, which are continuous on the Peano curve,
  * but at different level in the tree. The bunches correspond to nodes of 
@@ -59,6 +61,7 @@ void Domain_Decomposition()
 	Sort_Particles_By_Peano_Key();
 
 	reconstruct_complete_bunch_list();
+	//reset_bunchlist();
 
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
@@ -77,21 +80,19 @@ void Domain_Decomposition()
 
 		communicate_bunches();
 
-		bool all_done = true;
-
-		#pragma omp single copyprivate(all_done)
+		#pragma omp single
 		{
 
-		all_done = distribute();
+		distribute();
 
 		max_mem_imbal = max_cost_imbal = -DBL_MAX;
 
 		}
 
-		if ((check_distribution(all_done) == 0) && all_done)
-			break;
-
 print_domain_decomposition(max_level);
+
+		if ((check_distribution() == 0))
+			break;
 
 		int old_nBunches = NBunches;
 
@@ -116,25 +117,24 @@ print_domain_decomposition(max_level);
 		} // for i
 	} // forever
 
-print_domain_decomposition(max_level);
 	int nMerged = 0;
 
-	remove_excess_bunches(&nMerged, &max_level);
+	//remove_excess_bunches(&nMerged, &max_level);
 
 	rprintf("\nDomain: %d Top Nodes, %d Top Leaves, max level %d  merged %d\n"
-			"        Imbalance: Mem %g, Cost %g \n\n", NBunches, NTop_Leaves,
-			max_level, nMerged, max_mem_imbal, max_cost_imbal);
+			"        Max Imbalance: Mem %g, Cost %g \n\n", NBunches,
+			NTop_Leaves, max_level, nMerged, max_mem_imbal, max_cost_imbal);
 
-//#ifdef DEBUG
+#ifdef DEBUG
 	print_domain_decomposition(max_level);
-//#endif
+#endif
 
 	communicate_particles();
 
 	Sig.Tree_Update = true;
 
 	Profile("Domain Decomposition");
-
+exit(0);
 	return ;
 }
 
@@ -362,6 +362,52 @@ void reconstruct_complete_bunch_list()
 	return ;
 }
 
+static void reset_bunchlist()
+{
+	memset(&D[0], 0, sizeof(*D)*Max_NBunches);
+
+	NBunches = 1;
+
+	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
+	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
+
+	while(NBunches < Sim.NTask*4) {
+
+		int old_NBunches = NBunches;
+
+		#pragma omp barrier
+
+		for (int i = 0; i < old_NBunches; i++) {
+
+				int first_new_bunch = NBunches;
+
+				#pragma omp single
+				if (NBunches + 8 >= Max_NBunches) // make more space !
+					reallocate_topnodes();
+
+				split_bunch(i, first_new_bunch);
+
+				#pragma omp for
+				for (int j = first_new_bunch; j < first_new_bunch+8; j++)
+					D[j].Bunch.Npart = 1;
+
+				#pragma omp single
+				D[i].Bunch.Npart = 0; // mark for deletion
+		}
+
+		#pragma omp single
+		remove_empty_bunches();
+	}
+
+	#pragma omp for
+	for (int j = 0; j < NBunches; j++)
+		D[j].Bunch.Npart = 0;
+
+	rprintf("Domain: Reset to %d bunches\n", NBunches);
+
+	return ;
+}
+
 /*
  * Find topnodes to merge, because they are on the same Rank & level 
  * and are complete. We do this until there is nothing left to merge. 
@@ -379,7 +425,7 @@ static void remove_excess_bunches(int *nMerged_total, int *max_level)
 	nMerged = 1;
 
 	while (nMerged != 0) { // merge recursively
-
+rprintf("\n======================= NEW ITERATION ======================= ");
 		nMerged = 0;
 
 		#pragma omp single
@@ -389,36 +435,79 @@ static void remove_excess_bunches(int *nMerged_total, int *max_level)
 			int target = -i - 1;
 			int first = 1;
 
-			while (D[first].Bunch.Target != target) // find first of target i
+			while (D[first].Bunch.Target > target) // find first on target
 				first++;
-printf("start i %d target %d first %d \n", i, target, first);
 
+			int last = first;
+printf("Start first %d target %d \n", first, target );
 			while (first < NBunches-1) {
-
-				int curr_level = D[first].Bunch.Level;
-				int last = 0;
-
-				for (last = first+1; last < NBunches; last++) {
-
-					if (D[last].Bunch.Level != curr_level)
-						break;
-				}
-printf("   currlvl %d first %d last %d \n", curr_level,first,last );
-
-				if (D[last].Bunch.Target != target)
-					break;
-
-				if (D[last].Bunch.Level < curr_level
-				 && D[first-1].Bunch.Level < curr_level) { // merge
-printf("   Merger first %d last %d \n",first, last);
-					#pragma omp critical
-					merge_bunch(first, last);
-
-					nMerged += last-first;
-				}
 
 				first = last;
 
+				int first_level = D[first].Bunch.Level;
+				shortKey first_key =
+					D[first].Bunch.Key >> (64 - 3*first_level + 3);
+printf("Up first %d target %d lvl %d last %d \n",
+ first, target, first_level, last );
+Print_Int_Bits(first_key, 64, 3);
+
+				int next = 0; // first after last candidate for merger
+
+				for (next = first+1; next < first+8; next++) {
+
+					int next_level = D[next].Bunch.Level;
+
+					if (next_level != first_level) {
+printf("   Loop break level %d != %d \n",next_level, first_level);
+						break;
+					}
+
+					shortKey next_key =
+						D[next].Bunch.Key >> (64 - 3*next_level + 3);
+
+					if (next_key != first_key) {
+printf("   Loop break key  \n");
+						break;
+					}
+				}
+
+				last = next - 1; // try to merge first to last
+
+				int last_level = D[last].Bunch.Level;
+
+				shortKey last_key =
+					D[last].Bunch.Key >> (64 - 3*last_level + 3);
+
+printf("   out next %d last %d   \n",next,last);
+
+				if (D[last].Bunch.Target != target) {
+printf("   break target %d %d \n", D[last].Bunch.Target, target);
+					break;
+				}
+
+				if (last_key != first_key) {
+printf("   break key \n");
+					goto skip;
+				}
+
+				//if (last == first)
+				//	goto skip;
+
+				if (D[next].Bunch.Level <= first_level
+				 && D[first-1].Bunch.Level <= first_level
+				 && D[first-1].Bunch.Target == target) { // merge
+
+printf("   Merger: first %d last %d next %d firstlvl %d nextlvl %d ffirstlvl %d \n",
+first, last, next,  first_level, D[next].Bunch.Level, D[first-1].Bunch.Level );
+					#pragma omp critical
+					merge_bunch(first, last);
+
+					nMerged += last - first;
+				}
+
+				skip:;
+
+				last++;
 			} // while target
 		} // omp for target
 
@@ -430,6 +519,7 @@ printf("   Merger first %d last %d \n",first, last);
 
 		} // omp single
 
+print_domain_decomposition(-1);
 	} // while nMerged
 
 	return ;
@@ -438,15 +528,16 @@ printf("   Merger first %d last %d \n",first, last);
 static void merge_bunch(const int first, const int last)
 {
 	D[first].Bunch.Level--;
-	D[first].Bunch.Modify = 0;
+	D[first].Bunch.Modify = 2;
 	D[first].Bunch.Key |= 0xFFFFFFFFFFFFFFFF >> (3*D[first].Bunch.Level);
 
-	for (int j = first+1; j < last; j++) { // collapse into first
+	for (int j = first+1; j <= last; j++) { // collapse into first
 
 		D[first].Bunch.Npart += D[j].Bunch.Npart;
 		D[first].Bunch.Cost += D[j].Bunch.Cost;
 
 		D[j].Bunch.Npart = 0; // mark for removal
+		D[j].Bunch.Modify = 2;
 	}
 
 	return ;
@@ -480,7 +571,7 @@ static void split_bunch(const int parent, const int first)
 		D[dest].Bunch.Npart = 0;
 		D[dest].Bunch.First_Part = INT_MAX;
 		D[dest].Bunch.Target = -1;
-		D[dest].Bunch.Modify = false;
+		D[dest].Bunch.Modify = 0;
 	}
 
 	return ;
@@ -619,21 +710,13 @@ static void find_mean_cost()
  */
 
 
-static int check_distribution(const bool all_done)
+static int check_distribution()
 {
 	if (NBunches == 1 && (Sim.NTask != 1)) { // always split the first
 
 		D[0].Bunch.Modify = 1;
 
 		return 1;
-	}
-
-	if (NBunches < Sim.NTask * 4){ // split all
-
-		for (int i = 0; i < NBunches; i++)
-			D[i].Bunch.Modify = 2;
-
-		return NBunches;
 	}
 
 	#pragma omp for reduction(max:max_mem_imbal,max_cost_imbal) // imbalance
@@ -648,7 +731,6 @@ static int check_distribution(const bool all_done)
 
 		if (npart_imbal > max_mem_imbal)
 			max_mem_imbal = npart_imbal;
-		printf("%d %g %g \n",i, cost_imbal, npart_imbal);
 	}
 
 	if ((max_mem_imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
@@ -660,14 +742,14 @@ static int check_distribution(const bool all_done)
 	#pragma omp single copyprivate(nSplit) // put split
 	{
 
-	int i = 0;
+	for (int task = 0; task < Sim.NTask-1; task++) {
 
-	for (int task = 0; task < Sim.NTask; task++) {
+		if ((Cost[task]/mean_cost > DOMAIN_SPLIT_THRES)
+			&& (Split_Idx[task] > -1)) {
 
-		if ((Cost[task]/mean_cost > DOMAIN_SPLIT_THRES || ! all_done)
-			&& Split_Idx[task] > -1) {
+			int i = Split_Idx[task];
 
-			D[Split_Idx[task]].Bunch.Modify = 1;
+			D[i].Bunch.Modify = 1;
 
 			nSplit++;
 		}
@@ -686,44 +768,36 @@ static int check_distribution(const bool all_done)
 static bool distribute()
 {
 	const double max_npart = mean_npart * PART_ALLOC_FACTOR; // per task
+	const double max_cost = mean_cost ;
 
 	memset(Cost, 0, Sim.NTask * sizeof(*Cost));
 	memset(Npart, 0, Sim.NTask * sizeof(*Npart));
 	memset(Split_Idx, -1, Sim.NTask * sizeof(*Split_Idx));
 
 	int task = 0;
-	int i = 0;
-	bool all_done = true;
 
-	for (i = 0; i < NBunches; i++) {
+	double dCost = 0, dNpart = 0;
+
+	for (int i = 0; i < NBunches; i++) {
 
 		Cost[task] += D[i].Bunch.Cost;
 		Npart[task] += D[i].Bunch.Npart;
 
 		D[i].Bunch.Target = -task - 1;
 
-		if ((Cost[task] > mean_cost) || (Npart[task] > max_npart)) {
+		if ((Cost[task] + dCost >= max_cost)
+		|| (Npart[task] + dNpart >= max_npart)) {
 
-			if (D[i].Bunch.Cost > D[i+1].Bunch.Cost)
-				Split_Idx[task] = i;
-			else
-				Split_Idx[task] = i+1;
+			Split_Idx[task] = i;
 
 			task++;
-		}
 
-		if (task == Sim.NTask) {
-
-			all_done = false;
-
-			Split_Idx[Sim.NTask-1] = i;
-
-			break;
+			dCost = Cost[task-1] + dCost - mean_cost; // carry the delta
+			dNpart = Npart[task-1] + dNpart - mean_npart;
 		}
 	} // for i
 
-
-	return all_done;
+	return ;
 }
 
 static int compare_bunches_by_key(const void *a, const void *b)
@@ -771,13 +845,10 @@ static void communicate_bunches()
 		D[i].Bunch.Is_Local = true;
 	}
 
-
 	// MPI_Ibcast();
 
 	return ;
 }
-
-
 
 /*
  * Find the global domain origin and the maximum extent. We center the domain 

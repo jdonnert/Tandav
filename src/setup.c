@@ -15,6 +15,7 @@ void Setup()
 	Setup_Domain_Decomposition();
 
 	Print_Memory_Usage();
+
 #ifdef COMOVING
 	Setup_Cosmology();
 

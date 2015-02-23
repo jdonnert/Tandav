@@ -21,7 +21,7 @@ void Read_and_Init()
 	Init_Memory_Management();
 
 	Init_Logs();
-	
+
 	switch (Param.Start_Flag) {
 
 	case 0:
@@ -69,10 +69,13 @@ void Allocate_Particle_Structures()
 
 	} // omp parallel
 
-	rprintf("\nReserving space for %llu particles per task, factor %g\n",
-			Task.Npart_Total_Max, PART_ALLOC_FACTOR);
+	size_t nBytes = Task.Npart_Total_Max * sizeof(*P);
 
-	P = Malloc(Task.Npart_Total_Max * sizeof(*P), "P");
+	P = Malloc(nBytes, "P");
+
+	rprintf("\nReserving space for %llu particles per task in *P,"
+			" factor %g\n", Task.Npart_Total_Max, PART_ALLOC_FACTOR);
+
 	//G = Malloc(Task.Npart_Max[0] * sizeof(*G), "G");
 
 #ifndef MEMORY_MANAGER

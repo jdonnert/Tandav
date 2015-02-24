@@ -77,6 +77,7 @@ void Gravity_Tree_Update_Drift(const double dt)
 		Node_Clear(UPDATED, i);
 	}
 
+	#pragma omp single
 	nUpdate = 0;
 
 	#pragma omp for reduction(+:nUpdate)

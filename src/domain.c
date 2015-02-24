@@ -11,7 +11,7 @@ static int remove_empty_bunches();
 static void split_bunch(const int, const int);
 static void reallocate_topnodes(); // not thread safe
 static int check_distribution();
-static void remove_excess_bunches(int *, int *);
+static void remove_excess_bunches();
 static void reset_bunchlist();
 static void distribute();
 static void merge_bunch (const int, const int);
@@ -28,6 +28,7 @@ union Domain_Node_List *D = NULL;
 
 static int Max_NBunches = 0, NTop_Leaves = 0;
 static int *Npart = NULL, *Split_Idx = NULL;
+static int NMerged = 0, Max_Level = 0;
 
 static double Top_Node_Alloc_Factor = 0;
 static double max_mem_imbal = 0, max_cost_imbal = 0;
@@ -60,16 +61,13 @@ void Domain_Decomposition()
 
 	Sort_Particles_By_Peano_Key();
 
-	reconstruct_complete_bunch_list();
-	//reset_bunchlist();
+	reset_bunchlist();
 
 	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
 	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
 	find_mean_cost();
-
-	int max_level = 0;
 
 	for (;;) {
 
@@ -88,8 +86,6 @@ void Domain_Decomposition()
 		max_mem_imbal = max_cost_imbal = -DBL_MAX;
 
 		}
-
-print_domain_decomposition(max_level);
 
 		if ((check_distribution() == 0))
 			break;
@@ -117,24 +113,22 @@ print_domain_decomposition(max_level);
 		} // for i
 	} // forever
 
-	int nMerged = 0;
-
-	//remove_excess_bunches(&nMerged, &max_level);
+	remove_excess_bunches();
 
 	rprintf("\nDomain: %d Top Nodes, %d Top Leaves, max level %d  merged %d\n"
 			"        Max Imbalance: Mem %g, Cost %g \n\n", NBunches,
-			NTop_Leaves, max_level, nMerged, max_mem_imbal, max_cost_imbal);
+			NTop_Leaves, Max_Level, NMerged, max_mem_imbal, max_cost_imbal);
 
-#ifdef DEBUG
-	print_domain_decomposition(max_level);
-#endif
+//#ifdef DEBUG
+	print_domain_decomposition(Max_Level);
+//#endif
 
 	communicate_particles();
 
 	Sig.Tree_Update = true;
 
 	Profile("Domain Decomposition");
-exit(0);
+
 	return ;
 }
 
@@ -199,169 +193,6 @@ static void reallocate_topnodes()
 	return ;
 }
 
-/*
- * Transform the top nodes back into a bunch list. Add nodes so 
- * the complete domain is covered again. This is equivalent to completing every 
- * triplet from up to 7 (111) starting at the lowest level
- * until the common part of the original keys (top) is reached.
- * Then every triplet of i+1 is incremented with decreasing level until the 
- * bkey triplet is reached.
- *
- *      akey  000.010.010.111.111.111  ->  bkey 010.001.110.001.111.111
- *
- *	000.010.010.111.111.111 > 000.111.111.111.111.111 > 010.000.111.111.111.111
- *	      <- ^                 ^                         ^
- *      <- start 010->111    fill top triplet           start -> 000 -> 001
- *
- * fill every triplet up to 111, fill triplet "top",  fill triplets downwards
- * All new keys are kept in the OmP buffer and later copied back 
- * into "D". At last, we reset properties overwritten by the union in D.
- */
-
-void reconstruct_complete_bunch_list()
-{
-	const int nOld_Bunches = NBunches;
-
-	if (NBunches == 1)
-		goto skip_reconstruction;
-
-	#pragma omp single
-	{
-
-	Free(Tree);
-
-	Tree = NULL;
-
-	if (D[NBunches-1].Bunch.Key != 0xFFFFFFFFFFFFFFFF) { // make end
-
-		int i = NBunches++;
-
-		D[i].Bunch.Level = 1;
-		D[i].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
-		D[i].Bunch.Target = -INT_MAX;
-	}
-
-	} // omp single
-
-	struct Bunch_Node *b = Get_Thread_Safe_Buffer(Task.Buffer_Size);
-
-	int nNew = 0;
-
-	#pragma omp for nowait
-	for (int i = 0; i < nOld_Bunches-1; i++) { // fill to cover whole domain
-
-		shortKey akey = D[i].Bunch.Key;	// lowest key
-		shortKey bkey = D[i+1].Bunch.Key; // highest key
-
-		int top = 1; // highest level where akey != bkey
-
-		uint64_t mask = 0x7ULL << (N_SHORT_BITS-3);
-
-		while ((akey & mask) == (bkey & mask)) {
-
-			top++;
-			mask >>= 3;
-		}
-
-		for (int j = D[i].Bunch.Level; j > top; j--) { // fill akey upwards
-
-			int shift = N_SHORT_BITS - 3 * j;
-
-			uint64_t atriplet = (akey >> shift) & 0x7;
-
-			uint64_t template = (akey | (0xFFFFFFFFFFFFFFFF >> 3*j))
-												& ~(0x7ULL << shift);
-
-			for (uint64_t k = atriplet + 1; k < 8; k++) {
-
-				b[nNew].Key = template | (k << shift);
-				b[nNew].Level = j;
-
-				nNew++;
-			}
-		}
-
-		int shift = N_SHORT_BITS - 3 * top; // fill at level 'top'
-
-		uint64_t atriplet = (akey >> shift) & 0x7;
-		uint64_t btriplet = (bkey >> shift) & 0x7;
-
-		uint64_t template = (akey | (0xFFFFFFFFFFFFFFFF >> 3*top))
-											 & ~(0x7ULL << shift);
-
-		for (uint64_t k = atriplet + 1; k < btriplet; k++) {
-
-			b[nNew].Level = top;
-			b[nNew].Key = template | (k << shift);
-
-			nNew++;
-		}
-
-		for (int j = top+1; j <= D[i+1].Bunch.Level; j++) { // fill downwards
-
-			int shift = N_SHORT_BITS - 3 * j;
-
-			uint64_t btriplet = (bkey >> shift) & 0x7;
-
-			uint64_t template = (bkey | (0xFFFFFFFFFFFFFFFF >> 3*j))
-														& ~(0x7ULL << shift);
-			for (uint64_t k = 0; k < btriplet; k++) {
-
-				b[nNew].Level = j;
-				b[nNew].Key = template | (k << shift);
-
-				nNew++;
-			} // for k
-		} // for j
-	} // for i
-
-	int start = 0, end = 0;
-
-	#pragma omp critical
-	{
-
-	start = NBunches;
-	end = start + nNew;
-
-	while (end >= Max_NBunches)
-		reallocate_topnodes();
-
-	NBunches += nNew;
-
-	} // omp critical
-
-	#pragma omp barrier
-
-	int j = 0;
-
-	for (int i = start; i < end; i++) {
-
-		D[i].Bunch.Key = b[j].Key;
-		D[i].Bunch.Target = -INT_MAX;
-		D[i].Bunch.Level = b[j++].Level;
-	}
-
-	skip_reconstruction:;
-
-	#pragma omp for
-	for (int i = 0; i < NBunches; i++) { // reset values in all bunches
-
-		D[i].Bunch.Npart = 0;
-		D[i].Bunch.Modify = 0;
-		D[i].Bunch.Cost = 0;
-		D[i].Bunch.First_Part = INT_MAX;
-
-		if (D[i].Bunch.Target >= 0)
-			D[i].Bunch.Is_Local = true;
-
-	} // for i < NBunches
-
-	rprintf("Domain: Reconstruction %d -> %d bunches\n", nOld_Bunches,
-			NBunches);
-
-	return ;
-}
-
 static void reset_bunchlist()
 {
 	memset(&D[0], 0, sizeof(*D)*Max_NBunches);
@@ -371,40 +202,6 @@ static void reset_bunchlist()
 	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
 	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
 
-	while(NBunches < Sim.NTask*4) {
-
-		int old_NBunches = NBunches;
-
-		#pragma omp barrier
-
-		for (int i = 0; i < old_NBunches; i++) {
-
-				int first_new_bunch = NBunches;
-
-				#pragma omp single
-				if (NBunches + 8 >= Max_NBunches) // make more space !
-					reallocate_topnodes();
-
-				split_bunch(i, first_new_bunch);
-
-				#pragma omp for
-				for (int j = first_new_bunch; j < first_new_bunch+8; j++)
-					D[j].Bunch.Npart = 1;
-
-				#pragma omp single
-				D[i].Bunch.Npart = 0; // mark for deletion
-		}
-
-		#pragma omp single
-		remove_empty_bunches();
-	}
-
-	#pragma omp for
-	for (int j = 0; j < NBunches; j++)
-		D[j].Bunch.Npart = 0;
-
-	rprintf("Domain: Reset to %d bunches\n", NBunches);
-
 	return ;
 }
 
@@ -413,114 +210,57 @@ static void reset_bunchlist()
  * and are complete. We do this until there is nothing left to merge. 
  */
 
-static int nMerged = 0;
-
-static void remove_excess_bunches(int *nMerged_total, int *max_level)
+static void remove_excess_bunches()
 {
-	if (NBunches <= Sim.NTask*4)
+	if (NBunches <= Sim.NTask*2)
 		return ;
 
-	*nMerged_total = 0;
+	#pragma omp single
+	NMerged = Max_Level = 0;
 
-	nMerged = 1;
+	#pragma omp barrier
 
-	while (nMerged != 0) { // merge recursively
-rprintf("\n======================= NEW ITERATION ======================= ");
-		nMerged = 0;
+	#pragma omp for reduction(+:NMerged) reduction(max:Max_Level)
+	for (int i = 0; i < Sim.NTask - 1; i++) {
 
-		#pragma omp single
-		//#pragma omp for reduction(+:nMerged)
-		for (int i = 0; i < Sim.NTask; i++) {
+		int target = -i - 1;
 
-			int target = -i - 1;
-			int first = 1;
+		int split = Split_Idx[i];
+		int split_level = D[split].Bunch.Level;
 
-			while (D[first].Bunch.Target > target) // find first on target
-				first++;
+		int last = split - 1;
+		int first = last;
 
-			int last = first;
-printf("Start first %d target %d \n", first, target );
-			while (first < NBunches-1) {
+		while (D[first].Bunch.Level > split_level)
+			first--;
 
-				first = last;
+		first++;
 
-				int first_level = D[first].Bunch.Level;
-				shortKey first_key =
-					D[first].Bunch.Key >> (64 - 3*first_level + 3);
-printf("Up first %d target %d lvl %d last %d \n",
- first, target, first_level, last );
-Print_Int_Bits(first_key, 64, 3);
+		if (first >= last)
+			continue;
 
-				int next = 0; // first after last candidate for merger
+		if (D[first].Bunch.Target != target)
+			continue;
 
-				for (next = first+1; next < first+8; next++) {
+		D[first].Bunch.Level = split_level;
+		D[first].Bunch.Modify = 2;
+		D[first].Bunch.Key |= 0xFFFFFFFFFFFFFFFF >> (3 * split_level);
 
-					int next_level = D[next].Bunch.Level;
+		for (int j = first+1; j <= last; j++) { // collapse into first
 
-					if (next_level != first_level) {
-printf("   Loop break level %d != %d \n",next_level, first_level);
-						break;
-					}
+			D[first].Bunch.Npart += D[j].Bunch.Npart;
+			D[first].Bunch.Cost += D[j].Bunch.Cost;
 
-					shortKey next_key =
-						D[next].Bunch.Key >> (64 - 3*next_level + 3);
+			D[j].Bunch.Npart = 0; // mark for removal
+			D[j].Bunch.Modify = 2;
+		}
 
-					if (next_key != first_key) {
-printf("   Loop break key  \n");
-						break;
-					}
-				}
+		NMerged += last-first;
 
-				last = next - 1; // try to merge first to last
+	} // omp for target
 
-				int last_level = D[last].Bunch.Level;
-
-				shortKey last_key =
-					D[last].Bunch.Key >> (64 - 3*last_level + 3);
-
-printf("   out next %d last %d   \n",next,last);
-
-				if (D[last].Bunch.Target != target) {
-printf("   break target %d %d \n", D[last].Bunch.Target, target);
-					break;
-				}
-
-				if (last_key != first_key) {
-printf("   break key \n");
-					goto skip;
-				}
-
-				//if (last == first)
-				//	goto skip;
-
-				if (D[next].Bunch.Level <= first_level
-				 && D[first-1].Bunch.Level <= first_level
-				 && D[first-1].Bunch.Target == target) { // merge
-
-printf("   Merger: first %d last %d next %d firstlvl %d nextlvl %d ffirstlvl %d \n",
-first, last, next,  first_level, D[next].Bunch.Level, D[first-1].Bunch.Level );
-					#pragma omp critical
-					merge_bunch(first, last);
-
-					nMerged += last - first;
-				}
-
-				skip:;
-
-				last++;
-			} // while target
-		} // omp for target
-
-		#pragma omp single
-		{
-
-		*max_level = remove_empty_bunches();
-		*nMerged_total += nMerged;
-
-		} // omp single
-
-print_domain_decomposition(-1);
-	} // while nMerged
+	#pragma omp single
+	Max_Level = remove_empty_bunches();
 
 	return ;
 }
@@ -694,8 +434,8 @@ static void find_mean_cost()
 	#pragma omp single
 	{
 
-	mean_cost /= Sim.NTask;
-	mean_npart = ((double) Sim.Npart_Total) / Sim.NTask;
+	mean_cost /= Sim.NRank;
+	mean_npart = ((double) Sim.Npart_Total) / Sim.NRank;
 
 	}
 
@@ -734,7 +474,8 @@ static int check_distribution()
 	}
 
 	if ((max_mem_imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
-	&& (max_cost_imbal < DOMAIN_IMBAL_CEIL))
+	&& (max_cost_imbal < DOMAIN_IMBAL_CEIL)
+	&& (NBunches > Sim.NThreads) )
 		return 0;
 
 	int nSplit = 0;
@@ -749,9 +490,12 @@ static int check_distribution()
 
 			int i = Split_Idx[task];
 
-			D[i].Bunch.Modify = 1;
+			if (D[i].Bunch.Level < N_SHORT_TRIPLETS-1) {
 
-			nSplit++;
+				D[i].Bunch.Modify = 1;
+
+				nSplit++;
+			}
 		}
 
 	} // for task
@@ -765,7 +509,7 @@ static int check_distribution()
  * Assign tasks to bunches, top to bottom and measure cost.
  */
 
-static bool distribute()
+static void distribute()
 {
 	const double max_npart = mean_npart * PART_ALLOC_FACTOR; // per task
 	const double max_cost = mean_cost ;
@@ -777,6 +521,7 @@ static bool distribute()
 	int task = 0;
 
 	double dCost = 0, dNpart = 0;
+
 
 	for (int i = 0; i < NBunches; i++) {
 

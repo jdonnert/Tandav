@@ -11,7 +11,7 @@ DOMAIN_UPDATE_PARAM 0.2     // [0.1]  npart drifted before new domain decomp.
 
 PART_ALLOC_FACTOR 1.10		// [1.05] maximum mem imbalance in particles
 
-DOMAIN_IMBAL_CEIL 0.25		// [0.05] desired maximum cost imbalance
+DOMAIN_IMBAL_CEIL 0.05		// [0.05] desired maximum cost imbalance
 DOMAIN_SPLIT_THRES 0.8
 
 #### GRAVITY ####

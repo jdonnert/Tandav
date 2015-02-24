@@ -6,7 +6,7 @@
 static void reconstruct_complete_bunch_list();
 static void find_global_domain_extend();
 static void fill_bunches(const int, const int, const int, const int);
-static void find_mean_cost();
+static void find_Mean_Cost();
 static int remove_empty_bunches();
 static void split_bunch(const int, const int);
 static void reallocate_topnodes(); // not thread safe
@@ -26,6 +26,7 @@ static void print_domain_decomposition (const int);
 
 union Domain_Node_List *D = NULL;
 
+static int NTarget = 0;
 static int Max_NBunches = 0, NTop_Leaves = 0;
 static int *Npart = NULL, *Split_Idx = NULL;
 static int NMerged = 0, Max_Level = 0;
@@ -34,7 +35,7 @@ static double Top_Node_Alloc_Factor = 0;
 static double max_mem_imbal = 0, max_cost_imbal = 0;
 static float *Cost = NULL;
 
-static double mean_cost = 0, mean_npart = 0;
+static double Mean_Cost = 0, Mean_Npart = 0;
 
 /* 
  * Distribute particles in bunches, which are continuous on the Peano curve,
@@ -61,13 +62,12 @@ void Domain_Decomposition()
 
 	Sort_Particles_By_Peano_Key();
 
+	#pragma omp single
 	reset_bunchlist();
-
-	Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
 	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
-	find_mean_cost();
+	find_Mean_Cost();
 
 	for (;;) {
 
@@ -119,9 +119,9 @@ void Domain_Decomposition()
 			"        Max Imbalance: Mem %g, Cost %g \n\n", NBunches,
 			NTop_Leaves, Max_Level, NMerged, max_mem_imbal, max_cost_imbal);
 
-//#ifdef DEBUG
+#ifdef DEBUG
 	print_domain_decomposition(Max_Level);
-//#endif
+#endif
 
 	communicate_particles();
 
@@ -138,6 +138,11 @@ void Domain_Decomposition()
 
 void Setup_Domain_Decomposition()
 {
+	if (Sim.NRank < 4)
+		NTarget = Sim.NTask;
+	else
+		NTarget = Sim.NRank;
+
 	Cost = Malloc(Sim.NTask * sizeof(Cost), "Cost");
 	Npart = Malloc(Sim.NTask * sizeof(Npart), "Npart");
 	Split_Idx = Malloc(Sim.NTask * sizeof(*Split_Idx), "Split_Idx");
@@ -212,7 +217,7 @@ static void reset_bunchlist()
 
 static void remove_excess_bunches()
 {
-	if (NBunches <= Sim.NTask*2)
+	if (NBunches <= NTarget*2)
 		return ;
 
 	#pragma omp single
@@ -422,20 +427,20 @@ static int cost_metric(const int ipart)
 	return 1;
 }
 
-static void find_mean_cost()
+static void find_Mean_Cost()
 {
 	#pragma omp single // do cost and npart mean
-	mean_cost = 0;
+	Mean_Cost = 0;
 
-	#pragma omp for reduction(+:mean_cost)
+	#pragma omp for reduction(+:Mean_Cost)
 	for (int i = 0; i < NBunches; i++)
-		mean_cost += D[i].Bunch.Cost;
+		Mean_Cost += D[i].Bunch.Cost;
 
 	#pragma omp single
 	{
 
-	mean_cost /= Sim.NRank;
-	mean_npart = ((double) Sim.Npart_Total) / Sim.NRank;
+	Mean_Cost /= NTarget;
+	Mean_Npart = ((double) Sim.Npart_Total) / NTarget;
 
 	}
 
@@ -462,12 +467,12 @@ static int check_distribution()
 	#pragma omp for reduction(max:max_mem_imbal,max_cost_imbal) // imbalance
 	for (int i = 0; i < Sim.NTask; i++ ) {
 
-		double cost_imbal = fabs(Cost[i] - mean_cost) / mean_cost;
+		double cost_imbal = fabs(Cost[i] - Mean_Cost) / Mean_Cost;
 
 		if (cost_imbal > max_cost_imbal)
 			max_cost_imbal = cost_imbal;
 
-		double npart_imbal = fabs(Npart[i] - mean_npart) / mean_npart;
+		double npart_imbal = fabs(Npart[i] - Mean_Npart) / Mean_Npart;
 
 		if (npart_imbal > max_mem_imbal)
 			max_mem_imbal = npart_imbal;
@@ -485,7 +490,7 @@ static int check_distribution()
 
 	for (int task = 0; task < Sim.NTask-1; task++) {
 
-		if ((Cost[task]/mean_cost > DOMAIN_SPLIT_THRES)
+		if ((Cost[task]/Mean_Cost > DOMAIN_SPLIT_THRES)
 			&& (Split_Idx[task] > -1)) {
 
 			int i = Split_Idx[task];
@@ -511,8 +516,8 @@ static int check_distribution()
 
 static void distribute()
 {
-	const double max_npart = mean_npart * PART_ALLOC_FACTOR; // per task
-	const double max_cost = mean_cost ;
+	double max_npart = Mean_Npart * PART_ALLOC_FACTOR;
+	double max_cost = Mean_Cost;
 
 	memset(Cost, 0, Sim.NTask * sizeof(*Cost));
 	memset(Npart, 0, Sim.NTask * sizeof(*Npart));
@@ -522,24 +527,35 @@ static void distribute()
 
 	double dCost = 0, dNpart = 0;
 
-
 	for (int i = 0; i < NBunches; i++) {
+
+		double cur_cost = Cost[task] + dCost;
+		double new_cost = cur_cost + D[i].Bunch.Cost;
+		double new_npart = Npart[task] + dNpart + D[i].Bunch.Npart;
+
+		if ( (new_npart >= max_npart)
+		|| fabs(new_cost - Mean_Cost) > fabs(cur_cost - Mean_Cost) ) {
+
+			if (Cost[task] > Mean_Cost)
+				Split_Idx[task] = i-1;
+			else
+				Split_Idx[task] = i;
+
+			task++;
+
+			int last_task = task - 1;
+
+			task = task % NTarget;
+			last_task = last_task % NTarget;
+
+			dCost = Cost[last_task] + dCost - Mean_Cost; // carry the delta
+			dNpart = Npart[last_task] + dNpart - Mean_Npart;
+		}
 
 		Cost[task] += D[i].Bunch.Cost;
 		Npart[task] += D[i].Bunch.Npart;
 
 		D[i].Bunch.Target = -task - 1;
-
-		if ((Cost[task] + dCost >= max_cost)
-		|| (Npart[task] + dNpart >= max_npart)) {
-
-			Split_Idx[task] = i;
-
-			task++;
-
-			dCost = Cost[task-1] + dCost - mean_cost; // carry the delta
-			dNpart = Npart[task-1] + dNpart - mean_npart;
-		}
 	} // for i
 
 	return ;

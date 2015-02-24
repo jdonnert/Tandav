@@ -50,8 +50,8 @@ static double Mean_Cost = 0, Mean_Npart = 0;
  * between tasks: "Split_Idx".  Then we "distribute" them top to bottom across 
  * MPI ranks. This way particle communication is minimised and we avoid the
  * big particle shuffle.
- * Upon reentry we reconstruct the bunchlist to cover the whole domain by 
- * completing the Peano key on every level separately.
+ * Upon reentry we start off with one top node only, as this is a log(n)
+ * algorithm.
  */
 
 void Domain_Decomposition()
@@ -64,8 +64,6 @@ void Domain_Decomposition()
 
 	#pragma omp single
 	reset_bunchlist();
-
-	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
 	find_Mean_Cost();
 
@@ -206,6 +204,8 @@ static void reset_bunchlist()
 
 	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
 	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
+
+	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
 	return ;
 }
@@ -689,30 +689,30 @@ static void find_global_domain_extend()
 	return ;
 }
 
-static double com_x = 0, com_y = 0, com_z = 0, m = 0;
+static double CoM_X = 0, CoM_Y = 0, CoM_Z = 0, Mass = 0;
 
 void Find_Global_Center_Of_Mass(double *CoM_out)
 {
 	#pragma omp single
-	com_x = com_y = com_z = m = 0;
+	CoM_X = CoM_Y = CoM_Z = Mass = 0;
 
 	#pragma omp barrier
 
-	#pragma omp for reduction(+:com_x,com_y,com_z,m)
+	#pragma omp for reduction(+:CoM_X,CoM_Y,CoM_Z,Mass)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-		com_x += P[ipart].Mass * P[ipart].Pos[0];
-		com_y += P[ipart].Mass * P[ipart].Pos[1];
-		com_z += P[ipart].Mass * P[ipart].Pos[2];
+		CoM_X += P[ipart].Mass * P[ipart].Pos[0];
+		CoM_Y += P[ipart].Mass * P[ipart].Pos[1];
+		CoM_Z += P[ipart].Mass * P[ipart].Pos[2];
 
-		m += P[ipart].Mass;
+		Mass += P[ipart].Mass;
 	}
 
 	#pragma omp single
 	{
 
-	double global_com[3] = { com_x, com_y, com_z  };
-	double global_m = m;
+	double global_com[3] = { CoM_X, CoM_Y, CoM_Z  };
+	double global_m = Mass;
 
 	MPI_Allreduce(MPI_IN_PLACE, &global_com, 3, MPI_DOUBLE, MPI_MIN,
 			MPI_COMM_WORLD);

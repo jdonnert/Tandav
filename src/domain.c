@@ -618,7 +618,7 @@ static void communicate_bunches()
  * do.
  */
 
-double max_distance = 0;
+static double Max_Distance = 0;
 
 static void find_global_domain_extend()
 {
@@ -636,18 +636,18 @@ static void find_global_domain_extend()
 #else // ! PERIODIC
 
 	#pragma omp single
-	max_distance = 0;
+	Max_Distance = 0;
 
-	#pragma omp for reduction(max:max_distance)
+	#pragma omp for reduction(max:Max_Distance)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
 		for (int i = 0; i < 3; i++) {
 
-			if (P[ipart].Pos[i] > max_distance)
-				max_distance = P[ipart].Pos[i];
+			if (P[ipart].Pos[i] > Max_Distance)
+				Max_Distance = P[ipart].Pos[i] - Domain.Center_Of_Mass[i];
 
-			if (-1*P[ipart].Pos[i] > max_distance)
-				max_distance = -1*P[ipart].Pos[i];
+			if (-1*P[ipart].Pos[i] > Max_Distance)
+				Max_Distance = -1*P[ipart].Pos[i] - Domain.Center_Of_Mass[i];
 
 		} // for i
 	} // for ipart
@@ -655,15 +655,15 @@ static void find_global_domain_extend()
 	#pragma omp single
 	{
 
-	MPI_Allreduce(MPI_IN_PLACE, &max_distance, 1, MPI_DOUBLE, MPI_MAX,
+	MPI_Allreduce(MPI_IN_PLACE, &Max_Distance, 1, MPI_DOUBLE, MPI_MAX,
 		MPI_COMM_WORLD);
 
-	Domain.Size = 2.0 * max_distance;
+	Domain.Size = 2.0 * Max_Distance;
 
 	for (int i = 0; i < 3; i++) {
 
-		Domain.Origin[i] = - 0.5 * Domain.Size;
-		Domain.Center[i] = Domain.Origin[i] + 0.5 * Domain.Size ;
+		Domain.Center[i] = Domain.Center_Of_Mass[i];
+		Domain.Origin[i] = Domain.Center[i] - 0.5 * Domain.Size ;
 	}
 
 	} // omp single (Domain)

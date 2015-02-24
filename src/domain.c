@@ -485,24 +485,25 @@ static int check_distribution()
 
 	int nSplit = 0;
 
-	#pragma omp single copyprivate(nSplit) // put split
+	#pragma omp single copyprivate(nSplit) // put split mark
 	{
 
-	for (int task = 0; task < Sim.NTask-1; task++) {
+	for (int task = 0; task < Sim.NTask; task++) {
 
-		if ((Cost[task]/Mean_Cost > DOMAIN_SPLIT_THRES)
-			&& (Split_Idx[task] > -1)) {
+		if (fabs(Cost[task]-Mean_Cost)/Mean_Cost < DOMAIN_IMBAL_CEIL) // task ok
+			continue;
 
-			int i = Split_Idx[task];
+		if (Split_Idx[task] < 0) // no idx set
+			continue;
 
-			if (D[i].Bunch.Level < N_SHORT_TRIPLETS-1) {
+		int i = Split_Idx[task];
 
-				D[i].Bunch.Modify = 1;
+		if (D[i].Bunch.Level == N_SHORT_TRIPLETS) // maximum refinement
+			continue;
 
-				nSplit++;
-			}
-		}
+		D[i].Bunch.Modify = 1;
 
+		nSplit++;
 	} // for task
 
 	} // omp single
@@ -512,6 +513,8 @@ static int check_distribution()
 
 /*
  * Assign tasks to bunches, top to bottom and measure cost.
+ * We accept a bunch if it brings us closer to the cost mean and mark the 
+ * bunch hitting the mean as to split. We adjust for the imbalance in counting
  */
 
 static void distribute()
@@ -614,8 +617,8 @@ static void communicate_bunches()
 /*
  * Find the global domain origin and the maximum extent. We center the domain 
  * on the center of mass to make the decomposition effectively Lagrangian if
- * the simulation is not PERIODIC. For PERIODIC simulations there is little to
- * do.
+ * the simulation is not PERIODIC. Actually the median would be much better !
+ * For PERIODIC simulations there is little to do.
  */
 
 static double Max_Distance = 0;

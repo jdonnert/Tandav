@@ -1,6 +1,10 @@
 #ifdef GRAVITY
 
-void Accel_Gravity_Simple();
+#ifdef GRAVITY_SIMPLE
+void Gravity_Simple_Accel();
+#else
+inline void Gravity_Simple_Accel(){};
+#endif // GRAVITY_SIMPLE
 
 #ifdef GRAVITY_TREE
 
@@ -22,8 +26,6 @@ void Gravity_Tree_Acceleration();
 void Gravity_Tree_Update_Kicks(const int ipart, const double dt);
 void Gravity_Tree_Update_Topnode_Kicks();
 void Gravity_Tree_Update_Drift(const double dt);
-void Gravity_Tree_Ewald_Correction();
-void Gravity_Tree_Short_Range();
 
 int Level(const int node); // bitfield functions
 
@@ -33,12 +35,20 @@ bool Node_Is(const enum Tree_Bitfield bit, const int node);
 void Node_Set(const enum Tree_Bitfield bit, const int node);
 void Node_Clear(const enum Tree_Bitfield bit, const int node);
 
+#ifdef PERIODIC
+void Gravity_Tree_Periodic();
+void Gravity_Tree_Periodic_Init();
+#else // !PERIODIC
+inline void Gravity_Tree_Periodic(){};
+inline void Gravity_Tree_Periodic_Init(){};
+#endif // PERIODIC
+
 #endif // GRAVITY_TREE
 
 #ifdef GRAVITY_MULTI_GRID
-
-void Gravity_Multi_Long_Range();
-
+void Gravity_Multi_Grid_Long_Range();
+#else
+inline void Gravity_Multi_Grid_Long_Range() {};
 #endif // GRAVITY_MULTI_GRID
 
 #else // ! GRAVITY
@@ -46,5 +56,9 @@ void Gravity_Multi_Long_Range();
 inline void Gravity_Tree_Update_Kicks(const int ipart, const double dt) {};
 inline void Gravity_Tree_Update_Topnode_Kicks() {};
 inline void Gravity_Tree_Update_Drift(const double dt) {};
+inline void Gravity_Tree_Periodic(){};
+inline void Gravity_Tree_Periodic_Init(){};
+inline void Gravity_Multi_Grid_Long_Range() {};
+inline void Accel_Gravity_Simple(){};
 
 #endif // GRAVITY

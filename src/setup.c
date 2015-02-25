@@ -16,11 +16,9 @@ void Setup()
 
 	Print_Memory_Usage();
 
-#ifdef COMOVING
-	Setup_Cosmology();
+	Setup_Cosmology(); // COMOVING
 
-	Setup_Comoving();
-#endif // COMOVING
+	Setup_Comoving(); // COMOVING
 
 	Profile("Setup");
 

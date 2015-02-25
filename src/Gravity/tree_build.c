@@ -16,7 +16,7 @@ static int finalise_subtree(const int, const int, int );
 static inline bool particle_is_inside_node(const peanoKey,const int,const int);
 static inline void add_particle_to_node(const int, const int);
 static inline void create_node_from_particle(const int, const int,
-											 const peanoKey, const int, 
+											 const peanoKey, const int,
 											 const int);
 static peanoKey create_first_node(const int, const int, const int);
 static void collapse_last_branch(const int, const int, const int, int*);

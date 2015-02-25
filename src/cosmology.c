@@ -53,4 +53,10 @@ double Critical_Density(double hubble_parameter) // Mo, v.d.Bosch & White 3.63
 	return 3.0/8.0/PI/Const.Gravity * p2(hubble_parameter);
 }
 
+void Setup_Cosmology()
+{
+	return ;
+}
+
+
 #endif // COMOVING

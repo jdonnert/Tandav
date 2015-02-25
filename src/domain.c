@@ -65,6 +65,8 @@ void Domain_Decomposition()
 	#pragma omp single
 	reset_bunchlist();
 
+	fill_bunches(0, NBunches, 0, Task.Npart_Total);
+
 	find_Mean_Cost();
 
 	for (;;) {
@@ -136,7 +138,7 @@ void Domain_Decomposition()
 
 void Setup_Domain_Decomposition()
 {
-	if (Sim.NRank < 4)
+	if (Sim.NRank < 4) // decompose on threads as welL
 		NTarget = Sim.NTask;
 	else
 		NTarget = Sim.NRank;
@@ -157,20 +159,7 @@ void Setup_Domain_Decomposition()
 	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
 
 	#pragma omp parallel
-	{
-
 	find_global_domain_extend();
-
-	rprintf("\nInitial Domain size is %g, \n"
-			"   Origin at x = %4g, y = %4g, z = %4g, \n"
-			"   Center at x = %4g, y = %4g, z = %4g. \n"
-			"   CoM    at x = %4g, y = %4g, z = %4g. \n",
-			Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
-			Domain.Center[0], Domain.Center[1], Domain.Center[2],
-			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
-			Domain.Center_Of_Mass[2]);
-
-	} // omp parallel
 
 	return;
 }
@@ -204,8 +193,6 @@ static void reset_bunchlist()
 
 	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
 	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
-
-	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
 	return ;
 }

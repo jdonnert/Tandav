@@ -46,9 +46,9 @@ void Read_and_Init()
 		break;
 	}
 
-#ifdef PERIODIC
-	Constrain_Particles_To_Box();
-#endif
+	Gravity_Tree_Periodic_Init();
+
+	Periodic_Constrain_Particles_To_Box();
 
 	Profile("Init");
 

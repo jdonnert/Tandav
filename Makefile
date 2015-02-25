@@ -59,14 +59,16 @@ SRCDIR = src/
 SRCFILES = main.c aux.c cosmology.c domain.c update.c print_settings.c drift.c \
 		init.c kick.c setup.c timestep.c unit.c memory.c profile.c \
 		sort.c finish.c peano.c accel.c constants.c log.c signal.c comov.c \
+		periodic.c \
 	   	IO/io.c IO/read_snapshot.c IO/write_snapshot.c IO/rw_parameter_file.c \
 		IO/write_restart_file.c IO/read_restart_file.c  \
 		Gravity/gravity_simple.c Gravity/tree_build.c Gravity/tree_accel.c \
-		Gravity/tree_update.c
+		Gravity/tree_update.c Gravity/tree_periodic.c
 
 INCLFILES = config.h globals.h cosmology.h unit.h aux.h macro.h proto.h \
 	    memory.h profile.h IO/io.h constants.h kick.h setup.h update.h \
 		drift.h timestep.h peano.h accel.h log.h signal.h  comov.h \
+		periodic.h \
 		Gravity/gravity.h \
 		../Makefile ../Config
 

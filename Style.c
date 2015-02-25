@@ -54,6 +54,12 @@ This is the Style Guide :
   you will call many static functions whose names will explain most of what
   needs to be known. These function will be optimised away by modern compilers.
 
+* The naming scheme of the modules should be consistent:
+
+			#DEFINE GRAVITY_TREE
+			src/Gravity/tree_build.c
+			Gravity_Tree_Build();
+
 * C99: Variables are initialised when declared. Use the const keyword for
   input parameters to avoid bugs.
 
@@ -61,11 +67,13 @@ This is the Style Guide :
   for(int i = 0; i < N; i++). This is sometimes even faster in OpenMP.
 
 * Global variables should have long meaningful names, start with a capital
-  letter. Scope should be visible and global variables have to be
-  understandable and unambiguous. You might not want to use these names
-  locally, but define a local variable using the const keyword. Code-wide
-  variables should be embedded in the existing structures, if possible.
-  Minimize the use of global variable if reasonably possible.
+  letters. Scope should be visible and global variables have to be
+  understandable and unambiguous. This also helps with OpenMP race conditions,
+  global variables must be touched only inside a #pragma omp single region.
+  You might not want to use long names locally, but define a local variable
+  using the const keyword. Code-wide variables should be embedded in the
+  existing structures, if possible. Minimize the use of global variable if
+  reasonably possible.
 
 * Local variables are short and start with a small letter. Don't do this :
 

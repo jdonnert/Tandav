@@ -167,7 +167,7 @@ void Setup_Time_Integration()
 {
 	Time.Next_Snap = Time.First_Snap;
 
-	Time.NSnap = (Time.End - Time.Begin) / Time.Bet_Snap;
+	Time.NSnap = (Time.End - Time.Begin) / Time.Bet_Snap + 1;
 
 	rprintf("Simulation timeline: \n"
 			"   start = %g, end = %g, delta = %g, NSnap = %d \n\n",

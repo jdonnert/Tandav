@@ -3,7 +3,9 @@
 #include "timestep.h"
 #include "Gravity/gravity.h"
 
+#ifdef GRAVITY
 static void accel_gravity();
+#endif
 
 static void zero_active_particle_accelerations();
 
@@ -19,18 +21,18 @@ void Compute_Acceleration()
 	accel_gravity(); // needs previous P.Acc and overwrites it
 #else
 	zero_active_particle_accelerations();
-#endif // GRAVITY
+#endif
 
 	Profile("Accelerations");
 
 	return ;
 }
 
+#ifdef GRAVITY
+
 static void accel_gravity()
 {
 	Profile("Gravity");
-
-#ifdef GRAVITY_TREE
 
 	if (Sig.Tree_Update)
 		Gravity_Tree_Build();
@@ -40,25 +42,18 @@ static void accel_gravity()
 	if (Sig.First_Step)
 		Gravity_Tree_Acceleration();
 
-#ifdef PERIODIC
-	 Gravity_Tree_Ewald_Correction();
-#endif
+	Gravity_Tree_Periodic();
 
-#endif // GRAVITY_TREE
+	Gravity_Simple_Accel();
 
-#ifdef GRAVITY_SIMPLE
-	Accel_Gravity_Simple();
-#endif
+	if (Sig.Fullstep)
+		Gravity_Multi_Grid_Long_Range();
 
-#ifdef GRAVITY_GRID
-	if (Sig.Full_Step)
-		Gravity_Grid_Long_Range
-#endif
 	Profile("Gravity");
 
 	return ;
 }
-
+#endif // ! GRAVITY
 
 static void zero_active_particle_accelerations()
 {
@@ -72,3 +67,4 @@ static void zero_active_particle_accelerations()
 
 	return ;
 }
+

@@ -103,35 +103,4 @@ double Particle_Drift_Step(const int ipart, const double time_next)
 #endif
 
 
-#ifdef PERIODIC
-static void Periodic_Constrain_Particles_To_Box()
-{
-	const Float boxsize[3] = {Sim.Boxsize[0], Sim.Boxsize[1], Sim.Boxsize[2]};
 
-	#pragma omp for
-	for (int i = 0; i < NActive_Particles; i++) {
-
-		int ipart = Active_Particle_List[i];
-
-		while (P[ipart].Pos[0] < 0)
-			P[ipart].Pos[0] += boxsize[0];
-
-		while (P[ipart].Pos[0] >= boxsize[0])
-			P[ipart].Pos[0] -= boxsize[0];
-
-		while (P[ipart].Pos[1] < 0)
-			P[ipart].Pos[1] += boxsize[1];
-
-		while (P[ipart].Pos[1] >= boxsize[1])
-			P[ipart].Pos[1] -= boxsize[1];
-
-		while (P[ipart].Pos[2] < 0)
-			P[ipart].Pos[2] += boxsize[2];
-
-		while (P[ipart].Pos[2] >= boxsize[2])
-			P[ipart].Pos[2] -= boxsize[2];
-	} // for i
-
-	return ;
-}
-#endif

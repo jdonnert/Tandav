@@ -19,9 +19,11 @@ double Critical_Density(double);
 #ifdef COMOVING
 
 void Set_Current_Cosmology();
+void Setup_Cosmology();
 
 #else // ! COMOVING
 
-static inline void Set_Current_Cosmology(){};
+inline void Set_Current_Cosmology() {};
+inline void Setup_Cosmology() {};
 
 #endif // ! COMOVING

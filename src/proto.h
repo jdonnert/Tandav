@@ -1,10 +1,10 @@
 #ifndef PROTO_H
 #define PROTO_H
 
-#include <stdlib.h> 		// system       
+#include <stdlib.h>	// system       
 #include <stdio.h>
 #include <stdint.h>
-#include <stdarg.h> 
+#include <stdarg.h>
 #include <inttypes.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -30,6 +30,8 @@
 #define MASTER 0			// Global master MPI task
 
 typedef float Float;		// type of floating point variables in P
+#define MPI_MYFLOAT MPI_FLOAT // corresponding MPI communication type macro
+
 typedef uint32_t ID_t;		// type of particle ID
 typedef uint32_t intime_t;	// type of integer time 
 typedef __uint128_t peanoKey; // long peanokey, 42 triplets, levels
@@ -52,6 +54,12 @@ typedef uint64_t shortKey;	// short peanokey, 21 triplets, levels
 extern void Finish();
 
 extern void Print_compile_time_settings();
+/* 
+ * Workarounds 
+ */
+
+double erand48(unsigned short xsubi[3]);
+int posix_memalign(void **memptr, size_t alignment, size_t size);
 
 /* 
  * Add your headers here, #ifdefs go into the .h file 
@@ -59,12 +67,8 @@ extern void Print_compile_time_settings();
 
 #include "cosmology.h"		// cosmology functions 
 #include "comov.h"			// Comoving coordinates
+#include "periodic.h"		// periodic boundary conditions
 
-/* 
- * Workarounds 
- */
 
-double erand48(unsigned short xsubi[3]);
-int posix_memalign(void **memptr, size_t alignment, size_t size);
 
 #endif // PROTO_H

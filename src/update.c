@@ -12,28 +12,28 @@
  * environment !
  */
 
-void Update(enum Update_Parameters stage) 
+void Update(enum Update_Parameters stage)
 {
 	switch (stage) {
 
 	case BEFORE_MAIN_LOOP:
-		
+
 		Set_Current_Cosmology();
-		
+
 		Domain_Decomposition();
 
 		Print_Memory_Usage();
 
 		Compute_Acceleration();
 
-		if (Time.Begin == Time.Next_Snap) { 
-			
+		if (Time.Begin == Time.Next_Snap) {
+
 			Write_Snapshot();
-			
+
 			#pragma omp single
 			Time.Next_Snap += Time.Bet_Snap;
 		}
-		
+
 		Time_For_Domain_Update();
 
 		Print_Memory_Usage();
@@ -41,11 +41,11 @@ void Update(enum Update_Parameters stage)
 		break;
 
 	case BEFORE_STEP:
-		
+
 		Write_Logs();
 
 		break;
-	
+
 	case BEFORE_FIRST_KICK:
 
 		break;
@@ -53,7 +53,7 @@ void Update(enum Update_Parameters stage)
 	case BEFORE_SNAPSHOT:
 
 		break;
-		
+
 	case BEFORE_DRIFT:
 
 		break;

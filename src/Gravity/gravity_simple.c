@@ -1,9 +1,12 @@
 #include "../globals.h"
+
+#ifdef GRAVITY_SIMPLE 
+
 #include "gravity.h"
 
 static const double h = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
 
-static double mean_error = 0, max_error = 0; 
+static double mean_error = 0, max_error = 0;
 static int worst_part = -1;
 
 /*
@@ -13,7 +16,7 @@ static int worst_part = -1;
  * Check to the total force to make sure this is not the case.
  */
 
-void Accel_Gravity_Simple()
+void Gravity_Simple_Accel()
 {
 	Profile("Gravity_Simple");
 
@@ -121,3 +124,5 @@ void Accel_Gravity_Simple()
 
 	return ;
 }
+
+#endif // GRAVITY_SIMPLE

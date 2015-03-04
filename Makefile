@@ -50,6 +50,18 @@ FFT_INCL =
 FFT_LIBS =
 endif
 
+ifeq ($(SYSTYPE),redshift.strw.leidenuniv.nl)
+CC       =  mpicc
+OPTIMIZE =  -g -O2  -march=native 
+MPI_LIBS = -L/homes/donnert/Libs/lib
+MPI_INCL = -I/homes/donnert/Libs/include
+GSL_INCL =  
+GSL_LIBS = 
+FFT_INCL =
+FFT_LIBS =
+endif
+
+
 # end systypes
 
 EXEC = Tandav

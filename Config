@@ -2,7 +2,7 @@
 
 #DEBUG                       // verbose output
 
-#PERIODIC                   // periodic boundary conditions
+PERIODIC                   // periodic boundary conditions
 #COMOVING                   // comoving coordinates for cosmo sims
 
 TIME_INT_ACCURACY 0.4       // [0.4] cosmo time step accuracy parameter

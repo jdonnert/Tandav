@@ -1,7 +1,8 @@
 #ifdef PERIODIC
 
 extern void Periodic_Constrain_Particles_To_Box();
-extern inline Float Periodic_Nearest(const Float dx);
+Float Periodic_Nearest(const Float dx);
+Float Periodic_Nearest_Noncubic(const Float dx, const int i);
 
 #else // !PERIODIC
 

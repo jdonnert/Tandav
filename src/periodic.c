@@ -38,7 +38,20 @@ void Periodic_Constrain_Particles_To_Box()
  * the periodic box. This is not very fast.
  */
 
-inline Float Periodic_Nearest(const Float dx, const int i)
+Float Periodic_Nearest(const Float dx)
+{
+	Float dx_periodic = dx;
+
+	if (dx > 0.5 * Sim.Boxsize[0])
+		dx_periodic = dx - Sim.Boxsize[0];
+
+	if (dx < -0.5 * Sim.Boxsize[0])
+		dx_periodic = dx + Sim.Boxsize[0];
+
+	return dx_periodic;
+}
+
+Float Periodic_Nearest_Noncubic(const Float dx, const int i)
 {
 	Float dx_periodic = dx;
 
@@ -50,5 +63,6 @@ inline Float Periodic_Nearest(const Float dx, const int i)
 
 	return dx_periodic;
 }
+
 
 #endif // PERIODIC

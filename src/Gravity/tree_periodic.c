@@ -7,6 +7,8 @@
 
 #define N_EWALD 64 // Hernquist+ 1991
 
+static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
+		Float* Accel, Float *Pot);
 static void compute_ewald_correction_table();
 static void write_ewald_correction_table();
 static bool read_ewald_correction_table();
@@ -15,8 +17,7 @@ static double compute_ewald_potential(const double r[3]);
 static void compute_ewald_force(const int, const int, const int,
 								const double r[3], double force[3]);
 
-
-const static double alpha = 2.0;
+const static double Alpha = 2.0; // Hernquist+ 1992 (2.13)
 
 static double Box2Ewald_Grid = 0;
 static double Boxsize = 0;
@@ -31,6 +32,130 @@ void Gravity_Tree_Periodic()
 {
 
 	return ;
+}
+
+/*
+ * This walks a subtree starting at "tree_start" to estimate the Ewald 
+ * correction to the gravitational force. Because the force is proportional to
+ * the distance a different opening criterion can be used, similar to Gadget-2.
+ * However, this cannot happen across a periodic boundary. 
+ */
+
+static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
+		Float Accel[3], Float Pot[1])
+{
+	const Float pos_i[3] = {P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2]};
+	
+	const int tree_end = tree_start + Tree[tree_start].DNext;
+
+	int node = tree_start;
+
+	while (node != tree_end) {
+
+		bool want_open_node = false;
+
+		if (Tree[node].DNext < 0) { // particle bundle
+
+			interact(mpart, dr, r2, Accel, Pot);
+
+			node++;
+
+			continue;
+		}
+
+		Float dr[3] = { pos_i[0] - Tree[node].CoM[0],
+					    pos_i[1] - Tree[node].CoM[1],
+					    pos_i[2] - Tree[node].CoM[2] };
+
+		dr[0] = nearest(dr[0]);
+		dr[1] = nearest(dr[1]);
+		dr[2] = nearest(dr[2]);
+
+		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
+
+		Float nMass = Tree[node].Mass;
+
+		Float nSize = node_size(node); // now check opening criteria
+
+		if (nMass*nSize*nSize > r2*r2 * fac) // relative criterion
+			want_open_node = true;
+
+		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]);
+		Float dy = fabs(pos_i[1] - Tree[node].Pos[1]);
+		Float dz = fabs(pos_i[2] - Tree[node].Pos[2]);
+
+		if (dx < 0.6 * nSize) { // particle inside node ? 
+			
+			if (dy < 0.6 * nSize) {
+
+				if (dz < 0.6 * nSize) {
+				
+					want_open_node = true;
+				
+				}
+			}
+		}
+
+		if (want_open_node) { // check if we really have to open
+
+			dx = nearest(dx); // cross borders ?
+			
+			if (fabs(dx) > 0.5 * (Boxsize - Tree[node].Size)) { 
+				
+				node++;
+
+				continue;
+			}
+
+			dy = nearest(dy);
+
+			if (fabs(dy) > 0.5 * (Boxsize - Tree[node].Size)) {
+				
+				node++;
+
+				continue;
+			
+			}
+
+			dz = nearest(dz);
+
+			if (fabs(dz) > 0.5 * (Boxsize - Tree[node].Size)) {
+				
+				node++;
+
+				continue;
+			
+			}
+
+			if (Tree[node].Size > 0.2 * Boxsize) { // too large
+
+				node++;
+
+				continue;
+			}
+		
+		}
+
+		ewald_correction(dx, dy, dz, accel); // use node
+
+		node += Tree[node].DNext; // skip sub-branch, goto sibling
+
+	} // while
+
+	return ;
+}
+
+static inline Float nearest(const Float dx)
+{
+	Float dx_periodic = dx;
+
+	if (dx > Boxhalf)
+		dx_periodic = dx - Boxsize;
+
+	if (dx < -Boxhalf)
+		dx_periodic = dx + Boxsize;
+
+	return dx_periodic;
 }
 
 void Gravity_Tree_Periodic_Init()
@@ -347,8 +472,8 @@ static void compute_ewald_force(const int i, const int j, const int k,
 
 				double r = ALENGTH3(dx);
 
-				double val = erfc(alpha * r) + 2*alpha * r/sqrt(PI)
-							* exp(-p2(alpha*r));
+				double val = erfc(Alpha * r) + 2*Alpha * r/sqrt(PI)
+							* exp(-p2(Alpha*r));
 
 				force[0] -= dx[0] / p3(r) * val;
 				force[1] -= dx[1] / p3(r) * val;
@@ -372,7 +497,7 @@ static void compute_ewald_force(const int i, const int j, const int k,
 				if (h2 <= 0)
 					continue;
 
-				double val = 2.0/h2 * exp(-PI*PI*h2/p2(alpha))
+				double val = 2.0/h2 * exp(-PI*PI*h2/p2(Alpha))
 									* sin(2*PI*hdotx);
 
 				force[0] -= h[0] * val;
@@ -403,7 +528,7 @@ static double compute_ewald_potential(const double r[3])
 
 				double dr = ALENGTH3(dx);
 
-				sum1 += erfc(alpha * dr)/dr;
+				sum1 += erfc(Alpha * dr)/dr;
 			}
 		}
 	}
@@ -424,28 +549,14 @@ static double compute_ewald_potential(const double r[3])
 				if (h2 <= 0)
 					continue;
 
-				sum2 += 1.0/(PI*h2) * exp(-PI*PI*h2 / p2(alpha)) 
+				sum2 += 1.0/(PI*h2) * exp(-PI*PI*h2 / p2(Alpha)) 
 					* cos(2*PI*hdotr);
 			}
 		}
 	}
 
-	return PI/p2(alpha) - sum1 - sum2 + 1.0/ALENGTH3(r);
+	return PI/p2(Alpha) - sum1 - sum2 + 1.0/ALENGTH3(r);
 }
-
-static inline Float nearest(const Float dx)
-{
-	Float dx_periodic = dx;
-
-	if (dx > Boxhalf)
-		dx_periodic = dx - Boxsize;
-
-	if (dx < -Boxhalf)
-		dx_periodic = dx + Boxsize;
-
-	return dx_periodic;
-}
-
 
 #undef N_EWALD
 

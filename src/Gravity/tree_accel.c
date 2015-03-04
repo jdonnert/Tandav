@@ -174,7 +174,7 @@ static void interact_with_topnode_particles(const int ipart, const int j,
  */
 
 static void gravity_tree_walk(const int ipart, const int tree_start,
-		Float* Accel, Float *Pot)
+		Float Accel[3], Float Pot[1])
 {
 	const Float fac = ALENGTH3(P[ipart].Acc) / Const.Gravity
 		* TREE_OPEN_PARAM_REL;

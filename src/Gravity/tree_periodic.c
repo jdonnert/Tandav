@@ -7,10 +7,14 @@
 
 #define N_EWALD 64 // Hernquist+ 1991
 
+static void compute_ewald_correction_table();
+static void write_ewald_correction_table();
+static bool read_ewald_correction_table();
 static inline Float nearest(const Float dx);
-static void compute_ewald_force(const int i, const int j, const int k,
-								const double r[3], double force[3]);
 static double compute_ewald_potential(const double r[3]);
+static void compute_ewald_force(const int, const int, const int,
+								const double r[3], double force[3]);
+
 
 const static double alpha = 2.0;
 
@@ -31,13 +35,56 @@ void Gravity_Tree_Periodic()
 
 void Gravity_Tree_Periodic_Init()
 {
-	rprintf("Init Ewald correction ... ");
+	rprintf("Init Ewald correction ");
 
 	Boxsize = Sim.Boxsize[0];
 	Boxhalf = Boxsize / 2;
+
 	Box2Ewald_Grid = 2 * N_EWALD / Boxsize;
 
-	/* this follows closely Gadget-2 */
+	bool table_found = false;
+
+	if (Task.Is_Master)
+		 table_found = read_ewald_correction_table();
+
+	MPI_Bcast(&table_found, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+
+	if (table_found)
+		goto skip_computation;
+
+ 	compute_ewald_correction_table();
+	
+	write_ewald_correction_table();
+
+	skip_computation:;
+
+	#pragma omp parallel for
+	for (int i = 0; i < N_EWALD+1; i++) {
+
+		for (int j = 0; j < N_EWALD+1; j++) {
+
+			for (int k = 0; k < N_EWALD+1; k++) {
+
+				Fx[i][j][k] /= p2(Boxsize);
+				Fy[i][j][k] /= p2(Boxsize);
+				Fz[i][j][k] /= p2(Boxsize);
+				Fp[i][j][k] /= Boxsize;
+			}
+		}
+	}
+
+	rprintf("done \n\n");
+
+	return ;
+}
+
+/* 
+ * this follows closely Gadget-2 (Springel 2006)
+ */
+
+static void compute_ewald_correction_table()
+{
+	rprintf("\n   Computing tables ");
 
 	int size = p3(N_EWALD + 1) / Sim.NRank; // generic size
 	int beg = Task.Rank * size;
@@ -49,12 +96,17 @@ void Gravity_Tree_Periodic_Init()
 
 	int end = beg + len;
 
+	int cnt = 0;
+
 	#pragma omp parallel for
 	for (int i = 0; i < N_EWALD+1; i++) {
 
 		for (int j = 0; j < N_EWALD+1; j++) {
 
 			for (int k = 0; k < N_EWALD+1; k++) {
+
+				if (((cnt++) % (size/10/Sim.NThreads)) == 0)
+					rprintf(".");
 
 				int n = (i * (N_EWALD+1) + j) * (N_EWALD+1) + k;
 
@@ -78,7 +130,6 @@ void Gravity_Tree_Periodic_Init()
 		} // j
 	} // i
 
-	#pragma omp parallel for schedule(static,1)
 	for (int rank = 0; rank < Sim.NRank; rank++) {  // merge
 
 		beg = rank * size;
@@ -95,44 +146,52 @@ void Gravity_Tree_Periodic_Init()
 
 	} // for rank
 
-	#pragma omp parallel for
-	for (int i = 0; i < N_EWALD+1; i++) {
-
-		for (int j = 0; j < N_EWALD+1; j++) {
-
-			for (int k = 0; k < N_EWALD+1; k++) {
-
-				Fx[i][j][k] /= p2(Boxsize);
-				Fy[i][j][k] /= p2(Boxsize);
-				Fz[i][j][k] /= p2(Boxsize);
-				Fp[i][j][k] /= Boxsize;
-			}
-		}
-	}
-
-	rprintf("done \n");
-
 	return ;
 }
 
-static void compute_ewald_correction_table()
-{
-	return ;
-}
+/*
+ * read/write the ewald tables from/to a binary file
+ */
 
 const static char fname[CHARBUFSIZE] = { "ewald_table.dat" };
 
-static void read_ewald_correction_table(FILE * fp)
+static bool read_ewald_correction_table()
 {
+	FILE *fp = fopen(fname, "r");
 
-	return ;
+	if (fp == NULL)
+		return false;
+
+	rprintf("\n   Reading Ewald tables from %s \n", fname);
+
+	size_t nFloat = p3(N_EWALD+1);
+
+	Fread(&Fx[0][0][0], sizeof(Fx[0][0][0]), nFloat, fp);
+	Fread(&Fy[0][0][0], sizeof(Fy[0][0][0]), nFloat, fp);
+	Fread(&Fz[0][0][0], sizeof(Fz[0][0][0]), nFloat, fp);
+
+	Fread(&Fp[0][0][0], sizeof(Fp[0][0][0]), nFloat, fp);
+	
+	fclose(fp);
+
+	return true;
 }
 
-static void write_ewald_corection_table()
+static void write_ewald_correction_table()
 {
-	const char fname[CHARBUFSIZE] = { "ewald_table.dat" };
+	FILE *fp = fopen(fname, "w");
 
+	rprintf("\n   Writing Ewald tables from %s \n", fname);
 
+	size_t nFloat = p3(N_EWALD+1);
+
+	Fwrite(&Fx[0][0][0], sizeof(Fx[0][0][0]), nFloat, fp);
+	Fwrite(&Fy[0][0][0], sizeof(Fy[0][0][0]), nFloat, fp);
+	Fwrite(&Fz[0][0][0], sizeof(Fz[0][0][0]), nFloat, fp);
+
+	Fwrite(&Fp[0][0][0], sizeof(Fp[0][0][0]), nFloat, fp);
+
+	fclose(fp);
 
 	return ;
 }
@@ -259,7 +318,7 @@ static void ewald_potential(const double x, const double y, const double z,
 /*
  * Compute force correction term from Hernquist+ 1992 (2.14b, 2.16), this
  * is the difference between the force from the infinite lattice and the
- * nearest image. "r" and "force" are in boxsize units.
+ * nearest image. "x" and "force" are in boxsize units.
  */
 
 static void compute_ewald_force(const int i, const int j, const int k,

@@ -42,7 +42,9 @@ static Float Fp[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { 0 };
 
 void Gravity_Tree_Periodic()
 {
+	Profile("Grav Tree Periodic");
 
+	Profile("Grav Tree Periodic");
 	return ;
 }
 
@@ -181,31 +183,7 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 	return ;
 }
 
-/*
- * Do the periodic mapping on a 3D distance array. We rely on link time 
- * optimization of the compiler to do the inlining for us. Make sure to put
- * the appropriate compiler switches.
- */
 
-void Tree_Periodic_Nearest(Float dr[3])
-{
-	if (dr[0] > Boxhalf)
-		dr[0] -= Boxsize;
-	else if (dr[0] < -Boxhalf)
-		dr[0] += Boxsize;
-
-	if (dr[1] > Boxhalf)
-		dr[1] -= Boxsize;
-	else if (dr[1] < -Boxhalf)
-		dr[1] += Boxsize;
-
-	if (dr[2] > Boxhalf)
-		dr[2] -= Boxsize;
-	else if (dr[2] < -Boxhalf)
-		dr[2] += Boxsize;
-
-	return ;
-}
 
 void Gravity_Tree_Periodic_Init()
 {
@@ -248,6 +226,25 @@ void Gravity_Tree_Periodic_Init()
 	}
 
 	rprintf("done \n\n");
+
+	return ;
+}
+
+/*
+ * Do the periodic mapping on a 3D distance array. We rely on link time 
+ * optimization of the compiler to do the inlining for us. Make sure to put
+ * the appropriate compiler switches.
+ */
+
+void Tree_Periodic_Nearest(Float dr[3])
+{
+	for (int i = 0; i < 3; i++) {
+	
+		if (dr[i] > Boxhalf)
+			dr[i] -= Boxsize;
+		else if (dr[i] < -Boxhalf)
+			dr[i] += Boxsize;
+	}
 
 	return ;
 }

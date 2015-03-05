@@ -31,6 +31,7 @@ int Level(const int node); // bitfield functions
 
 enum Tree_Bitfield { LOCAL=9, TOP=10, UPDATED=11 }; // offset by one
 
+Float Node_Size(const int node);
 bool Node_Is(const enum Tree_Bitfield bit, const int node);
 void Node_Set(const enum Tree_Bitfield bit, const int node);
 void Node_Clear(const enum Tree_Bitfield bit, const int node);
@@ -38,9 +39,11 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node);
 #ifdef PERIODIC
 void Gravity_Tree_Periodic();
 void Gravity_Tree_Periodic_Init();
+void Tree_Periodic_Nearest(Float dr[3]);
 #else // !PERIODIC
 inline void Gravity_Tree_Periodic(){};
 inline void Gravity_Tree_Periodic_Init(){};
+inline void Tree_Periodic_Nearest(Float dr[3]) {};
 #endif // PERIODIC
 
 #endif // GRAVITY_TREE

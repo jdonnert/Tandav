@@ -7,15 +7,21 @@
 
 #define N_EWALD 64 // Hernquist+ 1991
 
-static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
-		Float* Accel, Float *Pot);
+static void ewald_correction(const Float dr[3], Float f[3]);
 static void compute_ewald_correction_table();
 static void write_ewald_correction_table();
 static bool read_ewald_correction_table();
-static inline Float nearest(const Float dx);
-static double compute_ewald_potential(const double r[3]);
+static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
+										Float* Accel, Float *Pot);
 static void compute_ewald_force(const int, const int, const int,
 								const double r[3], double force[3]);
+#ifdef OUTPUT_GRAV_POTENTIAL    
+static double compute_ewald_potential(const double r[3]);
+static void ewald_potential(const Float dr[3], Float p[1]);
+#else
+static inline void compute_ewald_potential(const double r[3]) {};
+static inline void ewald_potential(const Float dr[3], Float p[1]) {};
+#endif // OUTPUT_GRAV_POTENTIAL
 
 const static double Alpha = 2.0; // Hernquist+ 1992 (2.13)
 
@@ -27,6 +33,12 @@ static Float Fx[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { 0 };
 static Float Fy[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { 0 };
 static Float Fz[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { 0 };
 static Float Fp[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { 0 };
+
+
+/*
+ * Compute the correction to the gravitational force due the periodic
+ * infinite box using the tree and the Ewald method (Hernquist+ 1992).
+ */
 
 void Gravity_Tree_Periodic()
 {
@@ -44,6 +56,9 @@ void Gravity_Tree_Periodic()
 static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 		Float Accel[3], Float Pot[1])
 {
+	const Float fac = ALENGTH3(P[ipart].Acc) / Const.Gravity
+		* TREE_OPEN_PARAM_REL;
+	
 	const Float pos_i[3] = {P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2]};
 	
 	const int tree_end = tree_start + Tree[tree_start].DNext;
@@ -56,7 +71,24 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 
 		if (Tree[node].DNext < 0) { // particle bundle
 
-			interact(mpart, dr, r2, Accel, Pot);
+			int first = -Tree[node].DNext - 1; // part index is offset by 1
+			int last = first + Tree[node].Npart;
+
+			for (int jpart = first; jpart < last; jpart++) {
+
+				if (jpart == ipart)
+					continue;
+
+				Float dr[3] = { pos_i[0] - P[jpart].Pos[0],
+							    pos_i[1] - P[jpart].Pos[1],
+					            pos_i[2] - P[jpart].Pos[2] };
+
+				Tree_Periodic_Nearest(dr);
+
+				ewald_correction(dr, Accel); 
+
+ 				ewald_potential(dr, Pot);
+			}
 
 			node++;
 
@@ -67,9 +99,7 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 					    pos_i[1] - Tree[node].CoM[1],
 					    pos_i[2] - Tree[node].CoM[2] };
 
-		dr[0] = nearest(dr[0]);
-		dr[1] = nearest(dr[1]);
-		dr[2] = nearest(dr[2]);
+		Tree_Periodic_Nearest(dr);
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
@@ -77,18 +107,22 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 
 		Float nSize = node_size(node); // now check opening criteria
 
-		if (nMass*nSize*nSize > r2*r2 * fac) // relative criterion
+		if (nMass*nSize*nSize > r2*r2 * fac) { // relative criterion
+			
 			want_open_node = true;
 
-		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]);
-		Float dy = fabs(pos_i[1] - Tree[node].Pos[1]);
-		Float dz = fabs(pos_i[2] - Tree[node].Pos[2]);
+			goto skip;
+		}
+		
+		dr[3] = { pos_i[0] - Tree[node].Pos[0],
+			      pos_i[1] - Tree[node].Pos[1],
+			      pos_i[2] - Tree[node].Pos[2] };
 
-		if (dx < 0.6 * nSize) { // particle inside node ? 
+		if (dr[0] < 0.6 * nSize) { // particle inside node ? 
 			
-			if (dy < 0.6 * nSize) {
+			if (dr[1] < 0.6 * nSize) {
 
-				if (dz < 0.6 * nSize) {
+				if (dr[2] < 0.6 * nSize) {
 				
 					want_open_node = true;
 				
@@ -96,20 +130,22 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 			}
 		}
 
+		skip:;
+
 		if (want_open_node) { // check if we really have to open
 
-			dx = nearest(dx); // cross borders ?
+			Tree_Periodic_Nearest(dr);
+
+			Float size = Node_Size(node);
 			
-			if (fabs(dx) > 0.5 * (Boxsize - Tree[node].Size)) { 
+			if (fabs(dr[0]) > 0.5 * (Boxsize - size)) { 
 				
 				node++;
 
 				continue;
 			}
 
-			dy = nearest(dy);
-
-			if (fabs(dy) > 0.5 * (Boxsize - Tree[node].Size)) {
+			if (fabs(dy) > 0.5 * (Boxsize - size)) {
 				
 				node++;
 
@@ -117,9 +153,7 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 			
 			}
 
-			dz = nearest(dz);
-
-			if (fabs(dz) > 0.5 * (Boxsize - Tree[node].Size)) {
+			if (fabs(dz) > 0.5 * (Boxsize - size)) {
 				
 				node++;
 
@@ -134,9 +168,11 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 				continue;
 			}
 		
-		}
+		} // if want_open_node
 
-		ewald_correction(dx, dy, dz, accel); // use node
+		ewald_correction(dr, accel); // use node
+
+ 		ewald_potential(dr, pot); // OUTPUT_GRAVITATIONAL_POTENTIAL
 
 		node += Tree[node].DNext; // skip sub-branch, goto sibling
 
@@ -145,17 +181,30 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 	return ;
 }
 
-static inline Float nearest(const Float dx)
+/*
+ * Do the periodic mapping on a 3D distance array. We rely on link time 
+ * optimization of the compiler to do the inlining for us. Make sure to put
+ * the appropriate compiler switches.
+ */
+
+void Tree_Periodic_Nearest(Float dr[3])
 {
-	Float dx_periodic = dx;
+	if (dr[0] > Boxhalf)
+		dr[0] -= Boxsize;
+	else if (dr[0] < -Boxhalf)
+		dr[0] += Boxsize;
 
-	if (dx > Boxhalf)
-		dx_periodic = dx - Boxsize;
+	if (dr[1] > Boxhalf)
+		dr[1] -= Boxsize;
+	else if (dr[1] < -Boxhalf)
+		dr[1] += Boxsize;
 
-	if (dx < -Boxhalf)
-		dx_periodic = dx + Boxsize;
+	if (dr[2] > Boxhalf)
+		dr[2] -= Boxsize;
+	else if (dr[2] < -Boxhalf)
+		dr[2] += Boxsize;
 
-	return dx_periodic;
+	return ;
 }
 
 void Gravity_Tree_Periodic_Init()
@@ -325,41 +374,40 @@ static void write_ewald_correction_table()
  * Get Ewald correction from grid using CIC binning (Hockney & Eastwood)
  */
 
-static void ewald_correction(const double x, const double y, const double z,
-							 double f[3])
+static void ewald_correction(const double dr[3], double f[3])
 {
 	f[0] = f[1] = f[2] = 0;
 
-	double qx = x;
+	double dx = dr[0];
 	int signx = -1;
 
-	if (qx < 0) {
+	if (dx < 0) {
 	
-		qx = -qx;
+		dx = -dx;
 		signx = 1;
 	}
 
-	double qy = y;
+	double dy = dr[1];
 	int signy = -1;
 
-	if (qy < 0) {
+	if (dy < 0) {
 	
-		qy = -qy;
+		dy = -dy;
 		signy = 1;
 	}
 
-	double qz = z;
+	double dz = dr[2];
 	int signz = -1;
 
-	if (qz < 0) {
+	if (dz < 0) {
 	
-		qz = -qz;
+		dz = -dz;
 		signz = 1;
 	}
 
-	double u = qx * Box2Ewald_Grid;
-	double v = qy * Box2Ewald_Grid;
-	double w = qz * Box2Ewald_Grid;
+	double u = dx * Box2Ewald_Grid;
+	double v = dy * Box2Ewald_Grid;
+	double w = dz * Box2Ewald_Grid;
 
 	int i = (int) u;
 	int j = (int) v;
@@ -395,29 +443,29 @@ static void ewald_correction(const double x, const double y, const double z,
 	return ;
 }	
 
-static void ewald_potential(const double x, const double y, const double z,
-							double p[1])
+#ifdef GRAVITY_POTENTIAL
+static void ewald_potential(const double dr[3], double p[1])
 {
 	p[0] = 0;
 
-	double qx = x;
+	double dx = dr[0];
 
-	if (qx < 0) 
-		qx = -qx;
+	if (dx < 0) 
+		dx = -dx;
 
-	double qy = y;
+	double dy = dr[1];
 
-	if (qy < 0) 
-		qy = -qy;
+	if (dy < 0) 
+		dy = -dy;
 
-	double qz = z;
+	double dz = dr[2];
 
-	if (qz < 0) 
-		qz = -qz;
+	if (dz < 0) 
+		dz = -dz;
 
-	double u = qx * Box2Ewald_Grid;
-	double v = qy * Box2Ewald_Grid;
-	double w = qz * Box2Ewald_Grid;
+	double u = dx * Box2Ewald_Grid;
+	double v = dy * Box2Ewald_Grid;
+	double w = dz * Box2Ewald_Grid;
 
 	int i = (int) u;
 	int j = (int) v;
@@ -439,6 +487,7 @@ static void ewald_potential(const double x, const double y, const double z,
 
 	return ;
 }	
+#endif // PERIODIC
 
 /*
  * Compute force correction term from Hernquist+ 1992 (2.14b, 2.16), this

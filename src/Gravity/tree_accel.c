@@ -7,16 +7,12 @@
 
 static bool interact_with_topnode(const int, const int, Float*, Float*);
 static void interact_with_topnode_particles(const int, const int,
-															Float*, Float *pot);
+											Float*, Float*);
 static void gravity_tree_walk(const int , const int, Float*, Float*);
 static void gravity_tree_walk_first(const int , const int, Float*, Float*);
-
 static void export_to_MPI_rank(const int ipart, const int target);
-
 static void interact(const Float,const Float *,const Float,Float *,Float *);
 static void work_MPI_buffers();
-
-static inline Float node_size(const int node);
 
 /*
  * Interact with all local topnodes, either with the node directly, or with the 
@@ -36,6 +32,8 @@ void Gravity_Tree_Acceleration()
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
+		
+		bool use_BH_criterion = (ASCALPROD3(P[ipart].Acc) == 0);
 
 		Float grav_accel[3] = { 0 };
 		Float pot = 0;
@@ -61,7 +59,7 @@ void Gravity_Tree_Acceleration()
 
 			int tree_start = D[j].TNode.Target;
 
-			if (ASCALPROD3(P[ipart].Acc) == 0)
+			if (use_BH_criterion)
 				gravity_tree_walk_first(ipart, tree_start, grav_accel, &pot);
 			else
 				gravity_tree_walk(ipart, tree_start, grav_accel, &pot);
@@ -95,8 +93,8 @@ void Gravity_Tree_Acceleration()
 
 /*
  * For top nodes far away, we don't have to do a tree walk or send the particle
- * around. Similar to the normal tree walk we first check if the top node contains
- * the particle and then check the two criteria.
+ * around. Similar to the normal tree walk we first check if the top node 
+ * contains the particle and then check the two criteria.
  */
 
 static bool interact_with_topnode(const int ipart, const int j,
@@ -104,14 +102,18 @@ static bool interact_with_topnode(const int ipart, const int j,
 {
 	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 
-	Float dx = P[ipart].Pos[0] - D[j].TNode.Pos[0];
-    Float dy = P[ipart].Pos[1] - D[j].TNode.Pos[1];
-	Float dz = P[ipart].Pos[2] - D[j].TNode.Pos[2];
+	Float dr[3] = {P[ipart].Pos[0] - D[j].TNode.Pos[0],
+				   P[ipart].Pos[1] - D[j].TNode.Pos[1],
+				   P[ipart].Pos[2] - D[j].TNode.Pos[2]};
 
-	if ( (dx < 0.6 * nSize) && (dy < 0.6 * nSize) && (dz < 0.6 * nSize))
-		return false; // inside subtree -> always walk
+	Tree_Periodic_Nearest(dr);
 
-	Float r2 = p2(dx) + p2(dy) + p2(dz);
+	if (dr[0] < 0.6*nSize)
+		if (dr[1] < 0.6*nSize)
+			if (dr[2] < 0.6*nSize)
+				return false; // inside subtree -> always walk
+
+	Float r2 = ASCALPROD3(dr);
 
 	if (ASCALPROD3(P[ipart].Acc) == 0) {
 
@@ -128,9 +130,11 @@ static bool interact_with_topnode(const int ipart, const int j,
 			return false;
 	}
 
-	Float dr[3] = {P[ipart].Pos[0] - D[j].TNode.CoM[0],
-				   P[ipart].Pos[1] - D[j].TNode.CoM[1],
-				   P[ipart].Pos[2] - D[j].TNode.CoM[2]};
+	dr[0] = P[ipart].Pos[0] - D[j].TNode.CoM[0];
+	dr[1] = P[ipart].Pos[1] - D[j].TNode.CoM[1];
+	dr[2] = P[ipart].Pos[2] - D[j].TNode.CoM[2];
+
+	Tree_Periodic_Nearest(dr);
 
 	interact(P[ipart].Mass, dr, r2, grav_accel, pot);
 
@@ -157,6 +161,8 @@ static void interact_with_topnode_particles(const int ipart, const int j,
 					    P[ipart].Pos[1] - P[jpart].Pos[1],
 			            P[ipart].Pos[2] - P[jpart].Pos[2] };
 
+		Tree_Periodic_Nearest(dr);
+		
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
 		Float mpart = P[jpart].Mass;
@@ -201,6 +207,8 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 							    pos_i[1] - P[jpart].Pos[1],
 					            pos_i[2] - P[jpart].Pos[2] };
 
+				Tree_Periodic_Nearest(dr);
+
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
 				Float mpart = P[jpart].Mass;
@@ -217,11 +225,13 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 					    pos_i[1] - Tree[node].CoM[1],
 					    pos_i[2] - Tree[node].CoM[2] };
 
+		Tree_Periodic_Nearest(dr);
+
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
 		Float nMass = Tree[node].Mass;
 
-		Float nSize = node_size(node); // now check opening criteria
+		Float nSize = Node_Size(node); // now check opening criteria
 
 		if (nMass*nSize*nSize > r2*r2 * fac) { // relative criterion
 
@@ -306,7 +316,7 @@ static void gravity_tree_walk_first(const int ipart, const int tree_start,
 
 		Float nMass = Tree[node].Mass;
 
-		Float nSize = node_size(node); // now check opening criteria
+		Float nSize = Node_Size(node); // now check opening criteria
 
 		if (nSize*nSize > r2 * TREE_OPEN_PARAM_BH) { // BH criterion
 
@@ -374,7 +384,7 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
  * Bitfield function on global Tree
  */
 
-static inline Float node_size(const int node)
+Float Node_Size(const int node)
 {
 	int lvl = Tree[node].Bitfield & 0x3F; // level
 

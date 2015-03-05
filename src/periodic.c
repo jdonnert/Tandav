@@ -44,8 +44,7 @@ Float Periodic_Nearest(const Float dx)
 
 	if (dx > 0.5 * Sim.Boxsize[0])
 		dx_periodic = dx - Sim.Boxsize[0];
-
-	if (dx < -0.5 * Sim.Boxsize[0])
+	else if (dx < -0.5 * Sim.Boxsize[0])
 		dx_periodic = dx + Sim.Boxsize[0];
 
 	return dx_periodic;
@@ -57,8 +56,7 @@ Float Periodic_Nearest_Noncubic(const Float dx, const int i)
 
 	if (dx > 0.5 * Sim.Boxsize[i])
 		dx_periodic = dx - Sim.Boxsize[i];
-
-	if (dx < -0.5 * Sim.Boxsize[i])
+	else if (dx < -0.5 * Sim.Boxsize[i])
 		dx_periodic = dx + Sim.Boxsize[i];
 
 	return dx_periodic;

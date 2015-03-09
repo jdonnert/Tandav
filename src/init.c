@@ -1,6 +1,7 @@
 #include "globals.h"
 #include "IO/io.h"
 #include "Gravity/gravity.h"
+#include "Gravity/gravity_periodic.h"
 
 struct Parameters_From_File Param;
 struct Global_Simulation_Properties Sim;
@@ -46,9 +47,10 @@ void Read_and_Init()
 		break;
 	}
 
-	Gravity_Tree_Periodic_Init();
-
+	#pragma omp parallel	
 	Periodic_Constrain_Particles_To_Box();
+
+	Gravity_Periodic_Init(); 
 
 	Profile("Init");
 

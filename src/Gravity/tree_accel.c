@@ -1,9 +1,9 @@
 #include "../globals.h"
+#include "../domain.h"
+#include "gravity.h"
+#include "gravity_tree.h"
 
 #ifdef GRAVITY_TREE
-
-#include "gravity.h"
-#include "../domain.h"
 
 static bool interact_with_topnode(const int, const int, Float*, Float*);
 static void interact_with_topnode_particles(const int, const int,

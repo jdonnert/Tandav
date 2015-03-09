@@ -1,4 +1,4 @@
-pro make_ICs
+pro make_ICs, periodic=periodic
 
 	common  globals, tandav, cosmo
 
@@ -6,7 +6,9 @@ pro make_ICs
 
 	seed = 14041981L
 
-	npart = 50000L
+	npart = 5000L
+
+	boxsize = 55000D
 
 	mass = 1d15 * Msol / tandav.mass ; code units 
 	a_hernq = 924D 		
@@ -17,7 +19,7 @@ pro make_ICs
 
 	pos = make_array(3, npart, /double, val=0)
 	
-	sqrt_q = sqrt(randomu(seed, npart)) * 0.98
+	sqrt_q = sqrt(randomu(seed, npart)) 
 
 	r = a_hernq  * sqrt_q / (1-sqrt_q) 
 
@@ -30,6 +32,7 @@ pro make_ICs
 
 	print, 'npart = '+strn(npart), minmax(r) 
 	print, 'bounds', minmax(pos[0,*]), minmax(pos[1,*]), minmax(pos[2,*])
+	print, 'box', boxsize
 
 	plot, pos[0,*], pos[1,*], /iso, psym=3
 
@@ -66,11 +69,14 @@ pro make_ICs
  		theta = acos(2 * randomu(seed) - 1)
  		phi =  2 * !pi * randomu(seed)
 
- 		vel[0,i] = v * sin(theta) * cos(phi)+100
+ 		vel[0,i] = v * sin(theta) * cos(phi)
  		vel[1,i] = v * sin(theta) * sin(phi)
  		vel[2,i] = v * cos(theta)
  	end
 	
+	if keyword_set(periodic) then $
+		pos[*,*] += boxsize / 2
+
 	; output
 
 	head = tandav.MakeHead()
@@ -81,7 +87,7 @@ pro make_ICs
 	head.time = 0
 	head.redshift = 0
 	head.num_files = 1
-	head.boxsize = 1d15
+	head.boxsize = boxsize
 	head.Omega0 = 1D
 	head.OmegaLambda = 0.7D
 	head.HubbleParam = 0.7200D
@@ -98,6 +104,8 @@ pro make_ICs
 
 	return
 end
+
+
 
 function hernquist_potential, r, a, mass
 

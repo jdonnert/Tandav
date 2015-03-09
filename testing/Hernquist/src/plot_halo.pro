@@ -2,7 +2,7 @@
 ;for i =0,25 do begin & density_profile, snap=i & wait, 0.2 & end
 ;for i =0,25 do begin & potential_profile, snap=i & wait, 0.2 & end
 
-pro show_halo, snap=snap
+pro show_halo, snap=snap, periodic=periodic
 
 	common globals, tandav, cosmo
 
@@ -13,13 +13,13 @@ pro show_halo, snap=snap
 
 	pos = tandav.readsnap(fname, 'POS', head=head)
 
-	plot, pos[0,*], pos[1,*], psym=3, /iso, $
-		xrange=[-1e4,1d4], yrange=[-1e4,1d4]
+	plot, pos[0,*], pos[1,*], psym=3, /iso, xrange=minmax(pos[0,*]), $
+		yrange=minmax(pos[1,*]), xstyle=1, ystyle=1
 
 	return
 end
 
-pro density_profile, nsnap=nsnap
+pro density_profile, nsnap=nsnap, periodic=periodic
 	
 	; we expect a little evolution here, because f(E) in the ICs 
 	; does not account for softening (Barnes 2012)
@@ -58,7 +58,7 @@ pro density_profile, nsnap=nsnap
 
 		tmp = bin_arr(one, pos=r , bin_pos=bin_pos, nbins=100, cnt=cnt, /log)
 
-		Vshell = make_array(100, /double, val=0)
+		Vshell = make_array(100, /double, val=0) ; volume
 		Vshell[0] = 4D*!pi/3D * bin_pos[0]^3
 
 		for i = 0L, 99 do $

@@ -4,9 +4,7 @@
 #include "drift.h"
 #include "timestep.h"
 #include "setup.h"
-#include "Gravity/gravity.h"
 #include "domain.h"
-#include "peano.h"
 #include "accel.h"
 #include "IO/io.h"
 
@@ -123,18 +121,11 @@ static void preamble(int argc, char *argv[])
 
 		printf("#### Tandav ####\n\n");
 
-		Assert( (argc >= 2) && (argc < 4),
-			"Wrong number of arguments, let me help you: \n\n"
-			"	USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
-			"	  0  : Read IC file and start simulation (default) \n"
-			"	  1  : Read restart files and resume  \n"
-			"	  2  : Read snapshot file and continue \n"
-			"	 10  : Dump a valid parameter file for this Config\n");
-
 		Print_compile_time_settings();
 
 		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
 		printf("sizeof(*D) = %zu byte\n", sizeof(*D)*CHAR_BIT/8);
+
 #ifdef GRAVITY_TREE
 		printf("sizeof(*Tree) = %zu byte\n", sizeof(*Tree)*CHAR_BIT/8);
 #endif
@@ -142,6 +133,13 @@ static void preamble(int argc, char *argv[])
 		printf("\nUsing %d MPI tasks, %d OpenMP threads \n\n",
 				Sim.NRank, Sim.NThreads);
 
+				Assert( (argc >= 2) && (argc < 4),
+			"Wrong number of arguments, let me help you: \n\n"
+			"	USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
+			"	  0  : Read IC file and start simulation (default) \n"
+			"	  1  : Read restart files and resume  \n"
+			"	  2  : Read snapshot file and continue \n"
+			"	 10  : Dump a valid parameter file for this Config\n");
 	}
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);

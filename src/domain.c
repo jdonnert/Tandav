@@ -161,6 +161,15 @@ void Setup_Domain_Decomposition()
 	#pragma omp parallel
 	find_global_domain_extend();
 
+	rprintf("\nDomain size is %g, \n"
+		"   Origin at x = %4g, y = %4g, z = %4g, \n"
+		"   Center at x = %4g, y = %4g, z = %4g. \n"
+		"   CoM    at x = %4g, y = %4g, z = %4g. \n",
+		Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
+		Domain.Center[0], Domain.Center[1], Domain.Center[2],
+		Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
+		Domain.Center_Of_Mass[2]);
+
 	return;
 }
 
@@ -209,8 +218,6 @@ static void remove_excess_bunches()
 
 	#pragma omp single
 	NMerged = Max_Level = 0;
-
-	#pragma omp barrier
 
 	#pragma omp for reduction(+:NMerged) reduction(max:Max_Level)
 	for (int i = 0; i < Sim.NTask - 1; i++) {

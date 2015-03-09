@@ -7,9 +7,7 @@ void Periodic_Constrain_Particles_To_Box()
 	const Float boxsize[3] = {Sim.Boxsize[0], Sim.Boxsize[1], Sim.Boxsize[2]};
 
 	#pragma omp for
-	for (int i = 0; i < NActive_Particles; i++) {
-
-		int ipart = Active_Particle_List[i];
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
 		while (P[ipart].Pos[0] < 0)
 			P[ipart].Pos[0] += boxsize[0];
@@ -35,19 +33,21 @@ void Periodic_Constrain_Particles_To_Box()
 
 /*
  * Map a distance "dx" on component "i" to the nearest distance given 
- * the periodic box. This is not very fast.
+ * the periodic box. 
  */
 
-Float Periodic_Nearest(const Float dx)
+
+void Periodic_Nearest(Float dr[3])
 {
-	Float dx_periodic = dx;
+	for (int i = 0; i < 3; i++) {
+	
+		if (dr[i] > 0.5 * Sim.Boxsize[i])
+			dr[i] -= Sim.Boxsize[i];
+		else if (dr[i] < -0.5 * Sim.Boxsize[i])
+			dr[i] += Sim.Boxsize[i];
+	}
 
-	if (dx > 0.5 * Sim.Boxsize[0])
-		dx_periodic = dx - Sim.Boxsize[0];
-	else if (dx < -0.5 * Sim.Boxsize[0])
-		dx_periodic = dx + Sim.Boxsize[0];
-
-	return dx_periodic;
+	return ;
 }
 
 Float Periodic_Nearest_Noncubic(const Float dx, const int i)

@@ -240,7 +240,7 @@ void Print_Memory_Usage()
 		goto skip;
 
 	printf("\nMemory Manager: Reporting Blocks of (%d:%d) with %g / %d MB "
-			"free memory\n   No  Used      Address      Size (MB)    "
+			"available memory\n   No  Used      Address      Size (MB)    "
 			"Cumulative          Variable       File:Line\n"
 			"-----------------------------------------------"
 			"-------------------------------------------------------\n", 

@@ -1,8 +1,9 @@
 #include "../globals.h"
-#include "gravity.h"
 #include "../domain.h"
 #include "../peano.h"
 #include "../timestep.h"
+#include "gravity.h"
+#include "gravity_tree.h"
 
 #ifdef GRAVITY_TREE
 

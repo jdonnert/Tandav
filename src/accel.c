@@ -5,9 +5,12 @@
 
 #ifdef GRAVITY
 static void accel_gravity();
+static inline void zero_active_particle_accelerations() {};
+#else
+static inline void accel_gravity() {};
+static void zero_active_particle_accelerations();
 #endif
 
-static void zero_active_particle_accelerations();
 
 /* 
  * Collect all accelerations on particles 
@@ -17,11 +20,9 @@ void Compute_Acceleration()
 {
 	Profile("Accelerations");
 
-#ifdef GRAVITY
-	accel_gravity(); // needs previous P.Acc and overwrites it
-#else
-	zero_active_particle_accelerations();
-#endif
+	zero_active_particle_accelerations(); // ! GRAVITY
+
+	accel_gravity(); // GRAVITY, needs previous P.Acc and overwrites it
 
 	Profile("Accelerations");
 
@@ -30,10 +31,8 @@ void Compute_Acceleration()
 
 #ifdef GRAVITY
 
-static void accel_gravity()
+static void accel_gravity_tree()
 {
-	Profile("Gravity");
-
 	if (Sig.Tree_Update)
 		Gravity_Tree_Build();
 
@@ -44,16 +43,33 @@ static void accel_gravity()
 
 	Gravity_Tree_Periodic();
 
-	Gravity_Simple_Accel();
+	return ;
+}
 
+static void accel_gravity_multi_grid()
+{
 	if (Sig.Fullstep)
-		Gravity_Multi_Grid_Long_Range();
+		Gravity_Multi_Grid();
+
+	return ;
+}
+
+static void accel_gravity()
+{
+	Profile("Gravity");
+
+	accel_gravity_multi_grid(); // GRAVITY_MULTI_GRID
+
+	accel_gravity_tree(); // GRAVITY_TREE
+
+	Gravity_Simple_Accel(); // GRAVITY_SIMPLE, performs force test
 
 	Profile("Gravity");
 
 	return ;
 }
-#endif // ! GRAVITY
+
+#else // !GRAVITY
 
 static void zero_active_particle_accelerations()
 {
@@ -68,3 +84,4 @@ static void zero_active_particle_accelerations()
 	return ;
 }
 
+#endif // ! GRAVITY

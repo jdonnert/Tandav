@@ -133,14 +133,18 @@ This is the Style Guide :
   prototype in the header file. Start the function name with the macro name. 
   See the handling of Periodic_Constrain_Particles_To_Box() in drift.[ch]
 
+* Avoid stacking #ifdef, it becomes unreadable too quickly (hydra.c anybody?) 
+  Check Gravity.h/gravity.h to see how to do it.
+
 * All integers are int for simplicity, if there is no good reason. Otherwise
-  use int64_t, uint32_t etc. long and int are architecture dependent.
+  use int64_t, uint32_t etc. long and int are architecture dependent. Array
+  & Malloc size should be size_t
 
 * Parallelisation is exposed as far up as possible in the call hierachy.
-  Usually that means that all of the MPI, OpenMP and OpenACC calls/directives
+  Usually that means that most of the MPI, OpenMP and OpenACC calls/directives
   are in the first function of a module, to clearly expose the structure of
   the algorithm. The subroutines then contain the actual physics. Thereby most
-  subroutines are NOT thread safe, e.g. all memory function have to be
+  subroutines are NOT thread safe, e.g. all memory functions have to be
   enclosed in #pragma omp single ! This also avoids bugs as a #pragma critical 
   inside a #pragma single will lead to a segfault and erratic behaviour.
 

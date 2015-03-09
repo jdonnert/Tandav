@@ -1,12 +1,15 @@
-#ifdef GRAVITY
-
-#ifdef GRAVITY_SIMPLE
+#if defined(GRAVITY) && defined(GRAVITY_SIMPLE)
 void Gravity_Simple_Accel();
 #else
-inline void Gravity_Simple_Accel(){};
-#endif // GRAVITY_SIMPLE
+inline void Gravity_Simple_Accel() {};
+#endif // GRAVITY && GRAVITY_SIMPLE
 
-#ifdef GRAVITY_TREE
+#if defined(GRAVITY) && defined(GRAVITY_TREE)
+void Gravity_Tree_Build();
+void Gravity_Tree_Acceleration();
+void Gravity_Tree_Update_Kicks(const int ipart, const double dt);
+void Gravity_Tree_Update_Topnode_Kicks();
+void Gravity_Tree_Update_Drift(const double dt);
 
 extern struct Tree_Node {
 	int DNext;			// Distance to the next node; or particle -DNext-1
@@ -20,48 +23,25 @@ extern struct Tree_Node {
 } *Tree;
 
 int NNodes, NTop_Nodes;
-
-void Gravity_Tree_Build();
-void Gravity_Tree_Acceleration();
-void Gravity_Tree_Update_Kicks(const int ipart, const double dt);
-void Gravity_Tree_Update_Topnode_Kicks();
-void Gravity_Tree_Update_Drift(const double dt);
-
-int Level(const int node); // bitfield functions
-
-enum Tree_Bitfield { LOCAL=9, TOP=10, UPDATED=11 }; // offset by one
-
-Float Node_Size(const int node);
-bool Node_Is(const enum Tree_Bitfield bit, const int node);
-void Node_Set(const enum Tree_Bitfield bit, const int node);
-void Node_Clear(const enum Tree_Bitfield bit, const int node);
-
-#ifdef PERIODIC
-void Gravity_Tree_Periodic();
-void Gravity_Tree_Periodic_Init();
-void Tree_Periodic_Nearest(Float dr[3]);
-#else // !PERIODIC
-inline void Gravity_Tree_Periodic(){};
-inline void Gravity_Tree_Periodic_Init(){};
-inline void Tree_Periodic_Nearest(Float dr[3]) {};
-#endif // PERIODIC
-
-#endif // GRAVITY_TREE
-
-#ifdef GRAVITY_MULTI_GRID
-void Gravity_Multi_Grid_Long_Range();
 #else
-inline void Gravity_Multi_Grid_Long_Range() {};
-#endif // GRAVITY_MULTI_GRID
-
-#else // ! GRAVITY
-
-inline void Gravity_Tree_Update_Kicks(const int ipart, const double dt) {};
+inline void Gravity_Tree_Build() {};
+inline void Gravity_Tree_Acceleration() {};
+inline void Gravity_Tree_Update_Kicks(const int ipart, const double dt) {};
 inline void Gravity_Tree_Update_Topnode_Kicks() {};
 inline void Gravity_Tree_Update_Drift(const double dt) {};
-inline void Gravity_Tree_Periodic(){};
-inline void Gravity_Tree_Periodic_Init(){};
-inline void Gravity_Multi_Grid_Long_Range() {};
-inline void Accel_Gravity_Simple(){};
+#endif // (GRAVITY && GRAVITY_TREE)
 
-#endif // GRAVITY
+#if defined(GRAVITY) && defined(GRAVITY_TREE) && defined(PERIODIC)
+void Gravity_Tree_Periodic();
+void Tree_Periodic_Nearest(Float dr[3]);
+#else 
+inline void Gravity_Tree_Periodic() {};
+inline void Tree_Periodic_Nearest(Float dr[3]) {};
+#endif 
+
+#if defined(GRAVITY) && defined(GRAVITY_MULTI_GRID)
+void Gravity_Multi_Grid();
+#else
+inline void Gravity_Multi_Grid() {};
+#endif // GRAVITY_MULTI_GRID
+

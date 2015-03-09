@@ -3,11 +3,12 @@
 #ifdef GRAVITY_SIMPLE 
 
 #include "gravity.h"
+#include "gravity_periodic.h"
 
 static const double h = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
 
-static double mean_error = 0, max_error = 0;
-static int worst_part = -1;
+static double Mean_Error = 0, Max_Error = 0;
+static int Worst_Part = -1;
 
 /*
  * This computes the gravitational interaction via direct summation and shows
@@ -20,23 +21,19 @@ void Gravity_Simple_Accel()
 {
 	Profile("Gravity_Simple");
 
-	rprintf("Direct Gravity ... ");
+	rprintf("Direct Gravity, get a coffee ... ");
 
-	mean_error = max_error = 0;
-	worst_part = -1;
+	Mean_Error = Max_Error = 0;
+	Worst_Part = -1;
 
-	#pragma omp for reduction(+:mean_error)
+	#pragma omp for reduction(+:Mean_Error)
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
-
+		
 		double acc[3] = { P[ipart].Acc[0], P[ipart].Acc[1], P[ipart].Acc[2] };
 
 		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
-
-#ifdef OUTPUT_PARTIAL_ACCELERATIONS
-		P[ipart].Grav_Acc[0] = P[ipart].Grav_Acc[1] = P[ipart].Grav_Acc[2] = 0;
-#endif
 
 #ifdef GRAVITY_POTENTIAL
 		P[ipart].Grav_Pot = 0;
@@ -47,11 +44,21 @@ void Gravity_Simple_Accel()
 			if (jpart == ipart)
 				continue;
 
-			double dx = P[ipart].Pos[0] - P[jpart].Pos[0];
-			double dy = P[ipart].Pos[1] - P[jpart].Pos[1];
-			double dz = P[ipart].Pos[2] - P[jpart].Pos[2];
+			Float dr[3] = { P[ipart].Pos[0] - P[jpart].Pos[0],
+							P[ipart].Pos[1] - P[jpart].Pos[1],
+							P[ipart].Pos[2] - P[jpart].Pos[2]};
 
-			double r = sqrt(dx*dx + dy*dy + dz*dz);
+			Float acc_periodic[3] = { 0 };
+
+			Ewald_Correction(dr, &acc_periodic[0]); // PERIODIC
+
+			P[ipart].Acc[0] += acc_periodic[0];
+			P[ipart].Acc[1] += acc_periodic[1];
+			P[ipart].Acc[2] += acc_periodic[2];
+
+			Periodic_Nearest(dr); // PERIODIC 
+
+			double r = ALENGTH3(dr);
 
 			double rinv = 1/r;
 
@@ -66,16 +73,10 @@ void Gravity_Simple_Accel()
 
 			double acc_mag = Const.Gravity * P[jpart].Mass * p2(rinv);
 
-			P[ipart].Acc[0] += -acc_mag * dx * rinv;
-			P[ipart].Acc[1] += -acc_mag * dy * rinv;
-			P[ipart].Acc[2] += -acc_mag * dz * rinv;
-
-#ifdef OUTPUT_PARTIAL_ACCELERATIONS
-			P[ipart].Grav_Acc[0] = -acc_mag * dx * rinv;
-			P[ipart].Grav_Acc[1] = -acc_mag * dy * rinv;
-			P[ipart].Grav_Acc[2] = -acc_mag * dz * rinv;
-#endif
-
+			P[ipart].Acc[0] += -acc_mag * dr[0] * rinv;
+			P[ipart].Acc[1] += -acc_mag * dr[1] * rinv;
+			P[ipart].Acc[2] += -acc_mag * dr[2] * rinv;
+			
 #ifdef GRAVITY_POTENTIAL
 			if (r < h) {// WC2 kernel softening
 
@@ -87,6 +88,12 @@ void Gravity_Simple_Accel()
 			}
 
 			P[ipart].Grav_Pot += -Const.Gravity * P[jpart].Mass *rinv;
+
+			Float pot_periodic = 0; 
+
+			Ewald_Potential(dr, &pot_periodic); // GRAVITY && PERIODIC
+
+			P[ipart].Grav_Pot += pot_periodic;
 #endif
 		} // for jpart
 
@@ -96,15 +103,15 @@ void Gravity_Simple_Accel()
 		
 		double errorl = ALENGTH3(error);
 
-		mean_error += errorl;
+		Mean_Error += errorl;
 
 		#pragma omp critical
 		{
 		
-		if (errorl > max_error) {
+		if (errorl > Max_Error) {
 
-			max_error = ALENGTH3(error);
-			worst_part = ipart;
+			Max_Error = ALENGTH3(error);
+			Worst_Part = ipart;
 		}
 
 		} // omp critical
@@ -118,7 +125,7 @@ void Gravity_Simple_Accel()
 	rprintf("done\n");
 	
 	rprintf("\nForce test: max error %g @ %d, mean error %g \n\n", 
-			max_error, worst_part, mean_error/NActive_Particles);
+			Max_Error, Worst_Part, Mean_Error/NActive_Particles);
 
 	Profile("Gravity_Simple");
 

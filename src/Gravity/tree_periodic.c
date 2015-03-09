@@ -8,20 +8,179 @@
 
 static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 										Float* Accel, Float *Pot);
+static bool interact_with_topnode(const int ipart, const int j,
+									Float *fr, Float *fp);
+static void interact_with_topnode_particles(const int ipart, const int j,
+		Float *fr, Float *fp);
 
 /*
  * Compute the correction to the gravitational force due the periodic
  * infinite box using the tree and the Ewald method (Hernquist+ 1992).
+ * This is widely identical to tree_accel, except for the opening criteria.
  */
 
 void Gravity_Tree_Periodic()
 {
 	Profile("Grav Tree Periodic");
 
+	#pragma omp for schedule(dynamic)
+	for (int i = 0; i < NActive_Particles; i++) {
+
+		int ipart = Active_Particle_List[i];
+		
+		Float ewald_corr[3] = { 0 };
+		Float ewald_pot = 0;
+
+		for (int j = 0; j < NTop_Nodes; j++) {
+					
+			Float fr[3] = { 0 };
+			Float fp = 0;
+
+			//if (D[j].TNode.Target < 0) {
+			//
+			//	export_particle_to_rank(ipart, -target-1);	
+			//
+			//	continue;
+			//}
+
+			if (interact_with_topnode(ipart, j, &fr[0], &fp))
+				continue;
+
+			if (D[j].TNode.Npart <= 8) { // open top leave
+
+				interact_with_topnode_particles(ipart, j, &fr[0], &fp);
+		
+				continue;
+			}
+
+			int tree_start = D[j].TNode.Target;
+
+			gravity_tree_periodic_ewald(ipart, tree_start, &fr[0], &fp);
+
+			ewald_corr[0] += fr[0];			
+			ewald_corr[1] += fr[1];			
+			ewald_corr[2] += fr[2];			
+
+			ewald_pot += fp;
+		} // for j
+
+		P[ipart].Acc[0] += ewald_corr[0];
+		P[ipart].Acc[1] += ewald_corr[1];
+		P[ipart].Acc[2] += ewald_corr[2];
+
+#ifdef OUTPUT_PARTIAL_ACCELERATIONS
+		P[ipart].Grav_Acc[0] += ewald_corr[0];
+		P[ipart].Grav_Acc[1] += ewald_corr[1];
+		P[ipart].Grav_Acc[2] += ewald_corr[2];
+#endif
+
+#ifdef GRAVITY_POTENTIAL
+		P[ipart].Grav_Pot += ewald_pot;
+#endif
+	} // for i
+
+
 	Profile("Grav Tree Periodic");
 
 	return ;
 }
+
+static bool interact_with_topnode(const int ipart, const int j,
+								 Float *fr, Float *fp)
+{
+	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
+
+	bool want_open_node = false;
+
+	Float dr[3] = {P[ipart].Pos[0] - D[j].TNode.Pos[0],
+				   P[ipart].Pos[1] - D[j].TNode.Pos[1],
+				   P[ipart].Pos[2] - D[j].TNode.Pos[2]};
+
+	if (fabs(dr[0]) < 0.6 * nSize) // inside subtree ? -> always walk
+		if (fabs(dr[1]) < 0.6 * nSize)
+			if (fabs(dr[2]) < 0.6 * nSize) 
+				want_open_node = true; 
+
+	Periodic_Nearest(&dr[0]);
+
+	Float r2 = ASCALPROD3(dr);
+
+	if (ASCALPROD3(P[ipart].Acc) == 0) {
+
+		if (nSize*nSize > r2 * TREE_OPEN_PARAM_BH)
+			want_open_node = true;
+
+	} else {
+
+		Float nMass = D[j].TNode.Mass;
+
+		Float fac = ALENGTH3(P[ipart].Acc)/Const.Gravity * TREE_OPEN_PARAM_REL;
+
+		if (nMass*nSize*nSize > r2*r2 * fac)
+			want_open_node = true;
+	}
+
+	if (want_open_node) { // check if we really have to open
+
+			if (fabs(dr[0]) > 0.5 * (Boxsize - nSize)) 
+				return false;
+
+			if (fabs(dr[1]) > 0.5 * (Boxsize - nSize)) 
+				return false;
+				
+			if (fabs(dr[2]) > 0.5 * (Boxsize - nSize)) 
+				return false;
+				
+			if (nSize > 0.2 * Boxsize) 
+				return false;
+
+	} // if want_open_node
+
+	dr[0] = P[ipart].Pos[0] - D[j].TNode.CoM[0];
+	dr[1] = P[ipart].Pos[1] - D[j].TNode.CoM[1];
+	dr[2] = P[ipart].Pos[2] - D[j].TNode.CoM[2];
+
+	Periodic_Nearest(dr);
+
+	Ewald_Correction(dr, &fr[0]); // use node
+
+ 	Ewald_Potential(dr, &fp[0]); // OUTPUT_GRAVITATIONAL_POTENTIAL
+
+	return true;
+}
+
+/*
+ * Top nodes with less than 8 particles point not to the tree but to P as 
+ * targets
+ */
+
+static void interact_with_topnode_particles(const int ipart, const int j,
+		Float *fr, Float *fp)
+{
+	const int first = D[j].TNode.Target;
+	const int last = first + D[j].TNode.Npart;
+
+	for (int jpart = first; jpart < last; jpart++) {
+
+		if (jpart == ipart)
+			continue;
+
+		Float dr[3] = { P[ipart].Pos[0] - P[jpart].Pos[0],
+					    P[ipart].Pos[1] - P[jpart].Pos[1],
+			            P[ipart].Pos[2] - P[jpart].Pos[2] };
+
+		Periodic_Nearest(dr);
+		
+		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
+	
+		Ewald_Correction(dr, &fr[0]); // use node
+
+ 		Ewald_Potential(dr, &fp[0]); // OUTPUT_GRAVITATIONAL_POTENTIAL
+	}
+
+	return ;
+}
+
 
 /*
  * This walks a subtree starting at "tree_start" to estimate the Ewald 
@@ -31,7 +190,7 @@ void Gravity_Tree_Periodic()
  */
 
 static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
-		Float Accel[3], Float Pot[1])
+		Float fr[3], Float fp[1])
 {
 	const Float fac = ALENGTH3(P[ipart].Acc) / Const.Gravity
 		* TREE_OPEN_PARAM_REL;
@@ -62,9 +221,9 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 
 				Periodic_Nearest(dr);
 
-				Ewald_Correction(dr, Accel); 
+				Ewald_Correction(dr, &fr[0]); 
 
- 				Ewald_Potential(dr, Pot);
+ 				Ewald_Potential(dr, &fp[0]);
 			}
 
 			node++;
@@ -84,22 +243,18 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 
 		Float nSize = Node_Size(node); // now check opening criteria
 
-		if (nMass*nSize*nSize > r2*r2 * fac) { // relative criterion
-			
+		if (nMass*nSize*nSize > r2*r2 * fac) // relative criterion
 			want_open_node = true;
 
-			goto skip;
-		}
-		
 		dr[0] = pos_i[0] - Tree[node].Pos[0];
 		dr[1] = pos_i[1] - Tree[node].Pos[1];
 		dr[2] = pos_i[2] - Tree[node].Pos[2];
 
-		if (dr[0] < 0.6 * nSize) { // particle inside node ? 
+		if (fabs(dr[0]) < 0.6 * nSize) { // particle inside node ? 
 			
-			if (dr[1] < 0.6 * nSize) {
+			if (fabs(dr[1]) < 0.6 * nSize) {
 
-				if (dr[2] < 0.6 * nSize) {
+				if (fabs(dr[2]) < 0.6 * nSize) {
 				
 					want_open_node = true;
 				
@@ -107,38 +262,32 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 			}
 		}
 
-		skip:;
-
 		if (want_open_node) { // check if we really have to open
 
 			Periodic_Nearest(dr);
 
-			Float size = Node_Size(node);
-			
-			if (fabs(dr[0]) > 0.5 * (Boxsize - size)) { 
+			if (fabs(dr[0]) > 0.5 * (Boxsize - nSize)) { 
 				
 				node++;
 
 				continue;
 			}
 
-			if (fabs(dr[1]) > 0.5 * (Boxsize - size)) {
+			if (fabs(dr[1]) > 0.5 * (Boxsize - nSize)) {
 				
 				node++;
 
 				continue;
-			
 			}
 
-			if (fabs(dr[2]) > 0.5 * (Boxsize - size)) {
+			if (fabs(dr[2]) > 0.5 * (Boxsize - nSize)) {
 				
 				node++;
 
 				continue;
-			
 			}
 
-			if (Node_Size(node) > 0.2 * Boxsize) { // too large
+			if (nSize > 0.2 * Boxsize) { // too large
 
 				node++;
 
@@ -147,33 +296,13 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 		
 		} // if want_open_node
 
-		Ewald_Correction(dr, Accel); // use node
+		Ewald_Correction(dr, &fr[0]); // use node
 
- 		Ewald_Potential(dr, Pot); // OUTPUT_GRAVITATIONAL_POTENTIAL
+ 		Ewald_Potential(dr, &fp[0]); // OUTPUT_GRAVITATIONAL_POTENTIAL
 
 		node += Tree[node].DNext; // skip sub-branch, goto sibling
 
 	} // while
-
-	return ;
-}
-
-
-/*
- * Do the periodic mapping on a 3D distance array. We rely on link time 
- * optimization of the compiler to do the inlining for us. Make sure to put
- * the appropriate compiler switches.
- */
-
-void Periodic_Nearest(Float dr[3])
-{
-	for (int i = 0; i < 3; i++) {
-	
-		if (dr[i] > Boxhalf)
-			dr[i] -= Boxsize;
-		else if (dr[i] < -Boxhalf)
-			dr[i] += Boxsize;
-	}
 
 	return ;
 }

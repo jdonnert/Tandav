@@ -32,10 +32,10 @@ void Periodic_Constrain_Particles_To_Box()
 }
 
 /*
- * Map a distance "dx" on component "i" to the nearest distance given 
- * the periodic box. 
+ * Do the periodic mapping on a 3D distance array. We are relying on link time 
+ * optimization of the compiler to do the inlining for us. Make sure to put
+ * the appropriate compiler switches.
  */
-
 
 void Periodic_Nearest(Float dr[3])
 {
@@ -49,18 +49,4 @@ void Periodic_Nearest(Float dr[3])
 
 	return ;
 }
-
-Float Periodic_Nearest_Noncubic(const Float dx, const int i)
-{
-	Float dx_periodic = dx;
-
-	if (dx > 0.5 * Sim.Boxsize[i])
-		dx_periodic = dx - Sim.Boxsize[i];
-	else if (dx < -0.5 * Sim.Boxsize[i])
-		dx_periodic = dx + Sim.Boxsize[i];
-
-	return dx_periodic;
-}
-
-
 #endif // PERIODIC

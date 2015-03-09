@@ -2,6 +2,7 @@
 #include "../domain.h"
 #include "gravity.h"
 #include "gravity_tree.h"
+#include "gravity_periodic.h"
 
 #ifdef GRAVITY_TREE
 
@@ -83,7 +84,6 @@ void Gravity_Tree_Acceleration()
 
 	rprintf(" done \n");
 
-
 	Profile("Grav Tree Walk");
 
 	#pragma omp barrier
@@ -106,12 +106,12 @@ static bool interact_with_topnode(const int ipart, const int j,
 				   P[ipart].Pos[1] - D[j].TNode.Pos[1],
 				   P[ipart].Pos[2] - D[j].TNode.Pos[2]};
 
-	Tree_Periodic_Nearest(dr);
+	if (fabs(dr[0]) < 0.6 * nSize) // inside subtree ? -> always walk
+		if (fabs(dr[1]) < 0.6 * nSize)
+			if (fabs(dr[2]) < 0.6 * nSize)
+				return false; 
 
-	if (dr[0] < 0.6*nSize)
-		if (dr[1] < 0.6*nSize)
-			if (dr[2] < 0.6*nSize)
-				return false; // inside subtree -> always walk
+	Periodic_Nearest(&dr[0]);
 
 	Float r2 = ASCALPROD3(dr);
 
@@ -134,7 +134,7 @@ static bool interact_with_topnode(const int ipart, const int j,
 	dr[1] = P[ipart].Pos[1] - D[j].TNode.CoM[1];
 	dr[2] = P[ipart].Pos[2] - D[j].TNode.CoM[2];
 
-	Tree_Periodic_Nearest(dr);
+	Periodic_Nearest(dr);
 
 	interact(P[ipart].Mass, dr, r2, grav_accel, pot);
 
@@ -142,7 +142,7 @@ static bool interact_with_topnode(const int ipart, const int j,
 }
 
 /*
- * Top node with less than 8 particles point not to the tree but to P as 
+ * Top nodes with less than 8 particles point not to the tree but to P as 
  * targets
  */
 
@@ -161,7 +161,7 @@ static void interact_with_topnode_particles(const int ipart, const int j,
 					    P[ipart].Pos[1] - P[jpart].Pos[1],
 			            P[ipart].Pos[2] - P[jpart].Pos[2] };
 
-		Tree_Periodic_Nearest(dr);
+		Periodic_Nearest(dr);
 		
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
@@ -183,7 +183,7 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 		Float Accel[3], Float Pot[1])
 {
 	const Float fac = ALENGTH3(P[ipart].Acc) / Const.Gravity
-		* TREE_OPEN_PARAM_REL;
+													* TREE_OPEN_PARAM_REL;
 
 	const Float pos_i[3] = {P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2]};
 
@@ -207,7 +207,7 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 							    pos_i[1] - P[jpart].Pos[1],
 					            pos_i[2] - P[jpart].Pos[2] };
 
-				Tree_Periodic_Nearest(dr);
+				Periodic_Nearest(dr);
 
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
@@ -225,7 +225,7 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 					    pos_i[1] - Tree[node].CoM[1],
 					    pos_i[2] - Tree[node].CoM[2] };
 
-		Tree_Periodic_Nearest(dr);
+		Periodic_Nearest(dr);
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
@@ -240,9 +240,9 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 			continue;
 		}
 
-		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]);
+		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]); // particle in node ?
 
-		if (dx < 0.6 * nSize) { // particle inside node ? 
+		if (dx < 0.6 * nSize) {  
 
 			Float dy = fabs(pos_i[1] - Tree[node].Pos[1]);
 
@@ -311,6 +311,8 @@ static void gravity_tree_walk_first(const int ipart, const int tree_start,
 		Float dr[3] = { pos_i[0] - Tree[node].CoM[0],
 					    pos_i[1] - Tree[node].CoM[1],
 					    pos_i[2] - Tree[node].CoM[2] };
+
+		Periodic_Nearest(dr);
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 

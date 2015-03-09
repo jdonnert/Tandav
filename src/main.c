@@ -7,6 +7,7 @@
 #include "domain.h"
 #include "accel.h"
 #include "IO/io.h"
+#include "Gravity/gravity.h"
 
 static void preamble(int argc, char *argv[]);
 

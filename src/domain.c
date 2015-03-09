@@ -87,7 +87,7 @@ void Domain_Decomposition()
 
 		}
 
-		if ((check_distribution() == 0))
+		if ((check_distribution() == 0) || 1)
 			break;
 
 		int old_nBunches = NBunches;

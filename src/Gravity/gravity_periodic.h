@@ -3,7 +3,6 @@ void Ewald_Correction(const Float dr[3], Float f[3]);
 void Gravity_Periodic_Init();
 
 double Boxsize, Boxhalf; // now the box _has_ to be cubic
-
 #else
 static inline void Ewald_Correction(const Float dr[3], Float f[3]) {};
 static inline void Gravity_Periodic_Init() {};

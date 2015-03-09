@@ -53,8 +53,8 @@ endif
 ifeq ($(SYSTYPE),redshift.strw.leidenuniv.nl)
 CC       =  mpicc
 OPTIMIZE =  -g -O2  -march=native 
-MPI_LIBS = -L/homes/donnert/Libs/lib
-MPI_INCL = -I/homes/donnert/Libs/include
+MPI_LIBS = -L/home/donnert/Libs/lib
+MPI_INCL = -I/home/donnert/Libs/include
 GSL_INCL =  
 GSL_LIBS = 
 FFT_INCL =

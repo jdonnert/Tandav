@@ -11,7 +11,6 @@ static inline void accel_gravity() {};
 static void zero_active_particle_accelerations();
 #endif
 
-
 /* 
  * Collect all accelerations on particles 
  */
@@ -20,9 +19,9 @@ void Compute_Acceleration()
 {
 	Profile("Accelerations");
 
-	zero_active_particle_accelerations(); // ! GRAVITY
-
 	accel_gravity(); // GRAVITY, needs previous P.Acc and overwrites it
+
+	zero_active_particle_accelerations(); // ! GRAVITY
 
 	Profile("Accelerations");
 
@@ -41,15 +40,7 @@ static void accel_gravity_tree()
 	if (Sig.First_Step)
 		Gravity_Tree_Acceleration();
 
-	Gravity_Tree_Periodic();
-
-	return ;
-}
-
-static void accel_gravity_multi_grid()
-{
-	if (Sig.Fullstep)
-		Gravity_Multi_Grid();
+	Gravity_Tree_Periodic(); // PERIODIC && GRAVITY_TREE
 
 	return ;
 }
@@ -58,7 +49,8 @@ static void accel_gravity()
 {
 	Profile("Gravity");
 
-	accel_gravity_multi_grid(); // GRAVITY_MULTI_GRID
+	if (Sig.Fullstep)
+		Gravity_Multi_Grid();  // GRAVITY_MULTI_GRID
 
 	accel_gravity_tree(); // GRAVITY_TREE
 

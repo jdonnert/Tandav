@@ -204,8 +204,6 @@ static void write_ewald_correction_table()
 
 void Ewald_Correction(const Float dr[3], Float f[3])
 {
-	f[0] = f[1] = f[2] = 0;
-
 	double dx = dr[0];
 	int sign[3] = { -1, -1, -1 };
 
@@ -231,7 +229,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 		sign[2] = 1;
 	}
 
-	double u = dx * Box2Ewald_Grid; // 0 < u,v,w < 2 !
+	double u = dx * Box2Ewald_Grid; 
 	double v = dy * Box2Ewald_Grid; 
 	double w = dz * Box2Ewald_Grid;
 	
@@ -239,7 +237,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 	int j = (int) v;
 	int k = (int) w;
 
-	if (i >= N_EWALD) // don-t overshoot
+	if (i >= N_EWALD) // don't overshoot
 		i = N_EWALD-1;
 
 	if (j >= N_EWALD)
@@ -286,8 +284,6 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 #ifdef GRAVITY_POTENTIAL
 void Ewald_Potential(const Float dr[3], Float p[1])
 {
-	p[0] = 0;
-
 	double dx = dr[0];
 
 	if (dx < 0) 

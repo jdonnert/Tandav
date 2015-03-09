@@ -56,6 +56,14 @@ void Gravity_Simple_Accel()
 			P[ipart].Acc[1] += acc_periodic[1];
 			P[ipart].Acc[2] += acc_periodic[2];
 
+#ifdef GRAVITY_POTENTIAL
+			Float pot_periodic = 0; 
+
+			Ewald_Potential(dr, &pot_periodic); // GRAVITY && PERIODIC
+
+			P[ipart].Grav_Pot += pot_periodic;
+#endif
+
 			Periodic_Nearest(dr); // PERIODIC 
 
 			double r = ALENGTH3(dr);
@@ -88,12 +96,6 @@ void Gravity_Simple_Accel()
 			}
 
 			P[ipart].Grav_Pot += -Const.Gravity * P[jpart].Mass *rinv;
-
-			Float pot_periodic = 0; 
-
-			Ewald_Potential(dr, &pot_periodic); // GRAVITY && PERIODIC
-
-			P[ipart].Grav_Pot += pot_periodic;
 #endif
 		} // for jpart
 
@@ -117,8 +119,8 @@ void Gravity_Simple_Accel()
 		} // omp critical
 	
 		//printf("ipart = %d %g | %g %g %g | %g %g %g \n", 
-		//		ipart, errorl, acc[0], acc[1], acc[2],
-		//		P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
+	//			ipart, errorl, acc[0], acc[1], acc[2],
+	//			P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
 
 	} // for ipart
 
@@ -128,7 +130,7 @@ void Gravity_Simple_Accel()
 			Max_Error, Worst_Part, Mean_Error/NActive_Particles);
 
 	Profile("Gravity_Simple");
-
+	
 	return ;
 }
 

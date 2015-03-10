@@ -134,7 +134,7 @@ This is the Style Guide :
   See the handling of Periodic_Constrain_Particles_To_Box() in drift.[ch]
 
 * Avoid stacking #ifdef, it becomes unreadable too quickly (hydra.c anybody?) 
-  Check Gravity.h/gravity.h to see how to do it.
+  Check Gravity/gravity.h to see how to do it.
 
 * All integers are int for simplicity, if there is no good reason. Otherwise
   use int64_t, uint32_t etc. long and int are architecture dependent. Array

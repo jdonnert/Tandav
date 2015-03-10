@@ -12,12 +12,14 @@ x. Main infrastructure
 	- transform grav equations to comoving
 4. Time integration
 	- Cosmo Drift Factor
-	- Individual time steps
-	- Kepler test problem
+	x Individual time steps
+	x Kepler test problem
 5. Peano Hilbert Order 
 	x key generation
-	- omp sorting
-6. Domain Decomposition
-7. Parallel Tree / FMM
-8. Ewald Summation
-----------------------
+	x omp sorting
+x Domain Decomposition
+x. Parallel Tree
+x. Ewald Summation
+	x cube
+	x simple
+	- tree

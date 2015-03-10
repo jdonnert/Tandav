@@ -5,7 +5,7 @@
 #include "gravity.h"
 #include "gravity_periodic.h"
 
-static const double h = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
+static const double H = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
 
 static double Mean_Error = 0, Max_Error = 0;
 static int Worst_Part = -1;
@@ -14,7 +14,8 @@ static int Worst_Part = -1;
  * This computes the gravitational interaction via direct summation and shows
  * the relative error resp. the old force. Note that the max relative error can 
  * become large if one component of the force is close to 0 without consequence.
- * Check to the total force to make sure this is not the case.
+ * Check to the total force to make sure this is not the case. Make sure the
+ * mean rel. error in computations with many particles is a few percent !
  */
 
 void Gravity_Simple_Accel()
@@ -70,13 +71,13 @@ void Gravity_Simple_Accel()
 
 			double rinv = 1/r;
 
-			if (r < h) {
+			if (r < H) {
 
-				double u = r/h;
+				double u = r/H;
 				double u2 = u*u;
 				double u3 = u2*u;
 
-				rinv = sqrt(14*u-84*u3+140*u2*u2-90*u2*u3+21*u3*u3)/h;
+				rinv = sqrt(14*u-84*u3+140*u2*u2-90*u2*u3+21*u3*u3)/H;
 			} 
 
 			double acc_mag = Const.Gravity * P[jpart].Mass * p2(rinv);
@@ -86,13 +87,13 @@ void Gravity_Simple_Accel()
 			P[ipart].Acc[2] += -acc_mag * dr[2] * rinv;
 			
 #ifdef GRAVITY_POTENTIAL
-			if (r < h) {// WC2 kernel softening
+			if (r < H) {// WC2 kernel softening
 
-				double u = r/h;
+				double u = r/H;
 				double u2 = u*u;
 				double u3 = u2*u;
 
-				rinv = (7*u2-21*u2*u2+28*u3*u2-15*u3*u3+u3*u3*u*8-3)/h;
+				rinv = (7*u2-21*u2*u2+28*u3*u2-15*u3*u3+u3*u3*u*8-3)/H;
 			}
 
 			P[ipart].Grav_Pot += -Const.Gravity * P[jpart].Mass *rinv;
@@ -126,8 +127,9 @@ void Gravity_Simple_Accel()
 
 	rprintf("done\n");
 	
-	rprintf("\nForce test: max error %g @ %d, mean error %g \n\n", 
-			Max_Error, Worst_Part, Mean_Error/NActive_Particles);
+	rprintf("\nForce test: NActive %d, max error %g @ %d, mean error %g \n\n", 
+			NActive_Particles, Max_Error, Worst_Part, 
+			Mean_Error/NActive_Particles);
 
 	Profile("Gravity_Simple");
 	

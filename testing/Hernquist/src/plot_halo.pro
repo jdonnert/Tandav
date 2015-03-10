@@ -48,6 +48,8 @@ pro density_profile, nsnap=nsnap, periodic=periodic
 
 		pos = tandav.readsnap(fname, 'POS', head=head)
 
+		print, median(pos[0,*]), median(pos[1,*]), median(pos[2,*])
+
 		pos[0,*] -= median(pos[0,*])
 		pos[1,*] -= median(pos[1,*])
 		pos[2,*] -= median(pos[2,*])

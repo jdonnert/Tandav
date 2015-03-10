@@ -369,9 +369,12 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 			"Omega_Lambda in snapshot different from code: %g <-> %g",
 			head.Omega_Lambda, Cosmo.Omega_Lambda);
 
-	Warn(head.Hubble_Param != Cosmo.Hubble_Constant,
+	Warn(head.Hubble_Param != Cosmo.Hubble_Constant/100.0,
 			"h_0 in snapshot different from code: %g <-> %g",
-			head.Hubble_Param, Cosmo.Hubble_Constant/100);
+			head.Hubble_Param, Cosmo.Hubble_Constant/100.0);
+
+	Warn(head.Boxsize != Sim.Boxsize[0], "Boxsize inconsistent %g <-> %g,%g,%g",
+			head.Boxsize, Sim.Boxsize[0], Sim.Boxsize[1], Sim.Boxsize[2]);
 
 	return ;
 }

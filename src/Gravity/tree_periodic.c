@@ -36,16 +36,16 @@ void Gravity_Tree_Periodic()
 			Float fr[3] = { 0 };
 			Float fp = 0;
 
+			if (interact_with_topnode(ipart, j, &fr[0], &fp))
+				continue;
+
 			//if (D[j].TNode.Target < 0) {
 			//
 			//	export_particle_to_rank(ipart, -target-1);	
 			//
 			//	continue;
 			//}
-
-			if (interact_with_topnode(ipart, j, &fr[0], &fp))
-				continue;
-
+			
 			if (D[j].TNode.Npart <= 8) { // open top leave
 
 				interact_with_topnode_particles(ipart, j, &fr[0], &fp);
@@ -92,14 +92,9 @@ static bool interact_with_topnode(const int ipart, const int j,
 
 	bool want_open_node = false;
 
-	Float dr[3] = {P[ipart].Pos[0] - D[j].TNode.Pos[0],
-				   P[ipart].Pos[1] - D[j].TNode.Pos[1],
-				   P[ipart].Pos[2] - D[j].TNode.Pos[2]};
-
-	if (fabs(dr[0]) < 0.6 * nSize) // inside subtree ? -> always walk
-		if (fabs(dr[1]) < 0.6 * nSize)
-			if (fabs(dr[2]) < 0.6 * nSize) 
-				want_open_node = true; 
+	Float dr[3] = {P[ipart].Pos[0] - D[j].TNode.CoM[0],
+				   P[ipart].Pos[1] - D[j].TNode.CoM[1],
+				   P[ipart].Pos[2] - D[j].TNode.CoM[2]};
 
 	Periodic_Nearest(&dr[0]);
 
@@ -119,6 +114,15 @@ static bool interact_with_topnode(const int ipart, const int j,
 		if (nMass*nSize*nSize > r2*r2 * fac)
 			want_open_node = true;
 	}
+	
+	dr[0] = P[ipart].Pos[0] - D[j].TNode.Pos[0];
+	dr[1] = P[ipart].Pos[1] - D[j].TNode.Pos[1];
+	dr[2] = P[ipart].Pos[2] - D[j].TNode.Pos[2];
+
+	if (fabs(dr[0]) < 0.6 * nSize) // inside subtree ? -> always walk
+		if (fabs(dr[1]) < 0.6 * nSize)
+			if (fabs(dr[2]) < 0.6 * nSize) 
+				want_open_node = true; 
 
 	if (want_open_node) { // check if we really have to open
 
@@ -263,8 +267,6 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 		}
 
 		if (want_open_node) { // check if we really have to open
-
-			Periodic_Nearest(dr);
 
 			if (fabs(dr[0]) > 0.5 * (Boxsize - nSize)) { 
 				

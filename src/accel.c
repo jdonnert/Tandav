@@ -62,7 +62,7 @@ static void accel_gravity()
 }
 
 #else // !GRAVITY
-
+"
 static void zero_active_particle_accelerations()
 {
 	#pragma omp for

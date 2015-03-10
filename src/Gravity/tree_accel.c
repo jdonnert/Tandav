@@ -41,15 +41,15 @@ void Gravity_Tree_Acceleration()
 
 		for (int j = 0; j < NTop_Nodes; j++) {
 
+			if (interact_with_topnode(ipart, j, &grav_accel[0], &pot))
+				continue;
+
 			//if (D[j].TNode.Target < 0) {
 			//
 			//	export_particle_to_rank(ipart, -target-1);	
 			//
 			//	continue;
 			//}
-
-			if (interact_with_topnode(ipart, j, &grav_accel[0], &pot))
-				continue;
 
 			if (D[j].TNode.Npart <= 8) { // open top leave
 
@@ -345,7 +345,7 @@ static void gravity_tree_walk_first(const int ipart, const int tree_start,
 static void interact(const Float mass, const Float dr[3], const Float r2,
 		Float Accel[3], Float *Pot)
 {
-	const Float h_grav = GRAV_SOFTENING / 3.0; // Plummer equiv softening
+	const Float h = GRAV_SOFTENING / 3.0; // Plummer equiv softening
 
 	const Float r = sqrt(r2);
 
@@ -355,17 +355,16 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 	Float r_inv_pot = r_inv;
 #endif
 
-	if (r < h_grav) { // soften 1/r with Wendland C2 kernel
+	if (r < h) { // soften 1/r with Wendland C2 kernel
 
-		Float u = r/h_grav;
+		Float u = r/h;
 		Float u2 = u*u;
 		Float u3 = u2*u;
 
-		r_inv = sqrt(14*u - 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3) / h_grav;
+		r_inv = sqrt(14*u - 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3) / h;
 
 #ifdef GRAVITY_POTENTIAL
-		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3)
-			/ h_grav;
+		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3) / h;
 #endif
 	}
 

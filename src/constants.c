@@ -1,8 +1,8 @@
 #include "globals.h"
 
-const struct Constants_In_Code_Units Const = {	
+struct Constants_In_Code_Units Const = {	
 	ADIABATIC_INDEX_MONOATOMIC_GAS, 
-	GRAVITATIONAL_CONST/p3(VELOCITY2CGS)/TIME2CGS*MASS2CGS, // G in code units
+	GRAVITATIONAL_CONST/p3(VELOCITY2CGS)/(LENGTH2CGS/VELOCITY2CGS)*MASS2CGS, 
 	HYDROGEN_FRACTION,
 	HELIUM_FRACTION  };
 

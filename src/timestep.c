@@ -160,18 +160,23 @@ static void set_global_timestep()
 
 /* 
  * The timeline is represented by an integer, where an increment of one 
- * corresponds to the whole integration time divided by 2^(N_INT_BINS-1) 
+ * corresponds to the whole integration time divided by 2^(N_INT_BINS-1).
  */
 
 void Setup_Time_Integration()
 {
 	Time.Next_Snap = Time.First_Snap;
 
-	Time.NSnap = (Time.End - Time.Begin) / Time.Bet_Snap + 1;
+	Time.NSnap = (Time.End - Time.Begin)/Time.Bet_Snap + 1;
 
 	rprintf("Simulation timeline: \n"
-			"   start = %g, end = %g, delta = %g, NSnap = %d \n\n",
+			"   start = %g, end = %g, delta = %g, NSnap = %d \n",
 			Time.Begin, Time.End, Time.Bet_Snap, Time.NSnap);
+
+#ifdef COMOVING
+	rprintf("   initial redshift = %g, final redshift = %g \n\n",
+			1.0/Time.Begin - 1, 1.0/Time.End - 1);
+#endif // COMOVING
 
 	Assert(Time.NSnap > 0, "Timeline does not seem to produce any outputs");
 
@@ -181,7 +186,11 @@ void Setup_Time_Integration()
 
 	Int_Time.Current = Int_Time.Beg;
 
+#ifndef COMOVING
 	Time.Step_Max = Time.End - Time.Begin;
+#else
+	Time.Step_Max = log(Time.End) - log(Time.Begin); // Bertschinger 1998
+#endif //  ! COMOVING
 
 	Time.Step_Min =  Time.Step_Max / ((intime_t) 1 << (N_INT_BINS - 1) );
 
@@ -195,7 +204,7 @@ void Setup_Time_Integration()
 
 	for (int i = 0; i < NActive_Particles; i++)
 		Active_Particle_List[i] = i;
-
+ 
 	return ;
 }
 
@@ -224,8 +233,14 @@ void Make_Active_Particle_List()
 }
 
 /* 
- * Give the physical timestep from timebin and vice versa
+ * Give the physical timestep from timebin and vice versa.
+ * In comoving coordinates/cosmological simulations we multi-step in dln(a), 
+ * so the stepsize is small at early times, where pertubations/forces are of 
+ * low amplitude and large later, when evolution is non-linear and the 
+ * relevant forces are larger. Integration is still in da though.
  */
+
+#ifndef COMOVING
 
 double Timebin2Timestep(const int TimeBin)
 {
@@ -237,9 +252,23 @@ double Integer2Physical_Time(const intime_t Integer_Time)
 	return Time.Begin + Integer_Time * Time.Step_Min;
 }
 
+#else // ! COMOVING
+
+double Timebin2Timestep(const int TimeBin)
+{
+	return exp( Time.Step_Min * ((intime_t) 1 << TimeBin) );
+}
+
+double Integer2Physical_Time(const intime_t Integer_Time)
+{
+	return exp( log(Time.Begin) + Integer_Time * Time.Step_Min );
+}
+
+#endif // ! COMOVING
+
+
 /* 
- * Convert a timestep to a power 2 based timebin 
- * via ceil(log2(StepMax/dt)) 
+ * Convert a timestep to a power 2 based timebin via ceil(log2(StepMax/dt)) 
  */
 
 static int timestep2timebin(const double dt)
@@ -289,7 +318,7 @@ static void print_timebins()
 	char fullstep[CHARBUFSIZE] = {" "};
 
 	if (Sig.Fullstep)
-		sprintf(fullstep,", Fullstep");
+		sprintf(fullstep,", Fullstep !");
 
 	printf("Systemstep %g, NActive %d %s\n"
 			"   Bin       nGas        nDM A    dt\n",

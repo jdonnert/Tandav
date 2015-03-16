@@ -21,6 +21,7 @@ static double Last_Report_Call = 0;
 static inline int find_index_from_name(const char *name);
 static double measure_time();
 
+
 void Init_Profiler()
 {
 	Profile("Simulation");
@@ -38,6 +39,11 @@ void Finish_Profiler()
 	
 	return ;
 }
+
+/*
+ * The profiler works using the unique name given at the first call. Upon the 
+ * second call with the same name the measurement unit is then stopped again.
+ */
 
 void Profile_Info(const char* file, const char* func, const int line, 
 		const char *name)

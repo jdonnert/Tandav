@@ -33,11 +33,11 @@
 #define UMOL (4.0/(5.0*HYDROGEN_FRACTION+3.0)) // Mean mol. weight in H
 #define ADIABATIC_INDEX_MONOATOMIC_GAS (5.0/3.0)
 
-const double Pi, Deg2Rad, Sqrt3, Sqrt2;
+const double Pi, Deg2Rad, Sqrt3, Sqrt2; // math
 
-const struct Constants_In_Code_Units {
-	double Adiabatic_Index;
-	double Gravity;
-	double Hydrogen_Fraction;
-	double Helium_Fraction;
+struct Constants_In_Code_Units {
+	const double Adiabatic_Index;
+	const double Gravity;
+	const double Hydrogen_Fraction;
+	const double Helium_Fraction;
 } Const ;

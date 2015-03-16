@@ -1,8 +1,6 @@
-/* Code units, we have them as macro and constant */
+/* Code unit conversion */
 
-#define TIME2CGS (LENGTH2CGS/VELOCITY2CGS)
-
-const struct Units {
+const struct Code_Units {
 	double Length;
 	double Mass;
 	double Velocity;
@@ -10,7 +8,7 @@ const struct Units {
 	double Energy;
 } Unit;
 
-/* Conversion functions to code units */
+/* Conversion functions from code to code units */
 double Pressure(const int ipart);
 double Internal_Energy(const int ipart); // U
 double Temperature(const int ipart);

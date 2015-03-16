@@ -1,10 +1,10 @@
 /* 
- * Conversion from code to CGSM or code units 
+ * Conversion from code to CGSM units 
  */
 
 #include "globals.h"
 
-const struct Units Unit = { 	
+const struct Code_Units Unit = { 	
 	LENGTH2CGS, 
 	MASS2CGS, 
 	VELOCITY2CGS, 
@@ -13,7 +13,8 @@ const struct Units Unit = {
 };
 
 /* 
- * These functions convert internal units to physical cgsm units 
+ * These functions convert internal units to physical cgsm units. In case of 
+ * comoving coordinates, they also remove the a factors.
  */
 
 double Position_Cgs(const float x)
@@ -21,7 +22,7 @@ double Position_Cgs(const float x)
 	double x_cgs = x * Unit.Length;
 
 #ifdef COMOVING
-	x_cgs *= Current.Time / Cosmo.Hubble_Param; 
+	x_cgs *= Cosmo.Expansion_Factor; 
 #endif
 
 	return x_cgs;
@@ -32,7 +33,7 @@ double Velocity_Cgs(const float v)
 	double v_cgs = v * Unit.Velocity;
 
 #ifdef COMOVING
-	v_cgs *= Time.Current;
+	v_cgs *= p2(Cosmo.Expansion_Factor);
 #endif
 	
 	return v_cgs;
@@ -42,10 +43,6 @@ double Mass_Cgs(const float mass)
 {
 	double mass_cgs = mass * Unit.Mass;
 
-#ifdef COMOVING
-	mass_cgs /= Cosmo.Hubble_Param; 
-#endif
-
 	return mass_cgs;
 }	
 
@@ -54,7 +51,7 @@ double Density_Cgs(const float rho)
 	double rho_cgs = rho * Unit.Mass / p3(Unit.Length);
 
 #ifdef COMOVING
-	rho_cgs *= p2(Cosmo.HubbleParam) / p3(Time.Current);
+	rho_cgs /= p3(Cosmo.Expansion_Factor);
 #endif
 
 	return rho_cgs;
@@ -70,8 +67,7 @@ double Pressure_Cgs(const float press)
 	double press_cgs = press * Unit.Energy / p3(Unit.Length);
 
 #ifdef COMOVING
-	press_cgs *= pow(Time.Current, -3*Const.Adiabatic_Index) 
-		/ p2(Cosmo.Hubble_Param);
+	press_cgs *= pow(Cosmo.Expansion_Factor, -3*Const.Adiabatic_Index);
 #endif
 
 	return press_cgs;

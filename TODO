@@ -14,7 +14,7 @@ x. Main infrastructure
 	- Cosmo Drift Factor
 	x Individual time steps
 	x Kepler test problem
-5. Peano Hilbert Order 
+x. Peano Hilbert Order 
 	x key generation
 	x omp sorting
 6. Domain Decomposition

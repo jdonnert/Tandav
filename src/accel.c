@@ -12,14 +12,15 @@ static void zero_active_particle_accelerations();
 #endif
 
 /* 
- * Collect all accelerations on particles 
+ * Collect all accelerations on particles. Note that GRAVITY needs the previous
+ * accelerations and hence we do not zero those if it is switched on.
  */
 
 void Compute_Acceleration()
 {
 	Profile("Accelerations");
 
-	accel_gravity(); // GRAVITY, needs previous P.Acc and overwrites it
+	accel_gravity(); // GRAVITY
 
 	zero_active_particle_accelerations(); // ! GRAVITY
 
@@ -62,7 +63,7 @@ static void accel_gravity()
 }
 
 #else // !GRAVITY
-"
+
 static void zero_active_particle_accelerations()
 {
 	#pragma omp for

@@ -3,6 +3,10 @@
 #include "drift.h"
 #include "Gravity/gravity.h"
 
+#ifndef COMOVING 
+static double Particle_Drift_Step(const int ipart, const double time_next);
+#endif
+
 /* 
  * This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 
  * As a snapshot time may not fall onto an integertime, we have to 
@@ -89,7 +93,7 @@ void Drift_To_Snaptime()
  */
 
 #ifndef COMOVING 
-double Particle_Drift_Step(const int ipart, const double time_next)
+static double Particle_Drift_Step(const int ipart, const double time_next)
 {
 	double time_part = 0;
 
@@ -101,6 +105,5 @@ double Particle_Drift_Step(const int ipart, const double time_next)
 	return (time_next - time_part);
 }
 #endif
-
 
 

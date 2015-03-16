@@ -3,7 +3,7 @@
 #DEBUG                       // verbose output
 
 PERIODIC                   // periodic boundary conditions
-#COMOVING                   // comoving coordinates for cosmo sims
+COMOVING                   // comoving coordinates for cosmo sims
 
 TIME_INT_ACCURACY 0.4       // [0.4] cosmo time step accuracy parameter
 DOMAIN_UPDATE_PARAM 0.0     // [0.1]  npart drifted before new domain decomp.
@@ -37,11 +37,11 @@ VELOCITY2CGS 1.0e+05        // km/s
 
 #### COSMOLOGICAL PARAMETERS ####
 
-HUBBLE_CONST 72             // km/s/Mpc
+HUBBLE_CONST 72.3           // km/s/Mpc
 OMEGA_LAMBDA 0.7
-OMEGA_BARYON 0.024          // assuming H0=100
+OMEGA_BARYON 0.03             // assuming H0=100
 OMEGA_0 1					
-OMEGA_RAD 4.8e-5			
+OMEGA_RAD 1e-5	
 
 #### ALWAYS RECOMMENDED ####
 

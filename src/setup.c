@@ -10,15 +10,15 @@ void Setup()
 {
 	Profile("Setup");
 
+	Setup_Cosmology(); // COMOVING
+
+	Setup_Comoving(); // COMOVING
+
 	Setup_Time_Integration();
 
 	Setup_Domain_Decomposition();
 
 	Print_Memory_Usage();
-
-	Setup_Cosmology(); // COMOVING
-
-	Setup_Comoving(); // COMOVING
 
 	Profile("Setup");
 

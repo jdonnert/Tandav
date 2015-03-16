@@ -2,6 +2,8 @@
 
 void Finish()
 {
+    Finish_Comoving(); // COMOVING
+
 	Finish_Profiler();
 
 	Finish_Logs();

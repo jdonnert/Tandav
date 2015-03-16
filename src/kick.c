@@ -3,6 +3,10 @@
 #include "kick.h"
 #include "Gravity/gravity.h"
 
+#ifndef COMOVING 
+double Particle_Kick_Step(const int ipart);
+#endif
+
 /* 
  * This is the Kick part of the KDK scheme. We update velocities from 
  * accelerations, but kick only for half a timestep. If we use the tree, the
@@ -44,7 +48,7 @@ void Kick_Second_Halfstep()
 
 		int ipart = Active_Particle_List[i];
 
-		double dt = Particle_Kick_Step(ipart);
+		double dt =  0.5 * Particle_Kick_Step(ipart);
 
 		P[ipart].Vel[0] += dt * P[ipart].Acc[0];
 		P[ipart].Vel[1] += dt * P[ipart].Acc[1];
@@ -71,6 +75,6 @@ double Particle_Kick_Step(const int ipart)
 {
 	double time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
 
-	return 0.5 * (Time.Next - time_part);
+	return (Time.Next - time_part);
 }
 #endif

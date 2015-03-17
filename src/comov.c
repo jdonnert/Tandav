@@ -7,28 +7,27 @@
 
 #define TABLESIZE 128
 
-static double Exp_Factor_Table[TABLESIZE] = { 0 },
-			  Drift_Table[TABLESIZE] = { 0 },   
-			  Kick_Table[TABLESIZE] = { 0 };
+static double Drift_Table[TABLESIZE] = { 0 }, Kick_Table[TABLESIZE] = { 0 },
+			  Exp_Factor_Table[TABLESIZE] = { 0 };
 
 static gsl_spline *Kick_Spline = NULL, *Drift_Spline = NULL;
-static gsl_interp_accel *Acc0 = NULL, *Acc1 = NULL;
-#pragma omp threadprivate(Kick_Spline,Drift_Spline,Acc0,Acc1)
+static gsl_interp_accel *Acc[4] = { NULL };
+#pragma omp threadprivate(Kick_Spline,Drift_Spline,Acc)
 
 /*
  * These functions get the kick & drift factors of the symplectic integrator
  * in comoving coordinates from a spline interpolation of the integral in
  * Appendix of Quinn+ 1997. This allows us to use a short table resulting in
- * relatives errors at 1e-5, which is the same as the numerical integrator.
+ * relatives errors < 1e-4, which is the same as the numerical integrator 
+ * gives. These functions are thread safe.
  */
 
-double Particle_Kick_Step(const int ipart)
+double Particle_Kick_Step(const int ipart, const double a_next)
 {
 	double a_curr = Integer2Physical_Time(P[ipart].Int_Time_Pos);
-	double a_next = Time.Next;
 
-	double a_beg = gsl_spline_eval(Kick_Spline, a_curr, Acc0);
-	double a_end = gsl_spline_eval(Kick_Spline, a_next, Acc1);
+	double a_beg = gsl_spline_eval(Kick_Spline, a_curr, Acc[0]);
+	double a_end = gsl_spline_eval(Kick_Spline, a_next, Acc[1]);
 
 	return a_end - a_beg;
 }
@@ -37,8 +36,8 @@ double Particle_Drift_Step(const int ipart, const double a_next)
 {
 	double a_curr = Integer2Physical_Time(P[ipart].Int_Time_Pos);
 
-	double a_beg = gsl_spline_eval(Drift_Spline, a_curr, Acc0);
-	double a_end = gsl_spline_eval(Drift_Spline, a_next, Acc1);
+	double a_beg = gsl_spline_eval(Drift_Spline, a_curr, Acc[2]);
+	double a_end = gsl_spline_eval(Drift_Spline, a_next, Acc[3]);
 
 	return a_end - a_beg;
 }
@@ -48,9 +47,8 @@ double Particle_Drift_Step(const int ipart, const double a_next)
  * See Quinn Katz, Stadel & Lake 1997, Peebles 1980, Bertschinger 1999. 
  * Note that we are integrating in "da" so the integrals from Quinns paper 
  * have to be transformed from dt, which gives the additional factor of 
- * 1/\dot{a} = 1/H(a)/a. This is the same as in Gadget-2.
- * For an EdS universe the solution is:
- * drift(a) = -2/H0/sqrt(a) ; kick(a) = 
+ * 1/\dot{a} = 1/H(a)/a. 
+ 
  */
 
 static double comoving_symplectic_drift_integrant(double a, void *param) 
@@ -65,15 +63,12 @@ static double comoving_symplectic_kick_integrant(double a, void *param)
 
 /*
  * This sets up the comoving kick & drift factors using a table and cspline
- * interpolation.
+ * interpolation. For an EdS universe the solution is:
+ * drift(a) = -2/H0/sqrt(a) ; kick(a) = 2/H0 * sqrt(a)
  */
 
 void Setup_Comoving()
 {
-	const double time_min = Time.Begin;
-	const double log_time_beg = log(Time.Begin);
-	const double log_time_end = log(Time.End);
-
 	#pragma omp parallel
 	{
 
@@ -81,13 +76,15 @@ void Setup_Comoving()
 	gsl_integration_workspace *gsl_workspace = NULL;
 	gsl_workspace = gsl_integration_workspace_alloc(TABLESIZE);
 
+	const double time_min = Time.Begin;
+	const double da = log(Time.End) - log(Time.Begin);
+
 	#pragma omp for
 	for (int i = 0; i < TABLESIZE; i++) {
 	
 		double error = 0;
 
-		double time_max = exp(log_time_beg +
-						 (log_time_end - log_time_beg) * i/ (TABLESIZE-1.0));
+		double time_max = exp(log(Time.Begin) + da * i/(TABLESIZE - 1.0) );
 
 		Exp_Factor_Table[i] = time_max;
 
@@ -105,8 +102,10 @@ void Setup_Comoving()
 
 	gsl_integration_workspace_free(gsl_workspace);
 	
-	Acc0 = gsl_interp_accel_alloc();
-	Acc1 = gsl_interp_accel_alloc();
+	Acc[0] = gsl_interp_accel_alloc();
+	Acc[1] = gsl_interp_accel_alloc();
+	Acc[2] = gsl_interp_accel_alloc();
+	Acc[3] = gsl_interp_accel_alloc();
 
 	Drift_Spline = gsl_spline_alloc(gsl_interp_cspline, TABLESIZE);
 	Kick_Spline = gsl_spline_alloc(gsl_interp_cspline, TABLESIZE);
@@ -119,13 +118,24 @@ void Setup_Comoving()
 	return ;
 }
 
-void Finish_Comoving
+void Finish_Comoving()
 {
+	Free(Kick_Table);
+	Free(Drift_Table);
+	Free(Exp_Factor_Table);
+
+	#pragma omp parallel
+	{
+	
 	gsl_spline_free(Drift_Spline);
 	gsl_spline_free(Kick_Spline);
     
-	gsl_interp_accel_free(Acc0);
-    gsl_interp_accel_free(Acc1);
+	gsl_interp_accel_free(Acc[0]);
+	gsl_interp_accel_free(Acc[1]);
+	gsl_interp_accel_free(Acc[2]);
+	gsl_interp_accel_free(Acc[3]);
+
+	} // omp parallel
 
 	return ;
 }

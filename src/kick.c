@@ -4,7 +4,7 @@
 #include "Gravity/gravity.h"
 
 #ifndef COMOVING 
-double Particle_Kick_Step(const int ipart);
+double Particle_Kick_Step(const int ipart, const double time_next);
 #endif
 
 /* 
@@ -22,7 +22,7 @@ void Kick_First_Halfstep()
 
 		int ipart = Active_Particle_List[i];
 
-		double dt = Particle_Kick_Step(ipart);
+		double dt = 0.5 * Particle_Kick_Step(ipart, Time.Next);
 
 		P[ipart].Vel[0] += dt * P[ipart].Acc[0];
 		P[ipart].Vel[1] += dt * P[ipart].Acc[1];
@@ -31,8 +31,6 @@ void Kick_First_Halfstep()
 		if (!Sig.Domain_Update)
 			Gravity_Tree_Update_Kicks(ipart, dt);
 	}
-
-#pragma omp barrier
 
 	Profile("First Kick");
 
@@ -48,7 +46,7 @@ void Kick_Second_Halfstep()
 
 		int ipart = Active_Particle_List[i];
 
-		double dt =  0.5 * Particle_Kick_Step(ipart);
+		double dt =  0.5 * Particle_Kick_Step(ipart, Time.Next);
 
 		P[ipart].Vel[0] += dt * P[ipart].Acc[0];
 		P[ipart].Vel[1] += dt * P[ipart].Acc[1];
@@ -71,10 +69,10 @@ void Kick_Second_Halfstep()
  */
 
 #ifndef COMOVING 
-double Particle_Kick_Step(const int ipart)
+double Particle_Kick_Step(const int ipart, const double time_next)
 {
 	double time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
 
-	return (Time.Next - time_part);
+	return time_next - time_part;
 }
 #endif

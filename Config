@@ -37,11 +37,11 @@ VELOCITY2CGS 1.0e+05        // km/s
 
 #### COSMOLOGICAL PARAMETERS ####
 
-HUBBLE_CONST 72.3           // km/s/Mpc
-OMEGA_LAMBDA 0.7
-OMEGA_BARYON 0.03             // assuming H0=100
-OMEGA_0 1					
-OMEGA_RAD 1e-5	
+HUBBLE_CONST 100           // km/s/Mpc
+OMEGA_LAMBDA 0.0
+OMEGA_BARYON 0.0           // assuming H0=100
+OMEGA_0 1.0					
+OMEGA_RAD 1.0	
 
 #### ALWAYS RECOMMENDED ####
 

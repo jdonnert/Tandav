@@ -88,7 +88,7 @@ void Gravity_Tree_Periodic()
 static bool interact_with_topnode(const int ipart, const int j,
 								 Float *fr, Float *fp)
 {
-	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
+	const Float node_size = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 
 	bool want_open_node = false;
 
@@ -102,7 +102,7 @@ static bool interact_with_topnode(const int ipart, const int j,
 
 	if (ASCALPROD3(P[ipart].Acc) == 0) {
 
-		if (nSize*nSize > r2 * TREE_OPEN_PARAM_BH)
+		if (node_size*node_size > r2 * TREE_OPEN_PARAM_BH)
 			want_open_node = true;
 
 	} else {
@@ -111,7 +111,7 @@ static bool interact_with_topnode(const int ipart, const int j,
 
 		Float fac = ALENGTH3(P[ipart].Acc)/Const.Gravity * TREE_OPEN_PARAM_REL;
 
-		if (nMass*nSize*nSize > r2*r2 * fac)
+		if (nMass*node_size*node_size > r2*r2 * fac)
 			want_open_node = true;
 	}
 	
@@ -119,23 +119,23 @@ static bool interact_with_topnode(const int ipart, const int j,
 	dr[1] = P[ipart].Pos[1] - D[j].TNode.Pos[1];
 	dr[2] = P[ipart].Pos[2] - D[j].TNode.Pos[2];
 
-	if (fabs(dr[0]) < 0.6 * nSize) // inside subtree ? -> always walk
-		if (fabs(dr[1]) < 0.6 * nSize)
-			if (fabs(dr[2]) < 0.6 * nSize) 
+	if (fabs(dr[0]) < 0.6 * node_size) // inside subtree ? -> always walk
+		if (fabs(dr[1]) < 0.6 * node_size)
+			if (fabs(dr[2]) < 0.6 * node_size) 
 				want_open_node = true; 
 
 	if (want_open_node) { // check if we really have to open
 
-			if (fabs(dr[0]) > 0.5 * (Boxsize - nSize)) 
+			if (fabs(dr[0]) > 0.5 * (Boxsize - node_size)) 
 				return false;
 
-			if (fabs(dr[1]) > 0.5 * (Boxsize - nSize)) 
+			if (fabs(dr[1]) > 0.5 * (Boxsize - node_size)) 
 				return false;
 				
-			if (fabs(dr[2]) > 0.5 * (Boxsize - nSize)) 
+			if (fabs(dr[2]) > 0.5 * (Boxsize - node_size)) 
 				return false;
 				
-			if (nSize > 0.2 * Boxsize) 
+			if (node_size > 0.2 * Boxsize) 
 				return false;
 
 	} // if want_open_node
@@ -243,20 +243,20 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 
 		Float nMass = Tree[node].Mass;
 
-		Float nSize = Node_Size(node); // now check opening criteria
+		Float node_size = Node_Size(node); // now check opening criteria
 
-		if (nMass*nSize*nSize > r2*r2 * fac) // relative criterion
+		if (nMass*node_size*node_size > r2*r2 * fac) // relative criterion
 			want_open_node = true;
 
 		dr[0] = pos_i[0] - Tree[node].Pos[0];
 		dr[1] = pos_i[1] - Tree[node].Pos[1];
 		dr[2] = pos_i[2] - Tree[node].Pos[2];
 
-		if (fabs(dr[0]) < 0.6 * nSize) { // particle inside node ? 
+		if (fabs(dr[0]) < 0.6 * node_size) { // particle inside node ? 
 			
-			if (fabs(dr[1]) < 0.6 * nSize) {
+			if (fabs(dr[1]) < 0.6 * node_size) {
 
-				if (fabs(dr[2]) < 0.6 * nSize) {
+				if (fabs(dr[2]) < 0.6 * node_size) {
 				
 					want_open_node = true;
 				
@@ -266,28 +266,28 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 
 		if (want_open_node) { // check if we really have to open
 
-			if (fabs(dr[0]) > 0.5 * (Boxsize - nSize)) { 
+			if (fabs(dr[0]) > 0.5 * (Boxsize - node_size)) { 
 				
 				node++;
 
 				continue;
 			}
 
-			if (fabs(dr[1]) > 0.5 * (Boxsize - nSize)) {
+			if (fabs(dr[1]) > 0.5 * (Boxsize - node_size)) {
 				
 				node++;
 
 				continue;
 			}
 
-			if (fabs(dr[2]) > 0.5 * (Boxsize - nSize)) {
+			if (fabs(dr[2]) > 0.5 * (Boxsize - node_size)) {
 				
 				node++;
 
 				continue;
 			}
 
-			if (nSize > 0.2 * Boxsize) { // too large
+			if (node_size > 0.2 * Boxsize) { // too large
 
 				node++;
 

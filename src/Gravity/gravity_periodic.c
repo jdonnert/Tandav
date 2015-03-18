@@ -12,11 +12,11 @@ static void write_ewald_correction_table();
 static bool read_ewald_correction_table();
 static void compute_ewald_force(const int, const int, const int,
 								const double r[3], double force[3]);
-#ifdef OUTPUT_GRAV_POTENTIAL    
+#ifdef GRAVITY_POTENTIAL    
 static double compute_ewald_potential(const double r[3]);
 #else
 static inline void compute_ewald_potential(const double r[3]) {};
-#endif // OUTPUT_GRAV_POTENTIAL
+#endif // GRAVITY_POTENTIAL
 
 const static double Alpha = 2.0; // Hernquist+ 1991 (2.13)
 const static char fname[CHARBUFSIZE] = { "./ewald_tables.dat" };

@@ -15,7 +15,8 @@ static int Worst_Part = -1;
  * the relative error resp. the old force. Note that the max relative error can 
  * become large if one component of the force is close to 0 without consequence.
  * Check to the total force to make sure this is not the case. Make sure the
- * mean rel. error in computations with many particles is a few percent !
+ * mean rel. error in computations with many particles is a few percent if all
+ * particles are kicked !
  */
 
 void Gravity_Simple_Accel()
@@ -24,8 +25,14 @@ void Gravity_Simple_Accel()
 
 	rprintf("Direct Gravity, get a coffee ... ");
 
+	#pragma omp single
+	{
+	
 	Mean_Error = Max_Error = 0;
+	
 	Worst_Part = -1;
+	
+	} // omp single
 
 	#pragma omp for reduction(+:Mean_Error)
 	for (int i = 0; i < NActive_Particles; i++) {
@@ -60,7 +67,7 @@ void Gravity_Simple_Accel()
 #ifdef GRAVITY_POTENTIAL
 			Float pot_periodic = 0; 
 
-			Ewald_Potential(dr, &pot_periodic); // GRAVITY && PERIODIC
+			Ewald_Potential(dr, &pot_periodic); // PERIODIC
 
 			P[ipart].Grav_Pot += pot_periodic;
 #endif
@@ -87,7 +94,7 @@ void Gravity_Simple_Accel()
 			P[ipart].Acc[2] += -acc_mag * dr[2] * rinv;
 			
 #ifdef GRAVITY_POTENTIAL
-			if (r < H) {// WC2 kernel softening
+			if (r < H) { // WC2 kernel softening
 
 				double u = r/H;
 				double u2 = u*u;
@@ -120,8 +127,8 @@ void Gravity_Simple_Accel()
 		} // omp critical
 	
 		//printf("ipart = %d %g | %g %g %g | %g %g %g \n", 
-	//			ipart, errorl, acc[0], acc[1], acc[2],
-	//			P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
+		//		ipart, errorl, acc[0], acc[1], acc[2],
+		//		P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
 
 	} // for ipart
 
@@ -132,7 +139,7 @@ void Gravity_Simple_Accel()
 			Mean_Error/NActive_Particles);
 
 	Profile("Gravity_Simple");
-	
+
 	return ;
 }
 

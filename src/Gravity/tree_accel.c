@@ -42,7 +42,7 @@ void Gravity_Tree_Acceleration()
 			if (interact_with_topnode(ipart, j, &grav_accel[0], &pot))
 				continue;
 
-			//if (D[j].TNode.Target < 0) {
+			//if (D[j].TNode.Target < 0) { // not local ?
 			//
 			//	export_particle_to_rank(ipart, -target-1);	
 			//
@@ -103,15 +103,21 @@ static bool interact_with_topnode(const int ipart, const int j,
 	Float dr[3] = {P[ipart].Pos[0] - D[j].TNode.Pos[0],
 				   P[ipart].Pos[1] - D[j].TNode.Pos[1],
 				   P[ipart].Pos[2] - D[j].TNode.Pos[2]};
-
+	
 	if (fabs(dr[0]) < 0.6 * nSize) // inside subtree ? -> always walk
 		if (fabs(dr[1]) < 0.6 * nSize)
 			if (fabs(dr[2]) < 0.6 * nSize)
 				return false; 
 
-	Periodic_Nearest(&dr[0]);
+	dr[0] = P[ipart].Pos[0] - D[j].TNode.CoM[0];
+	dr[1] = P[ipart].Pos[1] - D[j].TNode.CoM[1];
+	dr[2] = P[ipart].Pos[2] - D[j].TNode.CoM[2];
+
+	Periodic_Nearest(&dr[0]); // PERIODIC
 
 	Float r2 = ASCALPROD3(dr);
+
+	Float node_mass = D[j].TNode.Mass;
 
 	if (ASCALPROD3(P[ipart].Acc) == 0) {
 
@@ -120,21 +126,13 @@ static bool interact_with_topnode(const int ipart, const int j,
 
 	} else {
 
-		Float nMass = D[j].TNode.Mass;
-
 		Float fac = ALENGTH3(P[ipart].Acc)/Const.Gravity * TREE_OPEN_PARAM_REL;
 
-		if (nMass*nSize*nSize > r2*r2 * fac)
+		if (node_mass*nSize*nSize > r2*r2 * fac)
 			return false;
 	}
-
-	dr[0] = P[ipart].Pos[0] - D[j].TNode.CoM[0];
-	dr[1] = P[ipart].Pos[1] - D[j].TNode.CoM[1];
-	dr[2] = P[ipart].Pos[2] - D[j].TNode.CoM[2];
-
-	Periodic_Nearest(dr);
-
-	interact(P[ipart].Mass, dr, r2, grav_accel, pot);
+	
+	interact(node_mass, dr, r2, grav_accel, pot);
 
 	return true;
 }
@@ -159,7 +157,7 @@ static void interact_with_topnode_particles(const int ipart, const int j,
 					    P[ipart].Pos[1] - P[jpart].Pos[1],
 			            P[ipart].Pos[2] - P[jpart].Pos[2] };
 
-		Periodic_Nearest(dr);
+		Periodic_Nearest(dr); // PERIODIC
 		
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
@@ -205,7 +203,7 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 							    pos_i[1] - P[jpart].Pos[1],
 					            pos_i[2] - P[jpart].Pos[2] };
 
-				Periodic_Nearest(dr);
+				Periodic_Nearest(dr); // PERIODIC
 
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
@@ -223,7 +221,7 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 					    pos_i[1] - Tree[node].CoM[1],
 					    pos_i[2] - Tree[node].CoM[2] };
 
-		Periodic_Nearest(dr);
+		Periodic_Nearest(dr); // PERIODIC
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
@@ -310,7 +308,7 @@ static void gravity_tree_walk_first(const int ipart, const int tree_start,
 					    pos_i[1] - Tree[node].CoM[1],
 					    pos_i[2] - Tree[node].CoM[2] };
 
-		Periodic_Nearest(dr);
+		Periodic_Nearest(dr); // PERIODIC
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
@@ -380,7 +378,7 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 }
 
 /*
- * Bitfield function on global Tree
+ * Bitfield functions on global Tree
  */
 
 Float Node_Size(const int node)

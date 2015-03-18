@@ -59,6 +59,8 @@ void Gravity_Tree_Build()
 
 	} // omp single
 
+	#pragma omp flush (Tree)
+
 	const size_t buf_thres = Task.Buffer_Size/sizeof(*Tree);
 
 	#pragma omp for schedule(static,1)
@@ -104,12 +106,16 @@ void Gravity_Tree_Build()
 
 			int last_part = first_part + D[i].TNode.Npart;
 
-			if (D[i].TNode.Target > 0) // correct particle parent pointer
+			if (D[i].TNode.Target > 0) { // correct particle parent pointer
+
 				for (int ipart = first_part; ipart < last_part; ipart++)
 					P[ipart].Tree_Parent += D[i].TNode.Target;
-			else if (D[i].TNode.Target < 0)
+			
+			} else if (D[i].TNode.Target < 0) {
+
 				for (int ipart = first_part; ipart < last_part; ipart++)
 					P[ipart].Tree_Parent = -i - 1; // top node w/o tree
+			}
 
 		} // if Bunch local
 
@@ -119,7 +125,7 @@ void Gravity_Tree_Build()
 		int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
 
 		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
-	}
+	} // for i
 
 	rprintf("Tree build: %d of %d Nodes used (%g MB)\n",
 			NNodes, Max_Nodes, Max_Nodes*sizeof(*Tree)/1024.0/1024);
@@ -127,7 +133,9 @@ void Gravity_Tree_Build()
 #ifdef DEBUG
 	for (int i = 0; i < NTop_Nodes; i++) {
 
-		int nNodes = Tree[D[i].TNode.Target].DNext;
+		int start_node = D[i].TNode.Target;
+
+		int nNodes = Tree[start_node].DNext;
 
 		if (D[i].TNode.Npart < 8)
 			nNodes = 0;
@@ -140,6 +148,7 @@ void Gravity_Tree_Build()
 				D[i].TNode.CoM[0], D[i].TNode.CoM[1], D[i].TNode.CoM[2]);
 	}
 #endif
+
 
 	Sig.Tree_Update = false;
 
@@ -246,9 +255,10 @@ static int build_subtree(const int first_part, const int tnode_idx,
 {
 #ifdef DEBUG
 	printf("DEBUG (%d:%d) Tree Build for top node=%d : "
-		   "first part=%d npart=%d Tree build target=%d \n"
+		   "first part=%d npart=%d Tree build target=%d %p \n"
 		,Task.Rank, Task.Thread_ID,  tnode_idx, first_part,
-		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target); fflush(stdout);
+		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target, tree); 
+	fflush(stdout);
 #endif
 
 	peanoKey last_key = create_first_node(first_part, tnode_idx, top_level);
@@ -385,7 +395,6 @@ static void collapse_last_branch(const int node, const int last_parent,
 		n = last_parent;
 	else
 		return ;
-
 
 	int nZero = *nNodes - n - 1;
 

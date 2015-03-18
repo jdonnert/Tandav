@@ -85,7 +85,7 @@ void Domain_Decomposition()
 
 		}
 
-		if ((check_distribution() == 0) || 1)
+		if ((check_distribution() == 0))
 			break;
 
 		int old_nBunches = NBunches;
@@ -654,7 +654,7 @@ static void find_global_domain_extend()
 	MPI_Allreduce(MPI_IN_PLACE, &Max_Distance, 1, MPI_DOUBLE, MPI_MAX,
 		MPI_COMM_WORLD);
 
-	Domain.Size = 2.0 * Max_Distance;
+	Domain.Size = 2.001 * Max_Distance; // 2.001 helps with cancellation
 
 	for (int i = 0; i < 3; i++) {
 

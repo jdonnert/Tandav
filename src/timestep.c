@@ -1,13 +1,6 @@
 #include "globals.h"
 #include "timestep.h"
 
-static int max_active_time_bin();
-static void set_particle_timebins();
-static void set_global_timestep();
-static int timestep2timebin(const double dt);
-static void print_timebins();
-static float cosmological_timestep(const int ipart);
-
 /* 
  * The number of bins is given by the number of bits in an integer time 
  */
@@ -15,14 +8,21 @@ static float cosmological_timestep(const int ipart);
 #define N_INT_BINS (sizeof(intime_t) * CHAR_BIT)
 #define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
 
+static int max_active_time_bin();
+static void set_particle_timebins();
+static void set_global_timestep();
+static int timestep2timebin(const double dt);
+static void print_timebins();
+static float cosmological_timestep(const int ipart);
+
 struct TimeData Time = { 0 };
 struct IntegerTimeLine Int_Time = { 0 };
 
-static int time_bin_min = N_INT_BINS-1, time_bin_max = 0;
+static int Time_Bin_Min = N_INT_BINS-1, Time_Bin_Max = 0;
 
 /* 
  * All active particles get a new step that is smaller than or equal to 
- * the largest active bin. We also set the fullstep signal 
+ * the largest active bin. We also set the fullstep signal. 
  */
 
 void Set_New_Timesteps()
@@ -34,13 +34,13 @@ void Set_New_Timesteps()
 	#pragma omp single
 	{
 
-	MPI_Allreduce(MPI_IN_PLACE, &time_bin_min, 1, MPI_INT, MPI_MIN,
+	MPI_Allreduce(MPI_IN_PLACE, &Time_Bin_Min, 1, MPI_INT, MPI_MIN,
 			MPI_COMM_WORLD);
 
-	MPI_Allreduce(MPI_IN_PLACE, &time_bin_max, 1, MPI_INT, MPI_MAX,
+	MPI_Allreduce(MPI_IN_PLACE, &Time_Bin_Max, 1, MPI_INT, MPI_MAX,
 			MPI_COMM_WORLD);
 
-	set_global_timestep(time_bin_max, time_bin_min);
+	set_global_timestep(Time_Bin_Max, Time_Bin_Min);
 
 	Time.Max_Active_Bin = max_active_time_bin();
 
@@ -56,7 +56,7 @@ void Set_New_Timesteps()
 
 		#pragma omp single
 		Int_Time.Next_Full_Step = Umin(Int_Time.End,
-						Int_Time.Current + (1ULL << time_bin_max) );
+						Int_Time.Current + (1ULL << Time_Bin_Max) );
 	}
 
 	Make_Active_Particle_List();
@@ -82,16 +82,21 @@ static int max_active_time_bin()
 }
 
 /* 
- * Find smallest allowed timestep for local particles 
- * and shared local max & min to these bins
+ * Find smallest allowed timestep for local particles given the time step 
+ * criteria . Find local max & min to these bins. 
  */
 
 static void set_particle_timebins()
 {
 	#pragma omp single
-	time_bin_min = N_INT_BINS-1, time_bin_max = 0;
+	{
 
-	#pragma omp for reduction(min:time_bin_min) reduction(max:time_bin_max)
+	Time_Bin_Min = N_INT_BINS-1;
+	Time_Bin_Max = 0;
+
+	} // omp single
+
+	#pragma omp for reduction(min:Time_Bin_Min) reduction(max:Time_Bin_Max)
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
@@ -118,16 +123,16 @@ static void set_particle_timebins()
 
 		P[ipart].Time_Bin = MIN(want, allowed);
 
-		time_bin_min = MIN(time_bin_min, P[ipart].Time_Bin);
+		Time_Bin_Min = MIN(Time_Bin_Min, P[ipart].Time_Bin);
 
-		time_bin_max = MAX(time_bin_max, P[ipart].Time_Bin);
+		Time_Bin_Max = MAX(Time_Bin_Max, P[ipart].Time_Bin);
 	}
 
 	return ;
 }
 
 /*
- * set global timestep and handle fullstep. We also have to consider
+ * Set global timestep. We also have to consider
  * the first and last step separately and stay in sync with the timeline,
  * i.e. we can choose a longer timestep only if it the next time is a 
  * multiple of it.
@@ -135,7 +140,7 @@ static void set_particle_timebins()
 
 static void set_global_timestep()
 {
-	intime_t step_bin = (intime_t) 1 << time_bin_min; // step down
+	intime_t step_bin = (intime_t) 1 << Time_Bin_Min; // step down ?
 
 	intime_t step_sync = 1ULL << COUNT_TRAILING_ZEROS(Int_Time.Current);
 
@@ -144,7 +149,7 @@ static void set_global_timestep()
 
 	intime_t step_end = Int_Time.End - Int_Time.Current; // don't overstep end
 
-	Int_Time.Step = umin(step_end, umin(step_bin, step_sync));
+	Int_Time.Step = umin(step_end, umin(step_bin, step_sync)); 
 
 	Int_Time.Next += Int_Time.Step;
 
@@ -153,7 +158,7 @@ static void set_global_timestep()
 	Time.Step = Time.Next - Time.Current;
 
 	if (Sig.First_Step)
-		Time.Max_Active_Bin = time_bin_min; // correct first step
+		Time.Max_Active_Bin = Time_Bin_Min; // correct first step
 
 	return ;
 }
@@ -169,7 +174,7 @@ void Setup_Time_Integration()
 
 	Time.NSnap = (Time.End - Time.Begin)/Time.Bet_Snap + 1;
 
-	rprintf("Simulation timeline: \n"
+	rprintf("\nSimulation timeline: \n"
 			"   start = %g, end = %g, delta = %g, NSnap = %d \n",
 			Time.Begin, Time.End, Time.Bet_Snap, Time.NSnap);
 
@@ -185,6 +190,8 @@ void Setup_Time_Integration()
 	Int_Time.End = (intime_t) 1 << (N_INT_BINS - 1);
 
 	Int_Time.Current = Int_Time.Beg;
+
+	Time.Current = Integer2Physical_Time(Int_Time.Current);
 
 #ifndef COMOVING
 	Time.Step_Max = Time.End - Time.Begin;
@@ -233,11 +240,11 @@ void Make_Active_Particle_List()
 }
 
 /* 
- * Give the physical timestep from timebin and vice versa.
- * In comoving coordinates/cosmological simulations we multi-step in dln(a), 
+ * Give the physical timestep from timebin.
+ * In comoving coordinates/cosmological simulations we multi-step in "dln(a)", 
  * so the stepsize is small at early times, where pertubations/forces are of 
  * low amplitude and large later, when evolution is non-linear and the 
- * relevant forces are larger. Integration is still in da though.
+ * relevant forces are larger. Integration is still in "da" though.
  */
 
 #ifndef COMOVING
@@ -256,7 +263,9 @@ double Integer2Physical_Time(const intime_t Integer_Time)
 
 double Timebin2Timestep(const int TimeBin)
 {
-	return exp( Time.Step_Min * ((intime_t) 1 << TimeBin) );
+	double dBin = Time.Step_Min*((intime_t) 1 << TimeBin);
+
+	return exp(log(Time.Current) + dBin) - Time.Current;
 }
 
 double Integer2Physical_Time(const intime_t Integer_Time)
@@ -288,7 +297,7 @@ static void print_timebins()
 			Integer2Physical_Time(Int_Time.Next) );
 #else
 	rprintf("\nStep <%d> a = %g -> %g\n\n",
-			Time.Step_Counter++, Time.Current, Int_Time.Current,
+			Time.Step_Counter++, Time.Current,
 			Integer2Physical_Time(Int_Time.Next));
 #endif
 
@@ -352,9 +361,11 @@ static void print_timebins()
 
 static float cosmological_timestep(const int ipart)
 {
+#ifndef COMOVING
 	const float acc = ALENGTH3(P[ipart].Acc);
+#else
+	const float acc = ALENGTH3(P[ipart].Acc) / p2(Time.Current);
+#endif
 
-	float dt = TIME_INT_ACCURACY * sqrt(2*GRAV_SOFTENING / acc);
-
-	return dt;
+	return TIME_INT_ACCURACY * sqrt(2*GRAV_SOFTENING / acc);
 }

@@ -11,9 +11,7 @@ static void interact_with_topnode_particles(const int, const int,
 											Float*, Float*);
 static void gravity_tree_walk(const int , const int, Float*, Float*);
 static void gravity_tree_walk_first(const int , const int, Float*, Float*);
-static void export_to_MPI_rank(const int ipart, const int target);
 static void interact(const Float,const Float *,const Float,Float *,Float *);
-static void work_MPI_buffers();
 
 /*
  * Interact with all local topnodes, either with the node directly, or with the 

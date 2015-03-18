@@ -9,7 +9,6 @@
 
 #define NODES_PER_PARTICLE 0.6
 
-static void gravity_tree_init();
 static void transform_bunch_into_top_node(const int, int*, int*);
 static int reserve_tree_memory(const int, const int);
 static int build_subtree(const int, const int, const int);
@@ -81,7 +80,7 @@ void Gravity_Tree_Build()
 
 				tree = Get_Thread_Safe_Buffer(Task.Buffer_Size);
 
-			} else { // build in *Tree
+			} else { // build in *Tree directly
 
 				int nReserved = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
 
@@ -93,7 +92,7 @@ void Gravity_Tree_Build()
 
 			int nNeeded = build_subtree(first_part, i, level);
 
-			if (build_in_buffer) { // copy buffer to Tree, clear buffer
+			if (build_in_buffer) { // copy buffer to Tree
 
 				#pragma omp critical
 				D[i].TNode.Target = reserve_tree_memory(i, nNeeded);

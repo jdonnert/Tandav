@@ -23,10 +23,10 @@ const static char fname[CHARBUFSIZE] = { "./ewald_tables.dat" };
 
 static double Box2Ewald_Grid = 0;
 
-static Float Fx[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { 0 };
-static Float Fy[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { 0 };
-static Float Fz[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { 0 };
-static Float Fp[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { 0 };
+static Float Fx[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
+static Float Fy[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
+static Float Fz[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
+static Float Fp[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
 
 /*
  * This initialises the cubes holding the Ewald correction force and

@@ -75,7 +75,7 @@ void Allocate_Particle_Structures()
 
 	P = Malloc(nBytes, "P");
 
-	rprintf("\nReserving space for %llu particles per task in *P,"
+	rprintf("\nReserving space for %jd particles per task in *P,"
 			" factor %g\n", Task.Npart_Total_Max, PART_ALLOC_FACTOR);
 
 	//G = Malloc(Task.Npart_Max[0] * sizeof(*G), "G");

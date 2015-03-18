@@ -4,7 +4,7 @@
 struct Current_Cosmology_In_Code_Units Cosmo = {
 	HUBBLE_CONST * 1e5 / (1e3*KPC2CGS) * (LENGTH2CGS/VELOCITY2CGS), // H0
 	OMEGA_LAMBDA,
-	(OMEGA_0 - OMEGA_LAMBDA - OMEGA_RAD)*p2(HUBBLE_CONST/100.0), // Omega_M
+	(OMEGA_0 - OMEGA_LAMBDA - OMEGA_RAD), // Omega_M
 	OMEGA_BARYON * p2(HUBBLE_CONST/100.0),
 	OMEGA_0,
 	OMEGA_RAD / p2(HUBBLE_CONST/100.0),
@@ -66,7 +66,7 @@ void Setup_Cosmology()
 			HUBBLE_CONST/100, Cosmo.Omega_0, Cosmo.Omega_Lambda, 
 			Cosmo.Omega_Matter, Cosmo.Omega_Baryon, Cosmo.Omega_Rad, 
 			3.0/8.0/PI/GRAVITATIONAL_CONST*p2(h0_cgs));
-printf("%g \n", Cosmo.Hubble_Constant);
+
 	return ;
 }
 

@@ -3,7 +3,6 @@
 #include "domain.h"
 #include "peano.h"
 
-static void reconstruct_complete_bunch_list();
 static void find_global_domain_extend();
 static void fill_bunches(const int, const int, const int, const int);
 static void find_Mean_Cost();
@@ -21,7 +20,6 @@ static int cost_metric(const int ipart);
 static int compare_bunches_by_key(const void *a, const void *b);
 static int compare_bunches_by_target(const void *a, const void *b);
 static int compare_bunches_by_cost(const void *a, const void *b);
-static int compare_load(const void *a, const void *b);
 static void print_domain_decomposition (const int);
 
 union Domain_Node_List *D = NULL;
@@ -514,7 +512,6 @@ static int check_distribution()
 static void distribute()
 {
 	double max_npart = Mean_Npart * PART_ALLOC_FACTOR;
-	double max_cost = Mean_Cost;
 
 	memset(Cost, 0, Sim.NTask * sizeof(*Cost));
 	memset(Npart, 0, Sim.NTask * sizeof(*Npart));
@@ -615,7 +612,9 @@ static void communicate_bunches()
  * For PERIODIC simulations there is little to do.
  */
 
+#ifndef PERIODIC
 static double Max_Distance = 0;
+#endif // ! PERIODIC
 
 static void find_global_domain_extend()
 {

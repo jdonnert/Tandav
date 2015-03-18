@@ -175,8 +175,6 @@ static void interact_with_topnode_particles(const int ipart, const int j,
 
 		Periodic_Nearest(dr);
 		
-		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
-	
 		Ewald_Correction(dr, &fr[0]); // use node
 
  		Ewald_Potential(dr, &fp[0]); // OUTPUT_GRAVITATIONAL_POTENTIAL

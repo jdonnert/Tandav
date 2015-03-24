@@ -11,6 +11,7 @@ struct Current_Cosmology_In_Code_Units Cosmo = {
 	3.0/8.0/PI / (GRAVITATIONAL_CONST/p3(VELOCITY2CGS)
 			/(LENGTH2CGS/VELOCITY2CGS)*MASS2CGS)
 			*p2(HUBBLE_CONST*1e5/(1e3*KPC2CGS)), // rho0_crit	
+
 	0 // the rest is set in "Set_Current_Cosmology()"
 };
 
@@ -22,13 +23,13 @@ struct Current_Cosmology_In_Code_Units Cosmo = {
 
 void Set_Current_Cosmology()
 {
-	const double a = Time.Current; // yes this will be everywhere in the code
+	const double a = Time.Current;
 
-	Cosmo.Expansion_Factor = a; // just to be clear
+	Cosmo.Current.Expansion_Factor = a; // just to be clear
 
-	Cosmo.Redshift = 1/a - 1;
-	Cosmo.Hubble_Parameter = Hubble_Parameter(a);
-	Cosmo.Critical_Density = Critical_Density(a);
+	Cosmo.Current.Redshift = 1/a - 1;
+	Cosmo.Current.Hubble_Parameter = Hubble_Parameter(a);
+	Cosmo.Current.Critical_Density = Critical_Density(a);
 
 	return ;
 }
@@ -62,13 +63,12 @@ void Setup_Cosmology()
 			"   h_0          = %4g, Omega_0      = %4g\n"
 			"   Omega_Lambda = %4g, Omega_Matter = %4g\n"
 			"   Omega_Baryon = %4g, Omega_Rad    = %4g\n"
-			"   rho_crit_0   = %4g g/cm^3\n", 
-			HUBBLE_CONST/100, Cosmo.Omega_0, Cosmo.Omega_Lambda, 
-			Cosmo.Omega_Matter, Cosmo.Omega_Baryon, Cosmo.Omega_Rad, 
+			"   rho_crit_0   = %4g g/cm^3\n",
+			HUBBLE_CONST/100, Cosmo.Omega_0, Cosmo.Omega_Lambda,
+			Cosmo.Omega_Matter, Cosmo.Omega_Baryon, Cosmo.Omega_Rad,
 			3.0/8.0/PI/GRAVITATIONAL_CONST*p2(h0_cgs));
 
 	return ;
 }
-
 
 #endif // COMOVING

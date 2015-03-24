@@ -11,7 +11,7 @@ static double Particle_Drift_Step(const int ipart, const double time_next);
  * This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 
  * As a snapshot time may not fall onto an integertime, we have to 
  * drift to the snapshot time, write the snapshot and then drift the 
- * remaining time to the next integertime. We use signal 
+ * remaining time to the next integertime. We use signals for that. 
  */
 
 void Drift_To_Sync_Point()
@@ -89,7 +89,7 @@ void Drift_To_Snaptime()
 
 /*
  * Return the amount of time since the last kick of particle ipart. For
- * cosmological time integration this is the kick factor in comov.c
+ * cosmological time integration this is the drift factor in comov.c
  */
 
 #ifndef COMOVING 

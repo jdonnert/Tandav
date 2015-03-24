@@ -80,7 +80,7 @@ static void reorder_collisionless_particles(size_t *idx)
 
 			src = idx[dest];
 
-            if (src == i) 
+            if (src == i)
                 break;
         }
 
@@ -120,8 +120,8 @@ peanoKey Peano_Key(const Float pos[3])
 
 	const double fac = m / Domain.Size; // don't run into precision issues ...
 
-	uint64_t X[3] = { (pos[0] - Domain.Origin[0]) * fac,  
-					  (pos[1] - Domain.Origin[1]) * fac, 
+	uint64_t X[3] = { (pos[0] - Domain.Origin[0]) * fac,
+					  (pos[1] - Domain.Origin[1]) * fac,
 					  (pos[2] - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
@@ -129,8 +129,8 @@ peanoKey Peano_Key(const Float pos[3])
     for (uint64_t q = m; q > 1; q >>= 1 ) {
 
         uint64_t P = q - 1;
-        
-		if( X[0] & q ) 
+
+		if( X[0] & q )
 			X[0] ^= P;  // invert
 
         for(int i = 1; i < 3; i++ ) {
@@ -138,14 +138,14 @@ peanoKey Peano_Key(const Float pos[3])
 			if( X[i] & q ) {
 
 				X[0] ^= P; // invert                              
-				
-			} else { 
-			
-				uint64_t t = (X[0] ^ X[i]) & P;  
-				
-				X[0] ^= t;  
-				X[i] ^= t; 
-			
+
+			} else {
+
+				uint64_t t = (X[0] ^ X[i]) & P;
+
+				X[0] ^= t;
+				X[i] ^= t;
+
 			} // exchange
 		}
     }
@@ -167,24 +167,24 @@ peanoKey Peano_Key(const Float pos[3])
 
 	/* branch free bit interleave of transpose array X into key */
 
-	peanoKey key = 0; 
-	
+	peanoKey key = 0;
+
 	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
 
 	for (int i = 0; i < N_PEANO_TRIPLETS+1; i++) {
 
-		uint64_t col = ((X[0] & 0x8000000000000000) 
-					  | (X[1] & 0x4000000000000000) 
+		uint64_t col = ((X[0] & 0x8000000000000000)
+					  | (X[1] & 0x4000000000000000)
 					  | (X[2] & 0x2000000000000000)) >> 61;
-		
-		key <<= 3; 
-		key |= col; 
 
-		X[0] <<= 1; 
-		X[1] <<= 1; 
+		key <<= 3;
+		key |= col;
+
+		X[0] <<= 1;
+		X[1] <<= 1;
 		X[2] <<= 1;
-	} 
-	
+	}
+
 	key <<= 2;
 
 	return key;
@@ -200,10 +200,10 @@ peanoKey Reversed_Peano_Key(const Float pos[3])
 {
 	const uint64_t m = ((uint64_t) 1) << 63;
 
-	const double fac = m / Domain.Size; 
+	const double fac = m / Domain.Size;
 
-	uint64_t X[3] = { (pos[0] - Domain.Origin[0]) * fac, 
-					  (pos[1] - Domain.Origin[1]) * fac, 
+	uint64_t X[3] = { (pos[0] - Domain.Origin[0]) * fac,
+					  (pos[1] - Domain.Origin[1]) * fac,
 					  (pos[2] - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
@@ -211,8 +211,8 @@ peanoKey Reversed_Peano_Key(const Float pos[3])
     for (uint64_t q = m; q > 1; q >>= 1) {
 
         uint64_t P = q - 1;
-        
-		if(X[0] & q) 
+
+		if(X[0] & q)
 			X[0] ^= P;  // invert
 
         for(int i = 1; i < 3; i++ ) {
@@ -220,16 +220,16 @@ peanoKey Reversed_Peano_Key(const Float pos[3])
 			if(X[i] & q) {
 
 				X[0] ^= P; // invert                              
-				
-			} else { 
-			
-				uint64_t t = (X[0] ^ X[i]) & P;  
-				
-				X[0] ^= t;  
-				X[i] ^= t; 
-			
+
+			} else {
+
+				uint64_t t = (X[0] ^ X[i]) & P;
+
+				X[0] ^= t;
+				X[i] ^= t;
+
 			} // exchange
-		} 
+		}
     }
 
 	/* Gray encode (inverse of decode) */
@@ -249,23 +249,23 @@ peanoKey Reversed_Peano_Key(const Float pos[3])
 
 	/* branch free reversed (!) bit interleave of transpose array X into key */
 
-	peanoKey key = 0; 
+	peanoKey key = 0;
 
 	X[0] >>= 18; X[1] >>= 19; X[2] >>= 20;	// lowest bits not important
 
 	for (int i = 0; i < N_PEANO_TRIPLETS+1; i++) {
 
 		uint64_t col = ((X[0] & 0x4) | (X[1] & 0x2) | (X[2] & 0x1));
-		
-		key <<= 3; 
 
-		key |= col; 
+		key <<= 3;
 
-		X[0] >>= 1; 
-		X[1] >>= 1; 
+		key |= col;
+
+		X[0] >>= 1;
+		X[1] >>= 1;
 		X[2] >>= 1;
-	} 
-	
+	}
+
 	key <<= 3; // include level 0
 
 	return key;
@@ -279,10 +279,10 @@ shortKey Short_Peano_Key(const Float pos[3])
 {
 	const uint32_t m = ((uint32_t) 1) << 31;
 
-	const double fac = m / Domain.Size; 
+	const double fac = m / Domain.Size;
 
-	uint32_t X[3] = { (pos[0] - Domain.Origin[0]) * fac, 
-					  (pos[1] - Domain.Origin[1]) * fac, 
+	uint32_t X[3] = { (pos[0] - Domain.Origin[0]) * fac,
+					  (pos[1] - Domain.Origin[1]) * fac,
 					  (pos[2] - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
@@ -290,8 +290,8 @@ shortKey Short_Peano_Key(const Float pos[3])
     for (uint32_t q = m; q > 1; q >>= 1 ) {
 
         uint32_t P = q - 1;
-        
-		if( X[0] & q ) 
+
+		if( X[0] & q )
 			X[0] ^= P;  // invert
 
         for(int i = 1; i < 3; i++ ) {
@@ -299,14 +299,14 @@ shortKey Short_Peano_Key(const Float pos[3])
 			if( X[i] & q ) {
 
 				X[0] ^= P; // invert                              
-				
-			} else { 
-			
-				uint32_t t = (X[0] ^ X[i]) & P;  
-				
-				X[0] ^= t;  
-				X[i] ^= t; 
-			
+
+			} else {
+
+				uint32_t t = (X[0] ^ X[i]) & P;
+
+				X[0] ^= t;
+				X[i] ^= t;
+
 			} // exchange
 		}
     }

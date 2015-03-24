@@ -38,14 +38,14 @@ void Gravity_Periodic_Init()
 {
 	rprintf("Init Ewald correction ");
 
-	Warn((Sim.Boxsize[0] != Sim.Boxsize[1]) 
-		&& (Sim.Boxsize[0] != Sim.Boxsize[2]), 
+	Warn((Sim.Boxsize[0] != Sim.Boxsize[1])
+		&& (Sim.Boxsize[0] != Sim.Boxsize[2]),
 		 "Periodic Gravity requires cubic boxes.\n"
 		 "                Setting global Boxsize %g",
 		 Sim.Boxsize[0]);
 
 	Boxsize = Sim.Boxsize[1] = Sim.Boxsize[2] = Sim.Boxsize[0];
-	
+
 	Boxhalf = Boxsize / 2;
 
 	Box2Ewald_Grid = 2 * N_EWALD / Boxsize; // Volkers clever symmetry mapping
@@ -60,8 +60,8 @@ void Gravity_Periodic_Init()
 	if (table_found)
 		goto skip_computation;
 
- 	compute_ewald_correction_table();
-	
+	compute_ewald_correction_table();
+
 	write_ewald_correction_table();
 
 	skip_computation:;
@@ -170,7 +170,7 @@ static bool read_ewald_correction_table()
 	Fread(&Fz[0][0][0], sizeof(Fz[0][0][0]), nFloat, fp);
 
 	Fread(&Fp[0][0][0], sizeof(Fp[0][0][0]), nFloat, fp);
-	
+
 	fclose(fp);
 
 	return true;
@@ -208,7 +208,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 	int sign[3] = { -1, -1, -1 };
 
 	if (dx < 0) {
-	
+
 		dx = -dx;
 		sign[0] = 1;
 	}
@@ -216,7 +216,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 	double dy = dr[1];
 
 	if (dy < 0) {
-	
+
 		dy = -dy;
 		sign[1] = 1;
 	}
@@ -224,15 +224,15 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 	double dz = dr[2];
 
 	if (dz < 0) {
-	
+
 		dz = -dz;
 		sign[2] = 1;
 	}
 
-	double u = dx * Box2Ewald_Grid; 
-	double v = dy * Box2Ewald_Grid; 
+	double u = dx * Box2Ewald_Grid;
+	double v = dy * Box2Ewald_Grid;
 	double w = dz * Box2Ewald_Grid;
-	
+
 	int i = (int) u;
 	int j = (int) v;
 	int k = (int) w;
@@ -258,45 +258,45 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 						  u * (1 - v) * w,
 						  u * v * (1 - w),
 						  u * v * w };
-	
-	f[0] = weights[0] * Fx[i][j][k] + weights[1] * Fx[i][j][k+1] + 
-		   weights[2] * Fx[i][j+1][k] + weights[3] * Fx[i][j+1][k+1] + 
+
+	f[0] = weights[0] * Fx[i][j][k] + weights[1] * Fx[i][j][k+1] +
+		   weights[2] * Fx[i][j+1][k] + weights[3] * Fx[i][j+1][k+1] +
 		   weights[4] * Fx[i+1][j][k] + weights[5] * Fx[i+1][j][k+1] +
 		   weights[6] * Fx[i+1][j+1][k] + weights[7] * Fx[i+1][j+1][k+1];
 
-	f[1] = weights[0] * Fy[i][j][k] + weights[1] * Fy[i][j][k+1] + 
-		   weights[2] * Fy[i][j+1][k] + weights[3] * Fy[i][j+1][k+1] + 
+	f[1] = weights[0] * Fy[i][j][k] + weights[1] * Fy[i][j][k+1] +
+		   weights[2] * Fy[i][j+1][k] + weights[3] * Fy[i][j+1][k+1] +
 		   weights[4] * Fy[i+1][j][k] + weights[5] * Fy[i+1][j][k+1] +
 		   weights[6] * Fy[i+1][j+1][k] + weights[7] * Fy[i+1][j+1][k+1];
 
-	f[2] = weights[0] * Fz[i][j][k] + weights[1] * Fz[i][j][k+1] + 
-		   weights[2] * Fz[i][j+1][k] + weights[3] * Fz[i][j+1][k+1] + 
+	f[2] = weights[0] * Fz[i][j][k] + weights[1] * Fz[i][j][k+1] +
+		   weights[2] * Fz[i][j+1][k] + weights[3] * Fz[i][j+1][k+1] +
 		   weights[4] * Fz[i+1][j][k] + weights[5] * Fz[i+1][j][k+1] +
 		   weights[6] * Fz[i+1][j+1][k] + weights[7] * Fz[i+1][j+1][k+1];
-	
+
 	f[0] *= sign[0];
 	f[1] *= sign[1];
 	f[2] *= sign[2];
 
 	return ;
-}	
+}
 
 #ifdef GRAVITY_POTENTIAL
 void Ewald_Potential(const Float dr[3], Float p[1])
 {
 	double dx = dr[0];
 
-	if (dx < 0) 
+	if (dx < 0)
 		dx = -dx;
 
 	double dy = dr[1];
 
-	if (dy < 0) 
+	if (dy < 0)
 		dy = -dy;
 
 	double dz = dr[2];
 
-	if (dz < 0) 
+	if (dz < 0)
 		dz = -dz;
 
 	double u = dx * Box2Ewald_Grid;
@@ -328,14 +328,14 @@ void Ewald_Potential(const Float dr[3], Float p[1])
 						  u * (1 - v) * w,
 						  u * v * (1 - w),
 						  u * v * w };
-	
+
 	p[0] = weights[0] * Fp[i][j][k] + weights[1] * Fp[i][j][k+1] + 
 		   weights[2] * Fp[i][j+1][k] + weights[3] * Fp[i][j+1][k+1] + 
 		   weights[4] * Fp[i+1][j][k] + weights[5] * Fp[i+1][j][k+1] +
 		   weights[6] * Fp[i+1][j+1][k] + weights[7] * Fp[i+1][j+1][k+1];
 
 	return ;
-}	
+}
 #endif // GRAVITY_POTENTIAL
 
 /*
@@ -348,9 +348,9 @@ static void compute_ewald_force(const int i, const int j, const int k,
 								const double x[3], double force[3])
 {
 	force[0] = force[1] = force[2] = 0;
-  	
+
 	if(i == 0 && j == 0 && k == 0)
-    	return;
+		return;
 
 	double r = ALENGTH3(x);
 
@@ -363,7 +363,7 @@ static void compute_ewald_force(const int i, const int j, const int k,
 	for (n[0] = -4; n[0] < 5; n[0]++) {
 
 		for (n[1] = -4; n[1] < 5; n[1]++) {
-		
+
 			for (n[2] = -4; n[2] < 5; n[2]++) {
 
 				double dx[3] = { x[0]-n[0], x[1]-n[1], x[2]-n[2] };
@@ -383,9 +383,9 @@ static void compute_ewald_force(const int i, const int j, const int k,
 	int h[3] = { 0 };
 
 	for (h[0] = -4; h[0] < 5; h[0]++) {
-	
+
 		for (h[1] = -4; h[1] < 5; h[1]++) {
-		
+
 			for (h[2] = -4; h[2] < 5; h[2]++) {
 
 				double hdotx = x[0]*h[0] + x[1]*h[1] + x[2]*h[2];
@@ -419,7 +419,7 @@ static double compute_ewald_potential(const double r[3])
 	for (n[0] = -4; n[0] < 5; n[0]++) {
 
 		for (n[1] = -4; n[1] < 5; n[1]++) {
-		
+
 			for (n[2] = -4; n[2] < 5; n[2]++) {
 
 				double dx[3] = { r[0]-n[0], r[1]-n[1], r[2]-n[2] };
@@ -437,7 +437,7 @@ static double compute_ewald_potential(const double r[3])
 	for (h[0] = -4; h[0] < 5; h[0]++) {
 
 		for (h[1] = -4; h[1] < 5; h[1]++) {
-		
+
 			for (h[2] = -4; h[2] < 5; h[2]++) {
 
 				double hdotr = r[0]*h[0] + r[1]*h[1] + r[2]*h[2];

@@ -7,10 +7,12 @@ struct Current_Cosmology_In_Code_Units {
 	const double Omega_0;
 	const double Omega_Rad;
 	const double Rho_Crit0;
-	double Hubble_Parameter; // Changing every timestep 
-	double Redshift;
-	double Expansion_Factor;
-	double Critical_Density;
+	struct volatile_parameters { // Changing every timestep
+		double Hubble_Parameter;
+		double Redshift;
+		double Expansion_Factor;
+		double Critical_Density;
+	} Current;
 } Cosmo;
 
 double Hubble_Parameter(const double a); // H(a) = H0 * E_Hubble(a)

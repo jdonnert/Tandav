@@ -12,8 +12,9 @@ static int Worst_Part = -1;
 
 /*
  * This computes the gravitational interaction via direct summation and shows
- * the relative error resp. the old force. Note that the max relative error can 
- * become large if one component of the force is close to 0 without consequence.
+ * the relative error resp. the old force. Note that the max relative error 
+ * can become large if one component of the force is close to 0 without 
+ * consequence.
  * Check to the total force to make sure this is not the case. Make sure the
  * mean rel. error in computations with many particles is a few percent if all
  * particles are kicked !
@@ -38,7 +39,7 @@ void Gravity_Simple_Accel()
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
-		
+
 		double acc[3] = { P[ipart].Acc[0], P[ipart].Acc[1], P[ipart].Acc[2] };
 
 		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;

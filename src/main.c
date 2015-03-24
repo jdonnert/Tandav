@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
  * Task.Is_Thread_Main == true. Every thread 
  * is treated as its own MPI task, including communication.
  * Always use Task.MPI_Rank inside an omp single region. In a parallel region
- * use Task.Rank to identify a thread on an CPU.
+ * use Task.Rank to uniquely identify a thread on an CPU.
  */
 
 static void preamble(int argc, char *argv[])
@@ -90,8 +90,7 @@ static void preamble(int argc, char *argv[])
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
 	Assert(provided == MPI_THREAD_MULTIPLE,
-			"MPI thread multiple not supported, have %d :-(",
-			provided);
+		   "MPI thread multiple not supported, have %d :-(", provided);
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &Task.Rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &Sim.NRank);
@@ -134,7 +133,7 @@ static void preamble(int argc, char *argv[])
 		printf("\nUsing %d MPI tasks, %d OpenMP threads \n\n",
 				Sim.NRank, Sim.NThreads);
 
-				Assert( (argc >= 2) && (argc < 4),
+		Assert( (argc >= 2) && (argc < 4),
 			"Wrong number of arguments, let me help you: \n\n"
 			"	USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
 			"	  0  : Read IC file and start simulation (default) \n"

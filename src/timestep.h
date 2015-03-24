@@ -4,7 +4,7 @@
 
 struct TimeData {
 	double Begin;			// if COMOVING is set, these are expansion fact a
-	double Current;			
+	double Current;
 	double Next;
 	double End;
 	double First_Snap;

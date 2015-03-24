@@ -83,7 +83,7 @@ static int max_active_time_bin()
 
 /* 
  * Find smallest allowed timestep for local particles given the time step 
- * criteria . Find local max & min to these bins. 
+ * criteria. Find local max & min to these bins. 
  */
 
 static void set_particle_timebins()
@@ -149,7 +149,7 @@ static void set_global_timestep()
 
 	intime_t step_end = Int_Time.End - Int_Time.Current; // don't overstep end
 
-	Int_Time.Step = umin(step_end, umin(step_bin, step_sync)); 
+	Int_Time.Step = umin(step_end, umin(step_bin, step_sync));
 
 	Int_Time.Next += Int_Time.Step;
 

@@ -357,10 +357,10 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 		Float u2 = u*u;
 		Float u3 = u2*u;
 
-		r_inv = sqrt(14*u - 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3) / h;
+		r_inv = sqrt(14*u - 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3)/h;
 
 #ifdef GRAVITY_POTENTIAL
-		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3) / h;
+		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3)/h;
 #endif
 	}
 

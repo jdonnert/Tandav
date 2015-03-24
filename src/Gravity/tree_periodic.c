@@ -27,12 +27,12 @@ void Gravity_Tree_Periodic()
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
-		
+
 		Float ewald_corr[3] = { 0 };
 		Float ewald_pot = 0;
 
 		for (int j = 0; j < NTop_Nodes; j++) {
-					
+
 			Float fr[3] = { 0 };
 			Float fp = 0;
 
@@ -45,11 +45,11 @@ void Gravity_Tree_Periodic()
 			//
 			//	continue;
 			//}
-			
+
 			if (D[j].TNode.Npart <= 8) { // open top leave
 
 				interact_with_topnode_particles(ipart, j, &fr[0], &fp);
-		
+
 				continue;
 			}
 
@@ -57,9 +57,9 @@ void Gravity_Tree_Periodic()
 
 			gravity_tree_periodic_ewald(ipart, tree_start, &fr[0], &fp);
 
-			ewald_corr[0] += fr[0];			
-			ewald_corr[1] += fr[1];			
-			ewald_corr[2] += fr[2];			
+			ewald_corr[0] += fr[0];
+			ewald_corr[1] += fr[1];
+			ewald_corr[2] += fr[2];
 
 			ewald_pot += fp;
 		} // for j
@@ -114,28 +114,28 @@ static bool interact_with_topnode(const int ipart, const int j,
 		if (nMass*node_size*node_size > r2*r2 * fac)
 			want_open_node = true;
 	}
-	
+
 	dr[0] = P[ipart].Pos[0] - D[j].TNode.Pos[0];
 	dr[1] = P[ipart].Pos[1] - D[j].TNode.Pos[1];
 	dr[2] = P[ipart].Pos[2] - D[j].TNode.Pos[2];
 
 	if (fabs(dr[0]) < 0.6 * node_size) // inside subtree ? -> always walk
 		if (fabs(dr[1]) < 0.6 * node_size)
-			if (fabs(dr[2]) < 0.6 * node_size) 
-				want_open_node = true; 
+			if (fabs(dr[2]) < 0.6 * node_size)
+				want_open_node = true;
 
 	if (want_open_node) { // check if we really have to open
 
-			if (fabs(dr[0]) > 0.5 * (Boxsize - node_size)) 
+			if (fabs(dr[0]) > 0.5 * (Boxsize - node_size))
 				return false;
 
-			if (fabs(dr[1]) > 0.5 * (Boxsize - node_size)) 
+			if (fabs(dr[1]) > 0.5 * (Boxsize - node_size))
 				return false;
-				
-			if (fabs(dr[2]) > 0.5 * (Boxsize - node_size)) 
+
+			if (fabs(dr[2]) > 0.5 * (Boxsize - node_size))
 				return false;
-				
-			if (node_size > 0.2 * Boxsize) 
+
+			if (node_size > 0.2 * Boxsize)
 				return false;
 
 	} // if want_open_node
@@ -148,7 +148,7 @@ static bool interact_with_topnode(const int ipart, const int j,
 
 	Ewald_Correction(dr, &fr[0]); // use node
 
- 	Ewald_Potential(dr, &fp[0]); // OUTPUT_GRAVITATIONAL_POTENTIAL
+	Ewald_Potential(dr, &fp[0]); // OUTPUT_GRAVITATIONAL_POTENTIAL
 
 	return true;
 }
@@ -174,10 +174,10 @@ static void interact_with_topnode_particles(const int ipart, const int j,
 			            P[ipart].Pos[2] - P[jpart].Pos[2] };
 
 		Periodic_Nearest(dr);
-		
+
 		Ewald_Correction(dr, &fr[0]); // use node
 
- 		Ewald_Potential(dr, &fp[0]); // OUTPUT_GRAVITATIONAL_POTENTIAL
+		Ewald_Potential(dr, &fp[0]); // OUTPUT_GRAVITATIONAL_POTENTIAL
 	}
 
 	return ;
@@ -196,9 +196,9 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 {
 	const Float fac = ALENGTH3(P[ipart].Acc) / Const.Gravity
 		* TREE_OPEN_PARAM_REL;
-	
+
 	const Float pos_i[3] = {P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2]};
-	
+
 	const int tree_end = tree_start + Tree[tree_start].DNext;
 
 	int node = tree_start;
@@ -223,9 +223,9 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 
 				Periodic_Nearest(dr);
 
-				Ewald_Correction(dr, &fr[0]); 
+				Ewald_Correction(dr, &fr[0]);
 
- 				Ewald_Potential(dr, &fp[0]);
+				Ewald_Potential(dr, &fp[0]);
 			}
 
 			node++;
@@ -253,35 +253,35 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 		dr[2] = pos_i[2] - Tree[node].Pos[2];
 
 		if (fabs(dr[0]) < 0.6 * node_size) { // particle inside node ? 
-			
+
 			if (fabs(dr[1]) < 0.6 * node_size) {
 
 				if (fabs(dr[2]) < 0.6 * node_size) {
-				
+
 					want_open_node = true;
-				
+
 				}
 			}
 		}
 
 		if (want_open_node) { // check if we really have to open
 
-			if (fabs(dr[0]) > 0.5 * (Boxsize - node_size)) { 
-				
+			if (fabs(dr[0]) > 0.5 * (Boxsize - node_size)) {
+
 				node++;
 
 				continue;
 			}
 
 			if (fabs(dr[1]) > 0.5 * (Boxsize - node_size)) {
-				
+
 				node++;
 
 				continue;
 			}
 
 			if (fabs(dr[2]) > 0.5 * (Boxsize - node_size)) {
-				
+
 				node++;
 
 				continue;
@@ -293,12 +293,12 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 
 				continue;
 			}
-		
+
 		} // if want_open_node
 
 		Ewald_Correction(dr, &fr[0]); // use node
 
- 		Ewald_Potential(dr, &fp[0]); // OUTPUT_GRAVITATIONAL_POTENTIAL
+		Ewald_Potential(dr, &fp[0]); // OUTPUT_GRAVITATIONAL_POTENTIAL
 
 		node += Tree[node].DNext; // skip sub-branch, goto sibling
 

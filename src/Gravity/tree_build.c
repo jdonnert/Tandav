@@ -110,7 +110,7 @@ void Gravity_Tree_Build()
 
 				for (int ipart = first_part; ipart < last_part; ipart++)
 					P[ipart].Tree_Parent += D[i].TNode.Target;
-			
+
 			} else if (D[i].TNode.Target < 0) {
 
 				for (int ipart = first_part; ipart < last_part; ipart++)
@@ -326,7 +326,6 @@ static int build_subtree(const int first_part, const int tnode_idx,
 
 		if (ipart_starts_new_branch || ipart == last_part)
 			collapse_last_branch(node, last_parent, ipart, &nNodes);
-
 
 		if (tree[node].DNext == 0)	// set DNext for internal node
 			tree[node].DNext = nNodes - node;	// only delta

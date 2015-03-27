@@ -4,10 +4,10 @@
 
 #include "globals.h"
 
-const struct Code_Units Unit = { 	
-	LENGTH2CGS, 
-	MASS2CGS, 
-	VELOCITY2CGS, 
+const struct Code_Units Unit = {
+	LENGTH2CGS,
+	MASS2CGS,
+	VELOCITY2CGS,
 	LENGTH2CGS/VELOCITY2CGS, // time
 	MASS2CGS*p2(VELOCITY2CGS) // energy
 };
@@ -22,7 +22,7 @@ double Position_Cgs(const float x)
 	double x_cgs = x * Unit.Length;
 
 #ifdef COMOVING
-	x_cgs *= Cosmo.Expansion_Factor; 
+	x_cgs *= Cosmo.Expansion_Factor;
 #endif
 
 	return x_cgs;
@@ -35,7 +35,7 @@ double Velocity_Cgs(const float v)
 #ifdef COMOVING
 	v_cgs *= p2(Cosmo.Expansion_Factor);
 #endif
-	
+
 	return v_cgs;
 }
 
@@ -61,7 +61,7 @@ double Mass_Cgs(const float mass)
 	double mass_cgs = mass * Unit.Mass;
 
 	return mass_cgs;
-}	
+}
 
 double Density_Cgs(const float rho)
 {
@@ -75,7 +75,7 @@ double Density_Cgs(const float rho)
 }
 
 double Number_Density_Cgs(const float rho)
-{ 
+{
 	return rho * ( (3*HYDROGEN_FRACTION + 1) / (4 * PROTON_MASS));
 }
 

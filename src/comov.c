@@ -52,12 +52,12 @@ double Particle_Drift_Step(const int ipart, const double a_next)
  * 1/\dot{a} = 1/H(a)/a. Time stepping however is done in dln(a) = 1+z.
  */
 
-static double comoving_symplectic_drift_integrant(double a, void *param) 
+static double comoving_symplectic_drift_integrant(double a, void *param)
 {
 	return 1 / (Hubble_Parameter(a) * a*a*a);
 }
 
-static double comoving_symplectic_kick_integrant(double a, void *param) 
+static double comoving_symplectic_kick_integrant(double a, void *param)
 {
 	return 1 / (Hubble_Parameter(a) * a*a);
 }
@@ -82,7 +82,7 @@ void Setup_Comoving()
 
 	#pragma omp for
 	for (int i = 0; i < TABLESIZE; i++) {
-	
+
 		double error = 0;
 
 		double time_max = exp(log(Time.Begin) + da * i );
@@ -90,19 +90,19 @@ void Setup_Comoving()
 		Exp_Factor_Table[i] = time_max;
 
 		gsl_F.function = &comoving_symplectic_drift_integrant;
-		
-		gsl_integration_qag(&gsl_F, time_min, time_max, 0, 1e-8, TABLESIZE, 
+
+		gsl_integration_qag(&gsl_F, time_min, time_max, 0, 1e-8, TABLESIZE,
 				GSL_INTEG_GAUSS41, gsl_workspace, &Drift_Table[i], &error);
-	
+
 		gsl_F.function = &comoving_symplectic_kick_integrant;
 
-		gsl_integration_qag(&gsl_F, time_min, time_max, 0, 1e-8, TABLESIZE, 
+		gsl_integration_qag(&gsl_F, time_min, time_max, 0, 1e-8, TABLESIZE,
 				GSL_INTEG_GAUSS41, gsl_workspace, &Kick_Table[i], &error);
-		
+
 	} // for i
 
 	gsl_integration_workspace_free(gsl_workspace);
-	
+
 	Acc[0] = gsl_interp_accel_alloc();
 	Acc[1] = gsl_interp_accel_alloc();
 	Acc[2] = gsl_interp_accel_alloc();
@@ -127,10 +127,10 @@ void Finish_Comoving()
 
 	#pragma omp parallel
 	{
-	
+
 	gsl_spline_free(Drift_Spline);
 	gsl_spline_free(Kick_Spline);
-    
+
 	gsl_interp_accel_free(Acc[0]);
 	gsl_interp_accel_free(Acc[1]);
 	gsl_interp_accel_free(Acc[2]);

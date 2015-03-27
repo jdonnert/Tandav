@@ -202,7 +202,7 @@ static void set_system_timestep()
 
 	intime_t step_end = Int_Time.End - Int_Time.Current; // don't overstep end
 
-	Int_Time.Step = umin(step_end, umin(step_bin, step_sync)); 
+	Int_Time.Step = umin(step_end, umin(step_bin, step_sync));
 
 	Int_Time.Next += Int_Time.Step;
 

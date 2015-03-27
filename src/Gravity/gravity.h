@@ -34,10 +34,10 @@ inline void Gravity_Tree_Update_Drift(const double dt) {};
 #if defined(GRAVITY) && defined(GRAVITY_TREE) && defined(PERIODIC)
 void Gravity_Tree_Periodic();
 void Tree_Periodic_Nearest(Float dr[3]);
-#else 
+#else
 inline void Gravity_Tree_Periodic() {};
 inline void Tree_Periodic_Nearest(Float dr[3]) {};
-#endif 
+#endif
 
 #if defined(GRAVITY) && defined(GRAVITY_MULTI_GRID)
 void Gravity_Multi_Grid();

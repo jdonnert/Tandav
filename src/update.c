@@ -59,7 +59,7 @@ void Update(enum Update_Parameters stage)
 		break;
 
 	case BEFORE_FORCES:
-	
+
 		Periodic_Constrain_Particles_To_Box(); // PERIODIC
 
 		break;
@@ -67,7 +67,7 @@ void Update(enum Update_Parameters stage)
 	case BEFORE_SECOND_KICK:
 
 		break;
-	
+
 	case AFTER_STEP:
 
 		Sig.First_Step = false;

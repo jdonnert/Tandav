@@ -29,7 +29,7 @@ void Kick_First_Halfstep()
 		P[ipart].Vel[2] += dt * P[ipart].Acc[2];
 
 		if (!Sig.Domain_Update)
-			Gravity_Tree_Update_Kicks(ipart, dt);
+			Gravity_Tree_Update_Kicks(ipart, dt); // GRAVITY_TREE
 	}
 
 	Profile("First Kick");
@@ -55,7 +55,7 @@ void Kick_Second_Halfstep()
 		P[ipart].Int_Time_Pos = Int_Time.Next;
 
 		if (!Sig.Domain_Update)
-			Gravity_Tree_Update_Kicks(ipart, dt); 
+			Gravity_Tree_Update_Kicks(ipart, dt);
 	}
 
 	Profile("Second Kick");

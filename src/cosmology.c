@@ -74,13 +74,12 @@ void Setup_Cosmology()
 			"   h_0          = %4g, Omega_0      = %4g\n"
 			"   Omega_Lambda = %4g, Omega_Matter = %4g\n"
 			"   Omega_Baryon = %4g, Omega_Rad    = %4g\n"
-			"   rho_crit_0   = %4g g/cm^3\n", 
-			HUBBLE_CONST/100, Cosmo.Omega_0, Cosmo.Omega_Lambda, 
-			Cosmo.Omega_Matter, Cosmo.Omega_Baryon, Cosmo.Omega_Rad, 
+			"   rho_crit_0   = %4g g/cm^3\n",
+			HUBBLE_CONST/100, Cosmo.Omega_0, Cosmo.Omega_Lambda,
+			Cosmo.Omega_Matter, Cosmo.Omega_Baryon, Cosmo.Omega_Rad,
 			3.0/8.0/PI/GRAVITATIONAL_CONST*p2(h0_cgs));
 
 	return ;
 }
-
 
 #endif // COMOVING

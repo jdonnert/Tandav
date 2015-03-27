@@ -131,6 +131,7 @@ void Gravity_Tree_Build()
 			NNodes, Max_Nodes, Max_Nodes*sizeof(*Tree)/1024.0/1024);
 
 #ifdef DEBUG
+	#pragma omp single
 	for (int i = 0; i < NTop_Nodes; i++) {
 
 		int start_node = D[i].TNode.Target;

@@ -28,7 +28,6 @@ void Drift_To_Sync_Point()
 		P[ipart].Pos[0] += dt * P[ipart].Vel[0];
 		P[ipart].Pos[1] += dt * P[ipart].Vel[1];
 		P[ipart].Pos[2] += dt * P[ipart].Vel[2];
-
 	}
 
 	if (Sig.Drifted_To_Snaptime)  // handled out of sync integer timeline
@@ -44,11 +43,11 @@ void Drift_To_Sync_Point()
 
 	Int_Time.Current += Int_Time.Step;
 
-	Time.Current = Integer2Physical_Time(Int_Time.Current);
+	Time.Current = Integer_Time2Integration_Time(Int_Time.Current);
 
 	} // omp single
 
-	#pragma omp barrier
+	Set_Current_Cosmology(); // update immediately
 
 	Profile("Drift");
 
@@ -88,8 +87,7 @@ void Drift_To_Snaptime()
 }
 
 /*
- * Return the amount of time since the last kick of particle ipart. For
- * cosmological time integration this is the kick factor in comov.c
+ * Return the amount of time since the last drift of particle ipart.
  */
 
 #ifndef COMOVING 
@@ -100,9 +98,9 @@ static double Particle_Drift_Step(const int ipart, const double time_next)
 	if (Sig.Drifted_To_Snaptime)
 		time_part = Time.Current;
 	else
-		time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
+		time_part = Integer_Time2Integration_Time(P[ipart].Int_Time_Pos);
 
-	return (time_next - time_part);
+	return time_next - time_part;
 }
 #endif
 

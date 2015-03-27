@@ -62,8 +62,6 @@ void Update(enum Update_Parameters stage)
 	
 		Periodic_Constrain_Particles_To_Box(); // PERIODIC
 
-		Set_Current_Cosmology();
-
 		break;
 
 	case BEFORE_SECOND_KICK:

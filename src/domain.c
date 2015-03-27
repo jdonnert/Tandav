@@ -62,7 +62,7 @@ void Domain_Decomposition()
 
 	#pragma omp single
 	reset_bunchlist();
-
+	
 	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
 	find_Mean_Cost();

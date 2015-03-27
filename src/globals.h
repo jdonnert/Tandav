@@ -57,11 +57,9 @@ extern struct Particle_Data {
 	Float Vel[3];
 	Float Acc[3];
 	Float Mass;
+	Float Grav_Acc[3];
 #ifdef GRAVITY_POTENTIAL
 	Float Grav_Pot;
-#endif
-#ifdef OUTPUT_PARTIAL_ACCELERATIONS
-	Float Grav_Acc[3];
 #endif
 } *P;
 

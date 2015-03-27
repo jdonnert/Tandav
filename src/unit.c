@@ -39,6 +39,23 @@ double Velocity_Cgs(const float v)
 	return v_cgs;
 }
 
+double Acceleration_Physical(const int ipart)
+{
+	double grav_accel = ALENGTH3(P[ipart].Grav_Acc);
+
+#ifdef COMOVING
+	grav_accel *= Cosmo.Grav_Accel_Factor;
+#endif
+
+	double hydro_accel = 0;
+
+#ifdef COMOVING
+	hydro_accel *= Cosmo.Hydro_Accel_Factor;
+#endif
+
+	return grav_accel + hydro_accel;
+}
+
 double Mass_Cgs(const float mass)
 {
 	double mass_cgs = mass * Unit.Mass;

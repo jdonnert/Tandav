@@ -11,6 +11,9 @@ struct Current_Cosmology_In_Code_Units {
 	double Redshift;
 	double Expansion_Factor;
 	double Critical_Density;
+	double Grav_Accel_Factor;
+	double Hydro_Accel_Factor;
+	double Press_Factor;
 } Cosmo;
 
 double Hubble_Parameter(const double a); // H(a) = H0 * E_Hubble(a)

@@ -11,24 +11,36 @@ struct Current_Cosmology_In_Code_Units Cosmo = {
 	3.0/8.0/PI / (GRAVITATIONAL_CONST/p3(VELOCITY2CGS)
 			/(LENGTH2CGS/VELOCITY2CGS)*MASS2CGS)
 			*p2(HUBBLE_CONST*1e5/(1e3*KPC2CGS)), // rho0_crit	
-	0 // the rest is set in "Set_Current_Cosmology()"
+	0 // the rest is done in "Set_Current_Cosmology()"
 };
 
 #ifdef COMOVING
 
 /*
- * This updates the Cosmo structure to the current Time.Current == a
+ * This updates the variable parts of the Cosmo structure to the current 
+ * expansion factor. 
  */
 
 void Set_Current_Cosmology()
 {
-	const double a = Time.Current; // yes this will be everywhere in the code
+	#pragma omp barrier // thread safe
+	
+	#pragma omp single
+	{
+
+	const double a = Time.Current; 
 
 	Cosmo.Expansion_Factor = a; // just to be clear
 
 	Cosmo.Redshift = 1/a - 1;
 	Cosmo.Hubble_Parameter = Hubble_Parameter(a);
 	Cosmo.Critical_Density = Critical_Density(a);
+
+	Cosmo.Grav_Accel_Factor = 1/p2(a);
+	Cosmo.Hydro_Accel_Factor = 1/pow(a, 3*(ADIABATIC_INDEX_MONOATOMIC_GAS - 2));
+	Cosmo.Press_Factor = pow(a, 3*(ADIABATIC_INDEX_MONOATOMIC_GAS - 1));
+	
+	} // omp single
 
 	return ;
 }

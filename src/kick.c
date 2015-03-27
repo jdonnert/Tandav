@@ -71,7 +71,7 @@ void Kick_Second_Halfstep()
 #ifndef COMOVING 
 double Particle_Kick_Step(const int ipart, const double time_next)
 {
-	double time_part = Integer2Physical_Time(P[ipart].Int_Time_Pos);
+	double time_part = Integer_Time2Integration_Time(P[ipart].Int_Time_Pos);
 
 	return time_next - time_part;
 }

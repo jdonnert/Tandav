@@ -19,36 +19,37 @@ static gsl_interp_accel *Acc[4] = { NULL };
  * in comoving coordinates from a spline interpolation of the integral in
  * Appendix of Quinn+ 1997. This allows us to use a short table resulting in
  * relatives errors < 1e-4, which is the same as the numerical integrator 
- * gives. These functions are thread safe.
+ * gives.
+ * These functions are thread safe.
  */
 
 double Particle_Kick_Step(const int ipart, const double a_next)
 {
-	double a_curr = Integer2Physical_Time(P[ipart].Int_Time_Pos);
+	double a_curr = Integer_Time2Integration_Time(P[ipart].Int_Time_Pos);
 
-	double a_beg = gsl_spline_eval(Kick_Spline, a_curr, Acc[0]);
-	double a_end = gsl_spline_eval(Kick_Spline, a_next, Acc[1]);
+	double kick_factor_beg = gsl_spline_eval(Kick_Spline, a_curr, Acc[0]);
+	double kick_factor_end = gsl_spline_eval(Kick_Spline, a_next, Acc[1]);
 
-	return a_end - a_beg;
+	return kick_factor_end - kick_factor_beg;
 }
 
 double Particle_Drift_Step(const int ipart, const double a_next)
 {
-	double a_curr = Integer2Physical_Time(P[ipart].Int_Time_Pos);
+	double a_curr = Integer_Time2Integration_Time(P[ipart].Int_Time_Pos);
 
-	double a_beg = gsl_spline_eval(Drift_Spline, a_curr, Acc[2]);
-	double a_end = gsl_spline_eval(Drift_Spline, a_next, Acc[3]);
+	double drift_factor_beg = gsl_spline_eval(Drift_Spline, a_curr, Acc[2]);
+	double drift_factor_end = gsl_spline_eval(Drift_Spline, a_next, Acc[3]);
 
-	return a_end - a_beg;
+	return drift_factor_end - drift_factor_beg;
 }
 
 /*
- * Integrate in s = \int dt/a^{-2} so we are conserving canonical momentum.
+ * Integrate in s = \int^{t_i}_{t_0} dt/a^{-2} so we are conserving 
+ * canonical momentum.
  * See Quinn Katz, Stadel & Lake 1997, Peebles 1980, Bertschinger 1999. 
- * Note that we are integrating in "da" so the integrals from Quinns paper 
- * have to be transformed from dt, which gives the additional factor of 
- * 1/\dot{a} = 1/H(a)/a. 
- 
+ * Note that in code units "dt = da" so the integrals from Quinns paper 
+ * have to be transformed from dt -> da, which gives the additional factor of 
+ * 1/\dot{a} = 1/H(a)/a. Time stepping however is done in dln(a) = 1+z.
  */
 
 static double comoving_symplectic_drift_integrant(double a, void *param) 
@@ -77,14 +78,14 @@ void Setup_Comoving()
 	gsl_workspace = gsl_integration_workspace_alloc(TABLESIZE);
 
 	const double time_min = Time.Begin;
-	const double da = log(Time.End) - log(Time.Begin);
+	const double da = (log(Time.End) - log(Time.Begin)) /(TABLESIZE - 1.0);
 
 	#pragma omp for
 	for (int i = 0; i < TABLESIZE; i++) {
 	
 		double error = 0;
 
-		double time_max = exp(log(Time.Begin) + da * i/(TABLESIZE - 1.0) );
+		double time_max = exp(log(Time.Begin) + da * i );
 
 		Exp_Factor_Table[i] = time_max;
 

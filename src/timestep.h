@@ -34,5 +34,6 @@ void Make_Active_Particle_List();
 void Setup_Time_Integration();
 double Timebin2Timestep(const int);
 double Integer2Physical_Time(intime_t);
+double Integer_Time2Integration_Time(intime_t);
 
 #endif // TIMESTEP_H

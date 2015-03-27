@@ -21,3 +21,7 @@ double Density_Cgs(const float rho);
 double Number_Density_Cgs(const float rho);
 double Pressure_Cgs(const float pres);
 double Thermal_Energy_Density_Cgs(const int ipart);
+
+/* Conversion from comoving to physical units */
+double Acceleration_Physical(const int ipart);
+

@@ -27,6 +27,12 @@ void Gravity_Tree_Acceleration()
 
 	rprintf("Tree acceleration ");
 
+#ifdef COMOVING
+	const double a2inv = 1/p2(Cosmo.Expansion_Factor);
+#else
+	const double a2inv = 1/p2(Cosmo.Expansion_Factor);
+#endif
+
 	#pragma omp for schedule(dynamic)
 	for (int i = 0; i < NActive_Particles; i++) {
 
@@ -68,11 +74,9 @@ void Gravity_Tree_Acceleration()
 		P[ipart].Acc[1] = grav_accel[1];
 		P[ipart].Acc[2] = grav_accel[2];
 
-#ifdef OUTPUT_PARTIAL_ACCELERATIONS
 		P[ipart].Grav_Acc[0] = grav_accel[0];
 		P[ipart].Grav_Acc[1] = grav_accel[1];
 		P[ipart].Grav_Acc[2] = grav_accel[2];
-#endif
 
 #ifdef GRAVITY_POTENTIAL
 		P[ipart].Grav_Pot = pot;

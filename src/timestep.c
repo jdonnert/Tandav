@@ -131,6 +131,8 @@ void Setup_Time_Integration()
  * criteria. Find local max & min to these bins. 
  */
 
+static float dt_max = 0;
+
 static void set_particle_timebins()
 {
 	#pragma omp single
@@ -141,7 +143,8 @@ static void set_particle_timebins()
 
 	} // omp single
 
-	const float dt_max = get_global_timestep_constraint(); 
+	if (Sig.Fullstep || Sig.First_Step)
+		dt_max = get_global_timestep_constraint(); 
 
 	#pragma omp for reduction(min:Time_Bin_Min) reduction(max:Time_Bin_Max)
 	for (int i = 0; i < NActive_Particles; i++) {
@@ -419,12 +422,97 @@ static float cosmological_timestep(const int ipart, const Float acc_phys)
  * displacement is set relative to the mean particle separation.
  */
 
+static double v[NPARTYPE] = { 0 }, min_mpart[NPARTYPE] = { 0 };
+static long long npart[NPARTYPE] = { 0 };
+
 static float get_global_timestep_constraint()
 {	
 	float dt_max = Time.Step_Max;
 
 #ifdef COMOVING
-	dt_max = TIME_DISPL_CONSTRAINT * FLT_MAX;
+
+	#pragma omp single
+	{
+		memset(v, 0, sizeof(*v)*NPARTYPE);
+		memset(min_mpart, 0, sizeof(*min_mpart)*NPARTYPE);
+		memset(npart, 0, sizeof(*npart)*NPARTYPE);
+
+	} // omp single
+
+	double v_thread[NPARTYPE] = { 0 }, min_mpart_thread[NPARTYPE] = { 0 };
+	long long npart_thread[NPARTYPE] = { 0 };
+
+	#pragma omp for nowait
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+	
+		int type = P[ipart].Type;
+
+		v_thread[type] += ALENGTH3(P[ipart].Vel);
+		min_mpart_thread[type] = fmin(min_mpart[type], P[ipart].Mass);
+		npart_thread[type]++;
+	}
+
+	#pragma omp critical // array-reduce *rolleyes*
+	{
+	
+	for (int type = 0; type < NPARTYPE; type++) {
+		
+		v[type] += v_thread[type];
+		min_mpart[type] = fmin(min_mpart_thread[type], min_mpart[type]);
+		npart[type] += npart_thread[type];
+	}
+
+	} // omp critical
+	
+	#pragma omp barrier
+
+	MPI_Allreduce(MPI_IN_PLACE, v, NPARTYPE, MPI_DOUBLE, MPI_SUM, 
+			MPI_COMM_WORLD);
+	MPI_Allreduce(MPI_IN_PLACE, min_mpart, NPARTYPE, MPI_DOUBLE, MPI_MIN, 
+			MPI_COMM_WORLD);
+	MPI_Allreduce(MPI_IN_PLACE, npart, NPARTYPE, MPI_LONG_LONG, MPI_SUM, 
+			MPI_COMM_WORLD);
+
+	double rho_baryon = Cosmo.Omega_Baryon*Cosmo.Critical_Density;
+	double rho_rest = (Cosmo.Omega_0 - Cosmo.Omega_Baryon) 
+													* Cosmo.Critical_Density;
+
+	rprintf("Time Displacement Constraint at a = %g \n", Time.Current);
+
+	#pragma omp master
+	for (int type = 0; type < NPARTYPE; type++) {
+	
+		double dmean = 0;
+
+		switch (type) {
+		
+		case 0: // gas
+
+			dmean = pow( min_mpart[type]/rho_baryon, 1.0/3.0);
+
+			break;
+
+		default: 
+			
+			dmean = pow( min_mpart[type]/rho_rest, 1.0/3.0);
+			
+			break;
+		}
+	
+		double vrms = sqrt( v[type]/npart[type] );
+
+		double dt = TIME_DISPL_CONSTRAINT * dmean / vrms 
+			* p2(Cosmo.Expansion_Factor) * Cosmo.Hubble_Parameter ;
+		
+		if (npart[type] != 0)
+			rprintf("   Type %d: dmean %g, min(mpart) %g, sqrt(v^2) %g,"
+					" dlogmax %g \n", type, dmean, min_mpart[type], vrms, dt);		
+
+		dt_max = fmax(dt, dt_max);
+	}
+
+	rprintf("   choosing %g \n", dt_max);
+
 #endif // COMOVING
 
 	return dt_max;

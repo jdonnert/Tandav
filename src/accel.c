@@ -21,6 +21,7 @@ void Compute_Acceleration()
 	Profile("Accelerations");
 
 	accel_gravity(); // GRAVITY
+
 	zero_active_particle_accelerations(); // ! GRAVITY
 
 	// accel_hydro();

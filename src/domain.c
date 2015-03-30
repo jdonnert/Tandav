@@ -59,10 +59,10 @@ void Domain_Decomposition()
 	find_global_domain_extend();
 
 	Sort_Particles_By_Peano_Key();
-
+	
 	#pragma omp single
 	reset_bunchlist();
-	
+
 	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
 	find_Mean_Cost();
@@ -449,7 +449,7 @@ static void find_Mean_Cost()
 
 static int check_distribution()
 {
-	if (NBunches == 1 && (Sim.NTask != 1)) { // always split the first
+	if (NBunches == 1) { // always split the first
 
 		D[0].Bunch.Modify = 1;
 

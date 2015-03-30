@@ -61,9 +61,10 @@ void Gravity_Tree_Build()
 
 	#pragma omp flush (Tree)
 
-	const size_t buf_thres = Task.Buffer_Size/sizeof(*Tree);
+	const size_t buf_threshold = Task.Buffer_Size/sizeof(*Tree);
 
-	#pragma omp for schedule(static,1)
+	//#pragma omp for schedule(static,1)
+	#pragma omp single
 	for (int i = 0; i < NTop_Nodes; i++) {
 
 		int src = D[i].Bunch.Target;
@@ -76,7 +77,7 @@ void Gravity_Tree_Build()
 
 			transform_bunch_into_top_node(i, &level, &first_part);
 
-			bool build_in_buffer = D[i].TNode.Npart < buf_thres;
+			bool build_in_buffer = D[i].TNode.Npart < buf_threshold;
 
 			if (build_in_buffer) {
 
@@ -271,7 +272,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 	const int last_part = first_part + D[tnode_idx].TNode.Npart - 1;
 
 	for (int ipart = first_part+1; ipart < last_part+1; ipart++) {
-
+	
 		peanoKey key = Reversed_Peano_Key(P[ipart].Pos);
 
 		key >>= 3 * top_level;
@@ -349,6 +350,8 @@ static int build_subtree(const int first_part, const int tnode_idx,
 			Task.Rank,Task.Thread_ID, tnode_idx, nNodes,
 			(double)nNodes/D[tnode_idx].TNode.Npart);
 #endif
+
+
 
 	return nNodes;
 }
@@ -498,7 +501,7 @@ static inline bool particle_is_inside_node(const peanoKey key, const int lvl,
 
 	int node_triplet = key_fragment(node);
 
-	return (node_triplet == part_triplet);
+	return node_triplet == part_triplet;
 }
 
 /*

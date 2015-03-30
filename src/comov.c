@@ -121,10 +121,6 @@ void Setup_Comoving()
 
 void Finish_Comoving()
 {
-	Free(Kick_Table);
-	Free(Drift_Table);
-	Free(Exp_Factor_Table);
-
 	#pragma omp parallel
 	{
 

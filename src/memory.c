@@ -8,7 +8,7 @@ static int find_memory_block_from_ptr(void *);
 static int reserve_free_block_from_size(const size_t);
 static size_t get_system_memory_size();
 
-static void *Memory = NULL; 
+static void *Memory = NULL;
 
 static size_t NBytes_Left = 0; // size of block at the end
 static size_t Mem_Size = 0;
@@ -27,16 +27,16 @@ static struct memory_block_infos {
 static void * buffer; // Multi-purpose thread-safe buffer: BUFFER_SIZE
 #pragma omp threadprivate(buffer)
 
-void *Malloc_info(const char* file, const char* func, const int line, 
+void *Malloc_info(const char* file, const char* func, const int line,
 		size_t size, const char *name)
 {
 	Assert_Info(file, func, line, size > 0, // check input
 			"Can't allocate an array of size 0 !");
 
-	Assert_Info(file, func, line, NBytes_Left >= size,  
-			"Can't allocate Memory, Bytes: %zu > %zu, %zu total", 
+	Assert_Info(file, func, line, NBytes_Left >= size,
+			"Can't allocate Memory, Bytes: %zu > %zu, %zu total",
 			size, NBytes_Left, Mem_Size);
-	
+
 	size = MAX(MEM_ALIGNMENT, size); // don't break alignment
 
 	if ( (size % MEM_ALIGNMENT) > 0) // make sure we stay aligned
@@ -52,32 +52,32 @@ void *Malloc_info(const char* file, const char* func, const int line,
 	Mem_Block[i].Line = line;
 
 	if (i == NMem_Blocks) { // couldn't find a free gap, add new at the end
-		
+
 		Mem_Block[i].Start = Memory + Mem_Size - NBytes_Left;
-	
+
 		Mem_Block[i].Size = size;
-		
+
 		NMem_Blocks++;
 
 		NBytes_Left -= size;
 	}
 
 	memset(Mem_Block[i].Start, 0, Mem_Block[i].Size);
-		
+
 	return Mem_Block[i].Start;
 }
 
-void *Realloc_info(const char* file, const char* func, const int line, 
+void *Realloc_info(const char* file, const char* func, const int line,
 		void *ptr, size_t new_size, const char *name)
 {
-	Assert_Info(file, func, line, new_size >= 0, 
+	Assert_Info(file, func, line, new_size >= 0,
 			"Reallocate on array of negative size !");
 
 	if (new_size == 0) {
-		
+
 		if (ptr != NULL)
 			Free(ptr);
-	
+
 		return NULL;
 	}
 
@@ -93,14 +93,14 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 	const int i = find_memory_block_from_ptr(ptr);
 
-	int i_return = i; 
+	int i_return = i;
 
 	if (i == NMem_Blocks-1) { // enlarge last block
-	
+
 		const int delta = new_size - Mem_Block[i].Size;
 
 		Assert_Info(file, func,line, delta < NBytes_Left,
-				"Not enough memory for %zu MB. Increase MaxMem_Size", 
+				"Not enough memory for %zu MB. Increase MaxMem_Size",
 				delta/1024/1024);
 
 		Mem_Block[i].Size += delta;
@@ -112,15 +112,15 @@ void *Realloc_info(const char* file, const char* func, const int line,
 		void *dest = Malloc_info(file, func, line, new_size, name);
 
 		void *src = Mem_Block[i].Start;
-		
+
 		size_t nBytes = Mem_Block[i].Size;
 
 		memcpy(dest, src, nBytes);
- 
+
 		Free(Mem_Block[i].Start);
 
 		i_return = NMem_Blocks - 1;
-	
+
 		printf("Moving Memory Block %d -> %d \n",i, i_return);
 	}
 
@@ -148,7 +148,7 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 	Mem_Block[i].Line = 0;
 
 	merge_free_memory_blocks(i);
-	
+
 	ptr = NULL;
 
 	return ;
@@ -156,9 +156,9 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 
 void *Get_Thread_Safe_Buffer (size_t nBytes)
 {
-	Assert(nBytes <= Task.Buffer_Size, 
+	Assert(nBytes <= Task.Buffer_Size,
 			"Requested too much Buffer space %d > %d"
-			"Increase BUFFER_SIZE in 'Config' file. ", 
+			"Increase BUFFER_SIZE in 'Config' file. ",
 			nBytes, Task.Buffer_Size);
 
 	memset(buffer, 0, nBytes);
@@ -175,23 +175,23 @@ void *Get_Thread_Safe_Buffer (size_t nBytes)
 void Init_Memory_Management()
 {
 #ifdef MEMORY_MANAGER
-	
+
 	Mem_Size = (Param.Max_Mem_Size - Param.Buffer_Size) * 1024L * 1024L; // MB
 
 	size_t nBytesMax = get_system_memory_size();
 
 	size_t minNbytes = 0, maxNbytes = 0;
 
-	MPI_Reduce(&nBytesMax, &maxNbytes, 1, MPI_LONG_LONG, MPI_MAX, MASTER, 
+	MPI_Reduce(&nBytesMax, &maxNbytes, 1, MPI_LONG_LONG, MPI_MAX, MASTER,
 			MPI_COMM_WORLD);
-	MPI_Reduce(&nBytesMax, &minNbytes, 1, MPI_LONG_LONG, MPI_MIN, MASTER, 
+	MPI_Reduce(&nBytesMax, &minNbytes, 1, MPI_LONG_LONG, MPI_MIN, MASTER,
 			MPI_COMM_WORLD);
 
 	rprintf("Init Memory Manager\n"
-			"   Max Usable Memory per task %zu bytes = %zu MB\n" 
+			"   Max Usable Memory per task %zu bytes = %zu MB\n"
 			"   Min Usable Memory per task %zu bytes = %zu MB\n"
-			"   Requested  Memory per task %zu bytes = %zu MB\n", 
-			maxNbytes, maxNbytes/1024/1024, minNbytes, 
+			"   Requested  Memory per task %zu bytes = %zu MB\n",
+			maxNbytes, maxNbytes/1024/1024, minNbytes,
 			minNbytes/1024/1024, Mem_Size, Mem_Size/1024/1024);
 
 	int fail = posix_memalign(&Memory, MEM_ALIGNMENT, Mem_Size);
@@ -207,12 +207,12 @@ void Init_Memory_Management()
 
 	#pragma omp parallel
 	{
-	
+
 	Task.Buffer_Size = Param.Buffer_Size * 1024 * 1024 / Sim.NThreads;
 
 	#pragma omp critical
 	buffer = malloc(Task.Buffer_Size); // let the system take a local chunk
-	
+
 	} // omp parallel
 
 	return;
@@ -227,9 +227,9 @@ void Print_Memory_Usage()
 	size_t nBytes_Left_Global[Sim.NRank];
 
 	MPI_Allgather(&NBytes_Left, sizeof(NBytes_Left), MPI_BYTE,
-			nBytes_Left_Global, sizeof(*nBytes_Left_Global), 
+			nBytes_Left_Global, sizeof(*nBytes_Left_Global),
 			MPI_BYTE, MPI_COMM_WORLD);
-	
+
 	int max_Idx = 0;
 
 	for (int i = 0; i < Sim.NRank; i++)
@@ -243,33 +243,33 @@ void Print_Memory_Usage()
 			"available memory\n   No  Used      Address      Size (MB)    "
 			"Cumulative          Variable       File:Line\n"
 			"-----------------------------------------------"
-			"-------------------------------------------------------\n", 
+			"-------------------------------------------------------\n",
 			Task.Rank, Task.Thread_ID, (double) NBytes_Left/1024/1024,
 			Param.Max_Mem_Size);
 
 	size_t mem_Cumulative = 0;
 
 	for (int i = 0; i < NMem_Blocks; i++) {
-			
+
 		mem_Cumulative += Mem_Block[i].Size;
 
 		printf("    %d   %d    %11p     %7.3f      %8.3f   %20s  %s:%d\n",
-			i,Mem_Block[i].In_Use, Mem_Block[i].Start, 
-			(double) Mem_Block[i].Size/1024/1024, 
-			(double) mem_Cumulative/1024/1024, 
-			Mem_Block[i].Name, Mem_Block[i].File,  
+			i,Mem_Block[i].In_Use, Mem_Block[i].Start,
+			(double) Mem_Block[i].Size/1024/1024,
+			(double) mem_Cumulative/1024/1024,
+			Mem_Block[i].Name, Mem_Block[i].File,
 			Mem_Block[i].Line);
 	}
 
-	printf("\nExternal Thread-Safe Buffer: %d x %g = %g MB\n\n", 
-			Sim.NThreads, Task.Buffer_Size/1024.0/1024, 
+	printf("\nExternal Thread-Safe Buffer: %d x %g = %g MB\n\n",
+			Sim.NThreads, Task.Buffer_Size/1024.0/1024,
 			(float)Param.Buffer_Size);
-	
+
 	printf("\n");
-	
+
 	skip: ;
 
-	} // omp single 
+	} // omp master
 
 	#pragma omp flush
 	#pragma omp barrier
@@ -283,14 +283,14 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 	*total = *largest = *smallest = 0;
 
 	for (int i = 0; i < NMem_Blocks; i++) {
-		
+
 		if (Mem_Block[i].In_Use)
 			continue;
 
 		int size = Mem_Block[i].Size;
 
 		*total += size;
-		
+
 		*smallest = MIN(*smallest, size);
 		*largest = MAX(*largest, size);
 	}
@@ -313,7 +313,7 @@ static int find_memory_block_from_ptr(void *ptr)
 {
 	int i = 0;
 
-	for (i = 0; i < NMem_Blocks; i++) 
+	for (i = 0; i < NMem_Blocks; i++)
 		if (ptr == Mem_Block[i].Start)
 			break;
 
@@ -332,7 +332,7 @@ static int reserve_free_block_from_size(const size_t size)
 			break;
 
 	Mem_Block[i].In_Use = true;
-	
+
 	return i;
 }
 
@@ -343,15 +343,15 @@ static void merge_free_memory_blocks(int i)
 
 		NMem_Blocks--;
 		NBytes_Left += Mem_Block[i].Size;
-		
+
 		Mem_Block[i].Start = NULL;
 		Mem_Block[i].Size = 0;
-		
+
 		if (i != 0 && !Mem_Block[i-1].In_Use)
 			merge_free_memory_blocks(i-1); // merge left into free
 
 	} else if (!Mem_Block[i+1].In_Use) { // merge right
-		
+
 		Mem_Block[i].Size += Mem_Block[i+1].Size;
 
 		void *src = &Mem_Block[i+2].Start;
@@ -359,9 +359,9 @@ static void merge_free_memory_blocks(int i)
 		size_t nBytes = (NMem_Blocks - (i+1)) * sizeof(*Mem_Block);
 
 		memmove(dest, src, nBytes);
-		
+
 		NMem_Blocks--;
-	
+
 	} else if (i != 0 && ! Mem_Block[i-1].In_Use) { // merge left
 
 		Mem_Block[i-1].Size += Mem_Block[i].Size;
@@ -371,10 +371,10 @@ static void merge_free_memory_blocks(int i)
 		size_t nBytes = (NMem_Blocks - (i+1)) * sizeof(*Mem_Block);
 
 		memmove(dest, src, nBytes);
-		
+
 		NMem_Blocks--;
 	}
-	
+
 	return ;
 }
 
@@ -404,7 +404,7 @@ size_t get_system_memory_size()
 {
 #if defined(__unix__) || defined(__unix) || defined(unix) || \
 	(defined(__APPLE__) && defined(__MACH__))
-	
+
 #if defined(CTL_HW) && (defined(HW_MEMSIZE) || defined(HW_PHYSMEM64))
 
 	int mib[2];
@@ -417,11 +417,11 @@ size_t get_system_memory_size()
 	mib[1] = HW_PHYSMEM64;          // NetBSD, OpenBSD.
 
 #endif // HW_PHYSMEM64
-	
+
 	int64_t size = 0;               // 64-bit 
 
 	size_t len = sizeof( size );
-	
+
 	if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
 		return (size_t)size;
 
@@ -432,7 +432,7 @@ size_t get_system_memory_size()
 
 #elif defined(_SC_PHYS_PAGES) && defined(_SC_PAGESIZE) 
 	/* FreeBSD, Linux, OpenBSD, Solaris */
-	
+
 	return (size_t)sysconf( _SC_PHYS_PAGES ) *
 		(size_t)sysconf( _SC_PAGESIZE );
 
@@ -445,7 +445,7 @@ size_t get_system_memory_size()
 	/* BSD, OLD OSX */
 
 	int mib[2];
-	
+
 	mib[0] = CTL_HW;
 
 #if defined(HW_REALMEM)
@@ -457,10 +457,10 @@ size_t get_system_memory_size()
 	unsigned int size = 0;		// 32-bit
 
 	size_t len = sizeof( size );
-	
+
 	if ( sysctl( mib, 2, &size, &len, NULL, 0 ) == 0 )
-		return (size_t)size;
-	
+		return (size_t) size;
+
 	return 0L;			// Failed? 
 #endif // sysctl and sysconf variants
 #endif // unix

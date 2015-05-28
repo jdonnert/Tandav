@@ -46,7 +46,7 @@ void Kick_Second_Halfstep()
 
 		int ipart = Active_Particle_List[i];
 
-		double dt =  0.5 * Particle_Kick_Step(ipart, Time.Next);
+		double dt = 0.5 * Particle_Kick_Step(ipart, Time.Next);
 
 		P[ipart].Vel[0] += dt * P[ipart].Acc[0];
 		P[ipart].Vel[1] += dt * P[ipart].Acc[1];
@@ -69,10 +69,14 @@ void Kick_Second_Halfstep()
  */
 
 #ifndef COMOVING 
+
 double Particle_Kick_Step(const int ipart, const double time_next)
 {
-	double time_part = Integer_Time2Integration_Time(P[ipart].Int_Time_Pos);
+	intime_t intime_pos = P[ipart].Int_Time_Pos;
+
+	double time_part = Integer_Time2Integration_Time(intime_pos);
 
 	return time_next - time_part;
 }
-#endif
+
+#endif // ! COMOVING

@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	Update(BEFORE_MAIN_LOOP);
 
 	Set_New_Timesteps();
-	
+
 	Kick_First_Halfstep();
 
 	for (;;) { // run, Forest, run !
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 	}
 
 	Set_New_Timesteps();
-	
+
 	Kick_Second_Halfstep();
 
 	if (Sig.Write_Restart_File)

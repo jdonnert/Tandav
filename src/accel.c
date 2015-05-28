@@ -13,16 +13,16 @@ static void zero_active_particle_accelerations();
 
 /* 
  * Collect all accelerations on particles. Note that GRAVITY needs the previous
- * accelerations and hence we do not zero those if it is switched on.
+ * accelerations and hence we do not zero P.Accel if it is switched on.
  */
 
 void Compute_Acceleration()
 {
 	Profile("Accelerations");
 
-	accel_gravity(); // GRAVITY
-
 	zero_active_particle_accelerations(); // ! GRAVITY
+
+	accel_gravity(); // GRAVITY
 
 	// accel_hydro();
 

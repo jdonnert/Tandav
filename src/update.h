@@ -9,4 +9,4 @@ enum Update_Parameters {
 	AFTER_STEP,
 };
 
-void Update(enum Update_Parameters stage); 
+void Update(enum Update_Parameters stage);

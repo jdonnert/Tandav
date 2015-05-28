@@ -55,20 +55,20 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 		int (*cmp) (const void *, const void *))
 {
 	if (nData < PARALLEL_THRES_QSORT || nThreads == 1) {
-		
+
 		#pragma omp single
 		qsort(data_ptr, nData, size, cmp);
-	
+
 		return ;
 	}
 
 	/* partition number and size */
 	const int desNumPar = MAX(1, 2*MIN(nThreads/2, nData/INSERT_THRES/2));
-	
+
 	#pragma omp single  // initial stack node is just the whole array 
 	{
 
-	shared_stack_char[0].lo = (char *)data_ptr; 
+	shared_stack_char[0].lo = (char *)data_ptr;
 	shared_stack_char[0].hi = &((char *)data_ptr)[size * (nData - 1)];
 
 	} // omp single
@@ -87,64 +87,66 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 
 			/* Find pivot element from median and sort the three. 
 			 * That helps to prevent the n^2 worst case */
-	  		char *mid = lo + size * ((hi - lo) / size >> 1); // pivot
+			char *mid = lo + size * ((hi - lo) / size >> 1); // pivot
 
-			if ( (*cmp) ((void *) mid, (void *) lo) < 0) 
-		   		SWAP(mid, lo, size);
-	
-			if ( (*cmp) ((void *) hi, (void *) mid) < 0)
-	    		SWAP (mid, hi, size);
-		  	else
-		    	goto jump_over;
-	  	
 			if ( (*cmp) ((void *) mid, (void *) lo) < 0)
-		 		SWAP (mid, lo, size);
-		
+				SWAP(mid, lo, size);
+
+			if ( (*cmp) ((void *) hi, (void *) mid) < 0)
+				SWAP (mid, hi, size);
+			else
+			goto jump_over;
+
+			if ( (*cmp) ((void *) mid, (void *) lo) < 0)
+				SWAP (mid, lo, size);
+
 			jump_over:;
 
-		  	char *left_ptr  = lo + size;
-	  		char *right_ptr = hi - size;
+
+
+			char *left_ptr  = lo + size;
+			char *right_ptr = hi - size;
 
 			/* now put all larger/smaller than the pivot on the right/left */
-		  	do { 
-					
+			do {
+
 				while ((*cmp)((void *)left_ptr, (void *)mid) < 0)
 					left_ptr += size;
 
 				while ((*cmp)((void *)mid,(void *)right_ptr) < 0)
 					right_ptr -= size;
 
-	    		if (left_ptr < right_ptr) { 
-						
+				if (left_ptr < right_ptr) {
+
 					SWAP (left_ptr, right_ptr, size);
-					
+
 					if (mid == left_ptr)
-			   			mid = right_ptr;
+						mid = right_ptr;
 					else if (mid == right_ptr)
-		   				mid = left_ptr;
-		  	
+						mid = left_ptr;
+
 					left_ptr += size;
 					right_ptr -= size;
-		
+
 				} else if (left_ptr == right_ptr) {
-			  			
+
 					left_ptr += size;
 					right_ptr -= size;
-		 	
+
 					break;
-				}	
+				}
 
 			} while (left_ptr <= right_ptr);
-	
+
 			/* Push next iterations / partitions to the shared stack */
-			
+
 			shared_stack_char[j].lo = lo;
 			shared_stack_char[j].hi = right_ptr;
-	
+
 			shared_stack_char[j + (delta>>1)].lo = left_ptr;
 			shared_stack_char[j + (delta>>1)].hi = hi;
 		} // j
-		
+
 		#pragma omp barrier
 
     } // while
@@ -182,35 +184,35 @@ static struct SharedStackDataSizeT {
     size_t *hi;
 } shared_stack_sizet[STACK_SIZE] = {{0,0}};
 
-void Qsort_Index(const int nThreads, size_t *perm, void *const data, 
-		const int nData, const size_t datasize, 
+void Qsort_Index(const int nThreads, size_t *perm, void *const data,
+		const int nData, const size_t datasize,
 		int (*cmp) (const void *, const void *))
 {
 	Assert(perm != NULL, "*perm is a NULL pointer, no space to sort");
 	Assert(data != NULL, "*data is a NULL pointer, no space to sort");
 
-	if (nData < PARALLEL_THRES_HEAPSORT || nThreads == 1 || 1) { 
+	if (nData < PARALLEL_THRES_HEAPSORT || nThreads == 1 || 1) {
 
 		#pragma omp single
-  		gsl_heapsort_index(perm, data, nData, datasize, cmp); 
-  		
+		gsl_heapsort_index(perm, data, nData, datasize, cmp);
+
 		#pragma omp flush
 
-  		return ;
-  	}
-	
-	const int desNumPar = MIN(nThreads, floor(nData/INSERT_THRES));
-		
-	#pragma omp for	
-	for (size_t i = 0; i < nData; i++ ) 
-		perm[i] = i; 
+		return ;
+	}
 
-	#pragma omp flush	
+	const int desNumPar = MIN(nThreads, floor(nData/INSERT_THRES));
+
+	#pragma omp for
+	for (size_t i = 0; i < nData; i++ )
+		perm[i] = i;
+
+	#pragma omp flush
 
 	#pragma omp single
 	{
 
-	shared_stack_sizet[0].lo = perm;  
+	shared_stack_sizet[0].lo = perm; 
 	shared_stack_sizet[0].hi = &perm[nData - 1];
 
 	} // omp single
@@ -218,9 +220,9 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 	int delta = desNumPar << 1; // twice the distance of entries in shared stack
 
 	/* First stage: subpartitions, roughly NThreads */
-	
+
 	while (delta > 2) { 
-			
+
 		delta >>= 1; // we compensated for this before
 
 		#pragma omp flush
@@ -233,27 +235,27 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 			if (hi - lo < 2) 
 				continue;
-			
+
 	  		size_t *mid = lo + ((hi - lo) >> 1); // pivot & presort
 
 			if (COMPARE_DATA(mid,lo,datasize) < 0) 
 				SWAP_SIZE_T (mid, lo);
-	
+
 			if (COMPARE_DATA(hi,mid,datasize) < 0)  
 				SWAP_SIZE_T (hi, mid);
 			else
 	    		goto jump_over;
-	  	
+
 			if (COMPARE_DATA(mid,lo,datasize) < 0) 
 				SWAP_SIZE_T (mid, lo);
-			
+
 			jump_over:;
 
 			size_t *left  = lo + 1;
 	  		size_t *right = hi - 1;
 
 		  	do { // collapse the walls 
-			
+
 				while (COMPARE_DATA(left,mid,datasize) < 0) 
 					left++;
 
@@ -261,21 +263,21 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 					right--;
 
 	    		if (left < right) { 
-					
+
 					SWAP_SIZE_T (left, right);
-					
+
 					if (mid == left)
 			   			mid = right;
 					else if (mid == right)
 		   				mid = left;
-		  
+ 
 					left++;
 					right--;
-		
+
 				} else if (left == right) {
-		  		
+
 					left++; 
-		 
+
 					break;
 				}
 
@@ -283,7 +285,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 			shared_stack_sizet[i].lo = lo; // Push to replace old position
 			shared_stack_sizet[i].hi = right;
-	
+
 			shared_stack_sizet[i + (delta>>1)].lo = left; //Push for next
 			shared_stack_sizet[i + (delta>>1)].hi = hi;
 		} // j
@@ -296,7 +298,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 	size_t *beg = shared_stack_sizet[Task.Thread_ID].lo;
 	size_t *end = shared_stack_sizet[Task.Thread_ID].hi;
-	
+
 	size_t partition_size = end - beg + 1;
 
 	if (partition_size < INSERT_THRES) 

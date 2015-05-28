@@ -40,7 +40,7 @@ void Periodic_Constrain_Particles_To_Box()
 void Periodic_Nearest(Float dr[3])
 {
 	for (int i = 0; i < 3; i++) {
-	
+
 		if (dr[i] > 0.5 * Sim.Boxsize[i])
 			dr[i] -= Sim.Boxsize[i];
 		else if (dr[i] < -0.5 * Sim.Boxsize[i])

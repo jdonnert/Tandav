@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	Update(BEFORE_PRESTEP);
 
 	Set_New_Timesteps();
-	
+
 	Kick_First_Halfstep();
 
 	Update(BEFORE_MAIN_LOOP);
@@ -66,7 +66,7 @@ int main(int argc, char *argv[])
 	}
 
 	Set_New_Timesteps();
-	
+
 	Kick_Second_Halfstep();
 
 	if (Sig.Write_Restart_File)

@@ -27,16 +27,16 @@ void Init_Profiler()
 	Profile("Simulation");
 
 	Last_Report_Call = measure_time();
-		
+
 	return ;
 }
 
-void Finish_Profiler() 
+void Finish_Profiler()
 {
 	Profile("Simulation");
 
 	Profile_Report(stdout);
-	
+
 	return ;
 }
 
@@ -219,7 +219,7 @@ void Profile_Report_Last(FILE *stream)
 	
 	skip:;
 	
-	} // omp single nowait
+	} // omp single 
 
 	return ;
 }

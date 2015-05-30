@@ -92,11 +92,11 @@ bool Time_For_Domain_Update()
 	Sig.Domain_Update = false;
 	Sig.Tree_Update = false;
 
-	#pragma omp single 
+	#pragma omp single
 	{
 
 	Local_NPart_Updates += NActive_Particles;
-		
+
 	MPI_Allreduce(&Local_NPart_Updates, &Global_NPart_Updates, 1, 
 			MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
@@ -122,7 +122,7 @@ static int endrun = false;
 
 static bool test_for_stop_file()
 {
-	#pragma omp single 
+	#pragma omp single
 	{
 
 	if (Task.Is_MPI_Master) {

@@ -31,16 +31,21 @@
 
 #ifdef DOUBLE_PRECISION
 typedef double Float;		// type of floating point variables in P
-#define MPI_MYFLOAT MPI_Double // corresponding MPI communication type macro
+#define MPI_MYFLOAT MPI_DOUBLE // corresponding MPI communication type macro
 #else
 typedef float Float;
 #define MPI_MYFLOAT MPI_FLOAT
 #endif // DOUBLEPRECISION
 
+#ifdef LONG_IDS
+typedef uint64_t ID_t;		// type of particle ID
+#else
 typedef uint32_t ID_t;		// type of particle ID
+#endif
+
 typedef uint32_t intime_t;	// type of integer time 
-typedef __uint128_t peanoKey; // long peanokey, 42 triplets, levels
-typedef uint64_t shortKey;	// short peanokey, 21 triplets, levels
+typedef __uint128_t peanoKey; // long peanokey, 42 triplets / levels
+typedef uint64_t shortKey;	// short peanokey, 21 triplets / levels
 
 #include "macro.h"			// macro definitions
 #include "unit.h"			// unit functions

@@ -1,7 +1,3 @@
-/* 
- * Conversion from code to CGSM units 
- */
-
 #include "globals.h"
 
 const struct Code_Units Unit = {

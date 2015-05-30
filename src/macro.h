@@ -12,7 +12,7 @@
 #define MIN(a,b) ((a)<(b)?(a):(b)) // this doesnt always work: c = MAX(a++, b)
 #define MAX(a,b) ((a)>(b)?(a):(b)) // better use functions imin, umin in aux.c
 
-#define ALENGTH3(a) sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]) // these are slow ! 
+#define ALENGTH3(a) sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]) // these are slow 
 #define ALENGTH2(a) sqrt(a[0]*a[0] + a[1]*a[1])
 
 #define ASCALPROD3(a) (a[0]*a[0] + a[1]*a[1] + a[2]*a[2]) // these are fast !

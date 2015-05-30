@@ -22,7 +22,7 @@ static void print_statistics();
 void Write_Logs()
 {
 	Profile_Report_Last(Log.Profile_Balance);
-	
+
 	print_statistics(Log.Statistics);
 
 	return;
@@ -30,12 +30,12 @@ void Write_Logs()
 
 void Init_Logs()
 {
-	if (! Task.Is_MPI_Master) 
+	if (! Task.Is_MPI_Master)
 		return ;
 
 	#pragma omp single nowait
 	{
-	
+
 	char fname[CHARBUFSIZE] = {""};
 
 	sprintf(fname, "%s/balance", Param.Log_File_Dir);
@@ -58,7 +58,7 @@ void Init_Logs()
 
 void Finish_Logs()
 {
-	if (! Task.Is_MPI_Master) 
+	if (! Task.Is_MPI_Master)
 		return ;
 
 	#pragma omp single nowait
@@ -66,7 +66,7 @@ void Finish_Logs()
 
 	fclose(Log.Profile_Balance);
 	fclose(Log.Statistics);
-	
+
 	} // omp single nowait
 
 	return ;
@@ -74,24 +74,24 @@ void Finish_Logs()
 
 static void print_statistics(FILE * stream)
 {
-	#pragma omp single nowait
+	#pragma omp master
 	{
 		double e = 0, p = { 0 }, ang_p[3] = { 0 }, com[3] = { 0 };
 
 		for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-		
+
 			double mpart = P[ipart].Mass;
 			double vpart = ALENGTH3(P[ipart].Vel);
-			
+
 			e += mpart * vpart*vpart;
-			
+
 			p += mpart * vpart;
 
-			ang_p[0] = mpart * (P[ipart].Pos[1]*P[ipart].Vel[2] 
+			ang_p[0] = mpart * (P[ipart].Pos[1]*P[ipart].Vel[2]
 					- P[ipart].Pos[2]*P[ipart].Vel[1]);
-			ang_p[1] = mpart * (P[ipart].Pos[2]*P[ipart].Vel[0] 
+			ang_p[1] = mpart * (P[ipart].Pos[2]*P[ipart].Vel[0]
 					- P[ipart].Pos[0]*P[ipart].Vel[2]);
-			ang_p[2] = mpart * (P[ipart].Pos[0]*P[ipart].Vel[1] 
+			ang_p[2] = mpart * (P[ipart].Pos[0]*P[ipart].Vel[1]
 					- P[ipart].Pos[1]*P[ipart].Vel[0]);
 
 			com[0] = mpart * P[ipart].Pos[0];
@@ -99,22 +99,22 @@ static void print_statistics(FILE * stream)
 			com[2] = mpart * P[ipart].Pos[2];
 		}
 
-		MPI_Reduce(&e, &Stat.Energy, 1, MPI_DOUBLE, MPI_SUM, Sim.Master, 
-				MPI_COMM_WORLD);
-		
-		MPI_Reduce(&p, &Stat.Momentum, 1, MPI_DOUBLE, MPI_SUM, Sim.Master, 
+		MPI_Reduce(&e, &Stat.Energy, 1, MPI_DOUBLE, MPI_SUM, Sim.Master,
 				MPI_COMM_WORLD);
 
-		MPI_Reduce(ang_p, &Stat.Angular_Momentum, 3, MPI_DOUBLE, MPI_SUM, 
+		MPI_Reduce(&p, &Stat.Momentum, 1, MPI_DOUBLE, MPI_SUM, Sim.Master,
+				MPI_COMM_WORLD);
+
+		MPI_Reduce(ang_p, &Stat.Angular_Momentum, 3, MPI_DOUBLE, MPI_SUM,
 				Sim.Master, MPI_COMM_WORLD);
 
-		MPI_Reduce(com, &Stat.CoM, 3, MPI_DOUBLE, MPI_SUM, Sim.Master, 
+		MPI_Reduce(com, &Stat.CoM, 3, MPI_DOUBLE, MPI_SUM, Sim.Master,
 				MPI_COMM_WORLD);
 
-		if (Task.Is_MPI_Master) 
-			fprintf(stream,"%g %g %g %g %g %g %g %g", Stat.Energy, 
-					Stat.Momentum, Stat.Angular_Momentum[0], 
-					Stat.Angular_Momentum[1], Stat.Angular_Momentum[2], 
+		if (Task.Is_MPI_Master)
+			fprintf(stream,"%g %g %g %g %g %g %g %g", Stat.Energy,
+					Stat.Momentum, Stat.Angular_Momentum[0],
+					Stat.Angular_Momentum[1], Stat.Angular_Momentum[2],
 					Stat.CoM[0], Stat.CoM[1], Stat.CoM[2] );
 
 	} // omp single nowait

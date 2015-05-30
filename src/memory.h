@@ -9,7 +9,7 @@
 #endif // MEMORY_MANAGER
 
 void *Malloc_info(const char*,const char*,const int, size_t, const char*);
-void *Realloc_info(const char*, const char*, const int, void *, size_t, 
+void *Realloc_info(const char*, const char*, const int, void *, size_t,
 		const char*);
 void Free_info(const char* file, const char* func, const int line, void*);
 

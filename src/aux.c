@@ -1,7 +1,5 @@
 #include "globals.h"
 
-
-
 /*
  * Show bits of an unsigned integer in triplets, 'delta' controls the dot 
  * offset. Has some macros associated to print 128, 64, 32 bit peano keys.

@@ -29,9 +29,6 @@ void Read_and_Init()
 
 		Read_Snapshot(Param.Input_File); // also init particle structures
 
-		#pragma omp parallel
-		Sig.First_Step = Sig.Fullstep = true;
-
 		break;
 
 	case 1:

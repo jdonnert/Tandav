@@ -4,10 +4,10 @@
 #include "Gravity/gravity.h"
 
 #ifdef GRAVITY
-static void accel_gravity();
+static void gravity_accel();
 static inline void zero_active_particle_accelerations() {};
 #else
-static inline void accel_gravity() {};
+static inline void gravity_accel() {};
 static void zero_active_particle_accelerations();
 #endif
 
@@ -20,11 +20,11 @@ void Compute_Acceleration()
 {
 	Profile("Accelerations");
 
-	accel_gravity(); // GRAVITY
+	gravity_accel(); // GRAVITY
 
 	zero_active_particle_accelerations(); // ! GRAVITY
 
-	// accel_hydro();
+	// hydro_accel();
 
 	Profile("Accelerations");
 
@@ -33,7 +33,7 @@ void Compute_Acceleration()
 
 #ifdef GRAVITY
 
-static void accel_gravity_tree()
+static void gravity_accel_tree()
 {
 	if (Sig.Tree_Update)
 		Gravity_Tree_Build();
@@ -48,14 +48,14 @@ static void accel_gravity_tree()
 	return ;
 }
 
-static void accel_gravity()
+static void gravity_accel()
 {
 	Profile("Gravity");
 
 	if (Sig.Fullstep)
 		Gravity_Multi_Grid();  // GRAVITY_MULTI_GRID
 
-	accel_gravity_tree(); // GRAVITY_TREE
+	gravity_accel_tree(); // GRAVITY_TREE
 
 	Gravity_Simple_Accel(); // GRAVITY_SIMPLE, performs force test
 

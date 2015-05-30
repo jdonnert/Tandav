@@ -15,7 +15,7 @@
 #define ALENGTH3(a) sqrt(a[0]*a[0] + a[1]*a[1] + a[2]*a[2]) // these are slow ! 
 #define ALENGTH2(a) sqrt(a[0]*a[0] + a[1]*a[1])
 
-#define ASCALPROD3(a) (a[0]*a[0] + a[1]*a[1] + a[2]*a[2]) // these are fast
+#define ASCALPROD3(a) (a[0]*a[0] + a[1]*a[1] + a[2]*a[2]) // these are fast !
 #define ASCALPROD2(a) (a[0]*a[0] + a[1]*a[1])
 
 #define p2(a) ((a)*(a))

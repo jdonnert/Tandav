@@ -61,19 +61,19 @@ void Gravity_Tree_Build()
 
 	#pragma omp flush (Tree)
 
-	const size_t buf_threshold = Task.Buffer_Size/sizeof(*Tree);
+	const size_t buf_threshold = 0.8 * Task.Buffer_Size/sizeof(*Tree);
 
-	//#pragma omp for schedule(static,1)
-	#pragma omp single
+	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NTop_Nodes; i++) {
 
-		int src = D[i].Bunch.Target;
+//		int src = D[i].Bunch.Target;
 
 		if (D[i].Bunch.Is_Local) {
 
-			src = Task.Rank;
+//			src = Task.Rank;
 
-			int first_part = 0, level = 0;
+			int first_part = 0;
+			int level = 0;
 
 			transform_bunch_into_top_node(i, &level, &first_part);
 
@@ -194,8 +194,8 @@ static void transform_bunch_into_top_node(const int i, int *level, int *ipart)
 }
 
 /*
- * Reserve memory in the "*Tree" structure in a thread safe way. Reallocates
- * = enlarges the *Tree memory if needed.
+ * Reserve memory in the "*Tree" structure. Reallocates  = enlarges the 
+ * *Tree memory if needed.
  */
 
 static int reserve_tree_memory(const int i, const int nNeeded)
@@ -213,8 +213,8 @@ static int reserve_tree_memory(const int i, const int nNeeded)
 
 		size_t nBytes = Max_Nodes * sizeof(*Tree);
 
-		mprintf("(%d:%d) Increasing Tree Memory to %g MB, "
-				"Max %d Nodes, Factor %g \n"
+		mprintf("(%d:%d) Increasing Tree Memory to %6.1g MB, "
+				"Max %10d Nodes, Factor %4.3g \n"
 				, Task.Rank, Task.Thread_ID, nBytes/1024.0/1024.0, Max_Nodes,
 				(double)Max_Nodes/Task.Npart_Total); fflush(stdout);
 
@@ -229,9 +229,8 @@ static int reserve_tree_memory(const int i, const int nNeeded)
 }
 
 /*
- * A subtree is build starting at node index "tree_start", from top node 
- * at index "tnode_idx". The first node is build by hand as a copy of the 
- * top node.
+ * A subtree is build starting in *tree, from top node at index "tnode_idx". 
+ * The first node is build by hand from the existing top node.
  * We use that the particles are in Peano-Hilbert order, i.e. that a 
  * particle will branch off as late as possible from the previous one. This 
  * means refining a node can be done via a split and reassignment of ipart and
@@ -249,7 +248,7 @@ static int reserve_tree_memory(const int i, const int nNeeded)
  * N^2  again. This happens at a depth, which corresponds to a distance of 
  * Domain.Size/2^42, hence only occurs with double precision positions. The 
  * Tree.Bitfield contains the level of the node and the Peano-Triplet of the 
- * node at that level. See Tree definition in gravity.h. 
+ * node at that level. See *Tree definition in gravity.h. 
  */
 
 static int build_subtree(const int first_part, const int tnode_idx,
@@ -351,8 +350,6 @@ static int build_subtree(const int first_part, const int tnode_idx,
 			(double)nNodes/D[tnode_idx].TNode.Npart);
 #endif
 
-
-
 	return nNodes;
 }
 
@@ -420,7 +417,7 @@ static void collapse_last_branch(const int node, const int last_parent,
 
 /* 
  * Do some final operations on the node contents.
- * Copy the first node into the top node. If tree contains less than 8 
+ * Copy the first node into the top node. If the subtree contains less than 8 
  * particles, return 0. 
  * After the build, some inner DNext pointers are 0. This is corrected 
  * setting these pointers and closing the P-H curve through the sub tree.
@@ -442,7 +439,7 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 	D[tnode_idx].TNode.CoM[1] = tree[0].CoM[1];
 	D[tnode_idx].TNode.CoM[2] = tree[0].CoM[2];
 
-	if (tree[0].Npart <= 8) { // too small, save only topnode
+	if (tree[0].Npart <= 8) { // too small, save only topnode, return empty
 
 		memset(tree, 0, nNodes * sizeof(*tree));
 
@@ -662,6 +659,7 @@ void test_gravity_tree(const int nNodes)
 				tree[node].DNext, tree[node].DUp, nSize, nout,
 				com[0], com[1], com[2], tree[node].CoM[0],
 				tree[node].CoM[1],tree[node].CoM[2] );
+
 		Print_Int_Bits32(tree[node].Bitfield);
 	}
 

@@ -234,7 +234,7 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 			continue;
 		}
 
-		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]); // particle in node ?
+		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]); // Springel '06: (19)
 
 		if (dx < 0.6 * nSize) {  
 

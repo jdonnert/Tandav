@@ -16,6 +16,7 @@ static void empty_comm_buffer(char *, const int, const int, const int *,
 		const size_t *);
 
 static void generate_masses_from_header();
+static void set_particle_types();
 
 void Read_Snapshot(char *input_name)
 {
@@ -112,6 +113,8 @@ void Read_Snapshot(char *input_name)
 	}
 
 	generate_masses_from_header();
+
+ 	set_particle_types();
 
 	rprintf("\nReading completed\n\n");
 
@@ -303,7 +306,7 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 { 
 	const bool swap = swap_Endian;
 	
-	struct gadget_header head;
+	struct gadget_header head = { { 0 } };
 
 	int32_t blocksize = find_block(fp, "HEAD", swap_Endian);
 
@@ -328,12 +331,14 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 	safe_fread(&head.Flag_Metals, sizeof(head.Flag_Metals), 1, fp,swap);
 	safe_fread(head.Nall_High_Word, sizeof(*head.Nall_High_Word), 6, fp,swap);
 
-	for (int i = Sim.Npart_Total = 0; i < NPARTYPE; i++) {
+	Sim.Npart_Total = 0;
+
+	for (int i = 0; i < NPARTYPE; i++) {
 
 		Sim.Mpart[i] = head.Massarr[i];
 
-		Sim.Npart[i] = (uint64_t)head.Nall[i] 
-					+ ( ((uint64_t)head.Nall_High_Word[i]) << 32);
+		Sim.Npart[i] = (uint64_t)head.Nall[i];
+		Sim.Npart[i] += ((uint64_t)head.Nall_High_Word[i]) << 32;
 		
 		Sim.Npart_Total += Sim.Npart[i];
 	}
@@ -344,7 +349,7 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 
 	size_t sum = 0;
 
-	for (int i=0; i<NPARTYPE; i++)
+	for (int i = 0; i < NPARTYPE; i++)
 		sum += Sim.Npart[i];
 
 	printf("Total Particle Numbers (Masses) in Snapshot Header:	\n"
@@ -402,6 +407,47 @@ static void generate_masses_from_header()
 		iMin += Task.Npart[type];
 	}
 
+	return;
+}
+
+
+/*
+ * We recover the particle types from the IDs which are assumed strictly 
+ * ordered in the range [1, Npart]
+ */
+
+static void set_particle_types()
+{
+	uint64_t min_ID[NPARTYPE] = { 0 };
+	uint64_t max_ID[NPARTYPE] = { 0 };
+
+	uint64_t run = 0;
+		
+	for (int type = 0; type < NPARTYPE; type++) {
+
+		min_ID[type] = max_ID[type] = -1;
+
+		if (Sim.Npart[type] == 0)
+			continue;
+
+		min_ID[type] = run;
+		
+		run += Sim.Npart[type];
+
+		max_ID[type] = run - 1;
+	}
+
+	#pragma omp parallel for
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+		
+		for (int type = 0; type < NPARTYPE; type++) {
+			
+			if (P[ipart].ID <= max_ID[type])
+				if (P[ipart].ID >= min_ID[type])
+					P[ipart].Type = type;
+		}
+	}
+	
 	return;
 }
 

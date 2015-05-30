@@ -42,6 +42,8 @@ extern struct Parameters_From_File {
 	int Buffer_Size;			// Total size of thread safe buffer
 	int Num_Output_Files;		// Number of files per snapshot
 	double Runtime_Limit;		// in sec
+	double Max_Timestep;		// largest timestep constraint
+	double Min_Timestep;		// smallest timestep constraint
 } Param;
 
 extern struct Particle_Data {

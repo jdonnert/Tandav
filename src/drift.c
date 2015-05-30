@@ -45,6 +45,8 @@ void Drift_To_Sync_Point()
 
 	Time.Current = Integer_Time2Integration_Time(Int_Time.Current);
 
+	Time.Step_Counter++;
+
 	} // omp single
 
 	Set_Current_Cosmology(); // update immediately
@@ -82,6 +84,7 @@ void Drift_To_Snaptime()
 
 	#pragma omp single
 	Time.Current = Time.Next_Snap;
+	
 
 	return ;
 }

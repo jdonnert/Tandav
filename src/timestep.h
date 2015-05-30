@@ -20,12 +20,12 @@ struct TimeData {
 } Time;
 
 struct IntegerTimeLine {
-	intime_t Beg;		// beginning of integer timeline
-	intime_t Current;	// current point on integer timeline
-	intime_t Next;		// next point on interger timeline
-	intime_t End;		// end of integer timeline
-	intime_t Step;		// current time step on integer timeline
-	intime_t Next_Full_Step; // next full step on integer timeline
+	intime_t Beg;			// beginning of integer timeline
+	intime_t Current;		// current point on integer timeline
+	intime_t Next;			// next point on interger timeline
+	intime_t End;			// end of integer timeline
+	intime_t Step;			// current time step on integer timeline
+	intime_t Next_Full_Step;// next full step on integer timeline
 } Int_Time;
 
 void Set_New_Timesteps();

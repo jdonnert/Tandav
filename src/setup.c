@@ -12,9 +12,9 @@ void Setup()
 
 	Setup_Cosmology(); // COMOVING
 
-	Setup_Comoving(); // COMOVING
-
 	Setup_Time_Integration();
+
+	Setup_Comoving(); // COMOVING
 
 	Setup_Domain_Decomposition();
 

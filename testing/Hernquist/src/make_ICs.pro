@@ -6,7 +6,7 @@ pro make_ICs, periodic=periodic
 
 	seed = 14041981L
 
-	npart = 50000L
+	npart = 500000L
 
 	boxsize = 55000D
 
@@ -104,8 +104,6 @@ pro make_ICs, periodic=periodic
 
 	return
 end
-
-
 
 function hernquist_potential, r, a, mass
 

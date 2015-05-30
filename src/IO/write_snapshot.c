@@ -55,6 +55,8 @@ void Write_Snapshot()
 
 	} // omp  master
 
+	#pragma omp barrier
+
 	Profile("Write Snap");
 
 	return ;

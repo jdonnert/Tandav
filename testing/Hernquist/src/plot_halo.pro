@@ -1,7 +1,3 @@
-
-;for i =0,25 do begin & density_profile, snap=i & wait, 0.2 & end
-;for i =0,25 do begin & potential_profile, snap=i & wait, 0.2 & end
-
 pro show_halo, snap=snap, periodic=periodic
 
 	common globals, tandav, cosmo
@@ -48,7 +44,7 @@ pro density_profile, nsnap=nsnap, periodic=periodic
 
 		pos = tandav.readsnap(fname, 'POS', head=head)
 
-		print, median(pos[0,*]), median(pos[1,*]), median(pos[2,*])
+		print, 'Center ', median(pos[0,*]), median(pos[1,*]), median(pos[2,*])
 
 		pos[0,*] -= median(pos[0,*])
 		pos[1,*] -= median(pos[1,*])

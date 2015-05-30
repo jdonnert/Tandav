@@ -1,8 +1,8 @@
-#### CODE PARAMETERS ####
+#### BASIC CODE PARAMETERS ####
 
-#DEBUG                       // verbose output
+#DEBUG                       // verbose (!) output
 
-PERIODIC                   // periodic boundary conditions
+PERIODIC                    // periodic boundary conditions
 
 PART_ALLOC_FACTOR 1.05		// [1.05] maximum npart per rank relative to mean
 
@@ -16,7 +16,7 @@ DOMAIN_IMBAL_CEIL 0.05		// [0.05] desired maximum cost imbalance
 GRAVITY                     // gravitational interaction master switch
 GRAVITY_POTENTIAL           // compute gravitational potential
 
-#GRAVITY_SIMPLE              // N^2 law, also shows grav force errors 
+#GRAVITY_SIMPLE              // N^2 law, shows grav force errors 
 GRAVITY_TREE                // B&H gravity tree
 
 GRAV_SOFTENING 200          // Plummer eq. gravitational softening length 
@@ -28,26 +28,28 @@ TREE_OPEN_PARAM_REL 0.03    // [0.03] Relative opening criterion parameter
 OUTPUT_TOTAL_ACCELERATION   // total acceleration ACC
 OUTPUT_PARTIAL_ACCELERATIONS// save & output all ACC components
 OUTPUT_GRAV_POTENTIAL       // gravitational potential GPOT
-#OUTPUT_PEANO_KEY           // peano key of particle "PKEY"
+#OUTPUT_PEANO_KEY            // short peano key of particle "PKEY"
 
 #### CODE UNITS ####
 
-LENGTH2CGS 3.0856802e+21    // 1 kpc
-MASS2CGS 1.9890000e+43      // 10^10 Msol
-VELOCITY2CGS 1.0e+05        // km/s
+LENGTH2CGS 3.0856802e+21    // [1 kpc]
+MASS2CGS 1.9890000e+43      // [10^10 Msol]
+VELOCITY2CGS 1.0e+05        // [km/s]
 
 #### COSMOLOGY & COMOVING ####
 
-COMOVING                   // comoving coordinates for cosmo sims
-TIME_DISPL_CONSTRAINT 0.25 	// [0.25] max displacement from rms velocity
+COMOVING                    // comoving coordinates for cosmo sims
+TIME_DISPL_CONSTRAINT 0.25 	// [0.25] max displacement from rms velocity @ z>>0
 
-HUBBLE_CONST 70.0          	// km/s/Mpc, set =100 for Gadget behaviour
+HUBBLE_CONST 100.0          	// km/s/Mpc, set to 100 for Gadget behaviour
 OMEGA_LAMBDA 0.7
+OMEGA_MATTER 0.3			// was Omega0 in Gadget.
 OMEGA_BARYON 0.03           // assuming H0=100
-OMEGA_0 1.0					
 OMEGA_RAD 0	
 
 #### ALWAYS RECOMMENDED ####
 
 MEMORY_MANAGER  
 
+#### FoF ####
+#FOF                         // Friends-of-Friends master switch

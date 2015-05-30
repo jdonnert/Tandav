@@ -22,3 +22,5 @@ TimeBegin		0.0070922 % z=140
 TimeEnd			1 % z=0
 TimeOfFirstSnaphot		0.0070922
 TimeBetSnapshots		0.01
+MaxSizeTimestep 0.05
+MinSizeTimestep 1e-7

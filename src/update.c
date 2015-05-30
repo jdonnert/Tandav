@@ -16,7 +16,7 @@ void Update(enum Update_Parameters stage)
 {
 	switch (stage) {
 
-	case BEFORE_MAIN_LOOP:
+	case BEFORE_PRESTEP:
 
 		Set_Current_Cosmology();
 
@@ -37,6 +37,16 @@ void Update(enum Update_Parameters stage)
 		Time_For_Domain_Update();
 
 		Print_Memory_Usage();
+
+		Sig.First_Step = Sig.Fullstep = true; 
+
+		break;
+
+	case BEFORE_MAIN_LOOP:
+
+		Sig.First_Step = true; 
+	
+		Int_Time.Next_Full_Step = Int_Time.Current;
 
 		break;
 

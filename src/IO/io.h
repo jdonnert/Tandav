@@ -44,6 +44,8 @@ static const parameter ParDef[] = {
 	{"TimeEnd", "10", &Time.End, DOUBLE},
 	{"TimeOfFirstSnaphot", "0", &Time.First_Snap, DOUBLE},
 	{"TimeBetSnapshots", "0", &Time.Bet_Snap, DOUBLE},
+	{"MaxSizeTimestep", "0.05", &Param.Max_Timestep, DOUBLE},
+	{"MinSizeTimestep", "1e-7", &Param.Min_Timestep, DOUBLE},
 
 	/* Add yours below */
 };

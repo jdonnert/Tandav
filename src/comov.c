@@ -7,6 +7,9 @@
 
 #define TABLESIZE 128
 
+static void convert_velocities_to_comoving();
+static void setup_kick_drift_factors();
+
 static double Drift_Table[TABLESIZE] = { 0 }, Kick_Table[TABLESIZE] = { 0 },
 			  Exp_Factor_Table[TABLESIZE] = { 0 };
 
@@ -19,7 +22,8 @@ static gsl_interp_accel *Acc[4] = { NULL };
  * in comoving coordinates from a spline interpolation of the integral in
  * Appendix of Quinn+ 1997. This allows us to use a short table resulting in
  * relatives errors < 1e-4, which is the same as the numerical integrator 
- * gives.
+ * gives. As our velocity variable is \dot{x}*a^1.5, but the canonical momentum
+ * is m*a^2\dot{x}, we have to add sqrt(a) to the particle drift step.
  * These functions are thread safe.
  */
 
@@ -40,13 +44,13 @@ double Particle_Drift_Step(const int ipart, const double a_next)
 	double drift_factor_beg = gsl_spline_eval(Drift_Spline, a_curr, Acc[2]);
 	double drift_factor_end = gsl_spline_eval(Drift_Spline, a_next, Acc[3]);
 
-	return drift_factor_end - drift_factor_beg;
+	return Cosmo.Sqrt_Expansion_Factor * (drift_factor_end - drift_factor_beg);
 }
 
 /*
  * Integrate in s = \int^{t_i}_{t_0} dt/a^{-2} so we are conserving 
- * canonical momentum.
- * See Quinn Katz, Stadel & Lake 1997, Peebles 1980, Bertschinger 1999. 
+ * canonical momentum m * a^2 * \dot{x}.
+ * See Quinn, Katz, Stadel & Lake 1997, Peebles 1980, Bertschinger 1999. 
  * Note that in code units "dt = da" so the integrals from Quinns paper 
  * have to be transformed from dt -> da, which gives the additional factor of 
  * 1/\dot{a} = 1/H(a)/a. Time stepping however is done in dln(a) = 1+z.
@@ -62,17 +66,46 @@ static double comoving_symplectic_kick_integrant(double a, void *param)
 	return 1 / (Hubble_Parameter(a) * a*a);
 }
 
+void Setup_Comoving()
+{
+	#pragma omp parallel
+	{
+
+	convert_velocities_to_comoving();
+	
+    setup_kick_drift_factors();
+
+	} // omp parallel
+
+	return ;
+}
+
+void Finish_Comoving()
+{
+	#pragma omp parallel
+	{
+
+	gsl_spline_free(Drift_Spline);
+	gsl_spline_free(Kick_Spline);
+
+	gsl_interp_accel_free(Acc[0]);
+	gsl_interp_accel_free(Acc[1]);
+	gsl_interp_accel_free(Acc[2]);
+	gsl_interp_accel_free(Acc[3]);
+
+	} // omp parallel
+
+	return ;
+}
+
 /*
  * This sets up the comoving kick & drift factors using a table and cspline
  * interpolation. For an EdS universe the solution is:
  * drift(a) = -2/H0/sqrt(a) ; kick(a) = 2/H0 * sqrt(a)
  */
 
-void Setup_Comoving()
+static void setup_kick_drift_factors()
 {
-	#pragma omp parallel
-	{
-
 	gsl_function gsl_F = { 0 };
 	gsl_integration_workspace *gsl_workspace = NULL;
 	gsl_workspace = gsl_integration_workspace_alloc(TABLESIZE);
@@ -114,28 +147,133 @@ void Setup_Comoving()
 	gsl_spline_init(Kick_Spline, Exp_Factor_Table, Kick_Table, TABLESIZE);
 	gsl_spline_init(Drift_Spline, Exp_Factor_Table, Drift_Table, TABLESIZE);
 
-	} // omp parallel
+	return;
+}
+
+/*
+ * This converts the particle velocities from the initial conditions to the 
+ * internal velocity variable u = v*a^1.5. This is because in an Einstein-
+ * de Sitter universe the peculiar velocity at high redshift scales with
+ * a^0.5, as can be shown by combining the Newtonian equations of motions in
+ * comoving coordinates with the Zeldovich approximation. However, we use a 
+ * modified comoving potential from Quinn+ 1997 to construct the symplectic 
+ * integrator, which requires another factor "a" in the comoving potential 
+ * and hence the peculiar velocity scales with a^1.5 using this comoving 
+ * potential. (Peebles 1980, Mo, v.d.Bosch, White 4.1.8, Springel 2001)
+ */
+
+static void convert_velocities_to_comoving()
+{
+	const double phys2comov_vel = pow(Time.Current, 1.5);
+
+	#pragma omp for
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+	
+		P[ipart].Vel[0] *= phys2comov_vel;
+		P[ipart].Vel[1] *= phys2comov_vel;
+		P[ipart].Vel[2] *= phys2comov_vel;
+	}
 
 	return ;
 }
 
-void Finish_Comoving()
+/* 
+ * In cosmological simulations the timestep has to be bound by the maximum 
+ * displacement given the rms velocity of all particles. The maximum 
+ * displacement is set relative to the mean particle separation.
+ */
+
+static double vel2[NPARTYPE] = { 0 }, min_mpart[NPARTYPE] = { 0 };
+static long long npart[NPARTYPE] = { 0 };
+
+double Comoving_VelDisp_Timestep_Constraint(const double dt_max_ext)
 {
-	#pragma omp parallel
+	#pragma omp single
+	{
+		
+	for (int type = 0; type < NPARTYPE; type++) {
+		
+		vel2[type] = npart[type] = 0;
+		min_mpart[type] = DBL_MAX;
+	}
+
+	} // omp single
+
+	double vel2_thread[NPARTYPE] = { 0 };
+	double min_mpart_thread[NPARTYPE] = { DBL_MAX };
+	int npart_thread[NPARTYPE] = { 0 };
+
+	#pragma omp for nowait
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+	
+		int type = P[ipart].Type;
+
+		vel2_thread[type] += ASCALPROD3(P[ipart].Vel);
+		
+		min_mpart_thread[type] = fmin(min_mpart[type], P[ipart].Mass);
+		
+		npart_thread[type]++;
+	}
+
+	#pragma omp critical // array-reduce 
+	{
+	
+	for (int type = 0; type < NPARTYPE; type++) {
+		
+		vel2[type] += vel2_thread[type];
+		
+		min_mpart[type] = fmin(min_mpart_thread[type], min_mpart[type]);
+	
+		npart[type] += npart_thread[type];
+	} // for type
+
+	} // omp critical
+	
+	#pragma omp barrier
+
+	double dt_max = DBL_MAX;
+
+	#pragma omp single copyprivate(dt_max)
 	{
 
-	gsl_spline_free(Drift_Spline);
-	gsl_spline_free(Kick_Spline);
+	MPI_Allreduce(MPI_IN_PLACE, vel2, NPARTYPE, MPI_DOUBLE, MPI_SUM, 
+			MPI_COMM_WORLD);
+	MPI_Allreduce(MPI_IN_PLACE, min_mpart, NPARTYPE, MPI_DOUBLE, MPI_MIN, 
+			MPI_COMM_WORLD);
+	MPI_Allreduce(MPI_IN_PLACE, npart, NPARTYPE, MPI_LONG_LONG, MPI_SUM, 
+			MPI_COMM_WORLD);
 
-	gsl_interp_accel_free(Acc[0]);
-	gsl_interp_accel_free(Acc[1]);
-	gsl_interp_accel_free(Acc[2]);
-	gsl_interp_accel_free(Acc[3]);
+	double rho_baryon = Cosmo.Omega_Baryon*Cosmo.Rho_Crit0;
+	double rho_nonbaryon = Cosmo.Omega_Matter*Cosmo.Rho_Crit0 - rho_baryon;
 
-	} // omp parallel
+	printf("\nComoving Time Displacement Constraint at a = %g \n", Time.Current);
 
-	return ;
+	for (int type = 0; type < NPARTYPE; type++) {
+
+		if (npart[type] == 0)
+			continue;
+		
+		double dmean = 0;
+
+		if (type == 0)
+			dmean = pow( min_mpart[type]/rho_baryon, 1.0/3.0);
+		else
+			dmean = pow( min_mpart[type]/rho_nonbaryon, 1.0/3.0);
+	
+		double vrms = sqrt( vel2[type]/npart[type] );
+
+		double dt = TIME_DISPL_CONSTRAINT * dmean / vrms 
+					* p2(Cosmo.Expansion_Factor) * Cosmo.Hubble_Parameter ;
+		
+		printf("   Type %d: dmean %g, min mpart %g, sqrt(<p^2>) %g,"
+				" dlogmax %g \n", type, dmean, min_mpart[type], vrms, dt);		
+
+		dt_max = fmin(dt, dt_max);
+	}
+
+	} // omp single
+
+	return fmin(dt_max_ext, dt_max);
 }
-
 
 #endif // COMOVING

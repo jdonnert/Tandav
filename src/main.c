@@ -27,12 +27,14 @@ int main(int argc, char *argv[])
 	#pragma omp parallel
 	{
 
-	Update(BEFORE_MAIN_LOOP);
+	Update(BEFORE_PRESTEP);
 
 	Set_New_Timesteps();
 	
 	Kick_First_Halfstep();
 
+	Update(BEFORE_MAIN_LOOP);
+	
 	for (;;) { // run, Forest, run !
 
 		if (Time_Is_Up())

@@ -5,7 +5,7 @@
 
 static void find_global_domain_extend();
 static void fill_bunches(const int, const int, const int, const int);
-static void find_Mean_Cost();
+static void find_mean_cost();
 static int remove_empty_bunches();
 static void split_bunch(const int, const int);
 static void reallocate_topnodes(); // not thread safe
@@ -59,13 +59,13 @@ void Domain_Decomposition()
 	find_global_domain_extend();
 
 	Sort_Particles_By_Peano_Key();
-	
+
 	#pragma omp single
 	reset_bunchlist();
 
 	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
-	find_Mean_Cost();
+	find_mean_cost();
 
 	for (;;) {
 
@@ -419,7 +419,7 @@ static int cost_metric(const int ipart)
 	return 1;
 }
 
-static void find_Mean_Cost()
+static void find_mean_cost()
 {
 	#pragma omp single // do cost and npart mean
 	Mean_Cost = 0;

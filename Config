@@ -2,7 +2,7 @@
 
 #DEBUG                       // verbose (!) output
 
-PERIODIC                    // periodic boundary conditions
+#PERIODIC                    // periodic boundary conditions
 
 PART_ALLOC_FACTOR 1.05		// [1.05] maximum npart per rank relative to mean
 

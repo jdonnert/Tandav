@@ -33,8 +33,8 @@ void Periodic_Constrain_Particles_To_Box()
 
 /*
  * Do the periodic mapping on a 3D distance array. We are relying on link time 
- * optimization of the compiler to do the inlining for us. Make sure to put
- * the appropriate compiler switches.
+ * optimization of the compiler to do the inlining for us. Unrolling would help
+ * as well. Make sure to put the appropriate compiler switches.
  */
 
 void Periodic_Nearest(Float dr[3])

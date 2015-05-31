@@ -58,19 +58,19 @@ void Profile_Info(const char* file, const char* func, const int line,
 		strncpy(Prof[i].Name, name, CHARBUFSIZE);
 
 		NProfObjs++;
-	} 
-	
+	}
+
 	if (Prof[i].Tbeg != 0) { // stop
 
 		Prof[i].Tend = measure_time();
-	
+
 		Prof[i].ThisLast = Prof[i].Tend - Prof[i].Tbeg;
 
 		Prof[i].Total += Prof[i].ThisLast;
 
 		if (i != 0)
 			Prof[i].Tbeg = 0;	
-		
+
 #ifdef DEBUG
 		printf("\nDEBUG: (%d:%d) ends %s took %g sec \n", Task.Rank, 
 				Task.Thread_ID, name, Prof[i].ThisLast); fflush(stdout);
@@ -79,7 +79,7 @@ void Profile_Info(const char* file, const char* func, const int line,
 	} else { // restart
 
 		Prof[i].Tbeg = measure_time();
-		
+
 		Prof[i].Tend = Prof[i].ThisLast = 0;
 
 #ifdef DEBUG
@@ -101,7 +101,7 @@ void Profile_Report(FILE *stream)
 	{
 
 	for (int i = 0; i < NProfObjs; i++) { 
-	
+
 		MPI_Reduce(&Prof[i].Total, &Prof[i].Min, 1, MPI_DOUBLE, 
 			MPI_MIN, Sim.Master, MPI_COMM_WORLD);
 
@@ -157,34 +157,34 @@ void Profile_Report(FILE *stream)
 
 void Profile_Report_Last(FILE *stream)
 {
-	#pragma omp single 
+	#pragma omp single
 	{
 
 	const double now = measure_time();
 
-	double min[MAXPROFILEITEMS] = { 0 }, 
-		   max[MAXPROFILEITEMS] = { 0 }, 
+	double min[MAXPROFILEITEMS] = { 0 },
+		   max[MAXPROFILEITEMS] = { 0 },
 		   mean[MAXPROFILEITEMS] = { 0 },
 		   imbalance[MAXPROFILEITEMS] = { 0 };
 
-	for (int i = 1; i < NProfObjs; i++) { 
+	for (int i = 1; i < NProfObjs; i++) {
 
-		MPI_Reduce(&Prof[i].ThisLast, &min[i], 1, MPI_DOUBLE, 
+		MPI_Reduce(&Prof[i].ThisLast, &min[i], 1, MPI_DOUBLE,
 			MPI_MIN, Sim.Master, MPI_COMM_WORLD);
 
-		MPI_Reduce(&Prof[i].ThisLast, &max[i], 1, MPI_DOUBLE, 
+		MPI_Reduce(&Prof[i].ThisLast, &max[i], 1, MPI_DOUBLE,
 			MPI_MAX, Sim.Master, MPI_COMM_WORLD);
 
-		MPI_Reduce(&Prof[i].ThisLast, &mean[i], 1, MPI_DOUBLE, 
+		MPI_Reduce(&Prof[i].ThisLast, &mean[i], 1, MPI_DOUBLE,
 			MPI_SUM, Sim.Master, MPI_COMM_WORLD);
-	
+
 		mean[i] /= Sim.NRank;
- 
+
 		imbalance[i] = max[i] - min[i];
 	}
-	
+
 	if (!Task.Is_MPI_Master)
-		goto skip; 
+		goto skip;
 
 	double delta_last = now - Last_Report_Call;
 
@@ -192,8 +192,8 @@ void Profile_Report_Last(FILE *stream)
 
 	char fullstep[CHARBUFSIZE] = {" "};
 
-	if (Sig.Fullstep)
-		sprintf(fullstep,", Fullstep");
+	if (Sig.Sync_Point)
+		sprintf(fullstep,", Sync_Point");
 
 	if (delta_last > 60) { // switch to minutes ?
 
@@ -202,12 +202,12 @@ void Profile_Report_Last(FILE *stream)
 		fprintf(stream, "\nProfiler: Step %d @ t=%g, lasted %g min%s\n", 
 				Time.Step_Counter, Time.Current, delta_last, fullstep);
 
-	} else { 
-	
+	} else {
+
 		fprintf(stream, "\nProfiler: Step %d @ t=%g, lasted %g sec%s\n", 
 				Time.Step_Counter, Time.Current, delta_last, fullstep);
 	}
-	
+
 	fprintf(stream, "                Name"
 			"      Imbal        Max       Min      Mean\n");
 
@@ -216,9 +216,9 @@ void Profile_Report_Last(FILE *stream)
 				imbalance[i]/scale, max[i]/scale, min[i]/scale, mean[i]/scale);
 
 	Last_Report_Call = now;
-	
+
 	skip:;
-	
+
 	} // omp single 
 
 	return ;
@@ -227,7 +227,7 @@ void Profile_Report_Last(FILE *stream)
 double Runtime()
 {
 	double now = measure_time();
-	
+
 	return (now - Prof[0].Tbeg) / 60; // in minutes
 }
 

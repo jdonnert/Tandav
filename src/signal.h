@@ -3,7 +3,7 @@ bool Time_For_Snapshot();
 bool Time_For_Domain_Update();
 
 extern struct Simulation_Signals { // communicate an event across the code
-	bool Fullstep;				// Current step is fullstep
+	bool Sync_Point;			// all particles synchronised
 	bool Write_Snapshot;		// write a snapshot this iteration
 	bool Write_Restart_File;	// write a restart file upon exit
 	bool Endrun;				// stops the run

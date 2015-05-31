@@ -33,10 +33,10 @@ extern struct Global_Simulation_Properties {
 
 extern struct Parameters_From_File {
 	char File[CHARBUFSIZE];		// parameter file name
+	int Start_Flag;
 	char Input_File[CHARBUFSIZE];
 	char Output_File_Base[CHARBUFSIZE];
 	char Log_File_Dir[CHARBUFSIZE];
-	int Start_Flag;				// invokation mode
 	int Num_IO_Tasks;			// written in parallel
 	int Max_Mem_Size;			// Memory Ceiling in 1024^2 Bytes
 	int Buffer_Size;			// Total size of thread safe buffer
@@ -49,7 +49,7 @@ extern struct Parameters_From_File {
 extern struct Particle_Data {
 	int Type;
 	int Time_Bin;
-	intime_t Int_Time_Pos;		// position on integer timeline
+	intime_t Int_Time_Pos;		// current position on integer timeline
 	float Cost;					// computational weight of particle
 #ifdef GRAVITY_TREE
 	int Tree_Parent;			// Tree node leave, negative-1 if top node only
@@ -64,5 +64,11 @@ extern struct Particle_Data {
 	Float Grav_Pot;
 #endif
 } *P;
+
+extern struct Gas_Particle_Data {
+	Float Entropy;
+	Float Volume;
+	Float Bfld[3];
+} *G;
 
 #endif // GLOBALS_H

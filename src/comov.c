@@ -58,12 +58,12 @@ double Particle_Drift_Step(const int ipart, const double a_next)
 
 static double comoving_symplectic_drift_integrant(double a, void *param)
 {
-	return 1 / (Hubble_Parameter(a) * a*a*a);
+	return 1.0 / (Hubble_Parameter(a) * a*a*a);
 }
 
 static double comoving_symplectic_kick_integrant(double a, void *param)
 {
-	return 1 / (Hubble_Parameter(a) * a*a);
+	return 1.0 / (Hubble_Parameter(a) * a*a);
 }
 
 void Setup_Comoving()
@@ -72,7 +72,7 @@ void Setup_Comoving()
 	{
 
 	convert_velocities_to_comoving();
-	
+
     setup_kick_drift_factors();
 
 	} // omp parallel
@@ -168,7 +168,7 @@ static void convert_velocities_to_comoving()
 
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-	
+
 		P[ipart].Vel[0] *= phys2comov_vel;
 		P[ipart].Vel[1] *= phys2comov_vel;
 		P[ipart].Vel[2] *= phys2comov_vel;
@@ -190,9 +190,9 @@ double Comoving_VelDisp_Timestep_Constraint(const double dt_max_ext)
 {
 	#pragma omp single
 	{
-		
+
 	for (int type = 0; type < NPARTYPE; type++) {
-		
+
 		vel2[type] = npart[type] = 0;
 		min_mpart[type] = DBL_MAX;
 	}
@@ -205,30 +205,30 @@ double Comoving_VelDisp_Timestep_Constraint(const double dt_max_ext)
 
 	#pragma omp for nowait
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-	
+
 		int type = P[ipart].Type;
 
 		vel2_thread[type] += ASCALPROD3(P[ipart].Vel);
-		
+
 		min_mpart_thread[type] = fmin(min_mpart[type], P[ipart].Mass);
-		
+
 		npart_thread[type]++;
 	}
 
 	#pragma omp critical // array-reduce 
 	{
-	
+
 	for (int type = 0; type < NPARTYPE; type++) {
-		
+
 		vel2[type] += vel2_thread[type];
-		
+
 		min_mpart[type] = fmin(min_mpart_thread[type], min_mpart[type]);
-	
+
 		npart[type] += npart_thread[type];
 	} // for type
 
 	} // omp critical
-	
+
 	#pragma omp barrier
 
 	double dt_max = DBL_MAX;
@@ -236,37 +236,38 @@ double Comoving_VelDisp_Timestep_Constraint(const double dt_max_ext)
 	#pragma omp single copyprivate(dt_max)
 	{
 
-	MPI_Allreduce(MPI_IN_PLACE, vel2, NPARTYPE, MPI_DOUBLE, MPI_SUM, 
+	MPI_Allreduce(MPI_IN_PLACE, vel2, NPARTYPE, MPI_DOUBLE, MPI_SUM,
 			MPI_COMM_WORLD);
-	MPI_Allreduce(MPI_IN_PLACE, min_mpart, NPARTYPE, MPI_DOUBLE, MPI_MIN, 
+	MPI_Allreduce(MPI_IN_PLACE, min_mpart, NPARTYPE, MPI_DOUBLE, MPI_MIN,
 			MPI_COMM_WORLD);
-	MPI_Allreduce(MPI_IN_PLACE, npart, NPARTYPE, MPI_LONG_LONG, MPI_SUM, 
+	MPI_Allreduce(MPI_IN_PLACE, npart, NPARTYPE, MPI_LONG_LONG, MPI_SUM,
 			MPI_COMM_WORLD);
 
 	double rho_baryon = Cosmo.Omega_Baryon*Cosmo.Rho_Crit0;
 	double rho_nonbaryon = Cosmo.Omega_Matter*Cosmo.Rho_Crit0 - rho_baryon;
 
-	printf("\nComoving Time Displacement Constraint at a = %g \n", Time.Current);
+	printf("\nComoving Time Displacement Constraint at a = %g \n",
+		   Time.Current);
 
 	for (int type = 0; type < NPARTYPE; type++) {
 
 		if (npart[type] == 0)
 			continue;
-		
+
 		double dmean = 0;
 
 		if (type == 0)
 			dmean = pow( min_mpart[type]/rho_baryon, 1.0/3.0);
 		else
 			dmean = pow( min_mpart[type]/rho_nonbaryon, 1.0/3.0);
-	
+
 		double vrms = sqrt( vel2[type]/npart[type] );
 
-		double dt = TIME_DISPL_CONSTRAINT * dmean / vrms 
+		double dt = TIME_DISPL_CONSTRAINT * dmean / vrms
 					* p2(Cosmo.Expansion_Factor) * Cosmo.Hubble_Parameter ;
-		
+
 		printf("   Type %d: dmean %g, min mpart %g, sqrt(<p^2>) %g,"
-				" dlogmax %g \n", type, dmean, min_mpart[type], vrms, dt);		
+				" dlogmax %g \n", type, dmean, min_mpart[type], vrms, dt);
 
 		dt_max = fmin(dt, dt_max);
 	}

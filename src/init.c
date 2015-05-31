@@ -10,8 +10,9 @@ struct Global_Simulation_Properties Sim;
 struct Local_Task_Properties Task = { 0 };
 
 struct Particle_Data *P = NULL;
+struct Gas_Particle_Data *G = NULL;
 
-void Read_and_Init()
+void Read_and_Init(int argc, char *argv[])
 {
 	Init_Profiler();
 
@@ -34,6 +35,19 @@ void Read_and_Init()
 	case 1:
 
 		Read_Restart_File();
+
+		break;
+
+	case 2:
+
+		Assert(argc > 3, "Missing snapshot number in program invokation");
+
+		char snap_file[CHARBUFSIZE] = {""};
+
+		sprintf(snap_file, "%s_%03d", Param.Output_File_Base,
+				 atoi(argv[3]) );
+
+		Read_Snapshot(snap_file);
 
 		break;
 

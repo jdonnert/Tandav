@@ -43,12 +43,16 @@ union Domain_Node_List {
 
 int NBunches;
 
-struct Domain_Properties { // smallest cubic box containing all particles
-	double Size;
+struct Domain_Properties {
+	double Size; // smallest cubic box containing all particles
 	double Origin[3];
 	double Center[3];
 	double Center_Of_Mass[3];
 } Domain;
+
+#ifdef HIGHRES_REGION 
+struct Domain_Properties Region[HIGHRES_REGION];
+#endif
 
 void Setup_Domain_Decomposition();
 void Domain_Decomposition();

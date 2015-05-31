@@ -18,10 +18,10 @@ static void set_global_timestep_constraint();
 static float get_physical_timestep(const int);
 static float cosmological_timestep(const int ipart, const Float accel);
 
-
 struct TimeData Time = { 0 };
 struct IntegerTimeLine Int_Time = { 0 };
 
+static float Dt_Max_Global = FLT_MAX;
 static int Time_Bin_Min = N_INT_BINS-1, Time_Bin_Max = 0;
 
 /* 
@@ -33,10 +33,19 @@ void Set_New_Timesteps()
 {
 	Profile("Timesteps");
 
+	if (Sig.Sync_Point || Sig.First_Step)
+		set_global_timestep_constraint(); // set t_max_global
+
 	set_new_particle_timebins();
 
 	#pragma omp single
 	{
+
+	MPI_Allreduce(MPI_IN_PLACE, &Time_Bin_Min, 1, MPI_INT, MPI_MIN,
+			MPI_COMM_WORLD);
+
+	MPI_Allreduce(MPI_IN_PLACE, &Time_Bin_Max, 1, MPI_INT, MPI_MAX,
+			MPI_COMM_WORLD);
 
 	set_system_timestep(Time_Bin_Max, Time_Bin_Min);
 
@@ -44,31 +53,30 @@ void Set_New_Timesteps()
 
 	} // omp single
 
-	Sig.Fullstep = false;
+	Sig.Sync_Point = false;
 
-	if (Int_Time.Current == Int_Time.Next_Full_Step) {
+	if ((Int_Time.Current == Int_Time.Next_Sync_Point)) {
 
-		Sig.Fullstep = true;
+		Sig.Sync_Point = true;
 
-		#pragma omp barrier 
+		#pragma omp barrier
 
 		#pragma omp single
-		Int_Time.Next_Full_Step = Umin(Int_Time.End,
-						Int_Time.Current + (1ULL << Time_Bin_Max) );
+		Int_Time.Next_Sync_Point += 1ULL << Time_Bin_Max;
 	}
 
 	Make_Active_Particle_List();
 
 	#pragma omp master
 	{
-	
+
 	print_timebins();
-	
-	Assert(Time.Step > Param.Min_Timestep, "Time step %g has fallen below "
+
+	Warn(Time.Step < Param.Min_Timestep, "Time step %g has fallen below "
 			"Min_Timestep parameter %g", Time.Step, Param.Min_Timestep);
-	
+
 	} // omp master
-	
+
 	#pragma omp barrier
 
 
@@ -127,7 +135,7 @@ void Setup_Time_Integration()
 
 	for (int i = 0; i < NActive_Particles; i++)
 		Active_Particle_List[i] = i;
- 
+
 	return ;
 }
 
@@ -136,7 +144,6 @@ void Setup_Time_Integration()
  * criteria. Find local max & min to these bins. 
  */
 
-static float dt_max_global = FLT_MAX;
 
 static void set_new_particle_timebins()
 {
@@ -148,9 +155,7 @@ static void set_new_particle_timebins()
 
 	} // omp single
 
-	if (Sig.Fullstep || Sig.First_Step)
-		set_global_timestep_constraint(); // set t_max_global
-	
+
 	#pragma omp for reduction(min:Time_Bin_Min) reduction(max:Time_Bin_Max)
 	for (int i = 0; i < NActive_Particles; i++) {
 
@@ -162,8 +167,8 @@ static void set_new_particle_timebins()
 		dt *= Cosmo.Hubble_Parameter; // convert dt to dln(a)
 #endif
 
-		dt = fmin(dt, dt_max_global);
-	
+		dt = fmin(dt, Dt_Max_Global);
+
 		Assert(dt >= Time.Step_Min, "Timestep too small for integer timeline"
 				" or not finite ! \n        ipart=%d, ID=%d, dt=%g, "
 				"acc=(%g,%g,%g)", ipart, P[ipart].ID, dt,
@@ -178,14 +183,6 @@ static void set_new_particle_timebins()
 		Time_Bin_Min = MIN(Time_Bin_Min, P[ipart].Time_Bin);
 		Time_Bin_Max = MAX(Time_Bin_Max, P[ipart].Time_Bin);
 	}
-
-	#pragma omp single nowait
-	MPI_Allreduce(MPI_IN_PLACE, &Time_Bin_Min, 1, MPI_INT, MPI_MIN,
-			MPI_COMM_WORLD);
-
-	#pragma omp single 
-	MPI_Allreduce(MPI_IN_PLACE, &Time_Bin_Max, 1, MPI_INT, MPI_MAX,
-			MPI_COMM_WORLD);
 
 
 	return ;
@@ -211,7 +208,7 @@ static void set_system_timestep()
 
 	Int_Time.Step = umin(step_end, umin(step_bin, step_sync));
 
-	Int_Time.Next += Int_Time.Step;
+	Int_Time.Next =  Int_Time.Current + Int_Time.Step;
 
 	Time.Next = Integer_Time2Integration_Time(Int_Time.Next);
 
@@ -219,7 +216,6 @@ static void set_system_timestep()
 
 	if (Sig.First_Step)
 		Time.Max_Active_Bin = Time_Bin_Min; // correct first step
-
 
 	return ;
 }
@@ -330,29 +326,37 @@ static void print_timebins()
 	int imin = -1, imax = -1;
 
 	for (int i = 0; i < N_INT_BINS; i++)
-		if ((npart[i] != 0) && (imin < 0))
+		if ((npart[i] != 0) ) {
+
 			imin = i;
 
+			break;
+		}
+
 	for (int i = N_INT_BINS-1; i > -1; i--)
-		if ((npart[i] != 0) && (imax < 0))
+		if ((npart[i] != 0)) {
+
 			imax = i;
 
-	char step[CHARBUFSIZE] = {"Step"};
+			break;
+		}
 
-	if (Sig.Fullstep)
-		sprintf(step,"Fullstep ");
+	char step[CHARBUFSIZE] = {"Point"};
+
+	if (Sig.Sync_Point)
+		sprintf(step,"Sync point");
 
 #ifdef COMOVING
 	rprintf("\n%s <%d> a = %g -> %g\n\n"
 			"NActive %d, z = %g, da = %g \n"
-	    	"   Bin       nGas        nDM A    dlog(a)\n",
+			"   Bin       nGas        nDM A    dlog(a)\n",
 			step, Time.Step_Counter, Time.Current,
 			Integer_Time2Integration_Time(Int_Time.Next),
 			NActive_Particles, 1/Time.Current-1, Time.Step);
 #else
 	rprintf("\n%s <%d> t = %g -> %g\n\n"
 			"Systemstep %g, NActive %d \n"
-	    	"   Bin       nGas        nDM A    dt\n",
+			"   Bin       nGas        nDM A    dt\n",
 			step, Time.Step_Counter, Time.Current,
 			Integer_Time2Integration_Time(Int_Time.Next),
 			Time.Step, NActive_Particles );
@@ -362,15 +366,15 @@ static void print_timebins()
 		printf("   %2d    %7d     %7d %s  %16.12f \n",
 				i, 0, npart[i], " ", Timebin2Timestep(i));
 
-	for (int i = Time.Max_Active_Bin; i >= imin; i--)
+	for (int i = MIN(Time.Max_Active_Bin, imax); i >= imin; i--)
 		printf("   %2d    %7d     %7d %s  %16.12f \n",
 			i, 0, npart[i], "X", Timebin2Timestep(i));
 
 	printf("\n");
 
-	if (Sig.Fullstep)
-		rprintf("Next full step at t = %g \n\n",
-				Integer_Time2Integration_Time(Int_Time.Next_Full_Step));
+	if (Sig.Sync_Point)
+		rprintf("Next sync point at t = %g \n\n",
+				Integer_Time2Integration_Time(Int_Time.Next_Sync_Point));
 
 	skip:;
 
@@ -395,7 +399,7 @@ static float get_physical_timestep(const int ipart)
 
 	dt = fmin(dt, dt_cosmo);
 #endif
-	
+
 	// add yours here
 
 	return dt;
@@ -420,19 +424,17 @@ static float cosmological_timestep(const int ipart, const Float acc_phys)
  */
 
 static void set_global_timestep_constraint()
-{	
-	double dt = Time.Step_Max;
-
-	dt = fmin(dt, Param.Max_Timestep);
+{
+	double dt = Param.Max_Timestep;
 
 	dt = Comoving_VelDisp_Timestep_Constraint(dt); // COMOVING
 
 	// add yours here
-	
-	#pragma omp single
-	dt_max_global = dt;
 
-	rprintf("   found max global timestep  %g \n", dt_max_global);
+	#pragma omp single
+	Dt_Max_Global = dt;
+
+	rprintf("Found max global timestep  %g \n", Dt_Max_Global);
 
 	return ;
 }

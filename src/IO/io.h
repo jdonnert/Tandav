@@ -15,14 +15,14 @@ typedef struct {
 	char val[CHARBUFSIZE]; // Standard value
 	void *addr; // Address of target variable
 	enum param_type {
-		DOUBLE, 
-		INT, 
+		DOUBLE,
+		INT,
 		STRING,
 		COMMENT,
 	} type; // type of addr
 }  parameter;
 
-static const parameter ParDef[] = { 
+static const parameter ParDef[] = {
 
 	{"\n%% Files %%\n", "", NULL, COMMENT},
 	{"InputFile", "IC_file", &Param.Input_File, STRING},

@@ -20,21 +20,15 @@ int main(int argc, char *argv[])
 {
 	preamble(argc, argv);
 
-	Read_and_Init();
+	Read_and_Init(argc, argv);
 
 	Setup();
 
 	#pragma omp parallel
 	{
 
-	Update(BEFORE_PRESTEP);
-
-	Set_New_Timesteps();
-
-	Kick_First_Halfstep();
-
 	Update(BEFORE_MAIN_LOOP);
-	
+
 	for (;;) { // run, Forest, run !
 
 		if (Time_Is_Up())
@@ -64,8 +58,6 @@ int main(int argc, char *argv[])
 
 		Update(AFTER_STEP);
 	}
-
-	Set_New_Timesteps();
 
 	Kick_Second_Halfstep();
 
@@ -143,24 +135,19 @@ static void preamble(int argc, char *argv[])
 		printf("\nUsing %d MPI tasks, %d OpenMP threads \n\n",
 				Sim.NRank, Sim.NThreads);
 
-		Assert( (argc >= 2) && (argc < 4),
+		Assert( (argc >= 2) && (argc < 5),
 			"Wrong number of arguments, let me help you: \n\n"
-			"	USAGE: ./Tandav ParameterFile <StartFlag>\n\n"
+			"	USAGE: ./Tandav ParameterFile <StartFlag> <SnapNum>\n\n"
 			"	  0  : Read IC file and start simulation (default) \n"
 			"	  1  : Read restart files and resume  \n"
-			"	  2  : Read snapshot file and continue \n"
+			"	  2  : Read snapshot file <SnapNum> and continue \n"
 			"	 10  : Dump a valid parameter file for this Config\n");
 	}
 
 	strncpy(Param.File, argv[1], CHARBUFSIZE);
 
-	if (argc > 2) // Start Flag given ?
+	if (argc > 2) // Start Flag given, == 0 otherwise
 		Param.Start_Flag = atoi(argv[2]);
-	else
-		Param.Start_Flag = 0;
-
-	//if (Param.Start_Flag == 1) 
-		//Restore_From_Restart_File();
 
 	if (Param.Start_Flag == 10) {
 

@@ -1,10 +1,11 @@
 #include "globals.h"
 #include "timestep.h"
 
+#pragma omp threadprivate(Cosmo)
 struct Current_Cosmology_In_Code_Units Cosmo = {
 	HUBBLE_CONST * KM2CGS/MPC2CGS * LENGTH2CGS/VELOCITY2CGS, // H0
 	OMEGA_LAMBDA,
-	OMEGA_MATTER, 
+	OMEGA_MATTER,
 	OMEGA_BARYON * p2(HUBBLE_CONST/100.0),
 	OMEGA_MATTER + OMEGA_LAMBDA + OMEGA_RAD, // Mo+, eq. 3.72
 	OMEGA_RAD / p2(HUBBLE_CONST/100.0),
@@ -13,7 +14,6 @@ struct Current_Cosmology_In_Code_Units Cosmo = {
 			*p2(HUBBLE_CONST* KM2CGS/MPC2CGS * LENGTH2CGS/VELOCITY2CGS), 	
 	0 // the rest is done in "Set_Current_Cosmology()"
 };
-#pragma omp threadprivate(Cosmo)
 
 #ifdef COMOVING
 
@@ -40,9 +40,9 @@ void Setup_Cosmology()
 
 void Set_Current_Cosmology()
 {
-	const double a = Time.Current; 
+	const double a = Time.Current;
 
-	Cosmo.Expansion_Factor = a; 	
+	Cosmo.Expansion_Factor = a;
 	Cosmo.Sqrt_Expansion_Factor = sqrt(a);
 
 	Cosmo.Redshift = 1/a - 1;

@@ -178,7 +178,7 @@ void Setup_Domain_Decomposition()
 
 static void reallocate_topnodes()
 {
-	Top_Node_Alloc_Factor *= 1.2;
+	Top_Node_Alloc_Factor *= 1.5;
 
 	Max_NBunches = Sim.Npart_Total * Top_Node_Alloc_Factor;
 

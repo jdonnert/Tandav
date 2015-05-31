@@ -17,24 +17,24 @@ bool Time_Is_Up()
 		rprintf("Encountered Signal: Endrun, t=%g", Time.Current);
 
 	if (test_for_stop_file()) {
-	
+
 		rprintf("Found stop file t=%g\n", Time.Current);
 
 		Sig.Write_Restart_File = true;
 
 		Sig.Endrun = true;
 	}
-	
+
 	if (Int_Time.Current == Int_Time.End) {
 
 		rprintf("\nEndTime reached: %g \n", Time.End);
-		
+
 		Sig.Endrun = true;
 	}
 
 	if (Runtime() >= Param.Runtime_Limit) {
 
-		rprintf("Runtime limit reached: t=%g at %g min\n", 
+		rprintf("Runtime limit reached: t=%g at %g min\n",
 				Time.Current, Param.Runtime_Limit/60);
 
 		Sig.Write_Restart_File = true;
@@ -42,22 +42,19 @@ bool Time_Is_Up()
 		Sig.Endrun = true;
 	}
 
-
-	#pragma omp flush (Sig)
-
 	return Sig.Endrun;
 }
 
 bool Time_For_Snapshot()
 {
-	if (Time.Current + Time.Step >= Time.Next_Snap) { 
-		
+	if (Time.Current + Time.Step >= Time.Next_Snap) {
+
 		Drift_To_Snaptime();
 
-		rprintf("\nSnapshot No. %d at t=%g, Next at t=%g \n", 
-				Time.Snap_Counter+1, Time.Next_Snap, 
+		rprintf("\nSnapshot No. %d at t=%g, Next at t=%g \n",
+				Time.Snap_Counter, Time.Next_Snap,
 				Time.Next_Snap + Time.Bet_Snap);
-	
+
 		#pragma omp single
 		Time.Next_Snap += Time.Bet_Snap;
 
@@ -67,8 +64,8 @@ bool Time_For_Snapshot()
 	if (Sig.Write_Snapshot) {
 
 		Sig.Write_Snapshot = false;
-	
-		rprintf("\nEncountered Signal: Write Snapshot %d at t=%g \n", 
+
+		rprintf("\nEncountered Signal: Write Snapshot %d at t=%g \n",
 				Time.Snap_Counter, Time.Current);
 
 		return true;
@@ -104,7 +101,7 @@ bool Time_For_Domain_Update()
 
 	#pragma omp flush (Global_NPart_Updates,Local_NPart_Updates)
 
-	if (Sig.Fullstep || (Global_NPart_Updates > max_npart_updates)) {
+	if (Sig.Sync_Point || (Global_NPart_Updates > max_npart_updates)) {
 
 		#pragma omp barrier
 

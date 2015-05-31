@@ -47,7 +47,7 @@ void Read_Snapshot(char *input_name)
 		swap_Endian = find_endianess(fp);
 
 		read_header_data(fp, swap_Endian, nFiles); // fills Sim
-		
+
 		fclose(fp);
 	}
 	

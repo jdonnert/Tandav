@@ -14,7 +14,7 @@ static void set_filename(char *filename);
 static MPI_Comm mpi_comm_write = MPI_COMM_NULL;
 
 void Write_Snapshot()
-{ 
+{
 	Profile("Write Snap");
 
 	#pragma omp master
@@ -29,7 +29,7 @@ void Write_Snapshot()
 	int groupRank = Task.Rank - groupMaster;
 
 	if (mpi_comm_write == MPI_COMM_NULL) // create & keep group communicator
-		MPI_Comm_split(MPI_COMM_WORLD, groupMaster, groupRank, 
+		MPI_Comm_split(MPI_COMM_WORLD, groupMaster, groupRank,
 				&mpi_comm_write);
 
 	int fileNum = groupMaster / groupSize;
@@ -40,12 +40,12 @@ void Write_Snapshot()
 
 	if (nFiles > 1)
 		sprintf(filename, "%s.%04i", filename, fileNum);
-	
+
 	for (int i = 0; i < nFiles; i+=nIOTasks) {
 
-		if (fileNum < i+nIOTasks && fileNum >= i) 
+		if (fileNum < i+nIOTasks && fileNum >= i)
 			write_file(filename, groupRank, groupSize, mpi_comm_write);
-		
+
 		MPI_Barrier(MPI_COMM_WORLD);
 	}
 
@@ -65,8 +65,8 @@ void Write_Snapshot()
 void write_file(const char *filename, const int groupRank, const int groupSize,
 		const MPI_Comm mpi_comm_write)
 {
-	const int groupMaster = 0;  
-	
+	const int groupMaster = 0; 
+
 	int nPartFile[NPARTYPE] = { 0 }; // npart in file by type
 
 	MPI_Reduce(Task.Npart, nPartFile, NPARTYPE, MPI_INT, MPI_SUM, 
@@ -81,9 +81,9 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 
 	for (int i = 0; i < NPARTYPE; i++) 
 		nPartTotalFile += nPartFile[i];
-	
+
 	FILE *fp = NULL;
-		
+
 	if (groupRank == groupMaster) { // open file, write header
 
 		printf("Writing file '%s' on MPI Ranks %i - %i \n"
@@ -94,66 +94,65 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 				nPartFile[0],nPartFile[1],nPartFile[2],
 				nPartFile[3],nPartFile[4],nPartFile[5],
 				nPartTotalFile); 
-		
+
 		fp = fopen(filename, "w");
-		
+
 		Assert(fp != NULL, "Can't open file %s for writing", filename);
-		
+
 		write_gadget_header(nPartFile, fp);
-	} 
-	
-	size_t dataBufSize = Largest_Block_Member_Nbytes(); 
-	
+	}
+
+	size_t dataBufSize = Largest_Block_Member_Nbytes();
+
 	if (groupRank == groupMaster)
 		dataBufSize *= 2*nPartLargest; // master stores comm&write buf 
 	else
 		dataBufSize *= Task.Npart_Total; // slaves buffer local data
-	
-	char *dataBuf = Malloc(dataBufSize, "dataBuf"); 
-		
+
+	char *dataBuf = Malloc(dataBufSize, "dataBuf");
+
 	for (int i = 0; i < NBlocks; i++) { // write blocks, hiding latency
-	
+
 		fill_data_buffer(i, dataBuf);
 
 		size_t nBytesSend = Block[i].Nbytes * Npart_In_Block(i, Task.Npart);
-		
+
 		size_t xferSizes[groupSize]; // get size of data
 
-		MPI_Gather(&nBytesSend, sizeof(nBytesSend), MPI_BYTE, 
-					xferSizes,  sizeof(*xferSizes), 
+		MPI_Gather(&nBytesSend, sizeof(nBytesSend), MPI_BYTE,
+					xferSizes,  sizeof(*xferSizes),
 					MPI_BYTE, groupMaster, mpi_comm_write);
-	
+
 		if (groupRank == groupMaster) { // master does all the work
 
 			uint32_t blocksize = Npart_In_Block(i, nPartFile)
-				* Block[i].Nbytes; 
+				* Block[i].Nbytes;
 
 			printf("%18s %8d MB\n", Block[i].Name, blocksize/1024/1024);
 
-			write_block_header(Block[i].Label, blocksize, fp); 
+			write_block_header(Block[i].Label, blocksize, fp);
 
 			WRITE_FORTRAN_RECORD(blocksize)
 
-			MPI_Request request; 
+			MPI_Request request;
 			MPI_Status status;
-			
+
 			int swap = 0; // to alternate between mem areas
 			size_t halfBufSize = 0.5 * dataBufSize;
 
-			/* recv & write */
-			for (int task = 0; task < groupSize-1; task++) { 
+			for (int task = 0; task < groupSize-1; task++) { // recv & write 
 
 				char * restrict writeBuf = dataBuf + swap * halfBufSize;
 				char * restrict commBuf = dataBuf + (1 - swap) * halfBufSize;
-		
+
 				MPI_Irecv(commBuf, xferSizes[task+1], MPI_BYTE,	task+1, task+1,
-						mpi_comm_write, &request); 
+						mpi_comm_write, &request);
 
 				fwrite(writeBuf, xferSizes[task], 1, fp);
 
-				swap = 1 - swap; // swap memory areas 
-
 				MPI_Wait(&request, &status);
+
+				swap = 1 - swap; // swap memory areas 
 			}
 
 			/* last one in group */
@@ -170,7 +169,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 
 	if (groupRank == groupMaster)
 		fclose(fp);
-	
+
 	Free(dataBuf);
 
 	MPI_Barrier(mpi_comm_write);
@@ -178,16 +177,16 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 	return ;
 }
 
-void write_gadget_header(const int *npart, FILE *fp) 
+void write_gadget_header(const int *npart, FILE *fp)
 {
 	struct gadget_header head;
-	
+
 	uint32_t blocksize = sizeof(head);
-	
+
 	Assert(blocksize == 256, "sizeof(head) incorrect, %d byte", blocksize);
 
 	for (int i = 0; i < 6; i++) {
-		
+
 		head.Npart[i] = npart[i];
 
 		head.Nall[i] = (int32_t)(Sim.Npart[i]);
@@ -214,11 +213,11 @@ void write_gadget_header(const int *npart, FILE *fp)
 	head.Flag_Metals = 0;
 
 	write_block_header("HEAD", blocksize, fp);
-		
+
 	WRITE_FORTRAN_RECORD(blocksize)
 
 	fwrite(&head, blocksize, 1, fp);
-	
+
 	WRITE_FORTRAN_RECORD(blocksize)
 
 	return ;
@@ -227,8 +226,8 @@ void write_gadget_header(const int *npart, FILE *fp)
 static void fill_data_buffer(const int i, char *dataBuf)
 {
 	const size_t sizeof_P = sizeof(*P);
-	//const size_t sizeof_G = sizeof(*G);
-	
+	const size_t sizeof_G = sizeof(*G);
+
 	const size_t offset = Block[i].Offset;
 	const size_t nBytes = Block[i].Nbytes;
 
@@ -240,18 +239,29 @@ static void fill_data_buffer(const int i, char *dataBuf)
 		case VAR_P:
 
 			src = (char *) P + offset;
-			
+
 			for (int i = 0; i < Task.Npart_Total; i++) {
-			
+
 				memcpy(dest, src, nBytes);
 
 				dest += nBytes;
 				src += sizeof_P;
 			}
-			
+
 			break;
 
 		case VAR_GAS:
+
+			src = (char *) G + offset;
+
+			for (int i = 0; i < Task.Npart_Total; i++) {
+
+				memcpy(dest, src, nBytes);
+
+				dest += nBytes;
+				src += sizeof_G;
+			}
+
 			break;
 
 		case VAR_DM:
@@ -272,25 +282,30 @@ static void fill_data_buffer(const int i, char *dataBuf)
 
 	return ;
 }
-static void write_block_header(const char *name, uint32_t blocksize, FILE *fp) 
-{
-	Assert(blocksize <= UINT_MAX - 8, 
-			"Block %s too large to fit FORTRAN format", name);
 
-	const uint32_t fmt2Size = 8; // size of the format 2 header
+/*
+ * This writes the extra block that defines the gadget format2 file format.
+ */
+
+static void write_block_header(const char *name, uint32_t blocksize, FILE *fp)
+{
+	Assert(blocksize <= UINT_MAX - 8,
+			"Block %s too large to fit FORTRAN format", name);
 
 	blocksize += 8; // add 2*4 byte of FORTRAN header to data size
 
-	char fmt2Head[fmt2Size];
+	const size_t fmt2_size = 4 * sizeof(*name) + sizeof(blocksize);
 
-	strncpy(&fmt2Head[0], name, 4);
-	strncpy(&fmt2Head[4], (char *)&blocksize, 4);
+	char fmt2_header[fmt2_size]; // construct header
 
-	WRITE_FORTRAN_RECORD(fmt2Size)
+	memcpy(&fmt2_header[0], name, 4 * sizeof(*name));
+	memcpy(&fmt2_header[4], &blocksize, sizeof(blocksize));
 
-	fwrite(&fmt2Head, fmt2Size, 1, fp);
-	
-	WRITE_FORTRAN_RECORD(fmt2Size)
+	WRITE_FORTRAN_RECORD(fmt2_size);
+
+	fwrite(fmt2_header, fmt2_size, 1, fp);
+
+	WRITE_FORTRAN_RECORD(fmt2_size);
 
 	return ;
 }
@@ -300,19 +315,22 @@ static void set_filename(char *filename)
 	const int ndigits = ceil(log10(Time.NSnap));
 
 	switch (ndigits) {
-		
+
 	case 4:
-		sprintf(filename, "%s_%04d", 
+
+		sprintf(filename, "%s_%04d",
 				Param.Output_File_Base, Time.Snap_Counter);
 		break;
 
 	case 5:
-		sprintf(filename, "%s_%05d", 
+
+		sprintf(filename, "%s_%05d",
 			Param.Output_File_Base, Time.Snap_Counter);
 		break;
-		
+
 	default:
-		sprintf(filename, "%s_%03d", 
+
+		sprintf(filename, "%s_%03d",
 				Param.Output_File_Base, Time.Snap_Counter);
 		break;
 	}

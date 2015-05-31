@@ -27,7 +27,7 @@ Float Sign(const Float x);
 
 void Print_Int_Bits(const __uint128_t val, const int length, const int delta);
 
-int Fread(void *restrict data, const size_t size, const size_t nWanted, 
+int Fread(void *restrict data, const size_t size, const size_t nWanted,
 		FILE *stream);
-int Fwrite(void *restrict data, const size_t size, const size_t nWrite, 
+int Fwrite(void *restrict data, const size_t size, const size_t nWrite,
 		FILE *stream);

@@ -23,6 +23,9 @@ TimeEnd			5
 TimeOfFirstSnaphot		0 
 TimeBetSnapshots		0.05
 
+MaxSizeTimestep 0.05
+MinSizeTimestep 1e-7
+
 %% Cosmology %%
 Omega0			1 
 OmegaLambda		0.7 

@@ -4,7 +4,7 @@
 #include "Gravity/gravity.h"
 
 #ifdef GRAVITY
-static void gravity_accel();
+static void accel_gravity();
 static inline void zero_active_particle_accelerations() {};
 #else
 static inline void gravity_accel() {};
@@ -48,11 +48,11 @@ static void gravity_accel_tree()
 	return ;
 }
 
-static void gravity_accel()
+static void accel_gravity()
 {
 	Profile("Gravity");
 
-	if (Sig.Fullstep)
+	if (Sig.Sync_Point)
 		Gravity_Multi_Grid();  // GRAVITY_MULTI_GRID
 
 	gravity_accel_tree(); // GRAVITY_TREE

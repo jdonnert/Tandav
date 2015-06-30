@@ -16,7 +16,7 @@ struct Current_Cosmology_In_Code_Units {
 	double Hydro_Accel_Factor;
 	double Press_Factor;
 } Cosmo;
-//#pragma omp threadprivate(Cosmo)
+#pragma omp threadprivate(Cosmo)
 
 
 double Hubble_Parameter(const double a); // H(a) = H0 * E_Hubble(a)

@@ -1,12 +1,12 @@
 pro make_ICs, periodic=periodic
 
-	common  globals, tandav, cosmo
+	common globals, tandav, cosmo
 
 	msol = 1.989d33
 
 	seed = 14041981L
 
-	npart = 500000L
+	npart = 5000000L
 
 	boxsize = 55000D
 

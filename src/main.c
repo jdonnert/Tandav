@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 
 static void preamble(int argc, char *argv[])
 {
-	int provided;
+	int provided = 0;
 
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 

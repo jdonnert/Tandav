@@ -38,7 +38,7 @@ VELOCITY2CGS 1.0e+05        // [km/s]
 
 #### COSMOLOGY & COMOVING ####
 
-COMOVING                    // comoving coordinates for cosmo sims
+#COMOVING                    // comoving coordinates for cosmo sims
 TIME_DISPL_CONSTRAINT 0.25 	// [0.25] max displacement from rms velocity @ z>>0
 
 HUBBLE_CONST 100.0          	// km/s/Mpc, set to 100 for Gadget behaviour

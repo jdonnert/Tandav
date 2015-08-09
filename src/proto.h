@@ -1,7 +1,7 @@
 #ifndef PROTO_H
 #define PROTO_H
 
-#include <stdlib.h>	// system       
+#include <stdlib.h>			// system       
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>

@@ -356,4 +356,104 @@ static void compute_ewald_force(const int i, const int j, const int k,
 
 	force[0] = x[0] / p3(r);
 	force[1] = x[1] / p3(r);
-	force[2] = 
+	force[2] = x[2] / p3(r);
+
+	int n[3] = { 0 };
+
+	for (n[0] = -4; n[0] < 5; n[0]++) {
+
+		for (n[1] = -4; n[1] < 5; n[1]++) {
+
+			for (n[2] = -4; n[2] < 5; n[2]++) {
+
+				double dx[3] = { x[0]-n[0], x[1]-n[1], x[2]-n[2] };
+
+				double r = ALENGTH3(dx);
+
+				double val = erfc(Alpha * r) + 2*Alpha * r/sqrt(PI)
+							* exp(-p2(Alpha*r));
+
+				force[0] -= dx[0] / p3(r) * val;
+				force[1] -= dx[1] / p3(r) * val;
+				force[2] -= dx[2] / p3(r) * val;
+			}
+		}
+	}
+
+	int h[3] = { 0 };
+
+	for (h[0] = -4; h[0] < 5; h[0]++) {
+
+		for (h[1] = -4; h[1] < 5; h[1]++) {
+
+			for (h[2] = -4; h[2] < 5; h[2]++) {
+
+				double hdotx = x[0]*h[0] + x[1]*h[1] + x[2]*h[2];
+
+				int h2 = ASCALPROD3(h);
+
+				if (h2 <= 0)
+					continue;
+
+				double val = 2.0/h2 * exp(-PI*PI*h2/p2(Alpha))
+									* sin(2*PI*hdotx);
+
+				force[0] -= h[0] * val;
+				force[1] -= h[1] * val;
+				force[2] -= h[2] * val;
+			}
+		}
+	}
+
+	return ;
+}
+
+static double compute_ewald_potential(const double r[3])
+{
+	if ((r[0] == 0) && (r[1] == 0) && (r[2] == 0))
+		return 2.8372975; // == U, eq. 2.15
+
+	double sum1 = 0;
+	int n[3] = { 0 };
+
+	for (n[0] = -4; n[0] < 5; n[0]++) {
+
+		for (n[1] = -4; n[1] < 5; n[1]++) {
+
+			for (n[2] = -4; n[2] < 5; n[2]++) {
+
+				double dx[3] = { r[0]-n[0], r[1]-n[1], r[2]-n[2] };
+
+				double dr = ALENGTH3(dx);
+
+				sum1 += erfc(Alpha * dr)/dr;
+			}
+		}
+	}
+
+	double sum2 = 0;
+	int h[3] = { 0 };
+
+	for (h[0] = -4; h[0] < 5; h[0]++) {
+
+		for (h[1] = -4; h[1] < 5; h[1]++) {
+
+			for (h[2] = -4; h[2] < 5; h[2]++) {
+
+				double hdotr = r[0]*h[0] + r[1]*h[1] + r[2]*h[2];
+
+				int h2 = ASCALPROD3(h);
+
+				if (h2 <= 0)
+					continue;
+
+				sum2 += 1.0/(PI*h2) * exp(-PI*PI*h2 / p2(Alpha)) 
+					* cos(2*PI*hdotr);
+			}
+		}
+	}
+
+	return PI/p2(Alpha) - sum1 - sum2 + 1.0/ALENGTH3(r);
+}
+
+#endif // GRAVITY && PERIODIC

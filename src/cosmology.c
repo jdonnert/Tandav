@@ -11,7 +11,7 @@ struct Current_Cosmology_In_Code_Units Cosmo = {
 	OMEGA_RAD / p2(HUBBLE_CONST/100.0),
 	3.0/8.0/PI / (GRAVITATIONAL_CONST/p3(VELOCITY2CGS) // rho0_crit
 			/(LENGTH2CGS/VELOCITY2CGS)*MASS2CGS)
-			*p2(HUBBLE_CONST* KM2CGS/MPC2CGS * LENGTH2CGS/VELOCITY2CGS), 	
+			*p2(HUBBLE_CONST* KM2CGS/MPC2CGS * LENGTH2CGS/VELOCITY2CGS), 
 	0 // the rest is done in "Set_Current_Cosmology()"
 };
 

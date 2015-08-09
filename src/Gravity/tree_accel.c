@@ -31,7 +31,7 @@ void Gravity_Tree_Acceleration()
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
-
+		
 		bool use_BH_criterion = (ASCALPROD3(P[ipart].Acc) == 0);
 
 		Float grav_accel[3] = { 0 };
@@ -101,11 +101,11 @@ static bool interact_with_topnode(const int ipart, const int j,
 	Float dr[3] = {P[ipart].Pos[0] - D[j].TNode.Pos[0],
 				   P[ipart].Pos[1] - D[j].TNode.Pos[1],
 				   P[ipart].Pos[2] - D[j].TNode.Pos[2]};
-
+	
 	if (fabs(dr[0]) < 0.6 * nSize) // inside subtree ? -> always walk
 		if (fabs(dr[1]) < 0.6 * nSize)
 			if (fabs(dr[2]) < 0.6 * nSize)
-				return false;
+				return false; 
 
 	dr[0] = P[ipart].Pos[0] - D[j].TNode.CoM[0];
 	dr[1] = P[ipart].Pos[1] - D[j].TNode.CoM[1];
@@ -129,7 +129,7 @@ static bool interact_with_topnode(const int ipart, const int j,
 		if (node_mass*nSize*nSize > r2*r2 * fac)
 			return false;
 	}
-
+	
 	interact(node_mass, dr, r2, grav_accel, pot);
 
 	return true;
@@ -156,7 +156,7 @@ static void interact_with_topnode_particles(const int ipart, const int j,
 			            P[ipart].Pos[2] - P[jpart].Pos[2] };
 
 		Periodic_Nearest(dr); // PERIODIC
-
+		
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
 		Float mpart = P[jpart].Mass;
@@ -236,7 +236,7 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
 
 		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]); // Springel '06: (19)
 
-		if (dx < 0.6 * nSize) { 
+		if (dx < 0.6 * nSize) {  
 
 			Float dy = fabs(pos_i[1] - Tree[node].Pos[1]);
 

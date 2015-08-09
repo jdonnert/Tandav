@@ -328,24 +328,24 @@ shortKey Short_Peano_Key(const Float pos[3])
 
 	/* branch free bit interleave of transpose array X into key */
 
-	peanoKey key = 0;
+	peanoKey key = 0; 
 
 	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
 
 	for (int i = 0; i < 22; i++) {
 
-		uint64_t col = ((X[0] & 0x80000000)
-					  | (X[1] & 0x40000000)
+		uint64_t col = ((X[0] & 0x80000000) 
+					  | (X[1] & 0x40000000) 
 					  | (X[2] & 0x20000000)) >> 29;
+		
+		key <<= 3; 
 
-		key <<= 3;
-
-		X[0] <<= 1;
-		X[1] <<= 1;
+		X[0] <<= 1; 
+		X[1] <<= 1; 
 		X[2] <<= 1;
 
-		key |= col;
-	}
+		key |= col; 
+	} 
 
 	key <<= 1;
 
@@ -357,10 +357,10 @@ shortKey Reversed_Short_Peano_Key(const Float pos[3])
 {
 	const uint32_t m = ((uint32_t) 1) << 31;
 
-	const double fac = m / Domain.Size;
+	const double fac = m / Domain.Size; 
 
-	uint32_t X[3] = { (pos[0] - Domain.Origin[0]) * fac,
-					  (pos[1] - Domain.Origin[1]) * fac,
+	uint32_t X[3] = { (pos[0] - Domain.Origin[0]) * fac, 
+					  (pos[1] - Domain.Origin[1]) * fac, 
 					  (pos[2] - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
@@ -368,8 +368,8 @@ shortKey Reversed_Short_Peano_Key(const Float pos[3])
     for (uint32_t q = m; q > 1; q >>= 1) {
 
         uint32_t P = q - 1;
-
-		if( X[0] & q )
+        
+		if( X[0] & q ) 
 			X[0] ^= P;  // invert
 
         for(int i = 1; i < 3; i++) {
@@ -377,16 +377,16 @@ shortKey Reversed_Short_Peano_Key(const Float pos[3])
 			if(X[i] & q) {
 
 				X[0] ^= P; // invert                              
-
-			} else {
-
-				uint32_t t = (X[0] ^ X[i]) & P;
-
-				X[0] ^= t;
-				X[i] ^= t;
-
+				
+			} else { 
+			
+				uint32_t t = (X[0] ^ X[i]) & P;  
+				
+				X[0] ^= t;  
+				X[i] ^= t; 
+			
 			} // exchange
-		}
+		} 
     }
 
 	/* Gray encode (inverse of decode) */
@@ -406,23 +406,23 @@ shortKey Reversed_Short_Peano_Key(const Float pos[3])
 
 	/* branch free reversed (!) bit interleave of transpose array X into key */
 
-	shortKey key = 0;
+	shortKey key = 0; 
 
 	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
 
 	for (int i = 0; i < 22; i++) {
 
 		uint32_t col = ((X[0] & 0x4) | (X[1] & 0x2) | (X[2] & 0x1));
+		
+		key <<= 3; 
 
-		key <<= 3;
+		key |= col; 
 
-		key |= col;
-
-		X[0] >>= 1;
-		X[1] >>= 1;
+		X[0] >>= 1; 
+		X[1] >>= 1; 
 		X[2] >>= 1;
-	}
-
+	} 
+	
 	key <<= 3; // include level 0
 
 	return key;
@@ -440,11 +440,11 @@ void Test_Peanokey()
 	a[0] = 0.9999999999; // test one value first
 	a[1] = 0.9999999999;
 	a[2] = 0.9999999999;
-
+	
 	peanoKey stdkey =  Peano_Key(a);
 	peanoKey revkey =  Reversed_Peano_Key(a);
 
-	printf("a0=%lg a1=%lg a2=%lg 64bit val=%llu  \n", a[0], a[1], a[2],
+	printf("a0=%lg a1=%lg a2=%lg 64bit val=%llu  \n", a[0], a[1], a[2], 
 			(unsigned long long)(stdkey >> 64));
 
 	Print_Int_Bits(stdkey, 128, 2);
@@ -457,9 +457,9 @@ void Test_Peanokey()
 	Print_Int_Bits(revkey_short, 64, 3);
 
 	printf("\n");
-
+		
 	for (int i = 0; i < n; i++)
-	for (int j = 0; j < n; j++)
+	for (int j = 0; j < n; j++) 
 	for (int k = 0; k < n; k++) {
 
 		a[0] = (i + 0.5) * delta / box[0];
@@ -469,7 +469,7 @@ void Test_Peanokey()
 		peanoKey stdkey =  Peano_Key(a);
 		peanoKey revkey =  Reversed_Peano_Key(a);
 
-		printf("%g %g %g %llu  \n", a[0], a[1], a[2],
+		printf("%g %g %g %llu  \n", a[0], a[1], a[2], 
 				(unsigned long long)(stdkey >> 64));
 
 		Print_Int_Bits128(stdkey);

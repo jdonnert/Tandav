@@ -31,3 +31,4 @@ int Fread(void *restrict data, const size_t size, const size_t nWanted,
 		FILE *stream);
 int Fwrite(void *restrict data, const size_t size, const size_t nWrite,
 		FILE *stream);
+

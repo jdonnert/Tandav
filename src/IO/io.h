@@ -80,15 +80,15 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 	char Label[5];
 	char Name[CHARBUFSIZE];
 	enum target_variable {
-		VAR_P, 
-		VAR_GAS, 
-		VAR_DM, 
+		VAR_P,
+		VAR_GAS,
+		VAR_DM,
 		VAR_STAR,
-		VAR_DISK, 
+		VAR_DISK,
 		VAR_BND
 	} Target;			// identify global var
 	size_t Offset;		// offset in underlying struct
-	size_t Nbytes; 		// sizeof target field
+	size_t Nbytes;		// sizeof target field
 	bool IC_Required;	// needed on readin from ICs ?
 };
 
@@ -96,27 +96,27 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 #define P_SIZEOF(member) sizeof(((struct Particle_Data *)0)->member)
 
 static const struct io_block_def Block[] = {
-  	{"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_SIZEOF(Pos), true},
-  	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_SIZEOF(Vel),true},
-  	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_SIZEOF(ID), true},
-  	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_SIZEOF(Mass), false}
+	{"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_SIZEOF(Pos), true},
+	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_SIZEOF(Vel),true},
+	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_SIZEOF(ID), true},
+	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_SIZEOF(Mass), false}
 
 #ifdef OUTPUT_TOTAL_ACCELERATION
-  	,{"ACC", "Acceleration", VAR_P, P_OFFSET(Acc), P_SIZEOF(Acc), false}
+	,{"ACC", "Acceleration", VAR_P, P_OFFSET(Acc), P_SIZEOF(Acc), false}
 #endif
 
 #ifdef OUTPUT_PARTIAL_ACCELERATIONS
-  	,{"GACC", "Grav Acceleration", VAR_P, P_OFFSET(Grav_Acc), 
+	,{"GACC", "Grav Acceleration", VAR_P, P_OFFSET(Grav_Acc),
 		P_SIZEOF(Grav_Acc), false}
 #endif
 
 #ifdef OUTPUT_GRAV_POTENTIAL
-  	,{"GPOT", "Grav Potential", VAR_P, P_OFFSET(Grav_Pot), P_SIZEOF(Grav_Pot), 
+	,{"GPOT", "Grav Potential", VAR_P, P_OFFSET(Grav_Pot), P_SIZEOF(Grav_Pot),
 		false}
 #endif
 
 #ifdef OUTPUT_PEANO_KEY
-  	,{"PKEY","Peanokey",VAR_P,P_OFFSET(Peanokey),P_SIZEOF(peanoKey), false}
+	,{"PKEY","Peanokey",VAR_P,P_OFFSET(Peanokey),P_SIZEOF(peanoKey), false}
 #endif
 
 	// Add yours below 

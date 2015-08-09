@@ -357,14 +357,14 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 	const int last_part = first_part + nPart;
 	const int last_bunch = first_bunch + nBunches;
 
-	struct Bunch_Node *b = Get_Thread_Safe_Buffer(nBunches * sizeof(*b));
+	struct Bunch_Node *buf = Get_Thread_Safe_Buffer(nBunches * sizeof(*buf));
 
 	int run = first_bunch;
 
 	for (int i = 0; i < nBunches; i++) { // init omp buffer
 
-		b[i].First_Part = INT_MAX;
-		b[i].Key = D[run].Bunch.Key;
+		buf[i].First_Part = INT_MAX;
+		buf[i].Key = D[run].Bunch.Key;
 
 		run++;
 	}
@@ -385,12 +385,12 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 
 		shortKey pkey = Short_Peano_Key(P[ipart].Pos);
 
-		while (b[run].Key < pkey) // particles are ordered by key
+		while (buf[run].Key < pkey) // particles are ordered by key
 			run++;
 
-		b[run].Npart++;
-		b[run].Cost += cost_metric(ipart);
-		b[run].First_Part = imin(b[run].First_Part, ipart);
+		buf[run].Npart++;
+		buf[run].Cost += cost_metric(ipart);
+		buf[run].First_Part = imin(buf[run].First_Part, ipart);
 	}
 
 	#pragma omp critical
@@ -400,10 +400,10 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 
 	for (int i = first_bunch; i < last_bunch; i++) { // reduce
 
-		D[i].Bunch.Npart += b[run].Npart;
-		D[i].Bunch.Cost += b[run].Cost;
-		D[i].Bunch.First_Part = imin(D[i].Bunch.First_Part,b[run].First_Part);
-
+		D[i].Bunch.Npart += buf[run].Npart;
+		D[i].Bunch.Cost += buf[run].Cost;
+		D[i].Bunch.First_Part = imin(D[i].Bunch.First_Part,
+									 buf[run].First_Part);
 		run++;
 	}
 
@@ -724,7 +724,6 @@ void Find_Global_Center_Of_Mass(double *CoM_out)
 
 static void print_domain_decomposition (const int max_level)
 {
-
 	#pragma omp flush
 
 	#pragma omp master

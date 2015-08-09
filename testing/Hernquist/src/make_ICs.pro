@@ -6,9 +6,9 @@ pro make_ICs, periodic=periodic
 
 	seed = 14041981L
 
-	npart = 5000000L
+	npart = 100000L
 
-	boxsize = 55000D
+	boxsize = 10000D
 
 	mass = 1d15 * Msol / tandav.mass ; code units 
 	a_hernq = 924D 		

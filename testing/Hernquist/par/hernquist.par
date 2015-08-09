@@ -3,13 +3,13 @@
 
 %% Files %%
 InputFile		IC_Hernquist_Halo
-OutputFileBase		snap 
+OutputFileBase	snap 
 NumIOTasks		1 
 NumOutputFiles	1 
 LogFileDir		./log/
 
 %% Code Parameters %%
-MaxMemSize		512
+MaxMemSize		2048
 TimeLimitCPU	20864 
 BufferSize		32
 

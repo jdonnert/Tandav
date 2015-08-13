@@ -14,9 +14,9 @@ TimeLimitCPU	20864
 BufferSize		32
 
 %% Simulation Characteristics %%
-Boxsize0		55000.0
-Boxsize1		55000.0
-Boxsize2		55000.0
+Boxsize0		10000.0
+Boxsize1		10000.0
+Boxsize2		10000.0
 
 TimeBegin		0 
 TimeEnd			5

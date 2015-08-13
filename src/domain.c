@@ -724,12 +724,10 @@ void Find_Global_Center_Of_Mass(double *CoM_out)
 
 static void print_domain_decomposition (const int max_level)
 {
-	#pragma omp flush
-
 	#pragma omp master
 	{
 
-	rprintf(" No | Split | npart  |   sum  | first  | trgt  | lvl |  Cost  | "
+	printf(" No | Split | npart  |   sum  | first  | trgt  | lvl |  Cost  | "
 			"CumCost | Max PH key,   Max_level %d \n", max_level);
 
 	size_t sum = 0;

@@ -40,29 +40,17 @@ FFT_INCL =
 FFT_LIBS =
 endif
 
-ifeq ($(SYSTYPE),getorin.ira.inaf.it)
+ifeq ($(SYSTYPE),coma.msi.umn.edu)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O0 # -openmp -finline -finline-functions \
+OPTIMIZE =  -Wall -g -O3 -openmp #-finline -finline-functions \
 			-funroll-loops  -xhost  -mkl  -ipo 
-MPI_LIBS = -lmpich -L/homes/donnert/Libs/lib 
-MPI_INCL = -I/homes/donnert/Libs/include 
-GSL_INCL =  
-GSL_LIBS = -L/opt/intel/composer_xe_2013_sp1.2.144/lib/
-FFT_INCL =
-FFT_LIBS =
-endif
-
-ifeq ($(SYSTYPE),redshift.strw.leidenuniv.nl)
-CC       =  mpicc
-OPTIMIZE =  -g -O2  -march=native 
-MPI_LIBS = -L/home/donnert/Libs/lib
-MPI_INCL = -I/home/donnert/Libs/include
+MPI_LIBS = -lmpich
+MPI_INCL = 
 GSL_INCL =  
 GSL_LIBS = 
 FFT_INCL =
 FFT_LIBS =
 endif
-
 
 # end systypes
 
@@ -102,17 +90,11 @@ LIBS = -lm -lgsl -lgslcblas $(MPI_LIBS) $(GSL_LIBS) $(FFTW_LIBS)
 
 # rules
 
-%.o: %.c
+%.o : %.c settings
 	@echo [CC] $@
 	@$(CC) $(CFLAGS)  -o $@ -c $<
 
 $(EXEC)	: $(OBJS)
-	@echo " "
-	@echo 'SYSTYPE =' $(SYSTYPE)
-	@echo 'CFLAGS =' $(CFLAGS)
-	@echo 'LDFLAGS =' $(LIBS)
-	@echo 'EXEC =' $(EXEC)
-	@echo " "
 	$(CC) $(CFLAGS) $(OBJS) $(LIBS) -o $(EXEC)
 	@cd src && ctags *.[ch]
 
@@ -133,5 +115,15 @@ $(SRCDIR)print_settings.c : Config	# does not work with sh shell
 		$(SRCDIR)print_settings.c
 	@echo '); return ;}' >> $(SRCDIR)print_settings.c
 
-clean : 
+.PHONY : settings
+
+settings :
+	@echo " "
+	@echo 'SYSTYPE =' $(SYSTYPE)
+	@echo 'CFLAGS =' $(CFLAGS)
+	@echo 'LDFLAGS =' $(LIBS)
+	@echo 'EXEC =' $(EXEC)
+	@echo " "
+
+clean : settings
 	rm -f $(OBJS) $(EXEC) src/config.h src/print_settings.c

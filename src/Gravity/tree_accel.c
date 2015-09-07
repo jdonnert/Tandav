@@ -26,11 +26,11 @@ static void interact(const Float,const Float *, const Float,
 											struct Tree_Interaction_Data *);
 
 /*
- * Interact with all local topnodes, either with the node directly, or with the 
- * particles it contains (small top node). Or, walk the tree and estimate 
- * gravitational acceleration using two different
- * opening criteria. Also open all nodes containing ipart to avoid large 
- * maximum errors. Barnes & Hut 1984, Springel 2006, Dehnen & Read 2012.
+ * Interact with all local topnodes, either with the node directly, or with
+ * the particles it contains (small top node). Or, walk the tree and estimate 
+ * gravitational acceleration using two different opening criteria. Also open 
+ * all nodes containing ipart to avoid large maximum errors. 
+ * Barnes & Hut 1984, Springel 2006, Dehnen & Read 2012.
  */
 
 void Gravity_Tree_Acceleration()

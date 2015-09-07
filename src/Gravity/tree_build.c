@@ -170,12 +170,12 @@ static void transform_bunch_into_top_node(const int i, int *level, int *ipart)
 	*ipart = D[i].Bunch.First_Part;
 	*level = D[i].Bunch.Level;
 
-#ifdef DEBUG
-	Assert(D[i].Bunch.Npart < INT_MAX, "Npart %zu in Bunch %d > INT_MAX %d",
-		   D[i].Bunch.Npart, i, INT_MAX);
-#endif
-
 	const int npart = D[i].Bunch.Npart;
+
+#ifdef DEBUG
+	Assert(npart < INT_MAX, "Npart %zu in Bunch %d > INT_MAX %d",
+		   npart, i, INT_MAX);
+#endif
 
 	double px = P[*ipart].Pos[0] - Domain.Origin[0]; // construct from particle
 	double py = P[*ipart].Pos[1] - Domain.Origin[1];
@@ -258,7 +258,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 	printf("DEBUG (%d:%d) Tree Build for top node=%d : "
 		   "first part=%d npart=%d Tree build target=%d %p \n"
 		,Task.Rank, Task.Thread_ID,  tnode_idx, first_part,
-		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target, tree); 
+		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target, tree);
 	fflush(stdout);
 #endif
 
@@ -271,7 +271,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 	const int last_part = first_part + D[tnode_idx].TNode.Npart - 1;
 
 	for (int ipart = first_part+1; ipart < last_part+1; ipart++) {
-	
+
 		peanoKey key = Reversed_Peano_Key(P[ipart].Pos);
 
 		key >>= 3 * top_level;

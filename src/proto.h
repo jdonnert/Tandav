@@ -56,6 +56,7 @@ typedef uint64_t shortKey;	// short peanokey, 21 triplets / levels
 #include "log.h"			// run logging
 #include "signal.h"			// signal handlers
 #include "sort.h"			// sort functions
+#include "median.h"			// find median of an array
 
 /* 
  * Global function prototypes 

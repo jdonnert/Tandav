@@ -300,11 +300,15 @@ void Get_Free_Memory(int *total, int *largest, int *smallest)
 
 void Finish_Memory_Management()
 {
-	rprintf("\nMemory Manager: Freeing %d MB of Memory \n", 
-			Param.Max_Mem_Size);
+	rprintf("\nMemory Manager: Freeing %d MB of Memory, "
+			"%d MB of Omp buffer \n", Param.Max_Mem_Size, Param.Buffer_Size);
 
 	if (Memory != NULL)
 		free(Memory);
+
+	#pragma omp parallel
+	if (buffer != NULL)
+		free(buffer);
 
 	return ;
 }

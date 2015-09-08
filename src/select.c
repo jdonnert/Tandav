@@ -3,69 +3,10 @@
 
 #define PARALLEL_THRES 100000
 
-static int compare_floats(const void * a, const void *b);
-
 static Float *Results = NULL;
 
 /*
- * Find an approximation of the median of *data with length ndata in OpenMP.
- */
-
-Float Median(const int ndata, Float *data)
-{
-	if (Sim.NThreads == 1 || ndata < PARALLEL_THRES)
-		return Select(ndata >> 1, ndata, data);
-
-	int nPart = ndata * sizeof(*data) / Task.Buffer_Size + 1; // partitions 
-
-	if (nPart < Sim.NThreads)
-		nPart = Sim.NThreads;
-
-	size_t size = ndata / nPart;
-	size_t nBytes = size * sizeof(*data);
-	int mid = size >> 1;
-
-	#pragma omp single
-	Results = Malloc(nPart * sizeof(*data), "Results");
-
-	Float *buf = Get_Thread_Safe_Buffer(nBytes);
-
-	#pragma omp for schedule(dynamic)
-	for (int i = 0; i < nPart; i++) {
-
-		size_t idx = i * size;
-
-		if (i == nPart-1) { // last one
-
-			size = (ndata  - idx);
-			nBytes = size * sizeof(*data);
-			mid = size >> 1;
-		}
-
-		memcpy(&buf[0], &data[idx], nBytes);
-
-		Results[i] = Select(mid, size, buf);
-
-	}
-
-	Float median = Select(nPart >> 1, nPart, Results);
-
-	#pragma omp single
-	Free(Results);
-
-	return median;
-}
-
-static int compare_floats(const void * a, const void *b)
-{
-	const Float *x = (const Float*)a;
-	const Float *y = (const Float*)b;
-
-	return (*x > *y) - (*x < *y);
-}
-
-/*
- * Implement in-place selection algorithm on Float array *data ,
+ * Select the kth element out of an array *data with length ndata.
  * Press et al. 1992
  */
 
@@ -141,6 +82,63 @@ Float Select(const int k, const int ndata, Float *data)
 	return data[k];
 }
 
+/*
+ * Find an approximation of the median of *data with length ndata in OpenMP.
+ */
+
+static int compare_floats(const void * a, const void *b)
+{
+	const Float *x = (const Float*)a;
+	const Float *y = (const Float*)b;
+
+	return (*x > *y) - (*x < *y);
+}
+
+Float Median(const int ndata, Float *data)
+{
+	if (Sim.NThreads == 1 || ndata < PARALLEL_THRES)
+		return Select(ndata >> 1, ndata, data);
+
+	int nPart = ndata * sizeof(*data) / Task.Buffer_Size + 1; // partitions 
+
+	if (nPart < Sim.NThreads)
+		nPart = Sim.NThreads;
+
+	size_t size = ndata / nPart;
+	size_t nBytes = size * sizeof(*data);
+	int mid = size >> 1;
+
+	#pragma omp single
+	Results = Malloc(nPart * sizeof(*data), "Results");
+
+	Float *buf = Get_Thread_Safe_Buffer(nBytes);
+
+	#pragma omp for schedule(dynamic)
+	for (int i = 0; i < nPart; i++) {
+
+		size_t idx = i * size;
+
+		if (i == nPart-1) { // last one
+
+			size = (ndata  - idx);
+			nBytes = size * sizeof(*data);
+			mid = size >> 1;
+		}
+
+		memcpy(&buf[0], &data[idx], nBytes);
+
+		Results[i] = Select(mid, size, buf);
+
+	}
+
+	Float median = Select(nPart >> 1, nPart, Results);
+
+	#pragma omp single
+	Free(Results);
+
+	return median;
+}
+
 void test_median()
 {
 	const int N = 100000001;
@@ -169,4 +167,6 @@ void test_median()
 	printf("%d %g \n", kth, arr2[kth-1]);
 
 	exit(0);
+
+	return ;
 }

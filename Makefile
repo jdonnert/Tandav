@@ -42,7 +42,7 @@ endif
 
 ifeq ($(SYSTYPE),coma.msi.umn.edu)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O3 -openmp -finline -finline-functions \
+OPTIMIZE =  -Wall -g -O3  -openmp -finline -finline-functions \
 			-funroll-loops  -xhost  -mkl  -ipo 
 MPI_LIBS = -lmpich
 MPI_INCL = 

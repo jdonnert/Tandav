@@ -21,6 +21,7 @@ static int compare_bunches_by_key(const void *a, const void *b);
 static int compare_bunches_by_target(const void *a, const void *b);
 static int compare_bunches_by_cost(const void *a, const void *b);
 static void print_domain_decomposition (const int);
+static void find_domain_center(double *Center_out);
 
 union Domain_Node_List *D = NULL;
 
@@ -720,6 +721,50 @@ void Find_Global_Center_Of_Mass(double *CoM_out)
 
 	return ;
 
+}
+
+
+/*
+ * Domain Center is not the center of mass but the median of mass, which is
+ * less sensitive to outliers.
+ */
+
+static Float *x = NULL;
+
+static void find_domain_center(double *Center_out)
+{
+	Float center[3] = { 0 };
+
+	#pragma omp single
+	Float *x = Malloc(Task.Npart_Total * sizeof(*x), "x");
+
+	for (int i = 0; i < 3; i++) {
+
+		for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
+			x[i] = P[ipart].Pos[i];
+
+		center[i] = Median(Task.Npart_Total, x);
+	}
+
+	#pragma omp master
+	{
+
+	x = Realloc(Sim.NRank * sizeof(*x), "x");
+
+	for (int i = 0; i < 3; i++) {
+
+		x[Task.MPI_Rank] = center[i]
+
+		MPI_Gather();
+
+		Center_out[i] = Median(Sim.NRank, sizeof(*x));
+	}
+
+	Free(x);
+
+	} // single
+
+	return ;
 }
 
 static void print_domain_decomposition (const int max_level)

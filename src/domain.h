@@ -56,5 +56,4 @@ struct Domain_Properties Region[HIGHRES_REGION];
 
 void Setup_Domain_Decomposition();
 void Domain_Decomposition();
-void Find_Global_Center_Of_Mass(double *CoM_out);
 

@@ -29,6 +29,8 @@ extern struct Global_Simulation_Properties {
 	uint64_t Npart[NPARTYPE];	// global number of particles
 	double Mpart[NPARTYPE];		// Global Masses from header
 	double Boxsize[3];			// Now in 3D !
+	double Total_Mass;			// sum over P.Mass, updated every timestep
+	double Center_Of_Mass;		// center of Mass, updated every timestep
 } Sim;
 
 extern struct Parameters_From_File {

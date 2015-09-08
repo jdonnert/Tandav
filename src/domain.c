@@ -3,7 +3,7 @@
 #include "domain.h"
 #include "peano.h"
 
-static void find_global_domain_extend();
+static void set_global_domain();
 static void fill_bunches(const int, const int, const int, const int);
 static void find_mean_cost();
 static int remove_empty_bunches();
@@ -22,6 +22,7 @@ static int compare_bunches_by_target(const void *a, const void *b);
 static int compare_bunches_by_cost(const void *a, const void *b);
 static void print_domain_decomposition (const int);
 static void find_domain_center(double *Center_out);
+static double find_largest_particle_distance();
 
 union Domain_Node_List *D = NULL;
 
@@ -57,7 +58,7 @@ void Domain_Decomposition()
 {
 	Profile("Domain Decomposition");
 
-	find_global_domain_extend();
+	set_global_domain();
 
 	Sort_Particles_By_Peano_Key();
 
@@ -158,7 +159,7 @@ void Setup_Domain_Decomposition()
 	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
 
 	#pragma omp parallel
-	find_global_domain_extend();
+	set_global_domain();
 
 	rprintf("\nDomain size is %g, \n"
 		"   Origin at x = %4g, y = %4g, z = %4g, \n"
@@ -613,13 +614,9 @@ static void communicate_bunches()
  * For PERIODIC simulations there is little to do.
  */
 
-#ifndef PERIODIC
-static double Max_Distance = 0;
-#endif // ! PERIODIC
 
-static void find_global_domain_extend()
+static void set_global_domain()
 {
-	Find_Global_Center_Of_Mass(&Domain.Center_Of_Mass[0]);
 
 #ifdef PERIODIC
 
@@ -627,11 +624,90 @@ static void find_global_domain_extend()
 
 	Domain.Size = fmax(Sim.Boxsize[0], fmax(Sim.Boxsize[1], Sim.Boxsize[2]));
 
+#else
+
+	Domain.Size = find_largest_particle_distance();
+
+	find_domain_center(Domain.Center);
+
+#endif // ! PERIODIC
+
 	for (int i = 0; i < 3; i++)
 		Domain.Center[i] = Domain.Origin[i] + 0.5 * Domain.Size;
 
-#else // ! PERIODIC
+//#ifdef DEBUG
+	rprintf("\nDomain size is %g, \n"
+			"   Origin at x = %4g, y = %4g, z = %4g, \n"
+			"   Center at x = %4g, y = %4g, z = %4g. \n"
+			"   CoM    at x = %4g, y = %4g, z = %4g. \n",
+			Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
+			Domain.Center[0], Domain.Center[1], Domain.Center[2],
+			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
+			Domain.Center_Of_Mass[2]);
+//#endif
 
+	return ;
+}
+
+/*
+ * Domain Center is not the center of mass but the median of mass, which is
+ * less sensitive to outliers.
+ */
+
+static Float *x = NULL;
+
+static void find_domain_center(double Center_out[3])
+{
+	Float center[3] = { 0 };
+
+	Float *x = NULL;
+
+	#pragma omp single
+	x = Malloc(Task.Npart_Total * sizeof(*x), "x");
+
+	for (int i = 0; i < 3; i++) {
+
+		#pragma omp for
+		for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
+			x[ipart] = P[ipart].Mass * P[ipart].Pos[i];
+
+		center[i] = Median(Task.Npart_Total, x) / Sim.Total_Mass;
+	}
+
+	#pragma omp single
+	Free(x);
+
+	#pragma omp master
+	{
+
+	Float *buf = Malloc(Sim.NRank * sizeof(*buf), "centers");
+
+	for (int i = 0; i < 3; i++) {
+
+		buf[Task.Rank] = center[i];
+
+		MPI_Gather(MPI_IN_PLACE, 1, MPI_DOUBLE, buf, 1, MPI_DOUBLE, MASTER,
+				   MPI_COMM_WORLD);
+
+		Center_out[i] = Median(Sim.NRank, buf);
+	}
+
+	Free(buf);
+
+	MPI_Scatter(Center_out, 3, MPI_MYFLOAT, MPI_IN_PLACE, 3, MPI_DOUBLE,
+				MASTER, MPI_COMM_WORLD);
+
+	} // master
+
+	#pragma omp barrier
+
+	return ;
+}
+
+static double Max_Distance = 0;
+
+static double find_largest_particle_distance()
+{
 	#pragma omp single
 	Max_Distance = 0;
 
@@ -649,122 +725,12 @@ static void find_global_domain_extend()
 		} // for i
 	} // for ipart
 
-	#pragma omp single
-	{
-
+	#pragma omp master
 	MPI_Allreduce(MPI_IN_PLACE, &Max_Distance, 1, MPI_DOUBLE, MPI_MAX,
 		MPI_COMM_WORLD);
 
-	Domain.Size = 2.001 * Max_Distance; // 2.001 helps with cancellation
 
-	for (int i = 0; i < 3; i++) {
-
-		Domain.Center[i] = Domain.Center_Of_Mass[i];
-		Domain.Origin[i] = Domain.Center[i] - 0.5 * Domain.Size ;
-	}
-
-	} // omp single (Domain)
-
-	#pragma omp flush
-
-#endif // ! PERIODIC
-
-#ifdef DEBUG
-	rprintf("\nDomain size is %g, \n"
-			"   Origin at x = %4g, y = %4g, z = %4g, \n"
-			"   Center at x = %4g, y = %4g, z = %4g. \n"
-			"   CoM    at x = %4g, y = %4g, z = %4g. \n",
-			Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
-			Domain.Center[0], Domain.Center[1], Domain.Center[2],
-			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
-			Domain.Center_Of_Mass[2]);
-#endif
-
-	return ;
-}
-
-static double CoM_X = 0, CoM_Y = 0, CoM_Z = 0, Mass = 0;
-
-void Find_Global_Center_Of_Mass(double *CoM_out)
-{
-	#pragma omp single
-	CoM_X = CoM_Y = CoM_Z = Mass = 0;
-
-	#pragma omp barrier
-
-	#pragma omp for reduction(+:CoM_X,CoM_Y,CoM_Z,Mass)
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-
-		CoM_X += P[ipart].Mass * P[ipart].Pos[0];
-		CoM_Y += P[ipart].Mass * P[ipart].Pos[1];
-		CoM_Z += P[ipart].Mass * P[ipart].Pos[2];
-
-		Mass += P[ipart].Mass;
-	}
-
-	#pragma omp single
-	{
-
-	double global_com[3] = { CoM_X, CoM_Y, CoM_Z  };
-	double global_m = Mass;
-
-	MPI_Allreduce(MPI_IN_PLACE, &global_com, 3, MPI_DOUBLE, MPI_MIN,
-			MPI_COMM_WORLD);
-
-	MPI_Allreduce(MPI_IN_PLACE, &global_m, 1, MPI_DOUBLE, MPI_MIN,
-			MPI_COMM_WORLD);
-
-	for (int i = 0; i < 3; i++)
-		CoM_out[i] = global_com[i] / global_m;
-
-	} // omp single
-
-	return ;
-
-}
-
-
-/*
- * Domain Center is not the center of mass but the median of mass, which is
- * less sensitive to outliers.
- */
-
-static Float *x = NULL;
-
-static void find_domain_center(double *Center_out)
-{
-	Float center[3] = { 0 };
-
-	#pragma omp single
-	Float *x = Malloc(Task.Npart_Total * sizeof(*x), "x");
-
-	for (int i = 0; i < 3; i++) {
-
-		for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
-			x[i] = P[ipart].Pos[i];
-
-		center[i] = Median(Task.Npart_Total, x);
-	}
-
-	#pragma omp master
-	{
-
-	x = Realloc(Sim.NRank * sizeof(*x), "x");
-
-	for (int i = 0; i < 3; i++) {
-
-		x[Task.MPI_Rank] = center[i]
-
-		MPI_Gather();
-
-		Center_out[i] = Median(Sim.NRank, sizeof(*x));
-	}
-
-	Free(x);
-
-	} // single
-
-	return ;
+	return 2.001 * Max_Distance; // 2.001 helps with cancellation
 }
 
 static void print_domain_decomposition (const int max_level)

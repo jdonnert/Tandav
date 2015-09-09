@@ -3,7 +3,6 @@
 
 #define PARALLEL_THRES 100000
 
-static Float *Results = NULL;
 
 /*
  * Select the kth element out of an array *data with length ndata.
@@ -94,22 +93,22 @@ static int compare_floats(const void * a, const void *b)
 	return (*x > *y) - (*x < *y);
 }
 
+static Float *Results = NULL;
+
 Float Median(const int ndata, Float *data)
 {
 	if (Sim.NThreads == 1 || ndata < PARALLEL_THRES)
 		return Select(ndata >> 1, ndata, data);
 
-	int nPart = ndata * sizeof(*data) / Task.Buffer_Size + 1; // partitions 
-
-	if (nPart < Sim.NThreads)
-		nPart = Sim.NThreads;
+	int nPart = ndata * sizeof(*data) / Task.Buffer_Size + 1;
+	nPart = MAX(nPart, 32);
 
 	size_t size = ndata / nPart;
 	size_t nBytes = size * sizeof(*data);
 	int mid = size >> 1;
 
 	#pragma omp single
-	Results = Malloc(nPart * sizeof(*data), "Results");
+	Results = Malloc(nPart * sizeof(*Results), "Results");
 
 	Float *buf = Get_Thread_Safe_Buffer(nBytes);
 
@@ -120,7 +119,7 @@ Float Median(const int ndata, Float *data)
 
 		if (i == nPart-1) { // last one
 
-			size = (ndata  - idx);
+			size = ndata  - idx;
 			nBytes = size * sizeof(*data);
 			mid = size >> 1;
 		}
@@ -131,10 +130,14 @@ Float Median(const int ndata, Float *data)
 
 	}
 
-	Float median = Select(nPart >> 1, nPart, Results);
+	Float median = 0;
 
-	#pragma omp single
-	Free(Results);
+	#pragma omp single copyprivate(median)
+	{
+		median = Select(nPart >> 1, nPart, Results);
+
+		Free(Results);
+	}
 
 	return median;
 }

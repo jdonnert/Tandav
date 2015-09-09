@@ -180,7 +180,7 @@ void Setup_Domain_Decomposition()
 
 static void reallocate_topnodes()
 {
-	Top_Node_Alloc_Factor *= 1.5;
+	Top_Node_Alloc_Factor *= 1.2;
 
 	Max_NBunches = Sim.Npart_Total * Top_Node_Alloc_Factor;
 
@@ -196,12 +196,14 @@ static void reallocate_topnodes()
 
 static void reset_bunchlist()
 {
-	memset(&D[0], 0, sizeof(*D)*Max_NBunches);
+	memset(&D[0], 0, sizeof(*D) * Max_NBunches);
 
 	NBunches = 1;
 
 	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
 	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
+
+	int min_level = log(Sim.NTask)/log(8) + 1;
 
 	return ;
 }
@@ -484,7 +486,7 @@ static int check_distribution()
 
 	for (int task = 0; task < Sim.NTask; task++) {
 
-		if (fabs(Cost[task]-Mean_Cost)/Mean_Cost < DOMAIN_IMBAL_CEIL) // task ok
+		if (fabs(Cost[task]-Mean_Cost)/Mean_Cost < DOMAIN_IMBAL_CEIL)
 			continue;
 
 		if (Split_Idx[task] < 0) // no idx set
@@ -633,18 +635,18 @@ static void set_global_domain()
 #endif // ! PERIODIC
 
 	for (int i = 0; i < 3; i++)
-		Domain.Center[i] = Domain.Origin[i] + 0.5 * Domain.Size;
+		Domain.Origin[i] = Domain.Center[i] - 0.5 * Domain.Size;
 
-//#ifdef DEBUG
+#ifdef DEBUG
 	rprintf("\nDomain size is %g, \n"
 			"   Origin at x = %4g, y = %4g, z = %4g, \n"
 			"   Center at x = %4g, y = %4g, z = %4g. \n"
 			"   CoM    at x = %4g, y = %4g, z = %4g. \n",
 			Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
 			Domain.Center[0], Domain.Center[1], Domain.Center[2],
-			Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
-			Domain.Center_Of_Mass[2]);
-//#endif
+			Sim.Center_Of_Mass[0], Sim.Center_Of_Mass[1],
+			Sim.Center_Of_Mass[2]);
+#endif
 
 	return ;
 }
@@ -659,8 +661,6 @@ static Float *x = NULL;
 static void find_domain_center(double Center_out[3])
 {
 	Float center[3] = { 0 };
-
-	Float *x = NULL;
 
 	#pragma omp single
 	x = Malloc(Task.Npart_Total * sizeof(*x), "x");
@@ -680,22 +680,20 @@ static void find_domain_center(double Center_out[3])
 	#pragma omp master
 	{
 
-	Float *buf = Malloc(Sim.NRank * sizeof(*buf), "centers");
+	Float sendbuf[Sim.NRank], recvbuf[Sim.NRank];
 
 	for (int i = 0; i < 3; i++) {
 
-		buf[Task.Rank] = center[i];
+		sendbuf[Task.Rank] = center[i];
 
-		MPI_Gather(MPI_IN_PLACE, 1, MPI_DOUBLE, buf, 1, MPI_DOUBLE, MASTER,
-				   MPI_COMM_WORLD);
+		MPI_Gather(recvbuf, 1, MPI_MYFLOAT, sendbuf, 1, MPI_MYFLOAT,
+				   Sim.Master, MPI_COMM_WORLD);
 
-		Center_out[i] = Median(Sim.NRank, buf);
+		center[i] = Median(Sim.NRank, recvbuf);
 	}
 
-	Free(buf);
-
-	MPI_Scatter(Center_out, 3, MPI_MYFLOAT, MPI_IN_PLACE, 3, MPI_DOUBLE,
-				MASTER, MPI_COMM_WORLD);
+	MPI_Scatter(center, 3, MPI_DOUBLE, Center_out, 3, MPI_DOUBLE,
+				Sim.Master, MPI_COMM_WORLD);
 
 	} // master
 

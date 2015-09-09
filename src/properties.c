@@ -30,7 +30,7 @@ static double find_total_mass()
 	return total_mass;
 }
 
-static double CoM_X = 0, CoM_Y = 0, CoM_Z = 0;
+static double CoM_X = 0, CoM_Y = 0, CoM_Z = 0; // can't reduce on array
 
 static void find_center_of_mass(double CoM_out[3])
 {
@@ -53,9 +53,9 @@ static void find_center_of_mass(double CoM_out[3])
 	MPI_Allreduce(MPI_IN_PLACE, &global_com, 3, MPI_DOUBLE, MPI_MIN,
 			MPI_COMM_WORLD);
 
-	CoM_out[0] = global_com[0] / Sim.Center_Of_Mass;
-	CoM_out[1] = global_com[1] / Sim.Center_Of_Mass;
-	CoM_out[2] = global_com[2] / Sim.Center_Of_Mass;
+	CoM_out[0] = global_com[0] / Sim.Total_Mass;
+	CoM_out[1] = global_com[1] / Sim.Total_Mass;
+	CoM_out[2] = global_com[2] / Sim.Total_Mass;
 
 	} // omp single
 

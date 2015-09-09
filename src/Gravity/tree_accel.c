@@ -6,7 +6,7 @@
 
 #ifdef GRAVITY_TREE
 
-struct Tree_Interaction_Data { // send around during tree walk
+struct Walk_Data { // send around during tree walk
 	float cost;
 	Float grav_accel[3];
 #ifdef GRAVITY_POTENTIAL
@@ -15,15 +15,15 @@ struct Tree_Interaction_Data { // send around during tree walk
 };
 
 static bool interact_with_topnode(const int, const int,
-											struct Tree_Interaction_Data *);
+											struct Walk_Data *);
 static void interact_with_topnode_particles(const int, const int,
-											struct Tree_Interaction_Data *);
+											struct Walk_Data *);
 static void gravity_tree_walk(const int , const int,
-											struct Tree_Interaction_Data *);
+											struct Walk_Data *);
 static void gravity_tree_walk_first(const int , const int,
-											struct Tree_Interaction_Data *);
+											struct Walk_Data *);
 static void interact(const Float,const Float *, const Float,
-											struct Tree_Interaction_Data *);
+											struct Walk_Data *);
 
 /*
  * Interact with all local topnodes, either with the node directly, or with
@@ -43,10 +43,10 @@ void Gravity_Tree_Acceleration()
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
-
+printf("%d %d \n", i, ipart);
 		bool use_BH_criterion = (ASCALPROD3(P[ipart].Acc) == 0);
 
-		struct Tree_Interaction_Data grav_data = { 0 };
+		struct Walk_Data grav_data = { 0 };
 
 		for (int j = 0; j < NTop_Nodes; j++) {
 
@@ -60,7 +60,7 @@ void Gravity_Tree_Acceleration()
 			//	continue;
 			//}
 
-			if (D[j].TNode.Npart <= 8) { // open top leave
+			if (D[j].TNode.Npart <= 8) { // open top leaf
 
 				interact_with_topnode_particles(ipart, j, &grav_data);
 
@@ -107,7 +107,7 @@ void Gravity_Tree_Acceleration()
  */
 
 static bool interact_with_topnode(const int ipart, const int j,
-									struct Tree_Interaction_Data *grav_data)
+									struct Walk_Data *grav_data)
 {
 	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 
@@ -154,7 +154,7 @@ static bool interact_with_topnode(const int ipart, const int j,
  */
 
 static void interact_with_topnode_particles(const int ipart, const int j,
-		struct Tree_Interaction_Data *grav_data)
+		struct Walk_Data *grav_data)
 {
 	const int first = D[j].TNode.Target;
 	const int last = first + D[j].TNode.Npart;
@@ -187,7 +187,7 @@ static void interact_with_topnode_particles(const int ipart, const int j,
  */
 
 static void gravity_tree_walk(const int ipart, const int tree_start,
-		struct Tree_Interaction_Data *grav_data)
+		struct Walk_Data *grav_data)
 {
 	const Float fac = ALENGTH3(P[ipart].Acc) / Const.Gravity
 													* TREE_OPEN_PARAM_REL;
@@ -281,7 +281,7 @@ static void gravity_tree_walk(const int ipart, const int tree_start,
  */
 
 static void gravity_tree_walk_first(const int ipart, const int tree_start,
-		struct Tree_Interaction_Data *grav_data)
+		struct Walk_Data *grav_data)
 {
 	const Float pos_i[3] = {P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2]};
 
@@ -350,7 +350,7 @@ static void gravity_tree_walk_first(const int ipart, const int tree_start,
  */
 
 static void interact(const Float mass, const Float dr[3], const Float r2,
-		struct Tree_Interaction_Data * grav_data)
+		struct Walk_Data * grav_data)
 {
 	const Float h = GRAV_SOFTENING / 3.0; // Plummer equiv softening
 

@@ -444,8 +444,8 @@ static void find_mean_cost()
 }
 
 /*
- * This function defines the algorithm that decides if a bunch has to be refined
- * into eight sub-bunches. It sets the target processor setting 
+ * This function defines the algorithm that decides if a bunch has to be 
+ * refined into eight sub-bunches. It sets the target processor setting 
  * "target = -rank -1".
  * We refine the bunches adjacent to the processor borders at "Split_Idx".
  */

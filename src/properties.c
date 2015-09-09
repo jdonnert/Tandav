@@ -7,7 +7,7 @@ void Compute_Global_Simulation_Properties()
 {
 	Sim.Total_Mass = find_total_mass();
 
-	find_center_of_mass(&Sim.Center_Of_Mass);
+	find_center_of_mass(Sim.Center_Of_Mass);
 
 	return ;
 }

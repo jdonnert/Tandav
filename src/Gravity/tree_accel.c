@@ -43,7 +43,7 @@ void Gravity_Tree_Acceleration()
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
-printf("%d %d \n", i, ipart);
+
 		bool use_BH_criterion = (ASCALPROD3(P[ipart].Acc) == 0);
 
 		struct Walk_Data grav_data = { 0 };

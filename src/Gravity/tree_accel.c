@@ -89,13 +89,13 @@ void Gravity_Tree_Acceleration()
 
 		P[ipart].Cost += grav_data.cost;
 
+		// work_queue();
+
 	} // for i
 
 	rprintf(" done \n");
 
 	Profile("Grav Tree Walk");
-
-	#pragma omp barrier
 
 	return ;
 }

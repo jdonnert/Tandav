@@ -28,10 +28,9 @@ union Domain_Node_List *D = NULL;
 
 static int NTarget = 0;
 static int Max_NBunches = 0, NTop_Leaves = 0;
-static int *Npart = NULL, *Split_Idx = NULL;
 static int NMerged = 0, Max_Level = 0;
+static int *Npart = NULL, *Split_Idx = NULL;
 
-static double Top_Node_Alloc_Factor = 0;
 static double max_mem_imbal = 0, max_cost_imbal = 0;
 static float *Cost = NULL;
 
@@ -62,7 +61,6 @@ void Domain_Decomposition()
 
 	Sort_Particles_By_Peano_Key();
 
-	#pragma omp single
 	reset_bunchlist();
 
 	fill_bunches(0, NBunches, 0, Task.Npart_Total);
@@ -138,25 +136,22 @@ void Domain_Decomposition()
 
 void Setup_Domain_Decomposition()
 {
-	if (Sim.NRank < 4) // decompose on threads as welL
+	if (Sim.NRank < 16) // decompose on threads as welL
 		NTarget = Sim.NTask;
 	else
 		NTarget = Sim.NRank;
 
-	Cost = Malloc(Sim.NTask * sizeof(Cost), "Cost");
-	Npart = Malloc(Sim.NTask * sizeof(Npart), "Npart");
-	Split_Idx = Malloc(Sim.NTask * sizeof(*Split_Idx), "Split_Idx");
+	Cost = Malloc(Sim.NTask * sizeof(Cost), "Domain Cost");
+	Npart = Malloc(Sim.NTask * sizeof(Npart), "Domain Npart");
+	Split_Idx = Malloc(Sim.NTask * sizeof(*Split_Idx), "Domain Split_Idx");
 
-	Top_Node_Alloc_Factor = (double) 1024 / Task.Npart_Total;
+	int min_level = log(Sim.NTask)/log(8) + 1;
+
+	Max_NBunches = pow(8, min_level);
 
 	reallocate_topnodes();
 
-	memset(D, 0, Max_NBunches * sizeof(*D));
-
-	NBunches = 1;
-
-	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
-	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
+	reset_bunchlist();
 
 	#pragma omp parallel
 	set_global_domain();
@@ -180,30 +175,49 @@ void Setup_Domain_Decomposition()
 
 static void reallocate_topnodes()
 {
-	Top_Node_Alloc_Factor *= 1.2;
-
-	Max_NBunches = Sim.Npart_Total * Top_Node_Alloc_Factor;
+	Max_NBunches *= 1.2;
 
 	size_t nBytes = Max_NBunches * sizeof(*D);
 
-	printf("Increasing Top Node Memory to %g KB, Max %d Nodes, Factor %4g \n"
-			, nBytes/1024.0, Max_NBunches, Top_Node_Alloc_Factor);
+	double alloc_factor = Task.Npart_Total / Max_NBunches * sizeof(*P) /
+		sizeof(*D);
+
+	printf("Increasing Top Node Memory by 20%% to %g KB, Max %d Nodes, "
+		   "Factor %4g \n",
+		   nBytes/1024.0, Max_NBunches, alloc_factor);
 
 	D = Realloc(D, nBytes, "D");
 
 	return ;
 }
 
+
+/*
+ * We set a vanilla bunch list with a minimum level to allow immediate omp
+ * parallel fill.
+ */
+
 static void reset_bunchlist()
 {
+	#pragma omp single
 	memset(&D[0], 0, sizeof(*D) * Max_NBunches);
 
-	NBunches = 1;
+	int level = log(Sim.NTask)/log(8) + 1;
+	NBunches = pow(8,level);
 
-	D[0].Bunch.Key = 0xFFFFFFFFFFFFFFFF;
-	D[0].Bunch.Npart = D[0].Bunch.Level = D[0].Bunch.Target = 0;
+	int shift = 3 * level;
+	shortKey base = 0xFFFFFFFFFFFFFFFF >> shift;
 
-	int min_level = log(Sim.NTask)/log(8) + 1;
+	#pragma omp for
+	for (shortKey i = 0; i < NBunches; i++) {
+
+		D[i].Bunch.Key = (i << (64 - shift)) | base;
+		D[i].Bunch.Level = level;
+		D[i].Bunch.Npart = 0;
+		D[i].Bunch.First_Part = INT_MAX;
+		D[i].Bunch.Target = -1;
+		D[i].Bunch.Modify = 0;
+	}
 
 	return ;
 }
@@ -382,8 +396,6 @@ static void fill_bunches(const int first_bunch, const int nBunches,
 		D[i].Bunch.First_Part = INT_MAX;
 	}
 
-	#pragma omp flush
-
 	#pragma omp for nowait
 	for (int ipart = first_part; ipart < last_part; ipart++) { // sort in
 
@@ -531,8 +543,10 @@ static void distribute()
 		double new_cost = cur_cost + D[i].Bunch.Cost;
 		double new_npart = Npart[task] + dNpart + D[i].Bunch.Npart;
 
-		if ( (new_npart >= max_npart)
-		|| fabs(new_cost - Mean_Cost) > fabs(cur_cost - Mean_Cost) ) {
+		double dmean_new = fabs(new_cost - Mean_Cost);
+		double dmean_cur = fabs(cur_cost - Mean_Cost);
+
+		if ( (new_npart >= max_npart) || dmean_new > dmean_cur ) { // new rank
 
 			if (Cost[task] > Mean_Cost)
 				Split_Idx[task] = i-1;

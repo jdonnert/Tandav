@@ -8,48 +8,32 @@ endif
 
 CC	 	 = mpicc
 OPTIMIZE = -Wall -g -O2 
-MPI_INCL = $(CPPFLAGS)
-MPI_LIBS = $(LDFLAGS)
-GSL_INCL =
-GSL_LIBS = 
-FFT_INCL =
-FFT_LIBS =
+XTRA_INCL = $(CPPFLAGS)
+XTRA_LIBS = $(LDFLAGS)
 
 # machine specifics
 ifeq ($(SYSTYPE),DARWIN)
 CC       =  mpicc
 OPTIMIZE =  -Wall -g -lmpich -O3  -finline -finline-functions \
 			-funroll-loops  -xhost  -mkl  -ipo 
-MPI_LIBS = 
-MPI_INCL = 
-GSL_INCL =  
-GSL_LIBS = 
-FFT_INCL =
-FFT_LIBS =
+XTRA_LIBS = 
+XTRA_INCL = 
 endif
 
 ifeq ($(SYSTYPE),mach64.ira.inaf.it)
 CC       =  mpicc
 OPTIMIZE =  -g -O2  -march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp  \
 			-minline-all-stringops -fprefetch-loop-arrays --param prefetch-latency=300 -funroll-all-loops 
-MPI_LIBS = -L/homes/donnert/Libs/lib
-MPI_INCL = -I/homes/donnert/Libs/include
-GSL_INCL =  
-GSL_LIBS = 
-FFT_INCL =
-FFT_LIBS =
+XTRA_LIBS = -L/homes/donnert/Libs/lib
+XTRA_INCL = -I/homes/donnert/Libs/include
 endif
 
 ifeq ($(SYSTYPE),coma.msi.umn.edu)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O3  -openmp -finline -finline-functions \
+OPTIMIZE =  -Wall -g -O3 -openmp -finline -finline-functions \
 			-funroll-loops  -xhost  -mkl  -ipo 
-MPI_LIBS = -lmpich
-MPI_INCL = 
-GSL_INCL =  
-GSL_LIBS = 
-FFT_INCL =
-FFT_LIBS =
+XTRA_LIBS = -lmpich
+XTRA_INCL = 
 endif
 
 # end systypes
@@ -61,7 +45,7 @@ SRCDIR = src/
 SRCFILES = main.c aux.c cosmology.c domain.c update.c print_settings.c drift.c \
 		init.c kick.c setup.c timestep.c unit.c memory.c profile.c \
 		sort.c finish.c peano.c accel.c constants.c log.c signal.c comov.c \
-		periodic.c select.c properties.c \
+		periodic.c median.c \
 		\
 	   	IO/io.c IO/read_snapshot.c IO/write_snapshot.c IO/rw_parameter_file.c \
 		IO/write_restart_file.c IO/read_restart_file.c  \
@@ -73,7 +57,7 @@ SRCFILES = main.c aux.c cosmology.c domain.c update.c print_settings.c drift.c \
 INCLFILES = config.h globals.h cosmology.h unit.h aux.h macro.h proto.h \
 	    memory.h profile.h IO/io.h constants.h kick.h setup.h update.h \
 		drift.h timestep.h peano.h accel.h log.h signal.h  comov.h \
-		periodic.h select.h properties.h \
+		periodic.h median.h \
 		\
 		Gravity/gravity.h Gravity/gravity_periodic.h \
 		\
@@ -84,9 +68,10 @@ OBJFILES = $(SRCFILES:.c=.o)
 OBJS = $(addprefix $(SRCDIR),$(OBJFILES))
 INCS = $(addprefix $(SRCDIR),$(INCLFILES))
 
-CFLAGS = -fopenmp -std=c99 -fstrict-aliasing $(OPTIMIZE) $(GSL_INCL) $(MPI_INCL) $(FFT_INCL)
+CFLAGS = -fopenmp -std=c99 -fstrict-aliasing \
+		 $(OPTIMIZE) $(XTRA_INCL) 
 
-LIBS = -lm -lgsl -lgslcblas $(MPI_LIBS) $(GSL_LIBS) $(FFTW_LIBS)
+LIBS = -lm -lgsl -lgslcblas $(XTRA_LIBS))
 
 # rules
 

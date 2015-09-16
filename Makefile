@@ -28,7 +28,7 @@ XTRA_LIBS = -L/homes/donnert/Libs/lib
 XTRA_INCL = -I/homes/donnert/Libs/include
 endif
 
-ifeq ($(SYSTYPE),coma.msi.umn.edu)
+ifeq ($(SYSTYPE),MSI)
 CC       =  mpicc
 OPTIMIZE =  -Wall -g -O3 -openmp -finline -finline-functions \
 			-funroll-loops  -xhost  -mkl  -ipo 
@@ -71,7 +71,7 @@ INCS = $(addprefix $(SRCDIR),$(INCLFILES))
 CFLAGS = -fopenmp -std=c99 -fstrict-aliasing \
 		 $(OPTIMIZE) $(XTRA_INCL) 
 
-LIBS = -lm -lgsl -lgslcblas $(XTRA_LIBS))
+LIBS = -lm -lgsl -lgslcblas $(XTRA_LIBS)
 
 # rules
 

@@ -14,8 +14,7 @@ XTRA_LIBS = $(LDFLAGS)
 # machine specifics
 ifeq ($(SYSTYPE),DARWIN)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -lmpich -O3  -finline -finline-functions \
-			-funroll-loops  -xhost  -mkl  -ipo 
+OPTIMIZE =  -Wall -g -lmpich -O3 -mtune=native -march=native  
 XTRA_LIBS = 
 XTRA_INCL = 
 endif
@@ -45,7 +44,7 @@ SRCDIR = src/
 SRCFILES = main.c aux.c cosmology.c domain.c update.c print_settings.c drift.c \
 		init.c kick.c setup.c timestep.c unit.c memory.c profile.c \
 		sort.c finish.c peano.c accel.c constants.c log.c signal.c comov.c \
-		periodic.c median.c \
+		periodic.c select.c properties.c\
 		\
 	   	IO/io.c IO/read_snapshot.c IO/write_snapshot.c IO/rw_parameter_file.c \
 		IO/write_restart_file.c IO/read_restart_file.c  \
@@ -57,7 +56,7 @@ SRCFILES = main.c aux.c cosmology.c domain.c update.c print_settings.c drift.c \
 INCLFILES = config.h globals.h cosmology.h unit.h aux.h macro.h proto.h \
 	    memory.h profile.h IO/io.h constants.h kick.h setup.h update.h \
 		drift.h timestep.h peano.h accel.h log.h signal.h  comov.h \
-		periodic.h median.h \
+		periodic.h select.h properties.h \
 		\
 		Gravity/gravity.h Gravity/gravity_periodic.h \
 		\
@@ -71,7 +70,7 @@ INCS = $(addprefix $(SRCDIR),$(INCLFILES))
 CFLAGS = -fopenmp -std=c99 -fstrict-aliasing \
 		 $(OPTIMIZE) $(XTRA_INCL) 
 
-LIBS = -lm -lgsl -lgslcblas $(XTRA_LIBS))
+LIBS = -lm -lgsl -lgslcblas $(XTRA_LIBS)
 
 # rules
 

@@ -256,9 +256,9 @@ static int build_subtree(const int first_part, const int tnode_idx,
 {
 #ifdef DEBUG
 	printf("DEBUG (%d:%d) Tree Build for top node=%d : "
-		   "first part=%d npart=%d Tree build target=%d %p \n"
+		   "first part=%d npart=%d Tree build target=%d  \n"
 		,Task.Rank, Task.Thread_ID,  tnode_idx, first_part,
-		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target, tree);
+		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target);
 	fflush(stdout);
 #endif
 
@@ -345,7 +345,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 	nNodes = finalise_subtree(top_level, tnode_idx, nNodes);
 
 #ifdef DEBUG
-	printf("DEBUG (%d:%d) TNode %d tree done, nNodes %d, npart%g \n",
+	printf("DEBUG (%d:%d) TNode %d tree done, nNodes %d, npart/nNodes %g \n",
 			Task.Rank,Task.Thread_ID, tnode_idx, nNodes,
 			(double)nNodes/D[tnode_idx].TNode.Npart);
 #endif

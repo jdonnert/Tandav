@@ -1,5 +1,7 @@
-/* This file defines global physical constants in cgsm units
- * Use unique descriptive names, all Capital letters */
+/* 
+ * This file defines global physical constants in cgsm units
+ * Use unique descriptive names, all Capital letters 
+ */
 
 #include <gsl/gsl_const_cgsm.h>
 #include <gsl/gsl_const_num.h>
@@ -17,7 +19,7 @@
 #define GRAVITATIONAL_CONST 6.673848e-8 // [cm^3/g/s^2]
 
 /* 
- * unit conversions to cgs
+ * Unit conversions to cgs
  */
 
 #define BARN2CGS GSL_CONST_CGSM_BARN // [cm^2]
@@ -30,13 +32,13 @@
 #define YR2CGS 31556926.0 // [sec], seconds in a year
 
 /* 
- * model constants 
+ * Model constants 
  */
 
-#define TCMB 2.728 		// [K] Temperature of the CMB
-#define BCMB 3.24516e-6 	// [G] Magnetic field equivalent of Tcmb
-#define HYDROGEN_FRACTION 0.76 		// Std hydrogen mass fraction
-#define HELIUM_FRACTION (1-HYDROGEN_FRACTION) 	// Helium mass fraction
+#define TCMB 2.728		// [K] Temperature of the CMB
+#define BCMB 3.24516e-6	// [G] Magnetic field equivalent of Tcmb
+#define HYDROGEN_FRACTION 0.76		// Std hydrogen mass fraction
+#define HELIUM_FRACTION (1-HYDROGEN_FRACTION)	// Helium mass fraction
 #define UMOL (4.0/(5.0*HYDROGEN_FRACTION+3.0)) // Mean mol. weight in H
 #define ADIABATIC_INDEX_MONOATOMIC_GAS (5.0/3.0)
 

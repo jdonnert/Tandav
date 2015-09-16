@@ -26,8 +26,8 @@ unsigned int Npart_In_Block(const int i, const int *nPart)
 
 		list[i+1] = nPart[i];
 	}
-	
+
 	int j = (int) Block[i].Target;
-	
+
 	return list[j];
 }

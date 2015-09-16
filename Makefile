@@ -18,8 +18,9 @@ FFT_LIBS =
 # machine specifics
 ifeq ($(SYSTYPE),DARWIN)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -lmpich -O3  -finline -finline-functions \
-			-funroll-loops  -xhost  -mkl  -ipo 
+OPTIMIZE =  -Wall -g -lmpich -O3 -xhost  \
+			-finline -finline-functions \
+			-funroll-loops    -mkl # -ipo -opt-report=3 
 MPI_LIBS = 
 MPI_INCL = 
 GSL_INCL =  
@@ -42,7 +43,7 @@ endif
 
 ifeq ($(SYSTYPE),coma.msi.umn.edu)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O3  -openmp -finline -finline-functions \
+OPTIMIZE =  -Wall -g -O3  -finline -finline-functions \
 			-funroll-loops  -xhost  -mkl  -ipo 
 MPI_LIBS = -lmpich
 MPI_INCL = 

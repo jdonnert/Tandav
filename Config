@@ -16,7 +16,7 @@ DOMAIN_IMBAL_CEIL 0.05		// [0.05] desired maximum cost imbalance
 GRAVITY                     // gravitational interaction master switch
 #GRAVITY_POTENTIAL           // compute gravitational potential
 
-#GRAVITY_SIMPLE              // N^2 law, shows grav force errors 
+GRAVITY_SIMPLE              // N^2 law, shows grav force errors 
 GRAVITY_TREE                // B&H gravity tree
 
 GRAV_SOFTENING 10          // Plummer eq. gravitational softening length 

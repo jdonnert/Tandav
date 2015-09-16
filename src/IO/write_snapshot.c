@@ -65,21 +65,21 @@ void Write_Snapshot()
 void write_file(const char *filename, const int groupRank, const int groupSize,
 		const MPI_Comm mpi_comm_write)
 {
-	const int groupMaster = 0; 
+	const int groupMaster = 0;
 
 	int nPartFile[NPARTYPE] = { 0 }; // npart in file by type
 
-	MPI_Reduce(Task.Npart, nPartFile, NPARTYPE, MPI_INT, MPI_SUM, 
+	MPI_Reduce(Task.Npart, nPartFile, NPARTYPE, MPI_INT, MPI_SUM,
 			groupMaster, mpi_comm_write);
 
 	int nPartLargest = 0; // largest part number to transfer
 
-	MPI_Reduce(&Task.Npart_Total, &nPartLargest, 1, MPI_INT, MPI_MAX, 
+	MPI_Reduce(&Task.Npart_Total, &nPartLargest, 1, MPI_INT, MPI_MAX,
 			groupMaster, mpi_comm_write);
 
 	int nPartTotalFile = 0; // total number of particles in file
 
-	for (int i = 0; i < NPARTYPE; i++) 
+	for (int i = 0; i < NPARTYPE; i++)
 		nPartTotalFile += nPartFile[i];
 
 	FILE *fp = NULL;
@@ -93,7 +93,7 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 				filename, Task.Rank, Task.Rank+groupSize-1,
 				nPartFile[0],nPartFile[1],nPartFile[2],
 				nPartFile[3],nPartFile[4],nPartFile[5],
-				nPartTotalFile); 
+				nPartTotalFile);
 
 		fp = fopen(filename, "w");
 
@@ -158,10 +158,10 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 			/* last one in group */
 			fwrite(dataBuf+swap*halfBufSize, xferSizes[groupSize-1], 1, fp);
 
-			WRITE_FORTRAN_RECORD(blocksize) 
+			WRITE_FORTRAN_RECORD(blocksize)
 
 		} else   // slaves just post a blocking send
-			MPI_Send(dataBuf, nBytesSend, MPI_BYTE, groupMaster, 
+			MPI_Send(dataBuf, nBytesSend, MPI_BYTE, groupMaster,
 					groupRank, mpi_comm_write);
 
 		MPI_Barrier(mpi_comm_write);

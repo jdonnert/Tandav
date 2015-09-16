@@ -28,11 +28,11 @@ void Gravity_Simple_Accel()
 
 	#pragma omp single
 	{
-	
+
 	Mean_Error = Max_Error = 0;
-	
+
 	Worst_Part = -1;
-	
+
 	} // omp single
 
 	#pragma omp for reduction(+:Mean_Error)
@@ -66,7 +66,7 @@ void Gravity_Simple_Accel()
 			P[ipart].Acc[2] += acc_periodic[2];
 
 #ifdef GRAVITY_POTENTIAL
-			Float pot_periodic = 0; 
+			Float pot_periodic = 0;
 
 			Ewald_Potential(dr, &pot_periodic); // PERIODIC
 
@@ -86,14 +86,14 @@ void Gravity_Simple_Accel()
 				double u3 = u2*u;
 
 				rinv = sqrt(14*u-84*u3+140*u2*u2-90*u2*u3+21*u3*u3)/H;
-			} 
+			}
 
 			double acc_mag = Const.Gravity * P[jpart].Mass * p2(rinv);
 
 			P[ipart].Acc[0] += -acc_mag * dr[0] * rinv;
 			P[ipart].Acc[1] += -acc_mag * dr[1] * rinv;
 			P[ipart].Acc[2] += -acc_mag * dr[2] * rinv;
-			
+
 #ifdef GRAVITY_POTENTIAL
 			if (r < H) { // WC2 kernel softening
 
@@ -111,14 +111,14 @@ void Gravity_Simple_Accel()
 		double error[3] = {(acc[0] - P[ipart].Acc[0]) / P[ipart].Acc[0],
 							(acc[1] - P[ipart].Acc[1]) / P[ipart].Acc[1],
 							(acc[2] - P[ipart].Acc[2]) / P[ipart].Acc[2] };
-		
+
 		double errorl = ALENGTH3(error);
 
 		Mean_Error += errorl;
 
 		#pragma omp critical
 		{
-		
+
 		if (errorl > Max_Error) {
 
 			Max_Error = ALENGTH3(error);
@@ -126,17 +126,17 @@ void Gravity_Simple_Accel()
 		}
 
 		} // omp critical
-	
-		//printf("ipart = %d %g | %g %g %g | %g %g %g \n", 
-		//		ipart, errorl, acc[0], acc[1], acc[2],
-		//		P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
+
+			printf("\nipart = %d %g | %g %g %g | %g %g %g \n",
+				ipart, errorl, acc[0], acc[1], acc[2],
+				P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
 
 	} // for ipart
 
 	rprintf("done\n");
-	
-	rprintf("\nForce test: NActive %d, max error %g @ %d, mean error %g \n\n", 
-			NActive_Particles, Max_Error, Worst_Part, 
+
+	rprintf("\nForce test: NActive %d, max error %g @ %d, mean error %g \n\n",
+			NActive_Particles, Max_Error, Worst_Part,
 			Mean_Error/NActive_Particles);
 
 	Profile("Gravity_Simple");

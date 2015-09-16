@@ -3,6 +3,7 @@
 
 #define MAXMEMOBJECTS 1024L
 
+int posix_memalign(void **memptr, size_t alignment, size_t size);
 static void merge_free_memory_blocks(int);
 static int find_memory_block_from_ptr(void *);
 static int reserve_free_block_from_size(const size_t);
@@ -24,7 +25,7 @@ static struct memory_block_infos {
 	bool In_Use;
 } Mem_Block[MAXMEMOBJECTS];
 
-static void * buffer; // Multi-purpose thread-safe buffer: BUFFER_SIZE
+static void *buffer; // Multi-purpose thread-safe buffer: BUFFER_SIZE
 #pragma omp threadprivate(buffer)
 
 void *Malloc_info(const char* file, const char* func, const int line,
@@ -174,6 +175,17 @@ void *Get_Thread_Safe_Buffer (size_t nBytes)
 
 void Init_Memory_Management()
 {
+
+#pragma omp parallel
+	{
+
+	Task.Buffer_Size = Param.Buffer_Size * 1024 * 1024 / Sim.NThreads;
+
+	#pragma omp critical
+	buffer = malloc(Task.Buffer_Size); // let the system take a local chunk
+
+	} // omp parallel
+
 #ifdef MEMORY_MANAGER
 
 	Mem_Size = (Param.Max_Mem_Size - Param.Buffer_Size) * 1024L * 1024L; // MB
@@ -205,22 +217,13 @@ void Init_Memory_Management()
 
 #endif // MEMORY_MANAGER
 
-	#pragma omp parallel
-	{
-
-	Task.Buffer_Size = Param.Buffer_Size * 1024 * 1024 / Sim.NThreads;
-
-	#pragma omp critical
-	buffer = malloc(Task.Buffer_Size); // let the system take a local chunk
-
-	} // omp parallel
-
 	return;
 }
 
 void Print_Memory_Usage()
 {
 #ifdef MEMORY_MANAGER
+
 	#pragma omp master
 	{
 
@@ -271,10 +274,10 @@ void Print_Memory_Usage()
 
 	} // omp master
 
-	#pragma omp flush
 	#pragma omp barrier
 
 #endif
+
 	return;
 }
 
@@ -341,7 +344,7 @@ static int reserve_free_block_from_size(const size_t size)
 }
 
 /* merge memory blocks to minimize fragmentation */
-static void merge_free_memory_blocks(int i) 
+static void merge_free_memory_blocks(int i)
 {
 	if (i == NMem_Blocks-1) { // Last, merge right into free
 

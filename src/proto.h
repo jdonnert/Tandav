@@ -27,7 +27,7 @@
 #define CHARBUFSIZE 256L	// Maximum No. of chars in every char buffer
 #define NPARTYPE 6L			// No of particle types
 #define MEM_ALIGNMENT 64L	// byte memory alignment
-#define MASTER 0			// Global master MPI task
+#define MASTER 0L			// Global master MPI task
 
 #ifdef DOUBLE_PRECISION
 typedef double Float;		// type of floating point variables in P
@@ -47,17 +47,6 @@ typedef uint32_t intime_t;	// type of integer time
 typedef __uint128_t peanoKey; // long peanokey, 42 triplets / levels
 typedef uint64_t shortKey;	// short peanokey, 21 triplets / levels
 
-#include "macro.h"			// macro definitions
-#include "unit.h"			// unit functions
-#include "constants.h"		// physical constants
-#include "aux.h"			// auxiliary functions 
-#include "memory.h"			// memory management
-#include "profile.h"		// time measurement
-#include "log.h"			// run logging
-#include "signal.h"			// signal handlers
-#include "sort.h"			// sort functions
-#include "select.h"			// find median of an array
-
 /* 
  * Global function prototypes 
  */
@@ -70,12 +59,25 @@ extern void Print_compile_time_settings();
  */
 
 double erand48(unsigned short xsubi[3]);
-int posix_memalign(void **memptr, size_t alignment, size_t size);
 
 /* 
- * Add your headers here, #ifdefs go into the .h file 
+ * global module headers  
  */
 
+#include "macro.h"			// macro definitions
+#include "unit.h"			// unit functions
+#include "constants.h"		// physical constants
+#include "aux.h"			// auxiliary functions 
+#include "memory.h"			// memory management
+#include "profile.h"		// time measurement
+#include "log.h"			// run logging
+#include "signal.h"			// signal handlers
+#include "sort.h"			// sort functions
+#include "select.h"			// find median of an array
+
+/* 
+ * Add here, #ifdefs go into the .h file 
+ */
 #include "cosmology.h"		// cosmology functions 
 #include "comov.h"			// Comoving coordinates
 #include "periodic.h"		// periodic boundary conditions

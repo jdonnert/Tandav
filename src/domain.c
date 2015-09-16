@@ -57,12 +57,16 @@ void Domain_Decomposition()
 {
 	Profile("Domain Decomposition");
 
+printf("DOMAIN %d \n", Task.Thread_ID); fflush(stdout);
 	set_global_domain();
 
+printf("SORT %d \n", Task.Thread_ID);fflush(stdout);
 	Sort_Particles_By_Peano_Key();
 
+printf("RESET %d \n", Task.Thread_ID);fflush(stdout);
 	reset_bunchlist();
 
+printf("FILL %d \n", Task.Thread_ID);fflush(stdout);
 	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
 	find_mean_cost();
@@ -99,15 +103,17 @@ void Domain_Decomposition()
 				#pragma omp single
 				if (NBunches + 8 >= Max_NBunches) // make more space !
 					reallocate_topnodes();
-
+printf("SPLIT %d \n", Task.Thread_ID);
 				split_bunch(i, first_new_bunch);
 
+printf("FILL %d \n", Task.Thread_ID);
 				fill_bunches(first_new_bunch, 8, D[i].Bunch.First_Part,
 						D[i].Bunch.Npart);
 
 				#pragma omp single
 				D[i].Bunch.Npart = 0; // mark for deletion
 			} // if 
+printf("OUT %d \n", Task.Thread_ID);
 		} // for i
 	} // forever
 
@@ -163,7 +169,7 @@ void Setup_Domain_Decomposition()
 		Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
 		Domain.Center[0], Domain.Center[1], Domain.Center[2],
 		Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
-		Domain.Center_Of_Mass[2]);
+		Domain.Center_Of_Mass[2]); fflush(stdout);
 
 	return;
 }
@@ -179,8 +185,8 @@ static void reallocate_topnodes()
 
 	size_t nBytes = Max_NBunches * sizeof(*D);
 
-	double alloc_factor = Task.Npart_Total / Max_NBunches * sizeof(*P) /
-		sizeof(*D);
+	double alloc_factor = Max_NBunches * sizeof(*D) /
+						((double) Sim.Npart_Total* sizeof(*P));
 
 	printf("Increasing Top Node Memory by 20%% to %g KB, Max %d Nodes, "
 		   "Factor %4g \n",
@@ -581,14 +587,6 @@ static int compare_bunches_by_key(const void *a, const void *b)
 	return (int) (x->Key > y->Key) - (x->Key < y->Key);
 }
 
-static int compare_bunches_by_target(const void *a, const void *b)
-{
-	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
-	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
-
-	return (int) (x->Target > y->Target) - (x->Target < y->Target);
-}
-
 static int compare_bunches_by_cost(const void *a, const void *b)
 {
 	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
@@ -599,7 +597,6 @@ static int compare_bunches_by_cost(const void *a, const void *b)
 
 static void communicate_particles()
 {
-	//Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_target);
 
 	return ;
 }
@@ -633,7 +630,6 @@ static void communicate_bunches()
 
 static void set_global_domain()
 {
-
 #ifdef PERIODIC
 
 	Domain.Origin[0] = Domain.Origin[1] = Domain.Origin[2] = 0;
@@ -648,6 +644,7 @@ static void set_global_domain()
 
 #endif // ! PERIODIC
 
+	#pragma omp single
 	for (int i = 0; i < 3; i++)
 		Domain.Origin[i] = Domain.Center[i] - 0.5 * Domain.Size;
 
@@ -686,6 +683,8 @@ static void find_domain_center(double Center_out[3])
 			x[ipart] = P[ipart].Mass * P[ipart].Pos[i];
 
 		center[i] = Median(Task.Npart_Total, x) / Sim.Total_Mass;
+
+		#pragma omp barrier
 	}
 
 	#pragma omp single

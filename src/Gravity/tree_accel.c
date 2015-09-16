@@ -6,7 +6,7 @@
 
 #ifdef GRAVITY_TREE
 
-struct Walk_Data_Send { // buffer stores input for tree walk
+struct Walk_Data_Send { // buffer stores input values for tree walk
 	int ipart;
 	int pos[3];
 	int last_acc_mag;
@@ -23,8 +23,8 @@ struct Walk_Data_Recv { // buffer stores partial results of tree walk
 } Precv = { 0 };
 #pragma omp threadprivate(Precv)
 
-static void prepare_Psend_from(const int);
-static void write_Precv_to(const int);
+static void prepare_buffers_from(const int);
+static void add_Precv_to(const int);
 static bool interact_with_topnode(const int);
 static void interact_with_topnode_particles(const int);
 static void gravity_tree_walk(const int);
@@ -52,7 +52,7 @@ void Gravity_Tree_Acceleration()
 
 		memset(&Precv, 0, sizeof(Precv));
 
-		prepare_Psend_from(ipart);
+		prepare_buffers_from(ipart);
 
 		bool use_BH_criterion = (Psend.last_acc_mag == 0);
 
@@ -83,7 +83,7 @@ void Gravity_Tree_Acceleration()
 				gravity_tree_walk(tree_start);
 		} // for j
 
-		 write_Precv_to(ipart);
+		 add_Precv_to(ipart);
 
 		// work_queue();
 
@@ -100,23 +100,38 @@ void Gravity_Tree_Acceleration()
  * Copy relevant particle variables into the grav_data buffer and 
  */
 
-static void prepare_Psend_from(const int ipart)
+static void prepare_buffers_from(const int ipart)
 {
 	memset(&Psend, 0, sizeof(Psend));
 
 	Psend.ipart = ipart;
-	memcpy(Psend.pos, P[ipart].Pos, 3*sizeof(*P[ipart].Pos));
+
+	Psend.pos[0] = P[ipart].Pos[0];
+	Psend.pos[1] = P[ipart].Pos[1];
+	Psend.pos[2] = P[ipart].Pos[2];
+	
 	Psend.last_acc_mag = ALENGTH3(P[ipart].Acc);
+	
 	Psend.mass = P[ipart].Mass;
+
+
+	// sink
+	
+	P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0; // zero sink
 
 	return ;
 }
 
-static void write_Precv_to(const int ipart)
+static void add_Precv_to(const int ipart)
 {
-	memcpy(P[ipart].Acc, Precv.grav_acc, 3 * sizeof(*P[ipart].Acc));
-	memcpy(P[ipart].Grav_Acc, Precv.grav_acc, 3 * sizeof(*P[ipart].Acc));
+	P[ipart].Acc[0] += Precv.grav_acc[0];
+	P[ipart].Acc[1] += Precv.grav_acc[1];
+	P[ipart].Acc[2] += Precv.grav_acc[2];
 
+	P[ipart].Grav_Acc[0] += Precv.grav_acc[0];
+	P[ipart].Grav_Acc[1] += Precv.grav_acc[1];
+	P[ipart].Grav_Acc[2] += Precv.grav_acc[2];
+		
 #ifdef GRAVITY_POTENTIAL
 	P[ipart].Grav_Pot = Precv.grav_pot;
 #endif
@@ -360,13 +375,14 @@ static void gravity_tree_walk_first(const int tree_start)
 
 
 /*
- * Gravitational force law using Wendland C2 softening kernel with central 
- * value corresponding to Plummer softening.
+ * Gravitational force law using the K1 softening kernel with central 
+ * value corresponding to Plummer softening (Dehnen 2001).
  */
 
 static void interact(const Float mass, const Float dr[3], const Float r2)
 {
-	const Float h = GRAV_SOFTENING / 3.0; // Plummer equiv softening
+	//const Float h = 105/32 * GRAV_SOFTENING; // Plummer equiv softening
+	const Float h =  GRAV_SOFTENING/3; // Plummer equiv softening
 
 	const Float r = sqrt(r2);
 
@@ -382,10 +398,10 @@ static void interact(const Float mass, const Float dr[3], const Float r2)
 		Float u2 = u*u;
 		Float u3 = u2*u;
 
+		//r_inv = sqrt(u * (135*u2*u2 - 294*u2 + 175)/(16*h*h) );
 		r_inv = sqrt(14*u - 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3)/h;
-
 #ifdef GRAVITY_POTENTIAL
-		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3)/h;
+		r_inv_pot = ( 45*u3*u3  - 147*u2*u2 + 175*u2 - 105) /(32*h);
 #endif
 	}
 

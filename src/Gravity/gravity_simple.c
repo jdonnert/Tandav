@@ -127,6 +127,7 @@ void Gravity_Simple_Accel()
 
 		} // omp critical
 
+		//if (ipart == 20918)
 			printf("\nipart = %d %g | %g %g %g | %g %g %g \n",
 				ipart, errorl, acc[0], acc[1], acc[2],
 				P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );

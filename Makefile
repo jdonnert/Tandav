@@ -29,8 +29,7 @@ endif
 
 ifeq ($(SYSTYPE),MSI)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O3 -openmp -finline -finline-functions \
-			-funroll-loops  -xhost  -mkl  -ipo 
+OPTIMIZE =  -Wall -g -O3 -openmp -xhost  -mkl  -ipo 
 XTRA_LIBS = -lmpich
 XTRA_INCL = 
 endif
@@ -67,7 +66,7 @@ OBJFILES = $(SRCFILES:.c=.o)
 OBJS = $(addprefix $(SRCDIR),$(OBJFILES))
 INCS = $(addprefix $(SRCDIR),$(INCLFILES))
 
-CFLAGS = -fopenmp -std=c99 -fstrict-aliasing \
+CFLAGS = -fopenmp -std=c99 -fstrict-aliasing  \
 		 $(OPTIMIZE) $(XTRA_INCL) 
 
 LIBS = -lm -lgsl -lgslcblas $(XTRA_LIBS)

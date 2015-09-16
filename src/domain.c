@@ -57,16 +57,12 @@ void Domain_Decomposition()
 {
 	Profile("Domain Decomposition");
 
-printf("DOMAIN %d \n", Task.Thread_ID); fflush(stdout);
 	set_global_domain();
 
-printf("SORT %d \n", Task.Thread_ID);fflush(stdout);
 	Sort_Particles_By_Peano_Key();
 
-printf("RESET %d \n", Task.Thread_ID);fflush(stdout);
 	reset_bunchlist();
 
-printf("FILL %d \n", Task.Thread_ID);fflush(stdout);
 	fill_bunches(0, NBunches, 0, Task.Npart_Total);
 
 	find_mean_cost();
@@ -103,17 +99,15 @@ printf("FILL %d \n", Task.Thread_ID);fflush(stdout);
 				#pragma omp single
 				if (NBunches + 8 >= Max_NBunches) // make more space !
 					reallocate_topnodes();
-printf("SPLIT %d \n", Task.Thread_ID);
+
 				split_bunch(i, first_new_bunch);
 
-printf("FILL %d \n", Task.Thread_ID);
 				fill_bunches(first_new_bunch, 8, D[i].Bunch.First_Part,
 						D[i].Bunch.Npart);
 
 				#pragma omp single
 				D[i].Bunch.Npart = 0; // mark for deletion
 			} // if 
-printf("OUT %d \n", Task.Thread_ID);
 		} // for i
 	} // forever
 
@@ -152,8 +146,9 @@ void Setup_Domain_Decomposition()
 	Split_Idx = Malloc(Sim.NTask * sizeof(*Split_Idx), "Domain Split_Idx");
 
 	int min_level = log(Sim.NTask)/log(8) + 1;
-
+	
 	Max_NBunches = pow(8, min_level);
+printf("MINLEVEL %d %d \n", min_level, Max_NBunches);
 
 	reallocate_topnodes();
 
@@ -188,7 +183,7 @@ static void reallocate_topnodes()
 	double alloc_factor = Max_NBunches * sizeof(*D) /
 						((double) Sim.Npart_Total* sizeof(*P));
 
-	printf("Increasing Top Node Memory by 20%% to %g KB, Max %d Nodes, "
+	rprintf("Increasing Top Node Memory by 20%% to %g KB, Max %d Nodes, "
 		   "Factor %4g \n",
 		   nBytes/1024.0, Max_NBunches, alloc_factor);
 

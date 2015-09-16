@@ -6,7 +6,7 @@ pro make_ICs, periodic=periodic
 
 	seed = 14041981L
 
-	npart = 25000L
+	npart = 250000L
 
 	boxsize = 100000D
 

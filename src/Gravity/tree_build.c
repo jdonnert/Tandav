@@ -207,13 +207,13 @@ static int reserve_tree_memory(const int i, const int nNeeded)
 
 	if (NNodes + nNeeded >= Max_Nodes) { // reserve more memory
 
-		Max_Nodes = (Max_Nodes + nNeeded) * 1.05;
+		Max_Nodes = (Max_Nodes + nNeeded) * 1.20;
 
 		Max_Nodes = imax(Max_Nodes, 1024);
 
 		size_t nBytes = Max_Nodes * sizeof(*Tree);
 
-		mprintf("(%d:%d) Increasing Tree Memory to %6.1f MB, "
+		printf("(%d:%d) Increasing Tree Memory to %6.1f MB, "
 				"Max %10d Nodes, Factor %4.3g \n"
 				, Task.Rank, Task.Thread_ID, nBytes/1024.0/1024.0, Max_Nodes,
 				(double)Max_Nodes/Task.Npart_Total); fflush(stdout);

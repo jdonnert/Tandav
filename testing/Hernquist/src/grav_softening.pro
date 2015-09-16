@@ -11,9 +11,11 @@ pro softening
 	dr = alog10(rmax/rmin) / (N-1)
 	r = rmin * 10D^(i * dr)
 
-	eps = 1D
+	eps = 1.85D
 
-	h = 3/eps; 
+	;h = 3/eps ; for Wendland W2 
+
+	h = eps * 105/32D
 
 	kernel = make_array(N, /double, val=0)
 	force = make_array(N, /double, val=0)
@@ -21,22 +23,64 @@ pro softening
 	
 	for i = 0,N-1 do begin
 
-		kernel[i] = WC2(r[i], h)
+		;kernel[i] = WC2(r[i], h)
+		kernel[i] = K1(r[i], eps)
 
-		force[i] = force_WC2(1,1,r[i], eps)
+		force[i] = force_K1(1,1,r[i], eps)
 		
-		poten[i] = potential_WC2(1, r[i], eps)
+		poten[i] = potential_K1(1, r[i], eps)
 	end
 
 	!p.multi[1] = 3
 
-	plot, r, kernel, xrange=[rmin, 1.1*h], xstyle=1, xtitle='r [cm]', $
+	plot, r, kernel, xrange=[rmin, 3], xstyle=1, xtitle='r [cm]', $
 		ytitle=textoidl('\rho [g/cm^3]')
-	plot, r, force, /ylog, /xlog, xtitle='r [cm]', ytitle='F [g cm/s^2]'
-	plot, r, -poten, /ylog, /xlog, xtitle='r [cm]', $
+	plot, r, force, xtitle='r [cm]', ytitle='F [g cm/s^2]', $
+		xrange=[rmin, 3]
+	plot, r, -poten,  xtitle='r [cm]', xrange=[rmin, 3], $
 		ytitle=textoidl('\phi [g cm^2/s^2]')
 
 	return 
+end
+
+function K1, r, h ; Dehnen 2001, fig 1 & 2
+
+	u = r/h
+
+	if u gt 1 then $
+		return,  0
+
+	return, 105D/64/!pi/h^3 * (5 - 9*u^2) * (1 - u^2)
+
+end
+
+function force_K1, M0, M1, r, h
+	
+	grav_const = 6.6720000e-08
+
+	u = r/h
+
+	if u gt 1 then $
+		return,  grav_const * M0 * M1 / r^2
+
+	rinv2 = r * (135*u^4 - 294*u^2 + 175D)/16D/h^3 
+
+	return,  grav_const * M0 * M1 * rinv2
+	
+end
+
+function potential_K1, M, r, h
+
+	grav_const = 6.6720000e-08
+
+	u = r/h
+
+	if r gt h then $
+		return, -grav_const * M  / r
+
+	rinv = ( 45D*u^6  - 147D*u^4 + 175D * u^2 - 105D) /32D/h
+
+	return, grav_const * M * rinv
 end
 
 function WC2, r, h

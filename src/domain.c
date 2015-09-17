@@ -142,8 +142,8 @@ void Setup_Domain_Decomposition()
 	Npart = Malloc(Sim.NTask * sizeof(Npart), "Domain Npart");
 	Split_Idx = Malloc(Sim.NTask * sizeof(*Split_Idx), "Domain Split_Idx");
 
-	int min_level = log(Sim.NTask)/log(8) + 2;
-	
+	int min_level = MAX(3, log(Sim.NTask)/log(8) + 1);
+
 	Max_NBunches = pow(8, min_level);
 
 	reallocate_topnodes();
@@ -199,14 +199,14 @@ static void reset_bunchlist()
 	#pragma omp single
 	memset(&D[0], 0, sizeof(*D) * Max_NBunches);
 
-	int level = log(Sim.NTask)/log(8) + 1;
-	
+	int level = MAX(2, log(NTarget)/log(8) + 1);
+
 	#pragma omp single
 	NBunches = pow(8,level);
 
 	int shift = 3 * level;
 	shortKey base = 0xFFFFFFFFFFFFFFFF >> shift;
-
+	
 	#pragma omp for
 	for (shortKey i = 0; i < NBunches; i++) {
 

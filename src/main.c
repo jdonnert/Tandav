@@ -101,11 +101,17 @@ static void preamble(int argc, char *argv[])
 
 	MPI_Is_thread_main(&Task.Is_Thread_Main);
 
+	#pragma omp parallel
+	{
+	
+	#pragma omp single
+	{
+	
 	Sim.NThreads = omp_get_num_threads();
 	Sim.NTask = Sim.NRank * Sim.NThreads;
 
-	#pragma omp parallel
-	{
+	}
+
 	Task.Thread_ID = omp_get_thread_num();
 
 	if (Task.Rank == MASTER && Task.Thread_ID == MASTER)

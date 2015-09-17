@@ -28,7 +28,7 @@ static inline void create_node_from_particle(const int, const int,
 int NNodes = 0;
 static int Max_Nodes = 1024;
 struct Tree_Node  * restrict Tree = NULL; // global pointer to all nodes
-static omp_lock_t * restrict Tree_Lock; // lock global *Tree, NNodes, Max_Nodes  !
+static omp_lock_t Tree_Lock; // lock global *Tree, NNodes, Max_Nodes
 
 static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *Buffer
 #pragma omp threadprivate(tree)
@@ -38,7 +38,7 @@ static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *Buffer
  * First every local bunch is converted into a topnode. Then we build the 
  * corresponding tree either in the openmp buffer, or directly inside the
  * *Tree memory. Every access to  *Tree, NNodes, Max_Nodes has to be 
- * protected by the openmp *Tree_Lock.
+ * protected by the openmp Tree_Lock.
  * A subtree is build starting from the top node in target pointer "*tree". 
  * Every subtree allocated a fixed amount of memory, if it is not build in the
  * buffer.
@@ -54,6 +54,8 @@ void Gravity_Tree_Build()
 
 	#pragma omp single
 	{
+	
+	omp_init_lock(&Tree_Lock);
 
 	NTop_Nodes = NBunches;
 
@@ -61,11 +63,9 @@ void Gravity_Tree_Build()
 
 	Tree = Realloc(Tree, Max_Nodes * sizeof(*Tree), "Tree");
 
-	omp_init_lock(Tree_Lock);
-
 	} // omp single
 
-	const size_t buf_threshold = 0.8 * Task.Buffer_Size/sizeof(*Tree);
+	const size_t buf_threshold = Task.Buffer_Size/sizeof(*Tree);
 
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NTop_Nodes; i++) {
@@ -133,7 +133,7 @@ void Gravity_Tree_Build()
 	print_top_nodes(); // DEBUG only
 
 	#pragma omp single nowait
-	omp_destroy_lock(Tree_Lock);
+	omp_destroy_lock(&Tree_Lock);
 
 	Sig.Tree_Update = false;
 
@@ -180,7 +180,7 @@ static void transform_bunch_into_top_node(const int i, int *level, int *ipart)
  * Reserve memory in the "*Tree" structure. Reallocates, i.e. enlarges the 
  * *Tree memory if needed. We lock *Tree with Tree_Lock, so threads don't 
  * mess up the pointers. We do NOT explicitely lock NNodes here, so it may
- * be accessed only locked with *Tree_Lock .
+ * be accessed only locked with Tree_Lock .
  */
 
 static int reserve_tree_memory(const int i, const int nNeeded)
@@ -190,7 +190,7 @@ static int reserve_tree_memory(const int i, const int nNeeded)
 
 	int first = 0;
 
-	omp_set_lock(Tree_Lock);
+	omp_set_lock(&Tree_Lock);
 
 	if (NNodes + nNeeded >= Max_Nodes) { // reserve more memory
 
@@ -212,7 +212,7 @@ static int reserve_tree_memory(const int i, const int nNeeded)
 
 	NNodes += nNeeded;
 
-	omp_unset_lock(Tree_Lock);
+	omp_unset_lock(&Tree_Lock);
 
 	return first;
 }
@@ -228,7 +228,7 @@ static int reserve_tree_memory(const int i, const int nNeeded)
  * In the tree, DNext is the difference to the next sibling in the walk, if the
  * node is not opened. Opening a node is then node++. If DNext is negative, it 
  * points to Npart particles starting at ipart=-DNext-1, and the next node in 
- * line is node++. DNext=0 is only once per level, at the end of the branch. 
+ * line is node++. DNext=0 is only once, at the end of the branch. 
  * The tree saves only one particle per node, up to eight are combined in a 
  * node. This is achieved on the fly in an explicit cleaning step when a
  * particle opens a new branch. 

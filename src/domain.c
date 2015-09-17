@@ -466,10 +466,10 @@ static int check_distribution()
 			max_mem_imbal = npart_imbal;
 	}
 
-	if ((max_mem_imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
-	&& (max_cost_imbal < DOMAIN_IMBAL_CEIL)
-	&& (NBunches > Sim.NThreads) )
-		return 0;
+	if (max_mem_imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
+		if (max_cost_imbal < DOMAIN_IMBAL_CEIL)
+			if (NBunches > Sim.NThreads) 
+				return 0;
 
 	int nSplit = 0;
 
@@ -593,7 +593,6 @@ static void communicate_bunches()
  * For PERIODIC simulations there is little to do.
  */
 
-
 static void set_global_domain()
 {
 #ifdef PERIODIC
@@ -676,7 +675,7 @@ static void find_domain_center(double Center_out[3])
 		center[i] = Median(Sim.NRank, recvbuf);
 	}
 
-	MPI_Scatter(center, 3, MPI_DOUBLE, Center_out, 3, MPI_DOUBLE,
+	MPI_Scatter(center, 3, MPI_MYFLOAT, Center_out, 3, MPI_DOUBLE,
 				Sim.Master, MPI_COMM_WORLD);
 
 	} // master

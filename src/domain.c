@@ -4,7 +4,7 @@
 #include "peano.h"
 
 static void set_global_domain();
-static void fill_bunches(const int, const int, const int, const int);
+static void fill_new_bunches(const int, const int, const int, const int);
 static void find_mean_cost();
 static int remove_empty_bunches();
 static void split_bunch(const int, const int);
@@ -60,7 +60,7 @@ void Domain_Decomposition()
 
 	reset_bunchlist();
 
-	fill_bunches(0, NBunches, 0, Task.Npart_Total);
+	fill_new_bunches(0, NBunches, 0, Task.Npart_Total);
 
 	find_mean_cost();
 
@@ -93,13 +93,13 @@ void Domain_Decomposition()
 
 				int first_new_bunch = NBunches;
 
-				#pragma omp critical
+				#pragma omp single
 				if (NBunches + 8 >= Max_NBunches) // make more space !
 					reallocate_topnodes();
 
 				split_bunch(i, first_new_bunch);
 
-				fill_bunches(first_new_bunch, 8, D[i].Bunch.First_Part,
+				fill_new_bunches(first_new_bunch, 8, D[i].Bunch.First_Part,
 						D[i].Bunch.Npart);
 
 				#pragma omp single
@@ -349,7 +349,7 @@ static int remove_empty_bunches()
  * which are later reduced. The reduction is overlapped with the filling.
  */
 
-static void fill_bunches(const int first_bunch, const int nBunches,
+static void fill_new_bunches(const int first_bunch, const int nBunches,
 		 const int first_part, const int nPart)
 {
 	const int last_part = first_part + nPart;
@@ -744,7 +744,7 @@ static void print_domain_decomposition (const int max_level)
 
 		csum += D[i].Bunch.Cost;
 
-		printf("%3d |   %d   | %6zu | %6zu | %6d | %5d | %3d | %6g | %6g || ",
+		printf("%3d |   %d   | %06zu | %06zu | %010d | %05d | %03d | %06g | %06g || ",
 				i, D[i].Bunch.Modify, D[i].Bunch.Npart, sum,
 				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level,
 				D[i].Bunch.Cost, csum);

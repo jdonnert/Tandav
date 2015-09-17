@@ -104,8 +104,11 @@ void Gravity_Tree_Build()
 
 				size_t nBytes = nNeeded * sizeof(*Tree);
 
+				omp_set_lock(&Tree_Lock);
+
 				memcpy(&Tree[D[i].TNode.Target], tree, nBytes);
 
+				omp_unset_lock(&Tree_Lock);
 			}
 
 			int last_part = first_part + D[i].TNode.Npart;

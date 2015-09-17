@@ -55,6 +55,8 @@ bool Time_For_Snapshot()
 				Time.Snap_Counter, Time.Next_Snap,
 				Time.Next_Snap + Time.Bet_Snap);
 
+		#pragma omp barrier // no barrier in rprintf
+
 		#pragma omp single
 		Time.Next_Snap += Time.Bet_Snap;
 

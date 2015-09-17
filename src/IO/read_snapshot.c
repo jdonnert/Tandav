@@ -118,6 +118,8 @@ void Read_Snapshot(char *input_name)
 
 	rprintf("\nReading completed\n\n");
 
+	#pragma omp barrier
+
 	Profile("Read Snap");
 
 	return ;

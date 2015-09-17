@@ -1,33 +1,39 @@
 #include "globals.h"
 
 static void find_center_of_mass(double CoM_out[3]);
-static double find_total_mass();
+static void find_total_mass(double mass_out[1]);
 
 void Compute_Global_Simulation_Properties()
 {
-	Sim.Total_Mass = find_total_mass();
+	find_total_mass(&Sim.Total_Mass);
 
-	find_center_of_mass(Sim.Center_Of_Mass);
+	find_center_of_mass(&Sim.Center_Of_Mass[0]);
 
 	return ;
 }
 
-static double total_mass = 0;
+static double Total_Mass = 0;
 
-static double find_total_mass()
+static void find_total_mass(double mass_out[1])
 {
 	#pragma omp single
-	total_mass = 0;
+	Total_Mass = 0;
 
-	#pragma omp for reduction(+:total_mass)
+	#pragma omp for reduction(+:Total_Mass)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
-		total_mass += P[ipart].Mass;
+		Total_Mass += P[ipart].Mass;
 
 	#pragma omp single
-	MPI_Allreduce(MPI_IN_PLACE, &total_mass, 1, MPI_DOUBLE, MPI_SUM,
+	{
+
+	MPI_Allreduce(MPI_IN_PLACE, &Total_Mass, 1, MPI_DOUBLE, MPI_SUM,
 				  MPI_COMM_WORLD);
 
-	return total_mass;
+	mass_out[0] = Total_Mass;
+
+	} // omp single
+
+	return ;
 }
 
 static double CoM_X = 0, CoM_Y = 0, CoM_Z = 0; // can't reduce on array

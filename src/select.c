@@ -97,7 +97,7 @@ static Float *Results = NULL;
 
 Float Median(const int ndata, Float *data)
 {
-	if (Sim.NThreads == 1 || ndata < PARALLEL_THRES)
+	if (Sim.NThreads == 1 || ndata < PARALLEL_THRES || 1)
 		return Select(ndata >> 1, ndata, data);
 
 	int nPart = ndata * sizeof(*data) / Task.Buffer_Size + 1;

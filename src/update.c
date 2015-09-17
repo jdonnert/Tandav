@@ -7,9 +7,6 @@
 #include "domain.h"
 #include "properties.h"
 
-static void find_center_of_mass(double *CoM);
-static double find_total_mass();
-
 /* 
  * Provide a consistent way of updating/calling different parts 
  * of the code from the main loop. We are already in an OMP parallel
@@ -82,7 +79,7 @@ void Update(enum Update_Parameters stage)
 		break;
 
 	default:
-		Assert(false, "Update Switch %d not handled", stage);
+		Assert(false, "Update stage %d not handled", stage);
 	}
 
 	return;

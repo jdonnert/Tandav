@@ -375,8 +375,9 @@ static void gravity_tree_walk_first(const int tree_start)
 
 
 /*
- * Gravitational force law using the K1 softening kernel with central 
- * value corresponding to Plummer softening (Dehnen 2001).
+ * This is the actual gravitational force law using the K1 softening 
+ * kernel with a central value corresponding to Plummer softening 
+ * (Dehnen 2001).
  */
 
 static void interact(const Float mass, const Float dr[3], const Float r2)

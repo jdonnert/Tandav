@@ -13,13 +13,10 @@ static int check_distribution();
 static void remove_excess_bunches();
 static void reset_bunchlist();
 static void distribute();
-static void merge_bunch (const int, const int);
 static void communicate_particles();
 static void communicate_bunches();
 static int cost_metric(const int ipart);
 static int compare_bunches_by_key(const void *a, const void *b);
-static int compare_bunches_by_target(const void *a, const void *b);
-static int compare_bunches_by_cost(const void *a, const void *b);
 static void print_domain_decomposition (const int);
 static void find_domain_center(double *Center_out);
 static double find_largest_particle_distance();
@@ -85,7 +82,7 @@ void Domain_Decomposition()
 
 		}
 
-		if ((check_distribution() == 0))
+		if (check_distribution() == 0)
 			break;
 
 		int old_nBunches = NBunches;
@@ -96,7 +93,7 @@ void Domain_Decomposition()
 
 				int first_new_bunch = NBunches;
 
-				#pragma omp single
+				#pragma omp critical
 				if (NBunches + 8 >= Max_NBunches) // make more space !
 					reallocate_topnodes();
 
@@ -145,10 +142,9 @@ void Setup_Domain_Decomposition()
 	Npart = Malloc(Sim.NTask * sizeof(Npart), "Domain Npart");
 	Split_Idx = Malloc(Sim.NTask * sizeof(*Split_Idx), "Domain Split_Idx");
 
-	int min_level = log(Sim.NTask)/log(8) + 1;
+	int min_level = log(Sim.NTask)/log(8) + 2;
 	
 	Max_NBunches = pow(8, min_level);
-printf("MINLEVEL %d %d \n", min_level, Max_NBunches);
 
 	reallocate_topnodes();
 
@@ -204,6 +200,8 @@ static void reset_bunchlist()
 	memset(&D[0], 0, sizeof(*D) * Max_NBunches);
 
 	int level = log(Sim.NTask)/log(8) + 1;
+	
+	#pragma omp single
 	NBunches = pow(8,level);
 
 	int shift = 3 * level;
@@ -280,25 +278,6 @@ static void remove_excess_bunches()
 
 	return ;
 }
-
-static void merge_bunch(const int first, const int last)
-{
-	D[first].Bunch.Level--;
-	D[first].Bunch.Modify = 2;
-	D[first].Bunch.Key |= 0xFFFFFFFFFFFFFFFF >> (3*D[first].Bunch.Level);
-
-	for (int j = first+1; j <= last; j++) { // collapse into first
-
-		D[first].Bunch.Npart += D[j].Bunch.Npart;
-		D[first].Bunch.Cost += D[j].Bunch.Cost;
-
-		D[j].Bunch.Npart = 0; // mark for removal
-		D[j].Bunch.Modify = 2;
-	}
-
-	return ;
-}
-
 
 /*
  * We split a bunch into 8 sub-bunches/nodes, adding the largest peano key 
@@ -582,14 +561,6 @@ static int compare_bunches_by_key(const void *a, const void *b)
 	return (int) (x->Key > y->Key) - (x->Key < y->Key);
 }
 
-static int compare_bunches_by_cost(const void *a, const void *b)
-{
-	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
-	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
-
-	return (int) (x->Cost > y->Cost) - (x->Cost < y->Cost);
-}
-
 static void communicate_particles()
 {
 
@@ -739,6 +710,7 @@ static double find_largest_particle_distance()
 	return 2.001 * Max_Distance; // 2.001 helps with cancellation
 }
 
+#ifdef DEBUG
 static void print_domain_decomposition (const int max_level)
 {
 	#pragma omp master
@@ -779,3 +751,4 @@ static void print_domain_decomposition (const int max_level)
 
 	return ;
 }
+#endif

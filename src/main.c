@@ -101,23 +101,22 @@ static void preamble(int argc, char *argv[])
 
 	MPI_Is_thread_main(&Task.Is_Thread_Main);
 
+	Sim.NThreads = omp_get_num_threads();
+	Sim.NTask = Sim.NRank * Sim.NThreads;
+
 	#pragma omp parallel
 	{
+	Task.Thread_ID = omp_get_thread_num();
 
-		Task.Thread_ID = omp_get_thread_num();
-		Sim.NThreads = omp_get_num_threads();
+	if (Task.Rank == MASTER && Task.Thread_ID == MASTER)
+		Task.Is_Master = true;
 
-		Sim.NTask = Sim.NRank * Sim.NThreads;
+	if (Task.Rank == MASTER)
+		Task.Is_MPI_Master = true;
 
-		if (Task.Rank == MASTER && Task.Thread_ID == MASTER)
-			Task.Is_Master = true;
+	Task.Seed[2] = 14041981L * (Task.Thread_ID); // init thread safe rng
 
-		if (Task.Rank == MASTER)
-			Task.Is_MPI_Master = true;
-
-		Task.Seed[2] = 14041981L * (Task.Thread_ID); // init thread safe rng
-
-		erand48(Task.Seed); // remove first 0 in some implementations
+	erand48(Task.Seed); // remove first 0 in some implementations
 
 	} // omp parallel
 

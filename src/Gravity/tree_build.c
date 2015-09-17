@@ -13,35 +13,39 @@ static void transform_bunch_into_top_node(const int, int*, int*);
 static int reserve_tree_memory(const int, const int);
 static int build_subtree(const int, const int, const int);
 static int finalise_subtree(const int, const int, int );
+static void communicate_top_nodes();
 static inline bool particle_is_inside_node(const peanoKey,const int,const int);
 static inline void add_particle_to_node(const int, const int);
-static inline void create_node_from_particle(const int, const int,
-											 const peanoKey, const int,
-											 const int);
 static peanoKey create_first_node(const int, const int, const int);
 static void collapse_last_branch(const int, const int, const int, int*);
 static inline int key_fragment(const int);
 static inline void node_set(const enum Tree_Bitfield, const int);
+static void print_top_nodes();
+static inline void create_node_from_particle(const int, const int,
+											 const peanoKey, const int,
+											 const int);
 
 int NNodes = 0;
 static int Max_Nodes = 1024;
+struct Tree_Node  * restrict Tree = NULL; // global pointer to all nodes
+static omp_lock_t * restrict Tree_Lock; // lock global *Tree, NNodes, Max_Nodes  !
 
-struct Tree_Node  *Tree = NULL; // pointer to all nodes
-
-static struct Tree_Node *tree = NULL; //  build pointer "*Tree" or "*Buffer"
+static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *Buffer
 #pragma omp threadprivate(tree)
 
 /*
  * This builds the tree in parallel, particles are assumed PH ordered. 
  * First every local bunch is converted into a topnode. Then we build the 
  * corresponding tree either in the openmp buffer, or directly inside the
- * Tree memory. 
+ * *Tree memory. Every access to  *Tree, NNodes, Max_Nodes has to be 
+ * protected by the openmp *Tree_Lock.
  * A subtree is build starting from the top node in target pointer "*tree". 
- * Every subtree allocated a fixed amount of memory. 
+ * Every subtree allocated a fixed amount of memory, if it is not build in the
+ * buffer.
  * If the number of particles in that top node is <= 8, the subtree is 
  * discarded and the topnode target points directly to the particles and 
  * the tree walk will use particles directly from the topnode. 
- * At last the top node is broadcasted.
+ * At last the top nodes are broadcasted.
  */
 
 void Gravity_Tree_Build()
@@ -57,9 +61,9 @@ void Gravity_Tree_Build()
 
 	Tree = Realloc(Tree, Max_Nodes * sizeof(*Tree), "Tree");
 
-	} // omp single
+	omp_init_lock(Tree_Lock);
 
-	#pragma omp flush (Tree)
+	} // omp single
 
 	const size_t buf_threshold = 0.8 * Task.Buffer_Size/sizeof(*Tree);
 
@@ -87,7 +91,6 @@ void Gravity_Tree_Build()
 
 				int nReserved = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
 
-				#pragma omp critical
 				D[i].TNode.Target = reserve_tree_memory(i, nReserved);
 
 				tree = &Tree[D[i].TNode.Target];
@@ -97,12 +100,12 @@ void Gravity_Tree_Build()
 
 			if (build_in_buffer) { // copy buffer to Tree
 
-				#pragma omp critical
 				D[i].TNode.Target = reserve_tree_memory(i, nNeeded);
 
 				size_t nBytes = nNeeded * sizeof(*Tree);
 
 				memcpy(&Tree[D[i].TNode.Target], tree, nBytes);
+
 			}
 
 			int last_part = first_part + D[i].TNode.Npart;
@@ -119,38 +122,18 @@ void Gravity_Tree_Build()
 			}
 
 		} // if Bunch local
-
-	/*	MPI_Request *request = NULL;
+	
+		communicate_top_nodes();
 		
-		float *target = &D[i].TNode.Pos[0];
-		int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
-
-		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
 	} // for i
 
 	rprintf("Tree build: %d of %d Nodes used (%g MB)\n",
 			NNodes, Max_Nodes, Max_Nodes*sizeof(*Tree)/1024.0/1024);
 
-#ifdef DEBUG
-	#pragma omp single
-	for (int i = 0; i < NTop_Nodes; i++) {
+	print_top_nodes(); // DEBUG only
 
-		int start_node = D[i].TNode.Target;
-
-		int nNodes = Tree[start_node].DNext;
-
-		if (D[i].TNode.Npart < 8)
-			nNodes = 0;
-
-		oprintf("DEBUG (%d:%d) Top Node %4d Target %4d nNodes %5d Npart %5d"
-				" Pos %g %g %g, CoM %g %g %g \n",
-				Task.Rank,Task.Thread_ID, i, D[i].TNode.Target, nNodes,
-				D[i].TNode.Npart,
-				D[i].TNode.Pos[0], D[i].TNode.Pos[1], D[i].TNode.Pos[2],
-				D[i].TNode.CoM[0], D[i].TNode.CoM[1], D[i].TNode.CoM[2]);
-	}
-#endif
-
+	#pragma omp single nowait
+	omp_destroy_lock(Tree_Lock);
 
 	Sig.Tree_Update = false;
 
@@ -194,8 +177,10 @@ static void transform_bunch_into_top_node(const int i, int *level, int *ipart)
 }
 
 /*
- * Reserve memory in the "*Tree" structure. Reallocates  = enlarges the 
- * *Tree memory if needed.
+ * Reserve memory in the "*Tree" structure. Reallocates, i.e. enlarges the 
+ * *Tree memory if needed. We lock *Tree with Tree_Lock, so threads don't 
+ * mess up the pointers. We do NOT explicitely lock NNodes here, so it may
+ * be accessed only locked with *Tree_Lock .
  */
 
 static int reserve_tree_memory(const int i, const int nNeeded)
@@ -204,6 +189,8 @@ static int reserve_tree_memory(const int i, const int nNeeded)
 		return 0;
 
 	int first = 0;
+
+	omp_set_lock(Tree_Lock);
 
 	if (NNodes + nNeeded >= Max_Nodes) { // reserve more memory
 
@@ -224,6 +211,8 @@ static int reserve_tree_memory(const int i, const int nNeeded)
 	first = NNodes;
 
 	NNodes += nNeeded;
+
+	omp_unset_lock(Tree_Lock);
 
 	return first;
 }
@@ -484,6 +473,18 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 	return nNodes;
 }
 
+static void communicate_top_nodes()
+{
+/*	MPI_Request *request = NULL;
+		
+		float *target = &D[i].TNode.Pos[0];
+		int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
+
+		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
+
+	return ;
+}
+
 /*
  * For particle and node to overlap the peano key triplet at this tree level 
  * has to be equal. Hence the tree cannot be deeper than the PH key
@@ -570,6 +571,32 @@ static inline void node_set(const enum Tree_Bitfield bit, const int node)
 
 	return ;
 }
+
+static void print_top_nodes()
+{
+#ifdef DEBUG
+	#pragma omp single
+	for (int i = 0; i < NTop_Nodes; i++) {
+
+		int start_node = D[i].TNode.Target;
+
+		int nNodes = Tree[start_node].DNext;
+
+		if (D[i].TNode.Npart < 8)
+			nNodes = 0;
+
+		oprintf("DEBUG (%d:%d) Top Node %4d Target %4d nNodes %5d Npart %5d"
+				" Pos %g %g %g, CoM %g %g %g \n",
+				Task.Rank,Task.Thread_ID, i, D[i].TNode.Target, nNodes,
+				D[i].TNode.Npart,
+				D[i].TNode.Pos[0], D[i].TNode.Pos[1], D[i].TNode.Pos[2],
+				D[i].TNode.CoM[0], D[i].TNode.CoM[1], D[i].TNode.CoM[2]);
+	}
+#endif
+
+	return ;
+}
+
 
 /*
  * this tests a sub tree for consistency, by explicitely walking the whole

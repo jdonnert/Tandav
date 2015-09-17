@@ -19,7 +19,7 @@ static int cost_metric(const int ipart);
 static int compare_bunches_by_key(const void *a, const void *b);
 static void print_domain_decomposition (const int);
 static void find_domain_center(double *Center_out);
-static double find_largest_particle_distance();
+static void find_largest_particle_distance(double *);
 
 union Domain_Node_List *D = NULL;
 
@@ -598,13 +598,18 @@ static void set_global_domain()
 {
 #ifdef PERIODIC
 
+	#pragma omp single
+	{
+	
 	Domain.Origin[0] = Domain.Origin[1] = Domain.Origin[2] = 0;
 
 	Domain.Size = fmax(Sim.Boxsize[0], fmax(Sim.Boxsize[1], Sim.Boxsize[2]));
 
+	} // omp single
+
 #else
 
-	Domain.Size = find_largest_particle_distance();
+	find_largest_particle_distance(&Domain.Size);
 
 	find_domain_center(Domain.Center);
 
@@ -683,7 +688,7 @@ static void find_domain_center(double Center_out[3])
 
 static double Max_Distance = 0;
 
-static double find_largest_particle_distance()
+static void find_largest_particle_distance(double *size_out)
 {
 	#pragma omp single
 	Max_Distance = 0;
@@ -703,11 +708,16 @@ static double find_largest_particle_distance()
 	} // for ipart
 
 	#pragma omp master
+	{
+	
 	MPI_Allreduce(MPI_IN_PLACE, &Max_Distance, 1, MPI_DOUBLE, MPI_MAX,
 		MPI_COMM_WORLD);
 
+	*size_out = 2.001 * Max_Distance; // 2.001 helps with cancellation
 
-	return 2.001 * Max_Distance; // 2.001 helps with cancellation
+	}
+
+	return ; 
 }
 
 #ifdef DEBUG

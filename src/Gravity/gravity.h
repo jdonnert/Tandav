@@ -20,7 +20,7 @@ extern struct Tree_Node {
 	Float Mass;			// Total Mass of particles inside node
 	Float CoM[3];		// Center of Mass
 	Float Dp[3];		// Velocity of Center of Mass
-} *Tree;
+} * restrict Tree;
 
 int NNodes, NTop_Nodes;
 #else

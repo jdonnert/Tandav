@@ -9,8 +9,8 @@ struct Global_Simulation_Properties Sim;
 #pragma omp threadprivate(Task)
 struct Local_Task_Properties Task = { 0 };
 
-struct Particle_Data *P = NULL;
-struct Gas_Particle_Data *G = NULL;
+struct Particle_Data * restrict P = NULL;
+struct Gas_Particle_Data * restrict G = NULL;
 
 void Read_and_Init(int argc, char *argv[])
 {

@@ -21,15 +21,15 @@ static void print_domain_decomposition (const int);
 static void find_domain_center(double *Center_out);
 static void find_largest_particle_distance(double *);
 
-union Domain_Node_List *D = NULL;
+union Domain_Node_List * restrict D = NULL;
 
 static int NTarget = 0;
 static int Max_NBunches = 0, NTop_Leaves = 0;
 static int NMerged = 0, Max_Level = 0;
-static int *Npart = NULL, *Split_Idx = NULL;
+static int * restrict Npart = NULL, * restrict Split_Idx = NULL;
 
 static double max_mem_imbal = 0, max_cost_imbal = 0;
-static float *Cost = NULL;
+static float * restrict Cost = NULL;
 
 static double Mean_Cost = 0, Mean_Npart = 0;
 

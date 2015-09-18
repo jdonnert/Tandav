@@ -65,12 +65,12 @@ extern struct Particle_Data {
 #ifdef GRAVITY_POTENTIAL
 	Float Grav_Pot;
 #endif
-} *P;
+} * restrict P;
 
 extern struct Gas_Particle_Data {
 	Float Entropy;
 	Float Volume;
 	Float Bfld[3];
-} *G;
+} * restrict G;
 
 #endif // GLOBALS_H

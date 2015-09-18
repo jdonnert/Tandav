@@ -39,7 +39,7 @@ union Domain_Node_List {
 	} TNode;
 
 
-} *D;
+} * restrict D;
 
 int NBunches;
 

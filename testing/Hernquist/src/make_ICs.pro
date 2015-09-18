@@ -6,7 +6,7 @@ pro make_ICs, periodic=periodic
 
 	seed = 14041981L
 
-	npart = 50000L
+	npart = 500000L
 
 	boxsize = 100000D
 
@@ -100,7 +100,7 @@ pro make_ICs, periodic=periodic
 	
 	tandav.AddBlock, fname, float(pos), 'POS'
 	tandav.AddBlock, fname, float(vel), 'VEL'
-	tandav.AddBlock, fname, ulong(indgen(npart)+1), 'ID'
+	tandav.AddBlock, fname, ulong(lindgen(npart)+1), 'ID'
 
 	return
 end

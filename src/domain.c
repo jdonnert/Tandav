@@ -725,8 +725,8 @@ static void print_domain_decomposition (const int max_level)
 	#pragma omp master
 	{
 
-	printf(" No | Split | npart  |   sum  | first  | trgt  | lvl |  Cost  | "
-			"CumCost | Max PH key,   Max_level %d \n", max_level);
+	printf(" No | Split | npart  |   sum  |   first    | trgt  | lvl |"
+			"  Cost  | CumCost | Max PH key,   Max_level %d \n", max_level);
 
 	size_t sum = 0;
 	double csum = 0;
@@ -744,8 +744,8 @@ static void print_domain_decomposition (const int max_level)
 
 		csum += D[i].Bunch.Cost;
 
-		printf("%3d |   %d   | %06zu | %06zu | %010d | %05d | %03d | %06g | %06g || ",
-				i, D[i].Bunch.Modify, D[i].Bunch.Npart, sum,
+		printf("%3d |   %d   | %06zu | %06zu | %010d | %05d | %03d | %06g "
+				"| %06g || ", i, D[i].Bunch.Modify, D[i].Bunch.Npart, sum,
 				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level,
 				D[i].Bunch.Cost, csum);
 

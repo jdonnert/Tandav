@@ -6,37 +6,45 @@
 
 #ifdef GRAVITY_TREE
 
-struct Walk_Data_Send { // buffer stores input values for tree walk
+static struct Walk_Data_Send { 
 	int Ipart;
 	int Pos[3];
-	int Last_Acc_Mag;
+	int Acc; 	// magnitude of the last acceleration
 	Float Mass;
-} Psend = { 0 };
-#pragma omp threadprivate(Psend)
+};
 
-struct Walk_Data_Recv { // buffer stores partial results of tree walk
+static struct Walk_Data_Recv { 
 	Float Cost;
 	Float Grav_Acc[3];
 #ifdef GRAVITY_POTENTIAL
 	Float Grav_Potential;
 #endif
-} Precv = { 0 };
-#pragma omp threadprivate(Precv)
+};
 
-static void prepare_buffers_from(const int);
-static void add_Precv_to(const int);
-static bool interact_with_topnode(const int);
-static void interact_with_topnode_particles(const int);
-static void gravity_tree_walk(const int);
-static void gravity_tree_walk_first(const int);
-static void interact(const Float,const Float *, const Float);
+static struct Walk_Data_Send prepare_send_from(const int ipart);
+static void write_recv_to(const int ipart, const struct Walk_Data_Recv);
+
+static bool interact_with_topnode(const int, const struct Walk_Data_Send, 
+		struct Walk_Data_Recv * restrict);
+static void interact_with_topnode_particles(const int, 
+		const struct Walk_Data_Send, struct Walk_Data_Recv * restrict);
+static void interact(const Float, const Float *, const Float, 
+		struct Walk_Data_Recv * restrict);
+
+static void gravity_tree_walk(const int, const struct Walk_Data_Send, 
+		struct Walk_Data_Recv * restrict);
+static void gravity_tree_walk_first(const int, const struct Walk_Data_Send, 
+		struct Walk_Data_Recv * restrict);
 
 /*
- * Interact with all local topnodes, either with the node directly, or with
- * the particles it contains (small top node). Or, walk the tree and estimate 
- * gravitational acceleration using two different opening criteria. Also open 
- * all nodes containing ipart to avoid large maximum errors. 
- * Barnes & Hut 1984, Springel 2006, Dehnen & Read 2012.
+ * We do not walk referencing particles, but copy the required particle data
+ * into a send buffer "send". The results are written into a sink buffer "recv".
+ * This also makes communication easier.
+ * These buffers interact with all local topnodes, either with the node 
+ * directly, or with the particles it contains (small top node). Or, walk 
+ * the tree and estimate gravitational acceleration using two different
+ * opening criteria. Also open all nodes containing ipart to avoid large 
+ * maximum errors. Barnes & Hut 1984, Springel 2006, Dehnen & Read 2012.
  */
 
 void Gravity_Tree_Acceleration()
@@ -50,42 +58,39 @@ void Gravity_Tree_Acceleration()
 
 		int ipart = Active_Particle_List[i];
 
-		memset(&Precv, 0, sizeof(Precv));
+		struct Walk_Data_Recv recv = { 0 };
+		const struct Walk_Data_Send send = prepare_send_from(ipart);
 
-		prepare_buffers_from(ipart);
-
-		bool use_BH_criterion = (Psend.Last_Acc_Mag == 0);
-
+		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
+	
 		for (int j = 0; j < NTop_Nodes; j++) {
 
-			if (interact_with_topnode(j))
+			if (interact_with_topnode(j, send, &recv))
 				continue;
 
 			//if (D[j].TNode.Target < 0) { // not local ?
 			//
-			//	export_particle_to_rank(-target-1);	
+			//	export_particle_to_rank(ipart, -target-1);	
 			//
 			//	continue;
 			//}
 
-			if (D[j].TNode.Npart <= 8) { // open top leaf
+			if (D[j].TNode.Npart <= 8) { // open top leave
 
-				interact_with_topnode_particles(j);
+				interact_with_topnode_particles(j, send, &recv);
 
 				continue;
 			}
 
 			int tree_start = D[j].TNode.Target;
 
-			if (use_BH_criterion)
-				gravity_tree_walk_first(tree_start);
+			if (send.Acc == 0) // use BH criterion
+				gravity_tree_walk_first(tree_start, send, &recv);
 			else
-				gravity_tree_walk(tree_start);
+				gravity_tree_walk(tree_start, send, &recv);
 		} // for j
 
-		 add_Precv_to(ipart);
-
-		// work_queue();
+		write_recv_to(ipart, recv);
 
 	} // for i
 
@@ -93,50 +98,43 @@ void Gravity_Tree_Acceleration()
 
 	Profile("Grav Tree Walk");
 
-	return ;
-}
-
-/*
- * Copy relevant particle variables into the grav_data buffer and 
- */
-
-static void prepare_buffers_from(const int ipart)
-{
-	memset(&Psend, 0, sizeof(Psend));
-
-	Psend.Ipart = ipart;
-
-	Psend.Pos[0] = P[ipart].Pos[0];
-	Psend.Pos[1] = P[ipart].Pos[1];
-	Psend.Pos[2] = P[ipart].Pos[2];
-	
-	Psend.Last_Acc_Mag = ASCALPROD3(P[ipart].Acc);
-	
-	Psend.Mass = P[ipart].Mass;
-
-
-	// sink
-	
-	P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0; // zero sink
+	#pragma omp barrier
 
 	return ;
 }
 
-static void add_Precv_to(const int ipart)
+static struct Walk_Data_Send prepare_send_from(const int ipart)
 {
-	P[ipart].Acc[0] += Precv.Grav_Acc[0];
-	P[ipart].Acc[1] += Precv.Grav_Acc[1];
-	P[ipart].Acc[2] += Precv.Grav_Acc[2];
+	struct Walk_Data_Send send = { 0 };
 
-	P[ipart].Grav_Acc[0] += Precv.Grav_Acc[0];
-	P[ipart].Grav_Acc[1] += Precv.Grav_Acc[1];
-	P[ipart].Grav_Acc[2] += Precv.Grav_Acc[2];
-		
-#ifdef GRAVITY_POTENTIAL
-	P[ipart].Grav_Pot = Precv.Grav_Pot;
+	send.Ipart = ipart;
+
+	send.Pos[0] = P[ipart].Pos[0];
+	send.Pos[1] = P[ipart].Pos[1];
+	send.Pos[2] = P[ipart].Pos[2];
+	
+	send.Acc = ALENGTH3(P[ipart].Acc);
+
+	send.Mass = P[ipart].Mass;
+
+	return send;
+}
+
+static void write_recv_to(const int ipart, const struct Walk_Data_Recv recv)
+{
+	P[ipart].Acc[0] = recv.Grav_Acc[0];
+	P[ipart].Acc[1] = recv.Grav_Acc[1];
+	P[ipart].Acc[2] = recv.Grav_Acc[2];
+
+#ifdef OUTPUT_PARTIAL_ACCELERATIONS
+	P[ipart].Grav_Acc[0] = recv.Grav_Acc[0];
+	P[ipart].Grav_Acc[1] = recv.Grav_Acc[1];
+	P[ipart].Grav_Acc[2] = recv.Grav_Acc[2];
 #endif
 
-	P[ipart].Cost += Precv.Cost;
+#ifdef GRAVITY_POTENTIAL
+	P[ipart].Grav_Pot = recv.Grav_Potential;
+#endif
 
 	return ;
 }
@@ -147,22 +145,24 @@ static void add_Precv_to(const int ipart)
  * contains the particle and then check the two criteria.
  */
 
-static bool interact_with_topnode(const int j)
+static bool interact_with_topnode(const int j, 
+		const struct Walk_Data_Send send, 
+		struct Walk_Data_Recv * restrict recv)
 {
-	const Float node_size = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
+	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 
-	Float dr[3] = {Psend.Pos[0] - D[j].TNode.Pos[0],
-				   Psend.Pos[1] - D[j].TNode.Pos[1],
-				   Psend.Pos[2] - D[j].TNode.Pos[2]};
+	Float dr[3] = {send.Pos[0] - D[j].TNode.Pos[0],
+				   send.Pos[1] - D[j].TNode.Pos[1],
+				   send.Pos[2] - D[j].TNode.Pos[2]};
+	
+	if (fabs(dr[0]) < 0.6 * nSize) // inside subtree ? -> always walk
+		if (fabs(dr[1]) < 0.6 * nSize)
+			if (fabs(dr[2]) < 0.6 * nSize)
+				return false; 
 
-	if (fabs(dr[0]) < 0.6 * node_size) // inside subtree ? -> always walk
-		if (fabs(dr[1]) < 0.6 * node_size)
-			if (fabs(dr[2]) < 0.6 * node_size)
-				return false;
-
-	dr[0] = Psend.Pos[0] - D[j].TNode.CoM[0];
-	dr[1] = Psend.Pos[1] - D[j].TNode.CoM[1];
-	dr[2] = Psend.Pos[2] - D[j].TNode.CoM[2];
+	dr[0] = send.Pos[0] - D[j].TNode.CoM[0];
+	dr[1] = send.Pos[1] - D[j].TNode.CoM[1];
+	dr[2] = send.Pos[2] - D[j].TNode.CoM[2];
 
 	Periodic_Nearest(&dr[0]); // PERIODIC
 
@@ -170,20 +170,20 @@ static bool interact_with_topnode(const int j)
 
 	Float node_mass = D[j].TNode.Mass;
 
-	if (Psend.Last_Acc_Mag == 0) {
+	if (send.Acc == 0) {
 
-		if (p2(node_size) > r2 * TREE_OPEN_PARAM_BH)
+		if (nSize*nSize > r2 * TREE_OPEN_PARAM_BH)
 			return false;
 
 	} else {
 
-		Float fac = Psend.Last_Acc_Mag/Const.Gravity * TREE_OPEN_PARAM_REL;
+		Float fac = send.Acc/Const.Gravity * TREE_OPEN_PARAM_REL;
 
-		if (node_mass * p2(node_size) > r2*r2 * fac)
+		if (node_mass*nSize*nSize > r2*r2 * fac)
 			return false;
 	}
-
-	interact(node_mass, dr, r2);
+	
+	interact(node_mass, dr, r2, recv);
 
 	return true;
 }
@@ -193,25 +193,29 @@ static bool interact_with_topnode(const int j)
  * targets
  */
 
-static void interact_with_topnode_particles(const int j)
+static void interact_with_topnode_particles(const int j, 
+		const struct Walk_Data_Send send, 
+		struct Walk_Data_Recv * restrict recv)
 {
 	const int first = D[j].TNode.Target;
 	const int last = first + D[j].TNode.Npart;
 
 	for (int jpart = first; jpart < last; jpart++) {
 
-		if (jpart == Psend.Ipart)
+		if (jpart == send.Ipart)
 			continue;
 
-		Float dr[3] = { Psend.Pos[0] - P[jpart].Pos[0],
-						Psend.Pos[1] - P[jpart].Pos[1],
-						Psend.Pos[2] - P[jpart].Pos[2] };
+		Float dr[3] = { send.Pos[0] - P[jpart].Pos[0],
+					    send.Pos[1] - P[jpart].Pos[1],
+			        	send.Pos[2] - P[jpart].Pos[2] };
 
 		Periodic_Nearest(dr); // PERIODIC
-
+		
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
-		interact(P[jpart].Mass, dr, r2);
+		Float mpart = P[jpart].Mass;
+
+		interact(mpart, dr, r2, recv);
 	}
 
 	return ;
@@ -223,11 +227,11 @@ static void interact_with_topnode_particles(const int j)
  * If we encounter a particle bundle we interact with all of them.
  */
 
-static void gravity_tree_walk(const int tree_start)
+static void gravity_tree_walk(const int tree_start, 
+		const struct Walk_Data_Send send, 
+		struct Walk_Data_Recv * restrict recv)
 {
-	const Float fac = Psend.Last_Acc_Mag/Const.Gravity*TREE_OPEN_PARAM_REL;
-	const Float pos_i[3] = {Psend.Pos[0], Psend.Pos[1], Psend.Pos[2]};
-	const int ipart = Psend.Ipart;
+	const Float fac = send.Acc / Const.Gravity * TREE_OPEN_PARAM_REL;
 
 	const int tree_end = tree_start + Tree[tree_start].DNext;
 
@@ -242,18 +246,20 @@ static void gravity_tree_walk(const int tree_start)
 
 			for (int jpart = first; jpart < last; jpart++ ) {
 
-				if (jpart == ipart)
+				if (jpart == send.Ipart)
 					continue;
 
-				Float dr[3] = { pos_i[0] - P[jpart].Pos[0],
-							    pos_i[1] - P[jpart].Pos[1],
-					            pos_i[2] - P[jpart].Pos[2] };
+				Float dr[3] = { send.Pos[0] - P[jpart].Pos[0],
+							    send.Pos[1] - P[jpart].Pos[1],
+					            send.Pos[2] - P[jpart].Pos[2] };
 
 				Periodic_Nearest(dr); // PERIODIC
 
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
-				interact(P[jpart].Mass, dr, r2);
+				Float mpart = P[jpart].Mass;
+
+				interact(mpart, dr, r2, recv);
 			}
 
 			node++;
@@ -261,36 +267,36 @@ static void gravity_tree_walk(const int tree_start)
 			continue;
 		}
 
-		Float dr[3] = { pos_i[0] - Tree[node].CoM[0],
-					    pos_i[1] - Tree[node].CoM[1],
-					    pos_i[2] - Tree[node].CoM[2] };
+		Float dr[3] = { send.Pos[0] - Tree[node].CoM[0],
+					    send.Pos[1] - Tree[node].CoM[1],
+					    send.Pos[2] - Tree[node].CoM[2] };
 
 		Periodic_Nearest(dr); // PERIODIC
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
-		Float node_mass = Tree[node].Mass;
+		Float nMass = Tree[node].Mass;
 
-		Float node_size = Node_Size(node); // now check opening criteria
+		Float nSize = Node_Size(node); // now check opening criteria
 
-		if (node_mass*p2(node_size) > r2*r2 * fac) { // relative criterion
+		if (nMass*nSize*nSize > r2*r2 * fac) { // relative criterion
 
 			node++;
 
 			continue;
 		}
 
-		Float dx = fabs(pos_i[0] - Tree[node].Pos[0]); // Springel '06: (19)
+		Float dx = fabs(send.Pos[0] - Tree[node].Pos[0]); // part in node ?
 
-		if (dx < 0.6 * node_size) {
+		if (dx < 0.6 * nSize) {  
 
-			Float dy = fabs(pos_i[1] - Tree[node].Pos[1]);
+			Float dy = fabs(send.Pos[1] - Tree[node].Pos[1]);
 
-			if (dy < 0.6 * node_size) {
+			if (dy < 0.6 * nSize) {
 
-				Float dz = fabs(pos_i[2] - Tree[node].Pos[2]);
+				Float dz = fabs(send.Pos[2] - Tree[node].Pos[2]);
 
-				if (dz < 0.6 * node_size) {
+				if (dz < 0.6 * nSize) {
 
 					node++;
 
@@ -299,7 +305,7 @@ static void gravity_tree_walk(const int tree_start)
 			}
 		}
 
-		interact(node_mass, dr, r2); // use node
+		interact(nMass, dr, r2, recv); // use node
 
 		node += Tree[node].DNext; // skip branch
 
@@ -313,10 +319,10 @@ static void gravity_tree_walk(const int tree_start)
  * particle acceleration.
  */
 
-static void gravity_tree_walk_first(const int tree_start)
+static void gravity_tree_walk_first(const int tree_start, 
+		const struct Walk_Data_Send send, 
+		struct Walk_Data_Recv * restrict recv)
 {
-	const Float pos_i[3] = {Psend.Pos[0], Psend.Pos[1], Psend.Pos[2]};
-
 	int node = tree_start;
 
 	while (Tree[node].DNext != 0 || node == tree_start) {
@@ -328,16 +334,18 @@ static void gravity_tree_walk_first(const int tree_start)
 
 			for (int jpart = first; jpart < last; jpart++ ) {
 
-				if (jpart == Psend.Ipart)
+				if (jpart == send.Ipart)
 					continue;
 
-				Float dr[3] = { pos_i[0] - P[jpart].Pos[0],
-							    pos_i[1] - P[jpart].Pos[1],
-					            pos_i[2] - P[jpart].Pos[2] };
+				Float dr[3] = { send.Pos[0] - P[jpart].Pos[0],
+							    send.Pos[1] - P[jpart].Pos[1],
+					            send.Pos[2] - P[jpart].Pos[2] };
 
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
-				interact(P[jpart].Mass, dr, r2);
+				Float mpart = P[jpart].Mass;
+
+				interact(mpart, dr, r2, recv);
 			}
 
 			node++;
@@ -345,26 +353,26 @@ static void gravity_tree_walk_first(const int tree_start)
 			continue;
 		}
 
-		Float dr[3] = { pos_i[0] - Tree[node].CoM[0],
-					    pos_i[1] - Tree[node].CoM[1],
-					    pos_i[2] - Tree[node].CoM[2] };
+		Float dr[3] = { send.Pos[0] - Tree[node].CoM[0],
+					    send.Pos[1] - Tree[node].CoM[1],
+					    send.Pos[2] - Tree[node].CoM[2] };
 
 		Periodic_Nearest(dr); // PERIODIC
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
-		Float node_mass = Tree[node].Mass;
+		Float nMass = Tree[node].Mass;
 
-		Float node_size = Node_Size(node); // now check opening criteria
+		Float nSize = Node_Size(node); // now check opening criteria
 
-		if (node_size*node_size > r2 * TREE_OPEN_PARAM_BH) { // BH criterion
+		if (nSize*nSize > r2 * TREE_OPEN_PARAM_BH) { // BH criterion
 
 			node++; // open
 
 			continue;
 		}
 
-		interact(node_mass, dr, r2); // use node
+		interact(nMass, dr, r2, recv); // use node
 
 		node += fmax(1, Tree[node].DNext);
 
@@ -375,16 +383,15 @@ static void gravity_tree_walk_first(const int tree_start)
 
 
 /*
- * This is the actual gravitational force law using the K1 softening 
- * kernel with a central value corresponding to Plummer softening 
- * (Dehnen 2001).
+ * Gravitational force law using Wendland C2 softening kernel with central 
+ * value corresponding to Plummer softening.
  */
 
-static void interact(const Float mass, const Float dr[3], const Float r2)
+static void interact(const Float mass, const Float dr[3], const Float r2, 
+		struct Walk_Data_Recv * restrict recv)
 {
-	//const Float h = 105/32 * GRAV_SOFTENING; // Plummer equiv softening
-	const Float h =  GRAV_SOFTENING/3; // Plummer equiv softening
-
+	//const Float h = GRAV_SOFTENING / 3.0; // Plummer equiv softening
+	const Float h = 105/32 * GRAV_SOFTENING;
 	const Float r = sqrt(r2);
 
 	Float r_inv = 1/r;
@@ -397,26 +404,26 @@ static void interact(const Float mass, const Float dr[3], const Float r2)
 
 		Float u = r/h;
 		Float u2 = u*u;
-		Float u3 = u2*u;
+	//	Float u3 = u2*u;
 
+	//	r_inv = sqrt(14*u - 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3) / h;
 		r_inv = sqrt(u * (135*u2*u2 - 294*u2 + 175))/(4*h) ;
-		//r_inv = sqrt(14*u - 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3)/h;
+		
+
 #ifdef GRAVITY_POTENTIAL
-		r_inv_pot = ( 45*u3*u3  - 147*u2*u2 + 175*u2 - 105) /(32*h);
+		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3) / h;
 #endif
 	}
 
 	Float acc_mag = -Const.Gravity * mass * p2(r_inv);
 
-	Precv.Grav_Acc[0] += acc_mag * dr[0] * r_inv;
-	Precv.Grav_Acc[1] += acc_mag * dr[1] * r_inv;
-	Precv.Grav_Acc[2] += acc_mag * dr[2] * r_inv;
+	recv->Grav_Acc[0] += acc_mag * dr[0] * r_inv;
+	recv->Grav_Acc[1] += acc_mag * dr[1] * r_inv;
+	recv->Grav_Acc[2] += acc_mag * dr[2] * r_inv;
 
 #ifdef GRAVITY_POTENTIAL
-	Precv.Grav_Potential += -Const.Gravity * mass * r_inv_pot;
+	recv->Grav_Potential += -Const.Gravity * mass * r_inv_pot;
 #endif
-
-	Precv.Cost += 1; // count interactions
 
 	return ;
 }

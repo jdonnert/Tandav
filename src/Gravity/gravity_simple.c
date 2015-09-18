@@ -5,7 +5,8 @@
 #include "gravity.h"
 #include "gravity_periodic.h"
 
-static const double H = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
+//static const double H = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
+static const Float H = 105/32 * GRAV_SOFTENING; // Plummer equiv softening
 
 static double Mean_Error = 0, Max_Error = 0;
 static int Worst_Part = -1;
@@ -85,7 +86,8 @@ void Gravity_Simple_Accel()
 				double u2 = u*u;
 				double u3 = u2*u;
 
-				rinv = sqrt(14*u-84*u3+140*u2*u2-90*u2*u3+21*u3*u3)/H;
+				//rinv = sqrt(14*u-84*u3+140*u2*u2-90*u2*u3+21*u3*u3)/H;
+				rinv = sqrt(u * (135*u2*u2 - 294*u2 + 175))/(4*H) ;
 			}
 
 			double acc_mag = Const.Gravity * P[jpart].Mass * p2(rinv);
@@ -127,7 +129,7 @@ void Gravity_Simple_Accel()
 
 		} // omp critical
 
-		//if (ipart == 20918)
+		if (ipart == 40388)
 			printf("\nipart = %d %g | %g %g %g | %g %g %g \n",
 				ipart, errorl, acc[0], acc[1], acc[2],
 				P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );

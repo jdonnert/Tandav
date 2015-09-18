@@ -19,9 +19,9 @@ Boxsize1		10000.0
 Boxsize2		10000.0
 
 TimeBegin		0 
-TimeEnd			2.5
+TimeEnd			2.0
 TimeOfFirstSnaphot		0 
-TimeBetSnapshots		0.25
+TimeBetSnapshots		0.1
 
 MaxSizeTimestep 0.05
 MinSizeTimestep 1e-7

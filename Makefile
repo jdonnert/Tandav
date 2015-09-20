@@ -14,7 +14,7 @@ XTRA_LIBS = $(LDFLAGS)
 # machine specifics
 ifeq ($(SYSTYPE),DARWIN)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -lmpich -O3 -mtune=native -march=native  
+OPTIMIZE =  -Wall -g -lmpich -O3 -mtune=native -march=native  -fopt-info-vec
 XTRA_LIBS = 
 XTRA_INCL = 
 endif

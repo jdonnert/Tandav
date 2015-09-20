@@ -49,7 +49,7 @@ OMEGA_RAD 0
 
 #### ALWAYS RECOMMENDED ####
 
-MEMORY_MANAGER  
+#MEMORY_MANAGER  
 
 #### FoF ####
 #FOF                         // Friends-of-Friends master switch

@@ -18,17 +18,18 @@ union Domain_Node_List {
 		shortKey Key;		// Largest Peano key held by this bunch
 		int Target;			// MPI rank
 		int Level;
-		size_t Npart;
-		float Cost;			// cpu times
 		int First_Part;		// starts the tree build
-		bool Is_Local;		// on this rank
+		unsigned int Npart;
 		int Modify;			// split  this bunch
+		float Cost;			// cpu times
+		bool Is_Local;		// on this rank
 	} Bunch;
 
 	struct Top_Tree_Node {	//  dynamic top nodes, tree entry points
 		shortKey Key;		// Number of nodes to the parent
 		int Target;			// Tree/part index (>=0) or MPI rank - 1 (<0)
 		int Level;			// Top node level
+		int First_Part;		// starts the tree build
 		int Npart;			// Number of particles in node
 		float Pos[3];		// Node Center
 		float Mass;			// Total Mass of particles inside node
@@ -38,10 +39,9 @@ union Domain_Node_List {
 #endif //GRAVITY_TREE
 	} TNode;
 
-
 } * restrict D;
 
-int NBunches;
+int NTop_Nodes;
 
 struct Domain_Properties {
 	double Size; // smallest cubic box containing all particles

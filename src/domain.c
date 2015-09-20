@@ -3,6 +3,8 @@
 #include "domain.h"
 #include "peano.h"
 
+#define DEBUG
+
 static void set_global_domain();
 static void fill_new_bunches(const int, const int, const int, const int);
 static void find_mean_cost();
@@ -15,6 +17,9 @@ static void reset_bunchlist();
 static void distribute();
 static void communicate_particles();
 static void communicate_bunches();
+static void communicate_top_nodes();
+static void bunches2top_nodes();
+static void transform_bunch_into_top_node();
 static int cost_metric(const int ipart);
 static int compare_bunches_by_key(const void *a, const void *b);
 static void print_domain_decomposition (const int);
@@ -33,6 +38,7 @@ static float * restrict Cost = NULL;
 
 static double Mean_Cost = 0, Mean_Npart = 0;
 
+static int NBunches = 0;
 /* 
  * Distribute particles in bunches, which are continuous on the Peano curve,
  * but at different level in the tree. The bunches correspond to nodes of 
@@ -110,20 +116,24 @@ void Domain_Decomposition()
 
 	remove_excess_bunches();
 
+	communicate_particles();
+	
+	bunches2top_nodes();
+
+	communicate_top_nodes();
+	
 	rprintf("\nDomain: %d Top Nodes, %d Top Leaves, max level %d  merged %d\n"
 			"        Max Imbalance: Mem %g, Cost %g \n\n", NBunches,
 			NTop_Leaves, Max_Level, NMerged, max_mem_imbal, max_cost_imbal);
+
+	Sig.Tree_Update = true;
 
 #ifdef DEBUG
 	print_domain_decomposition(Max_Level);
 #endif
 
-	communicate_particles();
-
-	Sig.Tree_Update = true;
-
 	Profile("Domain Decomposition");
-
+exit(0);
 	return ;
 }
 
@@ -165,6 +175,55 @@ void Setup_Domain_Decomposition()
 	return;
 }
 
+/*
+ * Set the "TNode" part of the "D"omain unions. From here onwards the members 
+ * are to be understood as a Top Node, not a bunch. 
+ */
+
+static void bunches2top_nodes()
+{
+	for (int i = 0; i < NBunches; i++) {
+
+		if (! D[i].Bunch.Is_Local)
+			continue;
+
+		int ipart = D[i].Bunch.First_Part;
+
+#ifdef DEBUG
+		Assert(D[i].Bunch.Npart < INT_MAX, "Npart %zu in Bunch %d>INT_MAX %d",
+			   D[i].Bunch.Npart, i, INT_MAX);
+#endif
+
+		double px = P[ipart].Pos[0] - Domain.Origin[0]; 
+		double py = P[ipart].Pos[1] - Domain.Origin[1];
+		double pz = P[ipart].Pos[2] - Domain.Origin[2];
+
+		double size = Domain.Size / (1ULL << D[i].Bunch.Level);
+
+		D[i].TNode.Pos[0] = (floor(px/size) + 0.5) * size + Domain.Origin[0];
+		D[i].TNode.Pos[1] = (floor(py/size) + 0.5) * size + Domain.Origin[1];
+		D[i].TNode.Pos[2] = (floor(pz/size) + 0.5) * size + Domain.Origin[2];
+
+		D[i].TNode.Target = -1;
+	}
+
+	#pragma omp single
+	NTop_Nodes = NBunches;
+
+	return ;
+}
+
+static void communicate_top_nodes()
+{
+/*	MPI_Request *request = NULL;
+		
+		float *target = &D[i].TNode.Pos[0];
+		int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
+
+		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
+
+	return ;
+}
 /*
  * This increases the room for Bunches/Topnodes by 20 %, 
  * so we can stay minimal in memory. Not thread safe ! 
@@ -563,7 +622,6 @@ static int compare_bunches_by_key(const void *a, const void *b)
 
 static void communicate_particles()
 {
-
 	return ;
 }
 
@@ -581,7 +639,8 @@ static void communicate_bunches()
 		D[i].Bunch.Is_Local = true;
 	}
 
-	// MPI_Ibcast();
+	// MPI_Allreduce();
+	// MPI_Allreduce();
 
 	return ;
 }

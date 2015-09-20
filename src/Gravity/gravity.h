@@ -11,24 +11,31 @@ void Gravity_Tree_Update_Kicks(const int ipart, const double dt);
 void Gravity_Tree_Update_Topnode_Kicks();
 void Gravity_Tree_Update_Drift(const double dt);
 
-extern struct Tree_Node {
-	int DNext;			// Distance to the next node; or particle -DNext-1
-	uint32_t Bitfield;	// bit 0-5:level, 6-8:key, 9:local, 10:top, 11-31:free
+extern struct Tree_Nodes {
+	uint32_t Bitfield;// bit 0-5:level, 6-8:key, 9:local, 10:top, 11-31:free
+	int DNext;		// Distance to the next node; or particle -DNext-1
 	int DUp;			// Number of nodes to the parent
-	int Npart;			// Number of particles in node
+	int Npart;		// Number of particles in node
 	Float Pos[3];		// Node Center
-	Float Mass;			// Total Mass of particles inside node
+	Float Mass;		// Total Mass of particles inside node
 	Float CoM[3];		// Center of Mass
 	Float Dp[3];		// Velocity of Center of Mass
-} * restrict Tree;
+} *Tree;
+
+//const size_t Sizeof_Tree_Nodes = sizeof(*Tree.Bitfield) + sizeof(*Tree.DNext) 
+//		+ sizeof(*Tree.DUp) + sizeof(*Tree.Npart) + 3*sizeof(**Tree.Pos) 
+//		+ sizeof(*Tree.Mass) + 3*sizeof(**Tree.CoM) + 3*sizeof(**Tree.Dp);
 
 int NNodes, NTop_Nodes;
+
 #else
+
 inline void Gravity_Tree_Build() {};
 inline void Gravity_Tree_Acceleration() {};
 inline void Gravity_Tree_Update_Kicks(const int ipart, const double dt) {};
 inline void Gravity_Tree_Update_Topnode_Kicks() {};
 inline void Gravity_Tree_Update_Drift(const double dt) {};
+
 #endif // (GRAVITY && GRAVITY_TREE)
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE) && defined(PERIODIC)

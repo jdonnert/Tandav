@@ -9,11 +9,9 @@
 
 #define NODES_PER_PARTICLE 0.6
 
-static void transform_bunch_into_top_node(const int, int*, int*);
 static int reserve_tree_memory(const int, const int);
 static int build_subtree(const int, const int, const int);
 static int finalise_subtree(const int, const int, int );
-static void communicate_top_nodes();
 static inline bool particle_is_inside_node(const peanoKey,const int,const int);
 static inline void add_particle_to_node(const int, const int);
 static peanoKey create_first_node(const int, const int, const int);
@@ -24,13 +22,14 @@ static void print_top_nodes();
 static inline void create_node_from_particle(const int, const int,
 											 const peanoKey, const int,
 											 const int);
-
 int NNodes = 0;
 static int Max_Nodes = 1024;
-struct Tree_Node  * restrict Tree = NULL; // global pointer to all nodes
+
 static omp_lock_t Tree_Lock; // lock global *Tree, NNodes, Max_Nodes
 
-static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *Buffer
+struct Tree_Nodes  * Tree = NULL; // global pointer to all nodes
+
+static struct Tree_Nodes * restrict tree = NULL; //  build in *Tree or *Buffer
 #pragma omp threadprivate(tree)
 
 /*
@@ -57,8 +56,6 @@ void Gravity_Tree_Build()
 	
 	omp_init_lock(&Tree_Lock);
 
-	NTop_Nodes = NBunches;
-
 	NNodes = 0;
 
 	Tree = Realloc(Tree, Max_Nodes * sizeof(*Tree), "Tree");
@@ -70,64 +67,55 @@ void Gravity_Tree_Build()
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NTop_Nodes; i++) {
 
-//		int src = D[i].Bunch.Target;
+		if (D[i].Bunch.Target < 0) // not local
+			continue;
 
-		if (D[i].Bunch.Is_Local) {
+		int first_part = D[i].TNode.First_Part;
+		int level = D[i].TNode.Level;
 
-//			src = Task.Rank;
+		bool build_in_buffer = D[i].TNode.Npart < buf_threshold;
 
-			int first_part = 0;
-			int level = 0;
+		if (build_in_buffer) {
 
-			transform_bunch_into_top_node(i, &level, &first_part);
+			tree = Get_Thread_Safe_Buffer(Task.Buffer_Size);
 
-			bool build_in_buffer = D[i].TNode.Npart < buf_threshold;
+		} else { // build in *Tree directly
 
-			if (build_in_buffer) {
+			int nReserved = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
 
-				tree = Get_Thread_Safe_Buffer(Task.Buffer_Size);
+			D[i].TNode.Target = reserve_tree_memory(i, nReserved);
 
-			} else { // build in *Tree directly
+			tree = &Tree[D[i].TNode.Target];
+		}
 
-				int nReserved = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
+		int nNeeded = build_subtree(first_part, i, level);
 
-				D[i].TNode.Target = reserve_tree_memory(i, nReserved);
+		if (build_in_buffer) { // copy buffer to Tree
 
-				tree = &Tree[D[i].TNode.Target];
-			}
+			D[i].TNode.Target = reserve_tree_memory(i, nNeeded);
 
-			int nNeeded = build_subtree(first_part, i, level);
+			size_t nBytes = nNeeded * sizeof(*Tree);
 
-			if (build_in_buffer) { // copy buffer to Tree
+			omp_set_lock(&Tree_Lock);
 
-				D[i].TNode.Target = reserve_tree_memory(i, nNeeded);
+			memcpy(&Tree[D[i].TNode.Target], tree, nBytes);
 
-				size_t nBytes = nNeeded * sizeof(*Tree);
+			omp_unset_lock(&Tree_Lock);
+		}
 
-				omp_set_lock(&Tree_Lock);
+		int last_part = first_part + D[i].TNode.Npart;
 
-				memcpy(&Tree[D[i].TNode.Target], tree, nBytes);
+		if (D[i].TNode.Target > 0) { // correct particle parent pointer
 
-				omp_unset_lock(&Tree_Lock);
-			}
+			for (int ipart = first_part; ipart < last_part; ipart++)
+				P[ipart].Tree_Parent += D[i].TNode.Target;
 
-			int last_part = first_part + D[i].TNode.Npart;
+		} else if (D[i].TNode.Target < 0) {
 
-			if (D[i].TNode.Target > 0) { // correct particle parent pointer
+			for (int ipart = first_part; ipart < last_part; ipart++)
+				P[ipart].Tree_Parent = -i - 1; // top node w/o tree
+		}
 
-				for (int ipart = first_part; ipart < last_part; ipart++)
-					P[ipart].Tree_Parent += D[i].TNode.Target;
-
-			} else if (D[i].TNode.Target < 0) {
-
-				for (int ipart = first_part; ipart < last_part; ipart++)
-					P[ipart].Tree_Parent = -i - 1; // top node w/o tree
-			}
-
-		} // if Bunch local
-	
-		communicate_top_nodes();
-		
 	} // for i
 
 	rprintf("Tree build: %d of %d Nodes used (%g MB)\n",
@@ -145,39 +133,7 @@ void Gravity_Tree_Build()
 	return ;
 }
 
-/*
- * Set the "TNode" part of the "D"omain unions. From here onwards the members 
- * are to be understood as a Top Node, not a bunch. also returns the first
- * particle in "ipart" and the "level" 
- */
 
-static void transform_bunch_into_top_node(const int i, int *level, int *ipart)
-{
-	*ipart = D[i].Bunch.First_Part;
-	*level = D[i].Bunch.Level;
-
-	const int npart = D[i].Bunch.Npart;
-
-#ifdef DEBUG
-	Assert(npart < INT_MAX, "Npart %zu in Bunch %d > INT_MAX %d",
-		   npart, i, INT_MAX);
-#endif
-
-	double px = P[*ipart].Pos[0] - Domain.Origin[0]; // construct from particle
-	double py = P[*ipart].Pos[1] - Domain.Origin[1];
-	double pz = P[*ipart].Pos[2] - Domain.Origin[2];
-
-	double size = Domain.Size / (1ULL << *level);
-
-	D[i].TNode.Npart = npart;
-	D[i].TNode.Pos[0] = (floor(px/size) + 0.5) * size + Domain.Origin[0];
-	D[i].TNode.Pos[1] = (floor(py/size) + 0.5) * size + Domain.Origin[1];
-	D[i].TNode.Pos[2] = (floor(pz/size) + 0.5) * size + Domain.Origin[2];
-
-	D[i].TNode.Target = -1;
-
-	return ;
-}
 
 /*
  * Reserve memory in the "*Tree" structure. Reallocates, i.e. enlarges the 
@@ -476,17 +432,7 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 	return nNodes;
 }
 
-static void communicate_top_nodes()
-{
-/*	MPI_Request *request = NULL;
-		
-		float *target = &D[i].TNode.Pos[0];
-		int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
 
-		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
-
-	return ;
-}
 
 /*
  * For particle and node to overlap the peano key triplet at this tree level 

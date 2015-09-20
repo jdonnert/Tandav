@@ -3,8 +3,6 @@
 #include "domain.h"
 #include "peano.h"
 
-#define DEBUG
-
 static void set_global_domain();
 static void fill_new_bunches(const int, const int, const int, const int);
 static void find_mean_cost();
@@ -133,7 +131,7 @@ void Domain_Decomposition()
 #endif
 
 	Profile("Domain Decomposition");
-exit(0);
+
 	return ;
 }
 
@@ -204,7 +202,7 @@ static void bunches2top_nodes()
 		D[i].TNode.Pos[1] = (floor(py/size) + 0.5) * size + Domain.Origin[1];
 		D[i].TNode.Pos[2] = (floor(pz/size) + 0.5) * size + Domain.Origin[2];
 
-		D[i].TNode.Target = -1;
+		//D[i].TNode.Target = -1;
 	}
 
 	#pragma omp single

@@ -63,11 +63,12 @@ void Gravity_Tree_Build()
 	} // omp single
 
 	const size_t buf_threshold = Task.Buffer_Size/sizeof(*Tree);
+	const int this_target = -Task.Rank - 1;
 
 	#pragma omp for schedule(static,1)
 	for (int i = 0; i < NTop_Nodes; i++) {
 
-		if (D[i].Bunch.Target < 0) // not local
+		if (D[i].Bunch.Target != this_target) // not local
 			continue;
 
 		int first_part = D[i].TNode.First_Part;

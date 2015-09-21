@@ -402,8 +402,10 @@ static int remove_empty_bunches()
 
 /*
  * Update particle distribution over NBunches, starting from first_bunch. 
- * This is performance critical. Every thread works inside its omp buffer, 
- * which are later reduced. The reduction is overlapped with the filling.
+ * This is performance critical, so we setup the omp buffer not as an array
+ * of structures but just arrays. Every thread works inside its 
+ * omp buffer, which are later reduced. The reduction is overlapped with 
+ * the filling.
  */
 
 static void fill_new_bunches(const int first_bunch, const int nBunches,
@@ -412,16 +414,26 @@ static void fill_new_bunches(const int first_bunch, const int nBunches,
 	const int last_part = first_part + nPart;
 	const int last_bunch = first_bunch + nBunches;
 
-	struct Bunch_Node *buf = Get_Thread_Safe_Buffer(nBunches * sizeof(*buf));
+	int * restrict first = NULL;
+	int * restrict npart = NULL;
+	float * restrict cost = NULL;
+	shortKey * restrict key = NULL;
+
+	const size_t nBytes = NBunches * (sizeof(*first) + sizeof(*npart) 
+									+ sizeof(*cost) + sizeof(*key));
+
+	void * restrict buf = Get_Thread_Safe_Buffer(nBytes);
+	first = (int *)buf;
+	npart = &(first[nBunches]);
+	cost = (float *) &(npart[nBunches]);
+	key = (shortKey *) &(cost[nBunches]);
 
 	int run = first_bunch;
 
 	for (int i = 0; i < nBunches; i++) { // init omp buffer
 
-		buf[i].First_Part = INT_MAX;
-		buf[i].Key = D[run].Bunch.Key;
-
-		run++;
+		first[i] = INT_MAX;
+		key[i] = D[run++].Bunch.Key;
 	}
 
 	run = 0;
@@ -438,12 +450,12 @@ static void fill_new_bunches(const int first_bunch, const int nBunches,
 
 		shortKey pkey = Short_Peano_Key(P[ipart].Pos);
 
-		while (buf[run].Key < pkey) // particles are ordered by key
+		while (key[run] < pkey) // particles are ordered by key
 			run++;
 
-		buf[run].Npart++;
-		buf[run].Cost += cost_metric(ipart);
-		buf[run].First_Part = imin(buf[run].First_Part, ipart);
+		npart[run]++;
+		cost[run] += cost_metric(ipart);
+		first[run] = imin(first[run], ipart);
 	}
 
 	#pragma omp critical
@@ -453,10 +465,10 @@ static void fill_new_bunches(const int first_bunch, const int nBunches,
 
 	for (int i = first_bunch; i < last_bunch; i++) { // reduce
 
-		D[i].Bunch.Npart += buf[run].Npart;
-		D[i].Bunch.Cost += buf[run].Cost;
+		D[i].Bunch.Npart += npart[run];
+		D[i].Bunch.Cost += cost[run];
 		D[i].Bunch.First_Part = imin(D[i].Bunch.First_Part,
-									 buf[run].First_Part);
+									 first[run]);
 		run++;
 	}
 

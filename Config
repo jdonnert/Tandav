@@ -1,6 +1,6 @@
 #### BASIC CODE PARAMETERS ####
 
-#DEBUG                       // verbose (!) output
+DEBUG                       // verbose (!) output
 
 #PERIODIC                    // periodic boundary conditions
 

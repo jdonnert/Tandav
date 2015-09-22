@@ -65,7 +65,7 @@ void Gravity_Tree_Build()
 	const size_t buf_threshold = Task.Buffer_Size/sizeof(*Tree);
 	const int this_target = -Task.Rank - 1;
 
-	#pragma omp for schedule(static,1)
+	#pragma omp for  schedule(static,1)
 	for (int i = 0; i < NTop_Nodes; i++) {
 
 		if (D[i].Bunch.Target != this_target) // not local
@@ -93,15 +93,15 @@ void Gravity_Tree_Build()
 
 		if (build_in_buffer) { // copy buffer to Tree
 
+			omp_set_lock(&Tree_Lock);
+
 			D[i].TNode.Target = reserve_tree_memory(i, nNeeded);
+
+			omp_unset_lock(&Tree_Lock);
 
 			size_t nBytes = nNeeded * sizeof(*Tree);
 
-			omp_set_lock(&Tree_Lock);
-
 			memcpy(&Tree[D[i].TNode.Target], tree, nBytes);
-
-			omp_unset_lock(&Tree_Lock);
 		}
 
 		int last_part = first_part + D[i].TNode.Npart;

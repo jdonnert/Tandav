@@ -38,8 +38,7 @@ void Sort_Particles_By_Peano_Key()
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
 		keys[ipart] = Peano_Key(P[ipart].Pos);
 
-	//Qsort_Index(Sim.NThreads, idx, keys, Task.Npart_Total, sizeof(*keys),
-	Qsort_Index(1, idx, keys, Task.Npart_Total, sizeof(*keys),
+	Qsort_Index(Sim.NThreads, idx, keys, Task.Npart_Total, sizeof(*keys),
 			&compare_peanoKeys);
 
 	#pragma omp single

@@ -13,25 +13,33 @@
 
 #define INSERT_THRES 8 // insertion8sort threshold
 
-#define SWAP(a, b, size)			\
-	do {						    \
-      size_t __size = (size);		\
-      char *__a = (a), *__b = (b);	\
-      do {							\
-	  char __tmp = *__a;			\
-	  *__a++ = *__b;				\
-	  *__b++ = __tmp;				\
-	  } while (--__size > 0);	    \
-    } while (0)
+static inline void swap(void * restrict a, void * restrict b, size_t nBytes)
+{	
+	char * restrict x = (char *) a;
+	char * restrict y = (char *) b;
 
-#define SWAP_SIZE_T(a,b)				\
-	do {								\
-		size_t *__a = (a), *__b = (b);	\
-		size_t __tmp = *__a;			\
-		*__a = *__b;					\
-		*__b = __tmp;					\
-	} while (0)
+	while (nBytes > 0) {
 
+		char tmp = *x;
+
+		*x = *y;
+		*y = tmp;
+
+		nBytes--;
+	}
+
+	return ;
+}
+
+static inline void swap_size_t(size_t * restrict a, size_t * restrict b) 
+{
+	size_t tmp = *a;
+
+	*a = *b;
+	*b = tmp;
+		
+	return ;
+}
 
 #define COMPARE_DATA(a,b,size) ((*cmp) ((void *)(data + *a * size), \
 	(void *)(data + *b * size))) // compare with non-permutated data
@@ -90,15 +98,15 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 			char *mid = lo + size * ((hi - lo) / size >> 1); // pivot
 
 			if ( (*cmp) ((void *) mid, (void *) lo) < 0)
-				SWAP(mid, lo, size);
+				swap(mid, lo, size);
 
 			if ( (*cmp) ((void *) hi, (void *) mid) < 0)
-				SWAP (mid, hi, size);
+				swap (mid, hi, size);
 			else
 			goto jump_over;
 
 			if ( (*cmp) ((void *) mid, (void *) lo) < 0)
-				SWAP (mid, lo, size);
+				swap (mid, lo, size);
 
 			jump_over:;
 
@@ -116,7 +124,7 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 
 				if (left_ptr < right_ptr) {
 
-					SWAP (left_ptr, right_ptr, size);
+					swap (left_ptr, right_ptr, size);
 
 					if (mid == left_ptr)
 						mid = right_ptr;
@@ -237,15 +245,15 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 			size_t *mid = lo + ((hi - lo) >> 1); // pivot & presort
 
 			if (COMPARE_DATA(mid,lo,datasize) < 0) 
-				SWAP_SIZE_T (mid, lo);
+				swap_size_t (mid, lo);
 
 			if (COMPARE_DATA(hi,mid,datasize) < 0)
-				SWAP_SIZE_T (hi, mid);
+				swap_size_t (hi, mid);
 			else
 				goto jump_over;
 
 			if (COMPARE_DATA(mid,lo,datasize) < 0) 
-				SWAP_SIZE_T (mid, lo);
+				swap_size_t (mid, lo);
 
 			jump_over:;
 
@@ -262,7 +270,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
 				if (left < right) { 
 
-					SWAP_SIZE_T (left, right);
+					swap_size_t (left, right);
 
 					if (mid == left)
 			   			mid = right;
@@ -314,15 +322,15 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
   		size_t *mid = lo + ((hi - lo) >> 1); 
 		
 		if (COMPARE_DATA(mid,lo,datasize) < 0) 
-			SWAP_SIZE_T (mid, lo);
+			swap_size_t (mid, lo);
 
 		if (COMPARE_DATA(hi,mid,datasize) < 0)  
-			SWAP_SIZE_T (mid, hi);
+			swap_size_t (mid, hi);
 		else
 	    	goto hop_over;
   	
 		if (COMPARE_DATA(mid,lo,datasize) < 0) 
-			SWAP_SIZE_T (mid, lo);
+			swap_size_t (mid, lo);
 	
 		hop_over:;
 
@@ -339,7 +347,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 
     		if (left < right) { 
 
-				SWAP_SIZE_T (left, right);
+				swap_size_t (left, right);
 
 				if (mid == left)
 		   			mid = right;
@@ -406,7 +414,7 @@ void Qsort_Index(const int nThreads, size_t *perm, void *const data,
 			trail = run;
 
 	if (trail != beg)
-		SWAP_SIZE_T(trail, beg);
+		swap_size_t(trail, beg);
 
 	size_t *run = beg + 1;
 

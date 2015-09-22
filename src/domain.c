@@ -3,6 +3,8 @@
 #include "domain.h"
 #include "peano.h"
 
+#define MIN_LEVEL 3 // decompose 8^MIN_LEVEL domains downward
+
 static void set_global_domain();
 static void fill_new_bunches(const int, const int, const int, const int);
 static void find_mean_cost();
@@ -133,7 +135,7 @@ void Domain_Decomposition()
 
 void Setup_Domain_Decomposition()
 {
-	if (Sim.NRank < 16) // decompose on threads as welL
+	if (Sim.NRank < 64) // decompose on threads as welL
 		NTarget = Sim.NTask;
 	else
 		NTarget = Sim.NRank;
@@ -142,7 +144,7 @@ void Setup_Domain_Decomposition()
 	Npart = Malloc(Sim.NTask * sizeof(Npart), "Domain Npart");
 	Split_Idx = Malloc(Sim.NTask * sizeof(*Split_Idx), "Domain Split_Idx");
 
-	int min_level = MAX(3, log(Sim.NTask)/log(8) + 1);
+	int min_level = MAX(MIN_LEVEL, log(Sim.NTask)/log(8) + 1);
 
 	Max_NBunches = pow(8, min_level);
 
@@ -199,7 +201,7 @@ static void reset_bunchlist()
 	#pragma omp single
 	memset(&D[0], 0, sizeof(*D) * Max_NBunches);
 
-	int level = MAX(2, log(NTarget)/log(8) + 1);
+	int level = MAX(MIN_LEVEL, log(NTarget)/log(8) + 1);
 
 	#pragma omp single
 	NBunches = pow(8,level);

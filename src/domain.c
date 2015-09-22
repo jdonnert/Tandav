@@ -3,6 +3,8 @@
 #include "domain.h"
 #include "peano.h"
 
+#define DEBUG
+
 static void set_global_domain();
 static void fill_new_bunches(const int, const int, const int, const int);
 static void find_mean_cost();
@@ -114,6 +116,10 @@ void Domain_Decomposition()
 
 	remove_excess_bunches();
 
+#ifdef DEBUG
+	print_domain_decomposition(Max_Level);
+#endif
+
 	communicate_particles();
 	
 	bunches2top_nodes();
@@ -126,9 +132,6 @@ void Domain_Decomposition()
 
 	Sig.Tree_Update = true;
 
-#ifdef DEBUG
-	print_domain_decomposition(Max_Level);
-#endif
 
 	Profile("Domain Decomposition");
 

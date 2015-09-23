@@ -29,9 +29,9 @@ endif
 
 ifeq ($(SYSTYPE),MSI)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O3 -openmp -xhost  -mkl  -ipo 
-XTRA_LIBS = -lmpich
-XTRA_INCL = 
+OPTIMIZE =  -Wall -g -O2 -openmp -xhost  -mkl  -ansi-alias-check 
+XTRA_LIBS = -lmpich -L$(LD_LIBRARY_PATH)
+XTRA_INCL = -I$(INCLUDE)
 endif
 
 # end systypes

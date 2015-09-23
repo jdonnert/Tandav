@@ -20,7 +20,7 @@ static void communicate_bunches();
 static int cost_metric(const int ipart);
 static int compare_bunches_by_key(const void *a, const void *b);
 static void print_domain_decomposition (const int);
-static void find_domain_center(double *Center_out);
+static void find_domain_center(double *Center_Out);
 static void find_largest_particle_distance(double *);
 
 union Domain_Node_List * restrict D = NULL;
@@ -150,19 +150,25 @@ void Setup_Domain_Decomposition()
 
 	reallocate_topnodes();
 
-	reset_bunchlist();
-
 	#pragma omp parallel
+	{
+
+	reset_bunchlist();
+	
 	set_global_domain();
 
+	Sort_Particles_By_Peano_Key();
+
+	} // omp parallel
+
 	rprintf("\nDomain size is %g, \n"
-		"   Origin at x = %4g, y = %4g, z = %4g, \n"
-		"   Center at x = %4g, y = %4g, z = %4g. \n"
-		"   CoM    at x = %4g, y = %4g, z = %4g. \n",
-		Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
-		Domain.Center[0], Domain.Center[1], Domain.Center[2],
-		Domain.Center_Of_Mass[0], Domain.Center_Of_Mass[1],
-		Domain.Center_Of_Mass[2]); fflush(stdout);
+			"   Origin at x = %4g, y = %4g, z = %4g, \n"
+			"   Center at x = %4g, y = %4g, z = %4g. \n"
+			"   CoM    at x = %4g, y = %4g, z = %4g. \n", Domain.Size, 
+			Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
+			Domain.Center[0], Domain.Center[1], Domain.Center[2],
+			Sim.Center_Of_Mass[0], Sim.Center_Of_Mass[1],
+			Sim.Center_Of_Mass[2]);
 
 	return;
 }
@@ -595,10 +601,10 @@ static void communicate_bunches()
  * For PERIODIC simulations there is little to do.
  */
 
-static void set_global_domain()
-{
 #ifdef PERIODIC
 
+static void set_global_domain()
+{
 	#pragma omp single
 	{
 	
@@ -606,83 +612,79 @@ static void set_global_domain()
 
 	Domain.Size = fmax(Sim.Boxsize[0], fmax(Sim.Boxsize[1], Sim.Boxsize[2]));
 
+	for (int i = 0; i < 3; i++)
+		Domain.Origin[i] = Domain.Center[i] - 0.5 * Domain.Size;
+
 	} // omp single
 
-#else
+	return ;
+}
+
+#else // ! PERIODIC
+
+static void set_global_domain()
+{
 
 	find_largest_particle_distance(&Domain.Size);
 
-	find_domain_center(Domain.Center);
-
-#endif // ! PERIODIC
+	find_domain_center(&Domain.Center[0]);
 
 	#pragma omp single
 	for (int i = 0; i < 3; i++)
 		Domain.Origin[i] = Domain.Center[i] - 0.5 * Domain.Size;
 
-#ifdef DEBUG
-	rprintf("\nDomain size is %g, \n"
-			"   Origin at x = %4g, y = %4g, z = %4g, \n"
-			"   Center at x = %4g, y = %4g, z = %4g. \n"
-			"   CoM    at x = %4g, y = %4g, z = %4g. \n",
-			Domain.Size, Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
-			Domain.Center[0], Domain.Center[1], Domain.Center[2],
-			Sim.Center_Of_Mass[0], Sim.Center_Of_Mass[1],
-			Sim.Center_Of_Mass[2]);
-#endif
-
 	return ;
 }
+
+#endif // ! PERIODIC
 
 /*
  * Domain Center is not the center of mass but the median of mass, which is
  * less sensitive to outliers.
  */
 
-static Float *x = NULL;
+static Float * restrict buffer = NULL;
 
-static void find_domain_center(double Center_out[3])
+static void find_domain_center(double Center_Out[3])
 {
 	Float center[3] = { 0 };
 
 	#pragma omp single
-	x = Malloc(Task.Npart_Total * sizeof(*x), "x");
+	buffer = Malloc(Task.Npart_Total * sizeof(*buffer), "buffer");
 
 	for (int i = 0; i < 3; i++) {
 
 		#pragma omp for
 		for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
-			x[ipart] = P[ipart].Mass * P[ipart].Pos[i];
+			buffer[ipart] = P[ipart].Mass * P[ipart].Pos[i];
 
-		center[i] = Median(Task.Npart_Total, x) / Sim.Total_Mass;
+		center[i] = Median(Task.Npart_Total, buffer) / Sim.Total_Mass;
 
+		#pragma omp barrier
+	}
+	
+	#pragma omp single
+	buffer = Realloc(buffer, Sim.NRank * sizeof(*buffer), "buffer");
+
+	for (int i = 0; i < 3; i++) {
+
+		#pragma omp single
+		MPI_Gather(&center[i], 1, MPI_MYFLOAT, buffer, 1, MPI_MYFLOAT,
+				   Sim.Master, MPI_COMM_WORLD);
+
+		Center_Out[i] = Median(Sim.NRank, buffer);
+		
 		#pragma omp barrier
 	}
 
 	#pragma omp single
-	Free(x);
-
-	#pragma omp master
 	{
 
-	Float sendbuf[Sim.NRank], recvbuf[Sim.NRank];
+	MPI_Bcast(&Center_Out[0], 3, MPI_DOUBLE, Sim.Master, MPI_COMM_WORLD);
+	
+	Free(buffer);
 
-	for (int i = 0; i < 3; i++) {
-
-		sendbuf[Task.Rank] = center[i];
-
-		MPI_Gather(recvbuf, 1, MPI_MYFLOAT, sendbuf, 1, MPI_MYFLOAT,
-				   Sim.Master, MPI_COMM_WORLD);
-
-		center[i] = Median(Sim.NRank, recvbuf);
-	}
-
-	MPI_Scatter(center, 3, MPI_MYFLOAT, Center_out, 3, MPI_DOUBLE,
-				Sim.Master, MPI_COMM_WORLD);
-
-	} // master
-
-	#pragma omp barrier
+	} // omp single
 
 	return ;
 }

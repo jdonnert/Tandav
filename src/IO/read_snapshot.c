@@ -402,7 +402,8 @@ static void generate_masses_from_header()
 	for (int type = 0; type < NPARTYPE; type++) {
 
 		int iMax = iMin + Task.Npart[type];
-
+		
+		#pragma  omp parallel for
 		for (int ipart = iMin; ipart < iMax; ipart++)
 			P[ipart].Mass = Sim.Mpart[type];
 

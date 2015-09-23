@@ -133,7 +133,8 @@ void Setup_Time_Integration()
 
 	NActive_Particles = Task.Npart_Total;
 
-	for (int i = 0; i < NActive_Particles; i++)
+	#pragma omp parallel for	
+	for (int i = 0; i < NActive_Particles; i++) 
 		Active_Particle_List[i] = i;
 
 	return ;
@@ -232,10 +233,10 @@ static int max_active_time_bin()
 
 void Make_Active_Particle_List()
 {
-	int i = 0;
-
 	#pragma omp single
 	{
+
+	int i = 0;
 
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 

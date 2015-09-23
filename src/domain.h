@@ -54,6 +54,7 @@ struct Domain_Properties {
 struct Domain_Properties Region[HIGHRES_REGION];
 #endif
 
-void Setup_Domain_Decomposition();
 void Domain_Decomposition();
+void Setup_Domain_Decomposition();
+void Finish_Domain_Decomposition();
 

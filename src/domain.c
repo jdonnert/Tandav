@@ -173,6 +173,16 @@ void Setup_Domain_Decomposition()
 	return;
 }
 
+void Finish_Domain_Decomposition()
+{
+	Free(Cost);
+	Free(Npart);
+	Free(Split_Idx);
+	
+	return ;
+}
+
+
 /*
  * This increases the room for Bunches/Topnodes by 20 %, 
  * so we can stay minimal in memory. Not thread safe ! 

@@ -5,7 +5,11 @@
 
 #define MIN_LEVEL 3 // decompose 8^MIN_LEVEL domains downward
 
-static void set_global_domain();
+static void communicate_particles();
+static void communicate_bunches();
+static void communicate_top_nodes();
+
+static void transform_bunches_into_top_nodes();
 static void fill_new_bunches(const int, const int, const int, const int);
 static void find_mean_cost();
 static int remove_empty_bunches();
@@ -15,13 +19,12 @@ static int check_distribution();
 static void remove_excess_bunches();
 static void reset_bunchlist();
 static void distribute();
-static void communicate_particles();
-static void communicate_bunches();
 static int cost_metric(const int ipart);
 static int compare_bunches_by_key(const void *a, const void *b);
-static void print_domain_decomposition (const int);
+static void set_global_domain();
 static void find_domain_center(double *Center_out);
 static void find_largest_particle_distance(double *);
+static void print_domain_decomposition (const int);
 
 union Domain_Node_List * restrict D = NULL;
 
@@ -34,6 +37,8 @@ static double max_mem_imbal = 0, max_cost_imbal = 0;
 static float * restrict Cost = NULL;
 
 static double Mean_Cost = 0, Mean_Npart = 0;
+
+static int NBunches = 0;
 
 /* 
  * Distribute particles in bunches, which are continuous on the Peano curve,
@@ -112,15 +117,17 @@ void Domain_Decomposition()
 
 	remove_excess_bunches();
 
+	communicate_particles();
+
+	transform_bunches_into_top_nodes();
+
+	communicate_top_nodes();
+
 	rprintf("\nDomain: %d Top Nodes, %d Top Leaves, max level %d  merged %d\n"
 			"        Max Imbalance: Mem %g, Cost %g \n\n", NBunches,
 			NTop_Leaves, Max_Level, NMerged, max_mem_imbal, max_cost_imbal);
 
-#ifdef DEBUG
-	print_domain_decomposition(Max_Level);
-#endif
-
-	communicate_particles();
+	print_domain_decomposition(Max_Level); // DEBUG
 
 	Sig.Tree_Update = true;
 
@@ -165,6 +172,76 @@ void Setup_Domain_Decomposition()
 		Domain.Center_Of_Mass[2]); fflush(stdout);
 
 	return;
+}
+
+static void communicate_top_nodes()
+{
+/*	MPI_Request *request = NULL;
+		
+		float *target = &D[i].TNode.Pos[0];
+		int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
+
+		MPI_Ibcast(target, nBytes, MPI_BYTE, src, MPI_COMM_WORLD, request); */
+
+	return ;
+}
+
+/*
+ * Reduce the Bunch list over all MPI ranks 
+ */
+
+static void communicate_bunches()
+{
+	#pragma omp for
+	for (int i = 0; i < NBunches; i++) {
+
+		//D[i].Bunch.Target = 0;
+
+		D[i].Bunch.Is_Local = true;
+	}
+
+	// MPI_Allreducev();
+	// MPI_Ibcast();
+
+	return ;
+}
+
+/*
+ * Set the "TNode" part of the "D"omain unions. From here onwards the members 
+ * are to be understood as a Top Node, not a bunch. also returns the first
+ * particle in "ipart" and the "level" 
+ */
+
+static void transform_bunches_into_top_nodes()
+{
+	#pragma omp single nowait
+	NTop_Nodes = NBunches;
+
+	#pragma omp for
+	for (int i = 0; i < NBunches; i++) {
+
+		uint64_t npart = D[i].Bunch.Npart;
+
+		Assert(npart < INT_MAX, "Npart %zu in Bunch %d > INT_MAX %d",
+		   npart, i, INT_MAX);
+		
+		D[i].TNode.Npart = npart;
+
+		int ipart = D[i].TNode.First_Part;
+
+		double px = P[ipart].Pos[0] - Domain.Origin[0]; 	
+		double py = P[ipart].Pos[1] - Domain.Origin[1];
+		double pz = P[ipart].Pos[2] - Domain.Origin[2];
+
+		double size = Domain.Size / (1ULL << D[i].TNode.Level);
+
+		D[i].TNode.Npart = npart;
+		D[i].TNode.Pos[0] = (floor(px/size) + 0.5) * size + Domain.Origin[0];
+		D[i].TNode.Pos[1] = (floor(py/size) + 0.5) * size + Domain.Origin[1];
+		D[i].TNode.Pos[2] = (floor(pz/size) + 0.5) * size + Domain.Origin[2];
+	}
+
+	return ;
 }
 
 /*
@@ -569,24 +646,7 @@ static void communicate_particles()
 	return ;
 }
 
-/*
- * Reduce the Bunch list over all MPI ranks 
- */
 
-static void communicate_bunches()
-{
-	#pragma omp for
-	for (int i = 0; i < NBunches; i++) {
-
-		//D[i].Bunch.Target = 0;
-
-		D[i].Bunch.Is_Local = true;
-	}
-
-	// MPI_Ibcast();
-
-	return ;
-}
 
 /*
  * Find the global domain origin and the maximum extent. We center the domain 
@@ -721,9 +781,9 @@ static void find_largest_particle_distance(double *size_out)
 	return ; 
 }
 
-#ifdef DEBUG
 static void print_domain_decomposition (const int max_level)
 {
+#ifdef DEBUG
 	#pragma omp master
 	{
 
@@ -760,6 +820,6 @@ static void print_domain_decomposition (const int max_level)
 
 	#pragma omp barrier
 
+#endif
 	return ;
 }
-#endif

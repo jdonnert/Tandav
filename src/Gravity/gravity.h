@@ -22,13 +22,16 @@ extern struct Tree_Node {
 	Float Dp[3];		// Velocity of Center of Mass
 } * restrict Tree;
 
-int NNodes, NTop_Nodes;
+uint32_t NNodes;
+
 #else
+
 inline void Gravity_Tree_Build() {};
 inline void Gravity_Tree_Acceleration() {};
 inline void Gravity_Tree_Update_Kicks(const int ipart, const double dt) {};
 inline void Gravity_Tree_Update_Topnode_Kicks() {};
 inline void Gravity_Tree_Update_Drift(const double dt) {};
+
 #endif // (GRAVITY && GRAVITY_TREE)
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE) && defined(PERIODIC)

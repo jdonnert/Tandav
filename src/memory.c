@@ -161,7 +161,7 @@ void *Get_Thread_Safe_Buffer (size_t nBytes)
 			"Requested too much Buffer space %d > %d"
 			"Increase BUFFER_SIZE in 'Config' file. ",
 			nBytes, Task.Buffer_Size);
-
+	
 	memset(buffer, 0, nBytes);
 
 	return buffer;

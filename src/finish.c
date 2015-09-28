@@ -4,6 +4,8 @@ void Finish()
 {
     Finish_Comoving(); // COMOVING
 
+	Finish_Domain_Decomposition();
+
 	Finish_Profiler();
 
 	Finish_Logs();

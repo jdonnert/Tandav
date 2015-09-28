@@ -9,7 +9,7 @@
  * Press et al. 1992
  */
 
-static inline void swap(Float *a, Float *b)
+static inline void swap(Float * restrict a, Float * restrict b)
 {
 	Float tmp = *a;
 	*a = *b;
@@ -18,7 +18,7 @@ static inline void swap(Float *a, Float *b)
 	return;
 }
 
-Float Select(const int k, const int ndata, Float *data)
+Float Select(const int k, const int ndata, Float * restrict data)
 {
 	int l = 1;
 	int ir = ndata;
@@ -95,11 +95,19 @@ static int compare_floats(const void * a, const void *b)
 
 static Float *Results = NULL;
 
-Float Median(const int ndata, Float *data)
+Float Median(const int ndata, Float * restrict data)
 {
-	if (Sim.NThreads == 1 || ndata < PARALLEL_THRES || 1)
-		return Select(ndata >> 1, ndata, data);
+	if (Sim.NThreads == 1 || ndata < PARALLEL_THRES || 1) {
+	
+		Float median = 0;
 
+		#pragma omp single copyprivate(median)	
+		median = Select(ndata >> 1, ndata, data);
+		
+		return median;
+
+	}
+	
 	int nPart = ndata * sizeof(*data) / Task.Buffer_Size + 1;
 	nPart = MAX(nPart, 32);
 
@@ -129,6 +137,7 @@ Float Median(const int ndata, Float *data)
 		Results[i] = Select(mid, size, buf);
 
 	}
+
 
 	Float median = 0;
 

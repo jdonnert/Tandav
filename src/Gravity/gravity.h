@@ -5,6 +5,7 @@ inline void Gravity_Simple_Accel() {};
 #endif // GRAVITY && GRAVITY_SIMPLE
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE)
+void Setup_Gravity_Tree();
 void Gravity_Tree_Build();
 void Gravity_Tree_Acceleration();
 void Gravity_Tree_Update_Kicks(const int ipart, const double dt);
@@ -26,6 +27,7 @@ uint32_t NNodes;
 
 #else
 
+inline void Setup_Gravity_Tree() {}; 
 inline void Gravity_Tree_Build() {};
 inline void Gravity_Tree_Acceleration() {};
 inline void Gravity_Tree_Update_Kicks(const int ipart, const double dt) {};

@@ -8,8 +8,11 @@
 #ifdef GRAVITY_TREE
 
 #define NODES_PER_PARTICLE 0.6
+#define TREE_ENLARGEMENT_FACTOR 1.2
 
-static int reserve_tree_memory(const int, const int);
+static bool tree_memory_is_full(const int );
+static int reserve_tree_memory(const int);
+static void set_tree_parent_pointers (const int);
 static int build_subtree(const int, const int, const int);
 static int finalise_subtree(const int, const int, int );
 static inline bool particle_is_inside_node(const peanoKey,const int,const int);
@@ -22,9 +25,9 @@ static void print_top_nodes();
 static inline void create_node_from_particle(const int, const int,
 											 const peanoKey, const int,
 											 const int);
-
+size_t buf_threshold = 0;
 uint32_t NNodes = 0;
-static int Max_Nodes = 1024;
+static int Max_Nodes = 0;
 struct Tree_Node  * restrict Tree = NULL; // global pointer to all nodes
 static omp_lock_t Tree_Lock; // lock global *Tree, NNodes, Max_Nodes
 
@@ -33,10 +36,9 @@ static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *Buffer
 
 /*
  * This builds the tree in parallel, particles are assumed PH ordered. 
- * First every local bunch is converted into a topnode. Then we build the 
- * corresponding tree either in the openmp buffer, or directly inside the
- * *Tree memory. Every access to  *Tree, NNodes, Max_Nodes has to be 
- * protected by the openmp Tree_Lock.
+ * We build the tree corresponding to a top node either in the openmp buffer, 
+ * or directly inside the *Tree memory. Every access to  *Tree, NNodes, 
+ * Max_Nodes has to be protected by the openmp Tree_Lock.
  * A subtree is build starting from the top node in target pointer "*tree". 
  * Every subtree allocated a fixed amount of memory, if it is not build in the
  * buffer.
@@ -51,79 +53,86 @@ void Gravity_Tree_Build()
 	Profile("Build Gravity Tree");
 
 	#pragma omp single
-	{
-	
-	omp_init_lock(&Tree_Lock);
-
 	NNodes = 0;
 
-	Tree = Realloc(Tree, Max_Nodes * sizeof(*Tree), "Tree");
+	for (;;) {
 
-	} // omp single
+		#pragma omp single
+		{
 
-	const size_t buf_threshold = Task.Buffer_Size/sizeof(*Tree);
+		if (NNodes != 0) {
+			
+			Max_Nodes = TREE_ENLARGEMENT_FACTOR * Max_Nodes;
+		
+			Tree = Realloc(Tree, Max_Nodes * sizeof(*Tree), "Tree");
 
-	#pragma omp for schedule(static,1)
-	for (int i = 0; i < NTop_Nodes; i++) {
+			printf("(%d:%d) Increased Tree Memory to %6.1f MB, "
+				"Max %10d Nodes \n", Task.Rank, Task.Thread_ID, 
+				Max_Nodes * sizeof(*Tree)/1024.0/1024.0, Max_Nodes); 
+		}
+		
+		memset(Tree, 0, Max_Nodes * sizeof(*Tree));
 
-//		int src = D[i].Bunch.Target;
+		NNodes = 0;
 
-		if (! D[i].Bunch.Is_Local) 
-			continue;
+		} // omp single
 
-		int first_part = D[i].TNode.First_Part;
+		#pragma omp for schedule(static,1)
+		for (int i = 0; i < NTop_Nodes; i++) {
+
+	//		if (D[i].TNode.Target < 0)  // not local
+	//			continue;
 	
-		//transform_bunch_into_top_node(i, &level, &first_part);
-
-		bool build_in_buffer = D[i].TNode.Npart < buf_threshold;
-
-		if (build_in_buffer) {
-
-			tree = Get_Thread_Safe_Buffer(Task.Buffer_Size);
-
-		} else { // build in *Tree directly
+			bool build_in_buffer = D[i].TNode.Npart < buf_threshold;
 
 			int nReserved = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
 
-			D[i].TNode.Target = reserve_tree_memory(i, nReserved);
+			if (build_in_buffer) {
 
-			tree = &Tree[D[i].TNode.Target];
-		}
+				tree = Get_Thread_Safe_Buffer(Task.Buffer_Size);
 
-		int nNeeded = build_subtree(first_part, i, D[i].TNode.Level);
+			} else { // build in *Tree directly
 
-		if (build_in_buffer) { // copy buffer to Tree
+				D[i].TNode.Target = reserve_tree_memory(nReserved);
+	
+				tree = &Tree[D[i].TNode.Target];
+			}
 
-			D[i].TNode.Target = reserve_tree_memory(i, nNeeded);
+			if (tree_memory_is_full(nReserved))
+				continue;
+			
+			int nNeeded = build_subtree(D[i].TNode.First_Part, i, 
+					D[i].TNode.Level);
 
-			size_t nBytes = nNeeded * sizeof(*Tree);
+			if (build_in_buffer) { // copy buffer to Tree
 
-			memcpy(&Tree[D[i].TNode.Target], tree, nBytes);
+				if (tree_memory_is_full(nNeeded))
+					continue;
 
-		}
+				D[i].TNode.Target = reserve_tree_memory(nNeeded);
 
-		int last_part = first_part + D[i].TNode.Npart;
+				size_t nBytes = nNeeded * sizeof(*Tree);
 
-		if (D[i].TNode.Target > 0) { // correct particle parent pointer
+				memcpy(&Tree[D[i].TNode.Target], tree, nBytes);
+			}	
 
-			for (int ipart = first_part; ipart < last_part; ipart++)
-				P[ipart].Tree_Parent += D[i].TNode.Target;
+			set_tree_parent_pointers(i);
+			
+		} // for i
 
-		} else if (D[i].TNode.Target < 0) {
+		#pragma omp barrier
 
-			for (int ipart = first_part; ipart < last_part; ipart++)
-				P[ipart].Tree_Parent = -i - 1; // top node w/o tree
-		}
+		if (! tree_memory_is_full(0))
+			break;
 
-	} // for i
+		#pragma omp barrier
+
+	} // forever
 
 	rprintf("Tree build: %d of %d Nodes used (%g MB)\n",
 			NNodes, Max_Nodes, Max_Nodes*sizeof(*Tree)/1024.0/1024);
 
 	print_top_nodes(); // DEBUG only
-
-	#pragma omp single nowait
-	omp_destroy_lock(&Tree_Lock);
 
 	Sig.Tree_Update = false;
 
@@ -132,47 +141,82 @@ void Gravity_Tree_Build()
 	return ;
 }
 
+void Setup_Gravity_Tree()
+{
+	omp_init_lock(&Tree_Lock); // we don't destroy this one ...
 
+	Max_Nodes = 0.1 * Task.Npart_Total;
+			
+	Tree = Malloc(Max_Nodes * sizeof(*Tree), "Tree");
+
+	buf_threshold = Task.Buffer_Size/sizeof(*Tree);
+
+	return ;
+}
 
 /*
- * Reserve memory in the "*Tree" structure. Reallocates, i.e. enlarges the 
- * *Tree memory if needed. We lock *Tree with Tree_Lock, so threads don't 
- * mess up the pointers. We do NOT explicitely lock NNodes here, so it may
- * be accessed only locked with Tree_Lock .
+ * Reserve memory in the "*Tree" structure by increasing NNodes. We lock 
+ * NNodes with Tree_Lock, so threads don't mess up the pointers. 
  */
 
-static int reserve_tree_memory(const int i, const int nNeeded)
+static int reserve_tree_memory(const int nNeeded)
 {
-	if (nNeeded == 0)
-		return 0;
-
-	int first = 0;
-
 	omp_set_lock(&Tree_Lock);
 
-	if (NNodes + nNeeded >= Max_Nodes) { // reserve more memory
-
-		Max_Nodes = (Max_Nodes + nNeeded) * 1.20;
-
-		Max_Nodes = imax(Max_Nodes, 1024);
-
-		size_t nBytes = Max_Nodes * sizeof(*Tree);
-
-		printf("(%d:%d) Increasing Tree Memory to %6.1f MB, "
-				"Max %10d Nodes, Factor %4.3g \n"
-				, Task.Rank, Task.Thread_ID, nBytes/1024.0/1024.0, Max_Nodes,
-				(double)Max_Nodes/Task.Npart_Total); fflush(stdout);
-
-		Tree = Realloc(Tree, nBytes, "Tree");
-	}
-
-	first = NNodes;
+	int first = NNodes;
 
 	NNodes += nNeeded;
 
 	omp_unset_lock(&Tree_Lock);
 
 	return first;
+}
+
+/*
+ * Check if we have enough memory left to build/copy-in the tree. If not
+ * redo the whole tree build
+ */
+
+static bool tree_memory_is_full(const int nReserved)
+{
+	bool result = false;
+	
+	omp_set_lock(&Tree_Lock);
+
+	if (NNodes + nReserved > Max_Nodes) {
+
+		NNodes = Max_Nodes + 1; // trigger another tree build
+	
+		result = true;
+	}
+
+	omp_unset_lock(&Tree_Lock);
+
+	return result;
+}
+
+/* 
+ * Correct the Tree_Parent pointers in P in case we build in the buffer
+ * which always starts at 0. If the top node doesn't contain a tree, make a 
+ * pointer to the top node instead.
+ */
+
+static void set_tree_parent_pointers (const int i)
+{
+	const int first_part = D[i].TNode.First_Part;
+	const int last_part = first_part + D[i].TNode.Npart;
+
+	if (D[i].TNode.Target > 0) { // correct particle parent pointer
+	
+		for (int ipart = first_part; ipart < last_part; ipart++)
+			P[ipart].Tree_Parent += D[i].TNode.Target;
+		
+	} else if (D[i].TNode.Target < 0) {
+	
+		for (int ipart = first_part; ipart < last_part; ipart++)
+			P[ipart].Tree_Parent = -i - 1; // top node w/o tree
+	}
+	return ;
 }
 
 /*
@@ -521,7 +565,7 @@ static inline void node_set(const enum Tree_Bitfield bit, const int node)
 
 static void print_top_nodes()
 {
-//#ifdef DEBUG
+#ifdef DEBUG
 	#pragma omp single
 	for (int i = 0; i < NTop_Nodes; i++) 
 		printf("%d Target=%d Level=%d Npart=%d Pos=%g %g %g, "
@@ -532,7 +576,7 @@ static void print_top_nodes()
 				D[i].TNode.CoM[0],D[i].TNode.CoM[1],D[i].TNode.CoM[2],
 				D[i].TNode.Dp[0],D[i].TNode.Dp[1],D[i].TNode.Dp[2]);
 
-//#endif
+#endif
 	
 		return ;
 }

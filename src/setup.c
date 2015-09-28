@@ -20,6 +20,8 @@ void Setup()
 	Compute_Global_Simulation_Properties();
 
 	Setup_Domain_Decomposition();
+	
+	Setup_Gravity_Tree(); // GRAVITY_TREE
 
 	Print_Memory_Usage();
 

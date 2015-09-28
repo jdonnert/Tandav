@@ -2,7 +2,7 @@
 #include "timestep.h"
 
 #pragma omp threadprivate(Cosmo)
-extern struct Current_Cosmology_In_Code_Units Cosmo = {
+struct Current_Cosmology_In_Code_Units Cosmo = {
 	HUBBLE_CONST * KM2CGS/MPC2CGS * LENGTH2CGS/VELOCITY2CGS, // H0
 	OMEGA_LAMBDA,
 	OMEGA_MATTER,

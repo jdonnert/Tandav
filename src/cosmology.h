@@ -1,5 +1,5 @@
 
-struct Current_Cosmology_In_Code_Units {
+extern struct Current_Cosmology_In_Code_Units {
 	const double Hubble_Constant; // Constants
 	const double Omega_Lambda;
 	const double Omega_Matter;
@@ -16,7 +16,7 @@ struct Current_Cosmology_In_Code_Units {
 	double Hydro_Accel_Factor;
 	double Press_Factor;
 } Cosmo;
-//#pragma omp threadprivate(Cosmo)
+#pragma omp threadprivate(Cosmo)
 
 
 double Hubble_Parameter(const double a); // H(a) = H0 * E_Hubble(a)

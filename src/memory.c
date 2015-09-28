@@ -98,11 +98,12 @@ void *Realloc_info(const char* file, const char* func, const int line,
 
 	if (i == NMem_Blocks-1) { // enlarge last block
 
-		const int delta = new_size - Mem_Block[i].Size;
-
+		const int delta = abs(new_size - Mem_Block[i].Size);
+		
 		Assert_Info(file, func,line, delta < NBytes_Left,
-				"Not enough memory for %zu MB. Increase MaxMem_Size",
-				delta/1024/1024);
+				"Not enough memory to Realloc %zu MB, have %d."
+				" Increase MaxMem_Size ?", 
+				delta/1024/1024, NBytes_Left/1024/1024);
 
 		Mem_Block[i].Size += delta;
 

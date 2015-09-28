@@ -732,7 +732,7 @@ static void find_domain_center(double Center_Out[3])
 
 		#pragma omp barrier
 	}
-	
+
 	#pragma omp single
 	buffer = Realloc(buffer, Sim.NRank * sizeof(*buffer), "buffer");
 

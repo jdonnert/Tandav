@@ -37,7 +37,7 @@ static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *Buffer
 /*
  * This builds the tree in parallel, particles are assumed PH ordered. 
  * We build the tree corresponding to a top node either in the openmp buffer, 
- * or directly inside the *Tree memory. Every access to  *Tree, NNodes, 
+ * or directly inside the *Tree memory. Every access to  NNodes, 
  * Max_Nodes has to be protected by the openmp Tree_Lock.
  * A subtree is build starting from the top node in target pointer "*tree". 
  * Every subtree allocated a fixed amount of memory, if it is not build in the

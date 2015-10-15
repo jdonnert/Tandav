@@ -1,4 +1,5 @@
 #include "globals.h"
+#include "domain.h"
 
 void Finish()
 {

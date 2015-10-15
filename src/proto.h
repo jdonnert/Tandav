@@ -24,7 +24,7 @@
  * Other Code Parameters
  */
 
-#define CHARBUFSIZE 256L	// Maximum No. of chars in every char buffer
+#define CHARBUFSIZE 256L	// Maximum No. of bytes in every char buffer
 #define NPARTYPE 6L			// No of particle types
 #define MEM_ALIGNMENT 64L	// byte memory alignment
 #define MASTER 0L			// Global master MPI task

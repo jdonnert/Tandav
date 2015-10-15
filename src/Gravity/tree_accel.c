@@ -6,14 +6,14 @@
 
 #ifdef GRAVITY_TREE
 
-static struct Walk_Data_Send { 
+struct Walk_Data_Send { 
 	int Ipart;
 	int Pos[3];
 	int Acc; 	// magnitude of the last acceleration
 	Float Mass;
 };
 
-static struct Walk_Data_Recv { 
+struct Walk_Data_Recv { 
 	Float Cost;
 	Float Grav_Acc[3];
 #ifdef GRAVITY_POTENTIAL
@@ -59,7 +59,7 @@ void Gravity_Tree_Acceleration()
 		int ipart = Active_Particle_List[i];
 
 		struct Walk_Data_Recv recv = { 0 };
-		const struct Walk_Data_Send send = prepare_send_from(ipart);
+		struct Walk_Data_Send send = prepare_send_from(ipart);
 
 		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
 	

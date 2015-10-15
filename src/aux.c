@@ -2,7 +2,7 @@
 
 /*
  * Show bits of an unsigned integer in triplets, 'delta' controls the dot 
- * offset. Has some macros associated to print 128, 64, 32 bit peano keys.
+ * offset. Has some wrappers associated to print 128, 64, 32 bit peano keys.
  */
 
 void Print_Int_Bits(const __uint128_t val, const int length, const int delta)
@@ -18,7 +18,7 @@ void Print_Int_Bits(const __uint128_t val, const int length, const int delta)
 		else
 			printf("0");
 
-		if ((i-delta) % 3 == 0 && i != 0)
+		if (((i-delta) % 3) == 0 && i != 0)
 			printf(".");
 	}
 
@@ -27,6 +27,19 @@ void Print_Int_Bits(const __uint128_t val, const int length, const int delta)
 	fflush(stdout);
 
 	return ;
+}
+
+void Print_Int_Bits32 (const uint32_t val)
+{
+	return Print_Int_Bits(val, 32, 3);
+}
+void Print_Int_Bits64 (const uint64_t val)
+{
+	return Print_Int_Bits(val, 64, 1);
+}
+void Print_Int_Bits128 (const __uint128_t val)
+{
+	return Print_Int_Bits(val, 128, 2);
 }
 
 /* 

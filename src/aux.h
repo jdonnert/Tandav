@@ -26,6 +26,9 @@ uint64_t Umax(const uint64_t x, const uint64_t y);
 Float Sign(const Float x);
 
 void Print_Int_Bits(const __uint128_t val, const int length, const int delta);
+void Print_Int_Bits32 (const uint32_t);
+void Print_Int_Bits64 (const uint64_t);
+void Print_Int_Bits128 (const __uint128_t);
 
 int Fread(void *restrict data, const size_t size, const size_t nWanted,
 		FILE *stream);

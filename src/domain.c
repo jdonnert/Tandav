@@ -3,7 +3,7 @@
 #include "domain.h"
 #include "peano.h"
 
-#define MIN_LEVEL 3 // decompose 8^MIN_LEVEL domains downward
+#define MIN_LEVEL 3 // decompose at least 8^MIN_LEVEL domains downward
 
 static void communicate_particles();
 static void communicate_bunches();
@@ -21,7 +21,7 @@ static void reset_bunchlist();
 static void distribute();
 static int cost_metric(const int ipart);
 static int compare_bunches_by_key(const void *a, const void *b);
-static void set_global_domain();
+static void set_computational_domain();
 static void find_domain_center(double *Center_Out);
 static void find_largest_particle_distance(double *);
 static void print_domain_decomposition (const int);
@@ -61,7 +61,7 @@ void Domain_Decomposition()
 {
 	Profile("Domain Decomposition");
 
-	set_global_domain();
+	set_computational_domain();
 
 	Sort_Particles_By_Peano_Key();
 
@@ -115,7 +115,7 @@ void Domain_Decomposition()
 		} // for i
 	} // forever
 
-	remove_excess_bunches();
+	//remove_excess_bunches();
 
 	communicate_particles();
 
@@ -162,7 +162,7 @@ void Setup_Domain_Decomposition()
 
 	reset_bunchlist();
 	
-	set_global_domain();
+	set_computational_domain();
 
 	Sort_Particles_By_Peano_Key();
 
@@ -317,7 +317,7 @@ static void reset_bunchlist()
 }
 
 /*
- * Find topnodes to merge, because they are on the same Rank & level 
+ * Find bunches to merge, because they are on the same Rank & level 
  * and are complete. We do this until there is nothing left to merge. 
  */
 
@@ -673,7 +673,7 @@ static void communicate_particles()
 
 #ifdef PERIODIC
 
-static void set_global_domain()
+static void set_computational_domain()
 {
 	#pragma omp single
 	{
@@ -692,14 +692,13 @@ static void set_global_domain()
 
 #else // ! PERIODIC
 
-static void set_global_domain()
+static void set_computational_domain()
 {
-
 	find_largest_particle_distance(&Domain.Size);
 
 	find_domain_center(&Domain.Center[0]);
 
-	#pragma omp single
+	#pragma omp for
 	for (int i = 0; i < 3; i++)
 		Domain.Origin[i] = Domain.Center[i] - 0.5 * Domain.Size;
 

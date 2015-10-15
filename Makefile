@@ -102,6 +102,7 @@ $(SRCDIR)print_settings.c : Config	# does not work with sh shell
 
 settings :
 	@echo " "
+	@echo 'CC = ' $(CC)
 	@echo 'SYSTYPE =' $(SYSTYPE)
 	@echo 'CFLAGS =' $(CFLAGS)
 	@echo 'LDFLAGS =' $(LIBS)

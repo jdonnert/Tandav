@@ -2,6 +2,7 @@
 #include "domain.h"
 #include "timestep.h"
 #include "properties.h"
+#include "Gravity/gravity.h"
 
 /*
  * Setup extra modules. In particular, allocate static memory blocks here !

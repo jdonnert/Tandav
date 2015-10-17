@@ -136,6 +136,8 @@ static void write_recv_to(const int ipart, const struct Walk_Data_Recv recv)
 	P[ipart].Grav_Pot = recv.Grav_Potential;
 #endif
 
+	P[ipart].Cost = recv.Cost;
+
 	return ;
 }
 
@@ -145,8 +147,7 @@ static void write_recv_to(const int ipart, const struct Walk_Data_Recv recv)
  * contains the particle and then check the two criteria.
  */
 
-static bool interact_with_topnode(const int j, 
-		const struct Walk_Data_Send send, 
+static bool interact_with_topnode(const int j, const struct Walk_Data_Send send,
 		struct Walk_Data_Recv * restrict recv)
 {
 	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
@@ -228,8 +229,7 @@ static void interact_with_topnode_particles(const int j,
  */
 
 static void gravity_tree_walk(const int tree_start, 
-		const struct Walk_Data_Send send, 
-		struct Walk_Data_Recv * restrict recv)
+		const struct Walk_Data_Send send, struct Walk_Data_Recv * restrict recv)
 {
 	const Float fac = send.Acc / Const.Gravity * TREE_OPEN_PARAM_REL;
 
@@ -320,8 +320,7 @@ static void gravity_tree_walk(const int tree_start,
  */
 
 static void gravity_tree_walk_first(const int tree_start, 
-		const struct Walk_Data_Send send, 
-		struct Walk_Data_Recv * restrict recv)
+		const struct Walk_Data_Send send, struct Walk_Data_Recv * restrict recv)
 {
 	int node = tree_start;
 
@@ -424,6 +423,8 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 #ifdef GRAVITY_POTENTIAL
 	recv->Grav_Potential += -Const.Gravity * mass * r_inv_pot;
 #endif
+
+	recv->Cost++;
 
 	return ;
 }

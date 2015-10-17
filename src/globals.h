@@ -30,7 +30,7 @@ extern struct Global_Simulation_Properties {
 	double Mpart[NPARTYPE];		// Global Masses from header
 	double Boxsize[3];			// Now in 3D !
 	double Total_Mass;			// sum over P.Mass, updated every timestep
-	double Center_Of_Mass[3];		// center of Mass, updated every timestep
+	double Center_Of_Mass[3];	// center of Mass, updated every timestep
 } Sim;
 
 extern struct Parameters_From_File {
@@ -52,7 +52,7 @@ extern struct Particle_Data {
 	int Type;
 	int Time_Bin;
 	intime_t Int_Time_Pos;		// current position on integer timeline
-	float Cost;					// computational weight of particle
+	unsigned int Cost;			// computational weight of particle
 #ifdef GRAVITY_TREE
 	int Tree_Parent;			// Tree node leave, negative-1 if top node only
 #endif

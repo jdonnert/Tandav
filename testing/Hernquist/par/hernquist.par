@@ -9,7 +9,7 @@ NumOutputFiles	1
 LogFileDir		./log/
 
 %% Code Parameters %%
-MaxMemSize		2048
+MaxMemSize		4096
 TimeLimitCPU	20864 
 BufferSize		32
 
@@ -19,7 +19,7 @@ Boxsize1		10000.0
 Boxsize2		10000.0
 
 TimeBegin		0 
-TimeEnd			2.0
+TimeEnd			10.0
 TimeOfFirstSnaphot		0 
 TimeBetSnapshots		0.1
 

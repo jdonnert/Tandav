@@ -19,6 +19,7 @@ void Setup()
 	Setup_Comoving(); // COMOVING
 		
 	Print_Memory_Usage();
+
 	Compute_Global_Simulation_Properties();
 
 	Setup_Domain_Decomposition();

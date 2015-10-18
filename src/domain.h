@@ -39,7 +39,6 @@ union Domain_Node_List {
 #endif //GRAVITY_TREE
 	} TNode;
 
-
 } * restrict D;
 
 uint32_t NTop_Nodes;

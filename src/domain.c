@@ -5,38 +5,46 @@
 
 #define MIN_LEVEL 3 // decompose at least 8^MIN_LEVEL domains downward
 
-static void communicate_particles();
-static void communicate_bunches();
-static void communicate_top_nodes();
+#define DEBUG
 
-static void transform_bunches_into_top_nodes();
-static void fill_new_bunches(const int, const int, const int, const int);
-static void find_mean_cost();
-static int remove_empty_bunches();
-static void split_bunch(const int, const int);
-static void reallocate_topnodes(); // not thread safe
-static int check_distribution();
-static void remove_excess_bunches();
-static void reset_bunchlist();
-static void distribute();
-static unsigned int cost_metric(const int ipart);
-static int compare_bunches_by_key(const void *a, const void *b);
 static void set_computational_domain();
 static void find_domain_center(double *Center_Out);
 static void find_largest_particle_distance(double *);
+static void reset_bunchlist(const bool);
+static void fill_new_bunches(const int, const int, const int, const int);
+static void find_mean_cost();
+static void make_new_bunchlist();
+static int remove_empty_bunches();
+static void split_bunch(const int, const int);
+static void reallocate_topnodes(); // not thread safe
+static void remove_excess_bunches();
+static int find_min_level();
+static void transform_bunches_into_top_nodes();
+static void distribute();
+static void find_global_imbalances();
+static void mark_bunches_to_split();
+static unsigned int cost_metric(const int ipart);
 static void zero_particle_cost();
+static int compare_bunches_by_key(const void *a, const void *b);
+static int compare_bunches_by_cost(const void *a, const void *b);
+static int compare_bunches_by_npart(const void *a, const void *b);
+static int compare_bunches_by_target(const void *a, const void *b);
+static void communicate_particles();
+static void communicate_bunches();
+static void communicate_top_nodes();
 static void print_domain_decomposition (const int);
+
 
 union Domain_Node_List * restrict D = NULL;
 
 static int NTarget = 0;
 static int Max_NBunches = 0, NTop_Leaves = 0;
 static int NMerged = 0, Max_Level = 0;
-static int * restrict Npart = NULL, * restrict Split_Idx = NULL;
 
-static double Max_Mem_Imbal = 0, Max_Cost_Imbal = 0;
+static int * restrict Npart = NULL, * restrict Split_Idx = NULL;
 static float * restrict Cost = NULL;
 
+static double Max_Mem_Imbal = -DBL_MAX, Max_Cost_Imbal = -DBL_MAX;
 static double Mean_Cost = 0, Mean_Npart = 0;
 
 static int NBunches = 0;
@@ -66,54 +74,44 @@ void Domain_Decomposition()
 
 	Sort_Particles_By_Peano_Key();
 
-	reset_bunchlist();
+	reset_bunchlist(false); // also deallocates Tree
 
 	fill_new_bunches(0, NBunches, 0, Task.Npart_Total);
 
 	find_mean_cost();
 
+	int cnt = 0;
+	
 	for (;;) {
 
 		#pragma omp single
-		remove_empty_bunches();
+		Max_Level = remove_empty_bunches();
 
 		Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
 		communicate_bunches();
 
-		#pragma omp single
 		distribute();
 
-		#pragma omp single
-		Max_Mem_Imbal = Max_Cost_Imbal = -DBL_MAX;
+		find_global_imbalances();
+		
+		if (Max_Mem_Imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
+			if (Max_Cost_Imbal < DOMAIN_IMBAL_CEIL)
+					break;
 
-		if (check_distribution() == 0)
+		if (cnt++ > N_SHORT_TRIPLETS-MIN_LEVEL) // problem too small for CPUs
 			break;
+		
+		#pragma omp single
+		mark_bunches_to_split();
 
-		int old_nBunches = NBunches;
-
-		for (int i = 0; i < old_nBunches; i++ ) {
-
-			if (D[i].Bunch.Modify != 0) { // split into 8
-
-				int first_new_bunch = NBunches;
-
-				#pragma omp single
-				if (NBunches + 8 >= Max_NBunches) // make more space !
-					reallocate_topnodes();
-
-				split_bunch(i, first_new_bunch);
-
-				fill_new_bunches(first_new_bunch, 8, D[i].Bunch.First_Part,
-						D[i].Bunch.Npart);
-
-				#pragma omp single
-				D[i].Bunch.Npart = 0; // mark for deletion
-			} // if 
-		} // for i
+		make_new_bunchlist();
+		
 	} // forever
 
 	//remove_excess_bunches();
+
+	print_domain_decomposition(Max_Level); // DEBUG
 
 	communicate_particles();
 
@@ -121,13 +119,12 @@ void Domain_Decomposition()
 
 	communicate_top_nodes();
 
-	rprintf("\nDomain: %d Top Nodes, %d Top Leaves, max level %d  merged %d\n"
+	rprintf("\nDomain: After %d iterations ...\n"
+			"        %d Top Nodes, %d Top Leaves, max level %d  merged %d\n"
 			"        Max Imbalance: Mem %g, Cost %g \n"
-			"        Mean Cost %g, Mean Npart %g \n\n", NBunches, NTop_Leaves, 
-			Max_Level, NMerged, Max_Mem_Imbal, Max_Cost_Imbal, Mean_Cost, 
-			Mean_Npart);
-	
-	print_domain_decomposition(Max_Level); // DEBUG
+			"        Mean Cost %g, Mean Npart %g \n\n", cnt, 
+			NBunches, NTop_Leaves, Max_Level, NMerged, Max_Mem_Imbal, 
+			Max_Cost_Imbal, Mean_Cost, Mean_Npart);
 
 	Sig.Tree_Update = true;
 
@@ -137,21 +134,23 @@ void Domain_Decomposition()
 }
 
 /*
- * Make room for some bunches and build the first node manually.
+ * Make room for some bunches 
  */
 
 void Setup_Domain_Decomposition()
 {
-	if (Sim.NRank < 64) // decompose on threads as welL
+	if (Sim.NTask < 32) // decompose on threads as welL
 		NTarget = Sim.NTask;
 	else
 		NTarget = Sim.NRank;
 
-	Cost = Malloc(Sim.NTask * sizeof(Cost), "Domain Cost");
-	Npart = Malloc(Sim.NTask * sizeof(Npart), "Domain Npart");
-	Split_Idx = Malloc(Sim.NTask * sizeof(*Split_Idx), "Domain Split_Idx");
+	NTarget = 32;
 
-	int min_level = MAX(MIN_LEVEL, log(Sim.NTask)/log(8) + 1);
+	Cost = Malloc(NTarget * sizeof(Cost), "Domain Cost");
+	Npart = Malloc(NTarget * sizeof(Npart), "Domain Npart");
+	Split_Idx = Malloc(NTarget * sizeof(*Split_Idx), "Domain Split_Idx");
+
+	int min_level = find_min_level();
 
 	Max_NBunches = pow(8, min_level);
 
@@ -160,7 +159,7 @@ void Setup_Domain_Decomposition()
 	#pragma omp parallel
 	{
 
-	reset_bunchlist();
+	reset_bunchlist(true);
 	
 	set_computational_domain();
 
@@ -180,6 +179,11 @@ void Setup_Domain_Decomposition()
 	return;
 }
 
+static int find_min_level()
+{
+	return MAX(MIN_LEVEL, log(NTarget)/log(8) + 2);
+
+}
 
 static void communicate_top_nodes()
 {
@@ -215,7 +219,7 @@ static void communicate_bunches()
 
 /*
  * Set the "TNode" part of the "D"omain unions. From here onwards the members 
- * are to be understood as a Top Node, not a bunch. also returns the first
+ * are to be understood as a Top Node, not a bunch. Also returns the first
  * particle in "ipart" and the "level" 
  */
 
@@ -285,33 +289,45 @@ static void reallocate_topnodes()
 
 
 /*
- * We set a vanilla bunch list with a minimum level to allow immediate omp
- * parallel fill.
+ * Clear bunchlist.
+ * If rebuild is set, we build a vanilla bunch list with a minimum level 
+ * to allow immediate omp parallel fill. Also deallocates the Tree
  */
 
-static void reset_bunchlist()
+static void reset_bunchlist(const bool rebuild)
 {
-	#pragma omp single
+	#pragma omp single 
+	{
+
+	Free(Tree);
+	
+	Tree = NULL;
+
+	} // omp single
+	
 	memset(&D[0], 0, sizeof(*D) * Max_NBunches);
-
-	int level = MAX(MIN_LEVEL, log(NTarget)/log(8) + 1);
-
+	
+	int level = find_min_level();
+		
 	#pragma omp single
-	NBunches = pow(8,level);
+	NBunches = pow(8, level);
 
-	int shift = 3 * level;
-	shortKey base = 0xFFFFFFFFFFFFFFFF >> shift;
+	const int shift = 3 * level;
+	shortKey basekey = 0xFFFFFFFFFFFFFFFF >> shift;
 	
 	#pragma omp for
-	for (shortKey i = 0; i < NBunches; i++) {
+	for (int i = 0; i < NBunches; i++) {
 
-		D[i].Bunch.Key = (i << (64 - shift)) | base;
+		shortKey key = i;
+
+		D[i].Bunch.Key = (key << (64 - shift)) | basekey;
 		D[i].Bunch.Level = level;
 		D[i].Bunch.Npart = 0;
 		D[i].Bunch.First_Part = INT_MAX;
 		D[i].Bunch.Target = -1;
 		D[i].Bunch.Modify = 0;
 	}
+
 
 	return ;
 }
@@ -330,7 +346,7 @@ static void remove_excess_bunches()
 	NMerged = Max_Level = 0;
 
 	#pragma omp for reduction(+:NMerged) reduction(max:Max_Level)
-	for (int i = 0; i < Sim.NTask - 1; i++) {
+	for (int i = 0; i < NTarget - 1; i++) {
 
 		int target = -i - 1;
 
@@ -374,10 +390,38 @@ static void remove_excess_bunches()
 	return ;
 }
 
+static void make_new_bunchlist()
+{
+	int old_nBunches = NBunches;
+
+	for (int i = 0; i < old_nBunches; i++ ) {
+
+		if (D[i].Bunch.Modify != 0) { // split into 8
+
+			int first_new_bunch = NBunches;
+
+			#pragma omp single
+			if (NBunches + 8 >= Max_NBunches) // make more space !
+				reallocate_topnodes();
+
+			split_bunch(i, first_new_bunch);
+
+			fill_new_bunches(first_new_bunch, 8, D[i].Bunch.First_Part,
+					D[i].Bunch.Npart);
+
+			#pragma omp single
+			D[i].Bunch.Npart = 0; // mark for deletion
+
+		} // if 
+	} // for i
+
+	return ; 
+}
+
 /*
  * We split a bunch into 8 sub-bunches/nodes, adding the largest peano key 
  * contained in the bunch. The position is later reconstructed from the first 
- * particle contained in the bunch.
+ * particle contained in the bunch, when we transform into top nodes.
  */
 
 static void split_bunch(const int parent, const int first)
@@ -507,7 +551,7 @@ static void fill_new_bunches(const int first_bunch, const int nBunches,
 
 static unsigned int cost_metric(const int ipart)
 {
-	return P[ipart].Cost;
+	return fmax(1, P[ipart].Cost);
 }
 
 static void find_mean_cost()
@@ -525,7 +569,7 @@ static void find_mean_cost()
 	Mean_Cost /= NTarget;
 	Mean_Npart = ((double) Sim.Npart_Total) / NTarget;
 
-	}
+	} // omp single
 
 	return ;
 }
@@ -541,77 +585,62 @@ static void zero_particle_cost()
 
 /*
  * Assign tasks to bunches, top to bottom and measure cost.
- * We accept a bunch if it brings us closer to the cost mean and mark the 
- * bunch hitting the mean as to split. We adjust for the imbalance in counting
+ * We use the standard Gadget way of distributing, which is: order the bunches
+ * by cost and then assign CPUs top to bottom.
  */
 
 static void distribute()
 {
-	double max_npart = Mean_Npart * PART_ALLOC_FACTOR;
-
-	memset(Cost, 0, Sim.NTask * sizeof(*Cost));
-	memset(Npart, 0, Sim.NTask * sizeof(*Npart));
-	memset(Split_Idx, -1, Sim.NTask * sizeof(*Split_Idx));
-
-	int task = 0;
-
-	double dCost = 0, dNpart = 0;
-
+	#pragma omp single 
+	{
+	
+	memset(Cost, 0, NTarget * sizeof(*Cost));
+	memset(Npart, 0, NTarget * sizeof(*Npart));
+	memset(Split_Idx, -1, NTarget * sizeof(*Split_Idx));
+	
+	}
+		
+	Qsort(Sim.NThreads, &D[0], NBunches, sizeof(*D), &compare_bunches_by_cost);
+	
+	#pragma omp for
 	for (int i = 0; i < NBunches; i++) {
 
-		double cur_cost = Cost[task] + dCost;
-		double new_cost = cur_cost + D[i].Bunch.Cost;
-		double new_npart = Npart[task] + dNpart + D[i].Bunch.Npart;
-
-		double dmean_new = fabs(new_cost - Mean_Cost);
-		double dmean_cur = fabs(cur_cost - Mean_Cost);
-
-		if ( (new_npart >= max_npart) || dmean_new > dmean_cur ) { // new rank
-
-			if (Cost[task] > Mean_Cost)
-				Split_Idx[task] = i-1;
-			else
-				Split_Idx[task] = i;
-
-			task++;
-
-			int last_task = task - 1;
-
-			task = task % NTarget;
-			last_task = last_task % NTarget;
-
-			dCost = Cost[last_task] + dCost - Mean_Cost; // carry the delta
-			dNpart = Npart[last_task] + dNpart - Mean_Npart;
-		}
-
+		int task = i % NTarget;
+	
+		#pragma omp atomic
 		Cost[task] += D[i].Bunch.Cost;
+		#pragma omp atomic
 		Npart[task] += D[i].Bunch.Npart;
 
 		D[i].Bunch.Target = -task - 1;
+
 	} // for i
+
+	Qsort(Sim.NThreads, &D[0], NBunches, sizeof(*D), &compare_bunches_by_key);
+
+	for (int i = 0; i < NTarget; i++) 
+			Split_Idx[i] = i;
+
+	for (int i = 0; i < NBunches; i++) {
+	
+		int task = -1 * (D[i].Bunch.Target + 1);
+		int idx = Split_Idx[task];
+		
+		if (D[i].Bunch.Cost > D[idx].Bunch.Cost)
+			Split_Idx[task] = i;
+	}
+
 
 	return ;
 }
 
-/*
- * This function defines the algorithm that decides if a bunch has to be 
- * refined into eight sub-bunches. It sets the target processor setting 
- * "target = -rank -1".
- * We refine the bunches adjacent to the processor borders at "Split_Idx".
- */
-
-
-static int check_distribution()
+static void find_global_imbalances()
 {
-	if (NBunches == 1) { // always split the first
-
-		D[0].Bunch.Modify = 1;
-
-		return 1;
-	}
+	#pragma omp single
+	Max_Mem_Imbal = Max_Cost_Imbal = -DBL_MAX;
 
 	#pragma omp for reduction(max:Max_Mem_Imbal,Max_Cost_Imbal) // imbalance
-	for (int i = 0; i < Sim.NTask; i++ ) {
+	for (int i = 0; i < NTarget; i++ ) {
 
 		double cost_imbal = fabs(Cost[i] - Mean_Cost) / Mean_Cost;
 
@@ -624,40 +653,34 @@ static int check_distribution()
 			Max_Mem_Imbal = npart_imbal;
 	}
 
-	if (Max_Mem_Imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
-		if (Max_Cost_Imbal < DOMAIN_IMBAL_CEIL)
-			if (NBunches > Sim.NThreads) 
-				return 0;
-
-	int nSplit = 0;
-
-	#pragma omp single copyprivate(nSplit) // put split mark
-	{
-
-	for (int task = 0; task < Sim.NTask; task++) {
-
-		if (fabs(Cost[task]-Mean_Cost)/Mean_Cost < DOMAIN_IMBAL_CEIL)
-			continue;
-
-		if (Split_Idx[task] < 0) // no idx set
-			continue;
-
-		int i = Split_Idx[task];
-
-		if (D[i].Bunch.Level == N_SHORT_TRIPLETS) // maximum refinement
-			continue;
-
-		D[i].Bunch.Modify = 1;
-
-		nSplit++;
-	} // for task
-
-	} // omp single
-
-	return nSplit;
+	return ;
 }
 
+/*
+ * This function decides if a bunch can be refined into eight sub-bunches. 
+ */
 
+static void mark_bunches_to_split()
+{
+	for (int i = 0; i < NTarget; i++) {
+
+		//if (fabs(Cost[i]-Mean_Cost)/Mean_Cost < DOMAIN_IMBAL_CEIL)
+		//	continue;
+
+		if (Split_Idx[i] < 0) // no idx set
+			continue;
+
+		int j = Split_Idx[i];
+
+		if (D[j].Bunch.Level == N_SHORT_TRIPLETS) // maximum refinement
+			continue;
+
+		D[j].Bunch.Modify = 1;
+	
+	} // for i
+
+	return ;
+}
 
 static int compare_bunches_by_key(const void *a, const void *b)
 {
@@ -666,6 +689,31 @@ static int compare_bunches_by_key(const void *a, const void *b)
 
 	return (int) (x->Key > y->Key) - (x->Key < y->Key);
 }
+
+static int compare_bunches_by_cost(const void *a, const void *b)
+{
+	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
+	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
+
+	return (int) (x->Cost < y->Cost) - (x->Cost > y->Cost);
+}
+
+static int compare_bunches_by_npart(const void *a, const void *b)
+{
+	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
+	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
+
+	return (int) (x->Npart < y->Npart) - (x->Npart > y->Npart);
+}
+
+static int compare_bunches_by_target(const void *a, const void *b)
+{
+	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
+	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
+
+	return (int) (x->Target < y->Target) - (x->Target > y->Target);
+}
+
 
 static void communicate_particles()
 {
@@ -791,7 +839,7 @@ static void find_largest_particle_distance(double *size_out)
 		} // for i
 	} // for ipart
 
-	#pragma omp master
+	#pragma omp single
 	{
 	
 	MPI_Allreduce(MPI_IN_PLACE, &Max_Distance, 1, MPI_DOUBLE, MPI_MAX,
@@ -807,11 +855,14 @@ static void find_largest_particle_distance(double *size_out)
 static void print_domain_decomposition (const int max_level)
 {
 #ifdef DEBUG
+
+	Qsort(Sim.NThreads, &D[0], NBunches, sizeof(*D), &compare_bunches_by_target);
+
 	#pragma omp master
 	{
 
-	printf(" No | Split | npart  |   sum  |   first    | trgt  | lvl |"
-			"  Cost  | CumCost | Max PH key,   Max_level %d \n", max_level);
+	//printf(" No | Split | npart  |   sum  |   first    | trgt  | lvl |"
+	//		"  Cost  | CumCost | Max PH key,   Max_level %d \n", max_level);
 
 	size_t sum = 0;
 	double csum = 0;
@@ -829,15 +880,25 @@ static void print_domain_decomposition (const int max_level)
 
 		csum += D[i].Bunch.Cost;
 
-		printf("%3d |   %d   | %06zu | %06zu | %010d | %05d | %03d | %06g "
-				"| %06g || ", i, D[i].Bunch.Modify, D[i].Bunch.Npart, sum,
-				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level,
-				D[i].Bunch.Cost, csum);
+//		printf("%3d |   %d   | %06llu | %06zu | %010d | %05d | %03d | %06g "
+//				"| %06g || ", i, D[i].Bunch.Modify, D[i].Bunch.Npart, sum,
+//				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level,
+//				D[i].Bunch.Cost, csum);
 
-		Print_Int_Bits64(D[i].Bunch.Key);
+//		Print_Int_Bits64(D[i].Bunch.Key);
 	}
 
 	Assert(sum == Sim.Npart_Total, "More or less particles in D than in Sim");
+
+	printf("\nDistribution Table : \n"
+		 	"Task |   Cost   |   Imbal   |   Npart   |   Imbal   |   "
+			"Split_Idx \n");
+
+	for (int i = 0; i < NTarget; i++) 
+		printf("%4d | %5.03g | %+5.03g | %9d | %+5.03g | %8d\n",
+				i, Cost[i], (Cost[i]-Mean_Cost)/Mean_Cost, 
+				Npart[i], ((double)Npart[i]-Mean_Npart)/Mean_Npart, 
+				Split_Idx[i]);
 
 	} // omp master
 

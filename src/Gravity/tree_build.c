@@ -60,16 +60,16 @@ void Gravity_Tree_Build()
 		#pragma omp single
 		{
 
-		if (NNodes != 0) {
-			
+		if (NNodes != 0) { // tree build aborted, increase mem
+
 			Max_Nodes = TREE_ENLARGEMENT_FACTOR * Max_Nodes;
 		
-			Tree = Realloc(Tree, Max_Nodes * sizeof(*Tree), "Tree");
-
 			printf("(%d:%d) Increased Tree Memory to %6.1f MB, "
 				"Max %10d Nodes \n", Task.Rank, Task.Thread_ID, 
 				Max_Nodes * sizeof(*Tree)/1024.0/1024.0, Max_Nodes); 
 		}
+
+		Tree = Realloc(Tree, Max_Nodes * sizeof(*Tree), "Tree");
 		
 		memset(Tree, 0, Max_Nodes * sizeof(*Tree));
 

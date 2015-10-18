@@ -7,33 +7,34 @@ To Do
 -----
 
 1. Main infrastructure
-	* macros, globals etc
-	* memory management
-	* profiling infrastucture
+	* (DONE) macros, globals etc 
+	* (DONE) memory management
+	* (DONE) profiling infrastucture
 2. I/O
-	* Parameter File
-	* Reading
-	* Writing
+	* (DONE) Parameter File
+	* (DONE) Reading
+	* (DONE) Writing
 	- restart files
 3. Cosmology + Units
-	* find grav equations
-	* transform grav equations to comoving
+	* (DONE) find grav equations
+	* (DONE) transform grav equations to comoving
 4. Time integration
-	* Cosmo Drift Factor
-	* Individual time steps
-	* Kepler test problem
+	* (DONE) Cosmo Drift Factor
+	* (DONE) Individual time steps
+	* (DONE) Kepler test problem
 5. Peano Hilbert Order 
-	* key generation
-	* omp sorting
+	* (DONE) key generation
+	* (DONE) omp sorting
 6. Domain Decomposition
-	* Find median position of particles in
+	* (DONE) Find median position of particles in
 	  a parallel way to computer CoM w/o
 	  PERIODIC
 7. Parallel Tree
+ 	* (DONE)
 8. Ewald Summation
-	* cube
-	* simple
-	* tree
+	* (DONE) cube
+	* (DONE) simple
+	* (DONE) tree
 	- test
 9. Cosmological Sim 
 	- test case

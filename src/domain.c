@@ -5,7 +5,7 @@
 
 #define MIN_LEVEL 3 // decompose at least 8^MIN_LEVEL domains downward
 
-#define DEBUG
+//#define DEBUG
 
 static void set_computational_domain();
 static void find_domain_center(double *Center_Out);
@@ -32,7 +32,7 @@ static int compare_bunches_by_target(const void *a, const void *b);
 static void communicate_particles();
 static void communicate_bunches();
 static void communicate_top_nodes();
-static void print_domain_decomposition (const int);
+static void print_domain_decomposition(const int);
 
 
 union Domain_Node_List * restrict D = NULL;
@@ -95,12 +95,17 @@ void Domain_Decomposition()
 
 		find_global_imbalances();
 		
-		if (Max_Mem_Imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
-			if (Max_Cost_Imbal < DOMAIN_IMBAL_CEIL)
-					break;
+		if (Max_Cost_Imbal < DOMAIN_IMBAL_CEIL)
+			if (Max_Mem_Imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
+				break;
 
-		if (cnt++ > N_SHORT_TRIPLETS-MIN_LEVEL) // problem too small for CPUs
+		if (cnt++ > N_SHORT_TRIPLETS - MIN_LEVEL) {
+	
+			#pragma omp master
+			Warn(true, "Domain Decomposition not optimal !");
+			
 			break;
+		}
 		
 		#pragma omp single
 		mark_bunches_to_split();
@@ -144,8 +149,6 @@ void Setup_Domain_Decomposition()
 	else
 		NTarget = Sim.NRank;
 
-	NTarget = 32;
-
 	Cost = Malloc(NTarget * sizeof(Cost), "Domain Cost");
 	Npart = Malloc(NTarget * sizeof(Npart), "Domain Npart");
 	Split_Idx = Malloc(NTarget * sizeof(*Split_Idx), "Domain Split_Idx");
@@ -179,10 +182,13 @@ void Setup_Domain_Decomposition()
 	return;
 }
 
-static int find_min_level()
+void Finish_Domain_Decomposition()
 {
-	return MAX(MIN_LEVEL, log(NTarget)/log(8) + 2);
-
+	Free(Cost);
+	Free(Npart);
+	Free(Split_Idx);
+	
+	return ;
 }
 
 static void communicate_top_nodes()
@@ -255,14 +261,6 @@ static void transform_bunches_into_top_nodes()
 	return ;
 }
 
-void Finish_Domain_Decomposition()
-{
-	Free(Cost);
-	Free(Npart);
-	Free(Split_Idx);
-	
-	return ;
-}
 
 /*
  * This increases the room for Bunches/Topnodes by 20 %, 
@@ -332,6 +330,12 @@ static void reset_bunchlist(const bool rebuild)
 	return ;
 }
 
+static int find_min_level()
+{
+	return MAX(MIN_LEVEL, log(NTarget)/log(8) + 2);
+
+}
+
 /*
  * Find bunches to merge, because they are on the same Rank & level 
  * and are complete. We do this until there is nothing left to merge. 
@@ -396,23 +400,23 @@ static void make_new_bunchlist()
 
 	for (int i = 0; i < old_nBunches; i++ ) {
 
-		if (D[i].Bunch.Modify != 0) { // split into 8
+		if (D[i].Bunch.Modify == 0)
+			continue;
 
-			int first_new_bunch = NBunches;
+		int first_new_bunch = NBunches; // split this one into 8
 
-			#pragma omp single
-			if (NBunches + 8 >= Max_NBunches) // make more space !
-				reallocate_topnodes();
+		#pragma omp single
+		if (NBunches + 8 >= Max_NBunches) // make more space !
+			reallocate_topnodes();
 
-			split_bunch(i, first_new_bunch);
+		split_bunch(i, first_new_bunch);
 
-			fill_new_bunches(first_new_bunch, 8, D[i].Bunch.First_Part,
-					D[i].Bunch.Npart);
+		fill_new_bunches(first_new_bunch, 8, D[i].Bunch.First_Part,
+				D[i].Bunch.Npart);
 
-			#pragma omp single
-			D[i].Bunch.Npart = 0; // mark for deletion
+		#pragma omp single
+		D[i].Bunch.Npart = 0; // mark for deletion
 
-		} // if 
 	} // for i
 
 	return ; 
@@ -629,7 +633,6 @@ static void distribute()
 		if (D[i].Bunch.Cost > D[idx].Bunch.Cost)
 			Split_Idx[task] = i;
 	}
-
 
 	return ;
 }
@@ -861,8 +864,8 @@ static void print_domain_decomposition (const int max_level)
 	#pragma omp master
 	{
 
-	//printf(" No | Split | npart  |   sum  |   first    | trgt  | lvl |"
-	//		"  Cost  | CumCost | Max PH key,   Max_level %d \n", max_level);
+	printf(" No | Split | npart  |   sum  |   first    | trgt  | lvl |"
+			"  Cost  | CumCost | Max PH key,   Max_level %d \n", max_level);
 
 	size_t sum = 0;
 	double csum = 0;
@@ -880,12 +883,12 @@ static void print_domain_decomposition (const int max_level)
 
 		csum += D[i].Bunch.Cost;
 
-//		printf("%3d |   %d   | %06llu | %06zu | %010d | %05d | %03d | %06g "
-//				"| %06g || ", i, D[i].Bunch.Modify, D[i].Bunch.Npart, sum,
-//				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level,
-//				D[i].Bunch.Cost, csum);
+		printf("%3d |   %d   | %06llu | %06zu | %010d | %05d | %03d | %06g "
+				"| %06g || ", i, D[i].Bunch.Modify, D[i].Bunch.Npart, sum,
+				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level,
+				D[i].Bunch.Cost, csum);
 
-//		Print_Int_Bits64(D[i].Bunch.Key);
+		Print_Int_Bits64(D[i].Bunch.Key);
 	}
 
 	Assert(sum == Sim.Npart_Total, "More or less particles in D than in Sim");
@@ -897,7 +900,7 @@ static void print_domain_decomposition (const int max_level)
 	for (int i = 0; i < NTarget; i++) 
 		printf("%4d | %5.03g | %+5.03g | %9d | %+5.03g | %8d\n",
 				i, Cost[i], (Cost[i]-Mean_Cost)/Mean_Cost, 
-				Npart[i], ((double)Npart[i]-Mean_Npart)/Mean_Npart, 
+				Npart[i], ((double)Npart[i] - Mean_Npart)/Mean_Npart, 
 				Split_Idx[i]);
 
 	} // omp master

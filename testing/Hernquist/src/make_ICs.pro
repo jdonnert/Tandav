@@ -1,14 +1,14 @@
-pro make_ICs, periodic=periodic
+pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 
 	common globals, tandav, cosmo
 
-	msol = 1.989d33
-
 	seed = 14041981L
+	
+	if not keyword_set(npart) then $
+		npart = 500000L
 
-	npart = 500000L
-
-	boxsize = 100000D
+	if not keyword_set(boxsize) then $
+		boxsize = 100000D
 
 	mass = 1d15 * Msol / tandav.mass ; code units 
 	a_hernq = 924D 		

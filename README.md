@@ -1,19 +1,60 @@
-tandav
-======
+tandav - A cosmological simulation code
+=======================================
 
-A cosmological simulation code
+Collisionless N-body dynamics
 
-Constants
----------
+To Do
+-----
 
-Constants usually come in up to three units: Code units, CGSM and non-standard. 
-	
-A good example is the Hubble constant usually expressed as H0 = 100 km/Mpc/s,
-in CGSM: 3.2407765e-18 1/s, in standard code units: 0.1
+1. Main infrastructure
+	x macros, globals etc
+	x memory management
+	x profiling infrastucture
+2. I/O
+	x Parameter File
+	x Reading
+	x Writing
+	- restart files
+3. Cosmology + Units
+	x find grav equations
+	x transform grav equations to comoving
+4. Time integration
+	x Cosmo Drift Factor
+	x Individual time steps
+	x Kepler test problem
+x. Peano Hilbert Order 
+	x key generation
+	x omp sorting
+6. Domain Decomposition
+	x Find median position of particles in
+	  a parallel way to computer CoM w/o
+	  PERIODIC
+x. Parallel Tree
+x. Ewald Summation
+	x cube
+	x simple
+	x tree
+	- test
+8. Cosmological Sim 
+	- test case
+	- IDL script for small IC generation
+	- growth rate plotting & comparison
+9. Multi-grid gravity (Minneapolis & Cray)
+	- fast grid definition
+10. MPI parallelisation
+	- General exchange in domain
+	- Engine in tree_accel. Work queues
+	  via general stack ?
+	- domain decomposition still ok ?
+11. Optimisaton
+	- single core speed via Cray tools
+	- omp speed 
+	- mpi & mpi stack stability
+	- scalability to 200000 cores
+12. Tree on accelerators
+	- FMM for run & construction
+	- OpenACC general interface
+	- communication model
+13. MHD via moving mesh
+	- here be dragons
 
-Inside the code all constants/conversion factors IN CODE UNITS are stored in 
-structures (Unit, Cosmo, Const ...), which are initialised at compile time or during start-up. We do this so modules can make constants time dependent, if they are switched on, e.g. the hydrogen fraction. In this case, an update function can be called once per timestep that set the new value of the constant. Similar to `Set_Current_Cosmology()`.
-
-All other constants are defined as macros, hence represent immutable standard values. This includes the constants defining the code units, and the cosmological model. If you want to change these, you have to introduce them into the structures.
-
-This way it is also obvious that all constants in the structures are in code units. The macro constants can be in CGSM or non-standard (-> H0), here you have to be careful.

@@ -5,8 +5,6 @@
 
 #define MIN_LEVEL 3 // decompose at least 8^MIN_LEVEL domains downward
 
-//#define DEBUG
-
 static void set_computational_domain();
 static void find_domain_center(double *Center_Out);
 static void find_largest_particle_distance(double *);
@@ -17,7 +15,7 @@ static void make_new_bunchlist();
 static int remove_empty_bunches();
 static void split_bunch(const int, const int);
 static void reallocate_topnodes(); // not thread safe
-static void remove_excess_bunches();
+//static void remove_excess_bunches();
 static int find_min_level();
 static void transform_bunches_into_top_nodes();
 static void distribute();
@@ -341,7 +339,7 @@ static int find_min_level()
  * and are complete. We do this until there is nothing left to merge. 
  */
 
-static void remove_excess_bunches()
+/*static void remove_excess_bunches()
 {
 	if (NBunches <= NTarget*2)
 		return ;
@@ -393,6 +391,7 @@ static void remove_excess_bunches()
 
 	return ;
 }
+*/ 
 
 static void make_new_bunchlist()
 {

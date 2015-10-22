@@ -2,8 +2,8 @@
 
 SHELL = /bin/bash # This should always be present in a Makefile
 
-ifndef SYSTYPE
-SYSTYPE := ${shell hostname}
+ifndef TANDAV_SYSTYPE
+TANDAV_SYSTYPE := ${shell hostname}
 endif
 
 CC	 	 = mpicc
@@ -12,22 +12,22 @@ XTRA_INCL = $(CPPFLAGS)
 XTRA_LIBS = $(LDFLAGS)
 
 # machine specifics
-ifeq ($(SYSTYPE),DARWIN)
+ifeq ($(TANDAV_SYSTYPE),DARWIN)
 CC       =  mpicc
 OPTIMIZE =  -Wall -g -lmpich -O3 -mtune=native -march=native  -fopt-info-vec
 XTRA_LIBS = 
 XTRA_INCL = 
 endif
 
-ifeq ($(SYSTYPE),mach64.ira.inaf.it)
+ifeq ($(TANDAV_SYSTYPE),mach64.ira.inaf.it)
 CC       =  mpicc
 OPTIMIZE =  -g -O2  -march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp  \
 			-minline-all-stringops -fprefetch-loop-arrays --param prefetch-latency=300 -funroll-all-loops 
-XTRA_LIBS = -L/homes/donnert/Libs/lib
-XTRA_INCL = -I/homes/donnert/Libs/include
+XTRA_LIBS = -L/home/donnert/Libs/lib
+XTRA_INCL = -I/home/donnert/Libs/include
 endif
 
-ifeq ($(SYSTYPE),MSI)
+ifeq ($(TANDAV_SYSTYPE),MSI)
 CC       =  mpicc
 OPTIMIZE =  -Wall -g -O2 -openmp -xhost  -mkl  -ansi-alias-check 
 XTRA_LIBS = -lmpich -L$(LD_LIBRARY_PATH)
@@ -103,7 +103,7 @@ $(SRCDIR)print_settings.c : Config	# does not work with sh shell
 settings :
 	@echo " "
 	@echo 'CC = ' $(CC)
-	@echo 'SYSTYPE =' $(SYSTYPE)
+	@echo 'SYSTYPE =' $(TANDAV_SYSTYPE)
 	@echo 'CFLAGS =' $(CFLAGS)
 	@echo 'LDFLAGS =' $(LIBS)
 	@echo 'EXEC =' $(EXEC)

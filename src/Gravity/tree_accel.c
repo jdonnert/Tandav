@@ -65,6 +65,8 @@ void Gravity_Tree_Acceleration()
 	
 		for (int j = 0; j < NTop_Nodes; j++) {
 
+			//check_outboxes();
+
 			if (interact_with_topnode(j, send, &recv))
 				continue;
 
@@ -88,10 +90,13 @@ void Gravity_Tree_Acceleration()
 				gravity_tree_walk_first(tree_start, send, &recv);
 			else
 				gravity_tree_walk(tree_start, send, &recv);
+
 		} // for j
 
 		write_recv_to(ipart, recv);
 
+		//check_inboxes();
+		
 	} // for i
 
 	rprintf(" done \n");
@@ -463,5 +468,11 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node)
 
 	return ;
 }
+
+/*
+ * Here start MPI communication variables and routines. 
+ */
+
+
 
 #endif // GRAVITY_TREE

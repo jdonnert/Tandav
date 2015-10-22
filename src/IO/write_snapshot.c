@@ -51,7 +51,7 @@ void Write_Snapshot()
 
 	Time.Snap_Counter++;
 
-	printf("\n");
+	printf("done \n");
 
 	} // omp  master
 

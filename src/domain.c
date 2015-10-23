@@ -608,7 +608,10 @@ static void distribute()
 	#pragma omp for
 	for (int i = 0; i < NBunches; i++) {
 
-		int task = i % NTarget;
+		int task = i % (2*NTarget);
+
+		if (task >= NTarget)
+			task = 2*NTarget - task;
 	
 		#pragma omp atomic
 		Cost[task] += D[i].Bunch.Cost;

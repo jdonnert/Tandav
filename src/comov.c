@@ -181,6 +181,7 @@ static void convert_velocities_to_comoving()
  * In cosmological simulations the timestep has to be bound by the maximum 
  * displacement given the rms velocity of all particles. The maximum 
  * displacement is set relative to the mean particle separation.
+ * (Knebe et al. 2009, Lukic et al. 2007, Crocce et al. 2006)
  */
 
 static double vel2[NPARTYPE] = { 0 }, min_mpart[NPARTYPE] = { 0 };

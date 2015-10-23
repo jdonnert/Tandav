@@ -2,7 +2,7 @@
 
 #DEBUG                       // verbose (!) output
 
-#PERIODIC                    // periodic boundary conditions
+PERIODIC                    // periodic boundary conditions
 
 PART_ALLOC_FACTOR 1.05		// [1.05] maximum npart per rank relative to mean
 
@@ -38,7 +38,7 @@ VELOCITY2CGS 1.0e+05        // [km/s]
 
 #### COSMOLOGY & COMOVING ####
 
-#COMOVING                    // comoving coordinates for cosmo sims
+COMOVING                    // comoving coordinates for cosmo sims
 TIME_DISPL_CONSTRAINT 0.25 	// [0.25] max displacement from rms velocity @ z>>0
 
 HUBBLE_CONST 100.0          	// km/s/Mpc, set to 100 for Gadget behaviour
@@ -51,5 +51,21 @@ OMEGA_RAD 0
 
 MEMORY_MANAGER  
 
-#### FoF ####
+#### Friends-of-Friends ####
 #FOF                         // Friends-of-Friends master switch
+#FOF_LINKING_LENGTH			 // [] FoF linking parameter
+#FOF_FILENAME				 // base name
+
+#### Particle Binning ####
+#BIN						// requires FFTW3 & HDF5 libraries
+#BIN_FILENAME
+#BIN_KERNEL	3				// [3] NGP,CIC,TSC,D20
+#BIN_FOURIERTRANSFORM
+#BIN_POWERSPECTRUM
+
+#### Map Making ####
+#MAP						// requires cfitsio library
+#MAP_FILENAME
+
+
+

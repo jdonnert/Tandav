@@ -36,6 +36,8 @@ static void gravity_tree_walk(const int, const struct Walk_Data_Send,
 static void gravity_tree_walk_first(const int, const struct Walk_Data_Send, 
 		struct Walk_Data_Recv * restrict);
 
+static double check_total_momentum();
+
 /*
  * We do not walk referencing particles, but copy the required particle data
  * into a send buffer "send". The results are written into a sink buffer "recv".
@@ -100,6 +102,8 @@ void Gravity_Tree_Acceleration()
 	} // for i
 
 	rprintf(" done \n");
+
+	check_total_momentum();
 
 	Profile("Grav Tree Walk");
 
@@ -474,5 +478,32 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node)
  */
 
 
+/*
+ * Compute total momentum to check the gravity interaction. 
+ */
+
+static double Px = 0, Py = 0, Pz = 0, Last = 0;
+
+static double check_total_momentum()
+{
+	#pragma omp for reduction(+: Px, Py, Pz)
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+	
+		Px += P[ipart].Mass * P[ipart].Vel[0];
+		Py += P[ipart].Mass * P[ipart].Vel[1];
+		Pz += P[ipart].Mass * P[ipart].Vel[2];
+	}
+	
+	double ptotal = sqrt( Px*Px + Py*Py + Pz*Pz );
+
+	double rel_err = (ptotal - Last) / Last;
+
+	rprintf("Rel. change in global momentum due to gravity : %g \n", rel_err);
+
+	#pragma omp single
+	Last = ptotal;
+
+	return ;
+}
 
 #endif // GRAVITY_TREE

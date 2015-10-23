@@ -3,6 +3,7 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 	common globals, tandav, cosmo
 
 	seed = 14041981L
+	msol = 1.989d33
 	
 	if not keyword_set(npart) then $
 		npart = 500000L

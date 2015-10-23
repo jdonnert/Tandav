@@ -34,6 +34,13 @@ XTRA_LIBS = -lmpich -L$(LD_LIBRARY_PATH)
 XTRA_INCL = -I$(INCLUDE)
 endif
 
+ifeq ($(TANDAV_SYSTYPE),coma.msi.umn.edu)
+CC       =  mpicc
+OPTIMIZE =  -Wall -g -O2 -openmp -xhost  -mkl  -ansi-alias-check 
+XTRA_LIBS = -lmpich -L$(LD_LIBRARY_PATH)
+XTRA_INCL = -I$(INCLUDE)
+endif
+
 # end systypes
 
 EXEC = Tandav

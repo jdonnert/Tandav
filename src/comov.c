@@ -21,7 +21,7 @@ static gsl_interp_accel *Acc[4] = { NULL };
  * These functions get the kick & drift factors of the symplectic integrator
  * in comoving coordinates from a spline interpolation of the integral in
  * Appendix of Quinn+ 1997. This allows us to use a short table resulting in
- * relatives errors < 1e-4, which is the same as the numerical integrator 
+ * relative errors < 1e-4, which is the same as the numerical integrator 
  * gives. As our velocity variable is \dot{x}*a^1.5, but the canonical momentum
  * is m*a^2\dot{x}, we have to add sqrt(a) to the particle drift step.
  * These functions are thread safe.

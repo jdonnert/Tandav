@@ -25,6 +25,151 @@ static Float Fz[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
 static Float Fp[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
 
 /*
+ * Get Ewald correction from the grid using a modified CIC binning 
+ * (Hockney & Eastwood) to exploit the symmetry of the Ewald correction in 
+ * the octants of the grid. This way the grid of size N_EWALD is effectively
+ * doubled in resolution.
+ */
+
+void Ewald_Correction(const Float dr[3], Float f[3])
+{
+	double dx = dr[0];
+	int sign[3] = { -1, -1, -1 };
+
+	if (dx < 0) {
+
+		dx = -dx;
+		sign[0] = 1;
+	}
+
+	double dy = dr[1];
+
+	if (dy < 0) {
+
+		dy = -dy;
+		sign[1] = 1;
+	}
+
+	double dz = dr[2];
+
+	if (dz < 0) {
+
+		dz = -dz;
+		sign[2] = 1;
+	}
+
+	double u = dx * Box2Ewald_Grid;
+	double v = dy * Box2Ewald_Grid;
+	double w = dz * Box2Ewald_Grid;
+
+	int i = (int) u;
+	int j = (int) v;
+	int k = (int) w;
+
+	if (i >= N_EWALD) // don't overshoot
+		i = N_EWALD-1;
+
+	if (j >= N_EWALD)
+		j = N_EWALD-1;
+
+	if (k >= N_EWALD)
+		k = N_EWALD-1;
+
+	u -= i;
+	v -= j;
+	w -= k;
+
+	double weights[8] = { (1 - u) * (1 - v) * (1 - w), // CIC with u,v,w < 2 !
+						  (1 - u) * (1 - v) * w,
+						  (1 - u) * v * (1 - w),
+						  (1 - u) * v * (w),
+						  u * (1 - v) * (1 - w),
+						  u * (1 - v) * w,
+						  u * v * (1 - w),
+						  u * v * w };
+
+	f[0] = weights[0] * Fx[i][j][k] + weights[1] * Fx[i][j][k+1] +
+		   weights[2] * Fx[i][j+1][k] + weights[3] * Fx[i][j+1][k+1] +
+		   weights[4] * Fx[i+1][j][k] + weights[5] * Fx[i+1][j][k+1] +
+		   weights[6] * Fx[i+1][j+1][k] + weights[7] * Fx[i+1][j+1][k+1];
+
+	f[1] = weights[0] * Fy[i][j][k] + weights[1] * Fy[i][j][k+1] +
+		   weights[2] * Fy[i][j+1][k] + weights[3] * Fy[i][j+1][k+1] +
+		   weights[4] * Fy[i+1][j][k] + weights[5] * Fy[i+1][j][k+1] +
+		   weights[6] * Fy[i+1][j+1][k] + weights[7] * Fy[i+1][j+1][k+1];
+
+	f[2] = weights[0] * Fz[i][j][k] + weights[1] * Fz[i][j][k+1] +
+		   weights[2] * Fz[i][j+1][k] + weights[3] * Fz[i][j+1][k+1] +
+		   weights[4] * Fz[i+1][j][k] + weights[5] * Fz[i+1][j][k+1] +
+		   weights[6] * Fz[i+1][j+1][k] + weights[7] * Fz[i+1][j+1][k+1];
+
+	f[0] *= sign[0];
+	f[1] *= sign[1];
+	f[2] *= sign[2];
+
+	return ;
+}
+
+#ifdef GRAVITY_POTENTIAL
+void Ewald_Potential(const Float dr[3], Float p[1])
+{
+	double dx = dr[0];
+
+	if (dx < 0)
+		dx = -dx;
+
+	double dy = dr[1];
+
+	if (dy < 0)
+		dy = -dy;
+
+	double dz = dr[2];
+
+	if (dz < 0)
+		dz = -dz;
+
+	double u = dx * Box2Ewald_Grid;
+	double v = dy * Box2Ewald_Grid;
+	double w = dz * Box2Ewald_Grid;
+
+	int i = (int) u;
+	int j = (int) v;
+	int k = (int) w;
+
+	if (i >= N_EWALD)
+		i = N_EWALD-1;
+
+	if (j >= N_EWALD)
+		j = N_EWALD-1;
+
+	if (k >= N_EWALD)
+		k = N_EWALD-1;
+
+	u -= i;
+	v -= j;
+	w -= k;
+
+	double weights[8] = { (1 - u) * (1 - v) * (1 - w), // CIC
+						  (1 - u) * (1 - v) * w,
+						  (1 - u) * v * (1 - w),
+						  (1 - u) * v * (w),
+						  u * (1 - v) * (1 - w),
+						  u * (1 - v) * w,
+						  u * v * (1 - w),
+						  u * v * w };
+
+	p[0] = weights[0] * Fp[i][j][k] + weights[1] * Fp[i][j][k+1] + 
+		   weights[2] * Fp[i][j+1][k] + weights[3] * Fp[i][j+1][k+1] + 
+		   weights[4] * Fp[i+1][j][k] + weights[5] * Fp[i+1][j][k+1] +
+		   weights[6] * Fp[i+1][j+1][k] + weights[7] * Fp[i+1][j+1][k+1];
+
+
+
+	return ;
+}
+#endif // GRAVITY_POTENTIAL
+
+/*
  * This initialises the cubes holding the Ewald correction force and
  * potential following Hernquist, Bouchet & Suto 1991. Most of the 
  * code is shamelessly copied from Gadget-2 (Springel 2006).
@@ -191,148 +336,7 @@ static void write_ewald_correction_table()
 	return ;
 }
 
-/*
- * Get Ewald correction from the grid using a modified CIC binning 
- * (Hockney & Eastwood) to exploit the symmetry of the Ewald correction in 
- * the octants of the grid. This way the grid of size N_EWALD is effectively
- * doubled in resolution.
- */
 
-void Ewald_Correction(const Float dr[3], Float f[3])
-{
-	double dx = dr[0];
-	int sign[3] = { -1, -1, -1 };
-
-	if (dx < 0) {
-
-		dx = -dx;
-		sign[0] = 1;
-	}
-
-	double dy = dr[1];
-
-	if (dy < 0) {
-
-		dy = -dy;
-		sign[1] = 1;
-	}
-
-	double dz = dr[2];
-
-	if (dz < 0) {
-
-		dz = -dz;
-		sign[2] = 1;
-	}
-
-	double u = dx * Box2Ewald_Grid;
-	double v = dy * Box2Ewald_Grid;
-	double w = dz * Box2Ewald_Grid;
-
-	int i = (int) u;
-	int j = (int) v;
-	int k = (int) w;
-
-	if (i >= N_EWALD) // don't overshoot
-		i = N_EWALD-1;
-
-	if (j >= N_EWALD)
-		j = N_EWALD-1;
-
-	if (k >= N_EWALD)
-		k = N_EWALD-1;
-
-	u -= i;
-	v -= j;
-	w -= k;
-
-	double weights[8] = { (1 - u) * (1 - v) * (1 - w), // CIC with u,v,w < 2 !
-						  (1 - u) * (1 - v) * w,
-						  (1 - u) * v * (1 - w),
-						  (1 - u) * v * (w),
-						  u * (1 - v) * (1 - w),
-						  u * (1 - v) * w,
-						  u * v * (1 - w),
-						  u * v * w };
-
-	f[0] = weights[0] * Fx[i][j][k] + weights[1] * Fx[i][j][k+1] +
-		   weights[2] * Fx[i][j+1][k] + weights[3] * Fx[i][j+1][k+1] +
-		   weights[4] * Fx[i+1][j][k] + weights[5] * Fx[i+1][j][k+1] +
-		   weights[6] * Fx[i+1][j+1][k] + weights[7] * Fx[i+1][j+1][k+1];
-
-	f[1] = weights[0] * Fy[i][j][k] + weights[1] * Fy[i][j][k+1] +
-		   weights[2] * Fy[i][j+1][k] + weights[3] * Fy[i][j+1][k+1] +
-		   weights[4] * Fy[i+1][j][k] + weights[5] * Fy[i+1][j][k+1] +
-		   weights[6] * Fy[i+1][j+1][k] + weights[7] * Fy[i+1][j+1][k+1];
-
-	f[2] = weights[0] * Fz[i][j][k] + weights[1] * Fz[i][j][k+1] +
-		   weights[2] * Fz[i][j+1][k] + weights[3] * Fz[i][j+1][k+1] +
-		   weights[4] * Fz[i+1][j][k] + weights[5] * Fz[i+1][j][k+1] +
-		   weights[6] * Fz[i+1][j+1][k] + weights[7] * Fz[i+1][j+1][k+1];
-
-	f[0] *= sign[0];
-	f[1] *= sign[1];
-	f[2] *= sign[2];
-
-	return ;
-}
-
-#ifdef GRAVITY_POTENTIAL
-void Ewald_Potential(const Float dr[3], Float p[1])
-{
-	double dx = dr[0];
-
-	if (dx < 0)
-		dx = -dx;
-
-	double dy = dr[1];
-
-	if (dy < 0)
-		dy = -dy;
-
-	double dz = dr[2];
-
-	if (dz < 0)
-		dz = -dz;
-
-	double u = dx * Box2Ewald_Grid;
-	double v = dy * Box2Ewald_Grid;
-	double w = dz * Box2Ewald_Grid;
-
-	int i = (int) u;
-	int j = (int) v;
-	int k = (int) w;
-
-	if (i >= N_EWALD)
-		i = N_EWALD-1;
-
-	if (j >= N_EWALD)
-		j = N_EWALD-1;
-
-	if (k >= N_EWALD)
-		k = N_EWALD-1;
-
-	u -= i;
-	v -= j;
-	w -= k;
-
-	double weights[8] = { (1 - u) * (1 - v) * (1 - w), // CIC
-						  (1 - u) * (1 - v) * w,
-						  (1 - u) * v * (1 - w),
-						  (1 - u) * v * (w),
-						  u * (1 - v) * (1 - w),
-						  u * (1 - v) * w,
-						  u * v * (1 - w),
-						  u * v * w };
-
-	p[0] = weights[0] * Fp[i][j][k] + weights[1] * Fp[i][j][k+1] + 
-		   weights[2] * Fp[i][j+1][k] + weights[3] * Fp[i][j+1][k+1] + 
-		   weights[4] * Fp[i+1][j][k] + weights[5] * Fp[i+1][j][k+1] +
-		   weights[6] * Fp[i+1][j+1][k] + weights[7] * Fp[i+1][j+1][k+1];
-
-	return ;
-}
-#endif // GRAVITY_POTENTIAL
 
 /*
  * Compute force correction term from Hernquist+ 1991 (2.14b, 2.16), this

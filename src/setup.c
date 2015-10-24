@@ -12,6 +12,8 @@ void Setup()
 {
 	Profile("Setup");
 
+	Setup_Periodic(); // PERIODIC
+
 	Setup_Cosmology(); // COMOVING
 
 	Setup_Time_Integration();

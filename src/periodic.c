@@ -2,6 +2,18 @@
 
 #ifdef PERIODIC
 
+static double Boxsize = 0, Boxhalf = 0;
+
+void Setup_Periodic()
+{
+	Boxsize = Sim.Boxsize[0];
+	Boxhalf = Boxsize/2.0;
+	
+	rprintf("Periodic Boxsize = %g \n", Boxsize);
+
+	return ;
+}
+
 void Periodic_Constrain_Particles_To_Box()
 {
 	const Float boxsize[3] = {Sim.Boxsize[0], Sim.Boxsize[1], Sim.Boxsize[2]};
@@ -33,19 +45,28 @@ void Periodic_Constrain_Particles_To_Box()
 
 /*
  * Do the periodic mapping on a 3D distance array. We are relying on link time 
- * optimization of the compiler to do the inlining for us. Unrolling would help
- * as well. Make sure to put the appropriate compiler switches.
+ * optimization of the compiler to do the inlining for us. 
  */
 
 void Periodic_Nearest(Float dr[3])
 {
-	for (int i = 0; i < 3; i++) {
+	while (dr[0] > Boxhalf)
+		dr[0] -= Boxsize;
+	
+	while (dr[0] < -Boxhalf)
+		dr[0] += Boxsize;
 
-		if (dr[i] > 0.5 * Sim.Boxsize[i])
-			dr[i] -= Sim.Boxsize[i];
-		else if (dr[i] < -0.5 * Sim.Boxsize[i])
-			dr[i] += Sim.Boxsize[i];
-	}
+	while (dr[1] > Boxhalf)
+		dr[1] -= Boxsize;
+	
+	while (dr[1] < -Boxhalf)
+		dr[1] += Boxsize;
+
+	while (dr[2] > Boxhalf)
+		dr[2] -= Boxsize;
+	
+	while (dr[2] < -Boxhalf)
+		dr[2] += Boxsize;
 
 	return ;
 }

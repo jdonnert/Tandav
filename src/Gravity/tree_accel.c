@@ -408,7 +408,7 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 	Float r_inv_pot = r_inv;
 #endif
 
-	if (r < h) { // soften 1/r with Wendland C2 kernel
+	if (r < h) { 
 
 		Float u = r/h;
 		Float u2 = u*u;
@@ -434,6 +434,26 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 #endif
 
 	recv->Cost++;
+
+#ifdef PERIODIC
+
+	Float fr[3] = { 0 };
+
+	Ewald_Correction(dr, &fr[0]);
+
+	recv->Grav_Acc[0] += -fr[0] * mass;
+	recv->Grav_Acc[1] += -fr[1] * mass;
+	recv->Grav_Acc[2] += -fr[2] * mass;
+
+#ifdef GRAVITY_POTENTIAL
+	Float fp = 0;
+
+	Ewald_Potential(dr, &fp);
+
+	recv->Grav_Potential += -fp;
+#endif
+		
+#endif
 
 	return ;
 }

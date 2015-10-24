@@ -40,6 +40,8 @@ void Gravity_Simple_Accel()
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
+if (P[ipart].ID != 1)
+	continue;
 
 		double acc[3] = { P[ipart].Acc[0], P[ipart].Acc[1], P[ipart].Acc[2] };
 
@@ -54,17 +56,11 @@ void Gravity_Simple_Accel()
 			if (jpart == ipart)
 				continue;
 
-			Float dr[3] = { P[ipart].Pos[0] - P[jpart].Pos[0],
-							P[ipart].Pos[1] - P[jpart].Pos[1],
-							P[ipart].Pos[2] - P[jpart].Pos[2]};
+			Float dr[3] = { P[jpart].Pos[0] - P[ipart].Pos[0],
+							P[jpart].Pos[1] - P[ipart].Pos[1],
+							P[jpart].Pos[2] - P[ipart].Pos[2]};
 
-			Float acc_periodic[3] = { 0 };
-
-			Ewald_Correction(dr, &acc_periodic[0]); // PERIODIC
-
-			P[ipart].Acc[0] += acc_periodic[0];
-			P[ipart].Acc[1] += acc_periodic[1];
-			P[ipart].Acc[2] += acc_periodic[2];
+			Periodic_Nearest(dr); // PERIODIC 
 
 #ifdef GRAVITY_POTENTIAL
 			Float pot_periodic = 0;
@@ -73,8 +69,6 @@ void Gravity_Simple_Accel()
 
 			P[ipart].Grav_Pot += pot_periodic;
 #endif
-
-			Periodic_Nearest(dr); // PERIODIC 
 
 			double r = ALENGTH3(dr);
 
@@ -92,9 +86,17 @@ void Gravity_Simple_Accel()
 
 			double acc_mag = Const.Gravity * P[jpart].Mass * p2(rinv);
 
-			P[ipart].Acc[0] += -acc_mag * dr[0] * rinv;
-			P[ipart].Acc[1] += -acc_mag * dr[1] * rinv;
-			P[ipart].Acc[2] += -acc_mag * dr[2] * rinv;
+			P[ipart].Acc[0] += acc_mag * dr[0] * rinv;
+			P[ipart].Acc[1] += acc_mag * dr[1] * rinv;
+			P[ipart].Acc[2] += acc_mag * dr[2] * rinv;
+			
+			Float corr[3] = { 0 };
+
+			Ewald_Correction(dr, &corr[0]); // PERIODIC
+
+			P[ipart].Acc[0] += P[jpart].Mass * corr[0];
+			P[ipart].Acc[1] += P[jpart].Mass * corr[1];
+			P[ipart].Acc[2] += P[jpart].Mass * corr[2];
 
 #ifdef GRAVITY_POTENTIAL
 			if (r < H) { // WC2 kernel softening
@@ -129,8 +131,8 @@ void Gravity_Simple_Accel()
 
 		} // omp critical
 
-		if (ipart == 40388)
-			printf("\nipart = %d %g | %g %g %g | %g %g %g \n",
+		if (P[ipart].ID == 1)
+			printf("\nipart=%d err=%g tree acc=%g %g %g dir acc=%g %g %g \n",
 				ipart, errorl, acc[0], acc[1], acc[2],
 				P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
 

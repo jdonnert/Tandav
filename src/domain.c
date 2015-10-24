@@ -292,6 +292,7 @@ static void reallocate_topnodes()
 
 static void reset_bunchlist(const bool rebuild)
 {
+#ifdef GRAVITY_TREE
 	#pragma omp single 
 	{
 
@@ -300,7 +301,8 @@ static void reset_bunchlist(const bool rebuild)
 	Tree = NULL;
 
 	} // omp single
-	
+#endif
+
 	memset(&D[0], 0, sizeof(*D) * Max_NBunches);
 	
 	int level = find_min_level();

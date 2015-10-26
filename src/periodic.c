@@ -2,7 +2,7 @@
 
 #ifdef PERIODIC
 
-static double Boxsize = 0, Boxhalf = 0;
+double Boxsize = 0, Boxhalf = 0;
 
 void Init_Periodic()
 {

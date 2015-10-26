@@ -41,7 +41,7 @@ void Gravity_Simple_Accel()
 
 		int ipart = Active_Particle_List[i];
 
-		if (P[ipart].ID > 10)
+		if (P[ipart].ID > 1)
 			continue;
 
 		double acc[3] = { P[ipart].Acc[0], P[ipart].Acc[1], P[ipart].Acc[2] };
@@ -87,11 +87,12 @@ void Gravity_Simple_Accel()
 #ifdef PERIODIC
 			Float corr[3] = { 0 };
 
-			//Ewald_Correction(dr, &corr[0]);
+			Ewald_Correction(dr, &corr[0]);
 
 			P[ipart].Acc[0] += P[jpart].Mass * corr[0];
 			P[ipart].Acc[1] += P[jpart].Mass * corr[1];
 			P[ipart].Acc[2] += P[jpart].Mass * corr[2];
+
 #endif // PERIODIC
 
 #ifdef GRAVITY_POTENTIAL
@@ -136,8 +137,8 @@ void Gravity_Simple_Accel()
 
 		} // omp critical
 
-		printf("ipart=%d err=%g tree acc=%g %g %g dir acc=%g %g %g \n",
-				ipart, errorl, acc[0], acc[1], acc[2],
+		printf("ipart=%d ID=%d err=%g tree acc=%g %g %g dir acc=%g %g %g \n",
+				ipart, P[ipart].ID, errorl, acc[0], acc[1], acc[2],
 				P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
 
 	} // for ipart
@@ -149,7 +150,7 @@ void Gravity_Simple_Accel()
 			Mean_Error/NActive_Particles);
 
 	Profile("Gravity_Simple");
-
+	
 	return ;
 }
 

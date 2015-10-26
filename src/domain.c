@@ -98,7 +98,7 @@ void Domain_Decomposition()
 		if (Max_Cost_Imbal < DOMAIN_IMBAL_CEIL)
 			if (Max_Mem_Imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
 				break;
-
+break;
 		if (cnt++ > N_SHORT_TRIPLETS - MIN_LEVEL) {
 	
 			#pragma omp master
@@ -773,9 +773,9 @@ static void set_computational_domain()
 
 static void set_computational_domain()
 {
-	find_largest_particle_distance(&Domain.Size);
-
 	find_domain_center(&Domain.Center[0]);
+	
+	find_largest_particle_distance(&Domain.Size);
 
 	#pragma omp for
 	for (int i = 0; i < 3; i++)
@@ -798,15 +798,15 @@ static void find_domain_center(double Center_Out[3])
 
 	#pragma omp single
 	buffer = Malloc(Task.Npart_Total * sizeof(*buffer), "buffer");
-
+	
 	for (int i = 0; i < 3; i++) {
 
 		#pragma omp for
 		for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
-			buffer[ipart] = P[ipart].Mass * P[ipart].Pos[i];
+			buffer[ipart] = P[ipart].Pos[i];
 
-		center[i] = Median(Task.Npart_Total, buffer) / Sim.Total_Mass;
-
+		center[i] = Median(Task.Npart_Total, buffer);
+		
 		#pragma omp barrier
 	}
 
@@ -845,16 +845,13 @@ static void find_largest_particle_distance(double *size_out)
 
 	#pragma omp for reduction(max:Max_Distance)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+		
+		double dx = fabs(P[ipart].Pos[0] - Domain.Center[0]);
+		double dy = fabs(P[ipart].Pos[1] - Domain.Center[1]);
+		double dz = fabs(P[ipart].Pos[2] - Domain.Center[2]);
 
-		for (int i = 0; i < 3; i++) {
+		Max_Distance = fmax(Max_Distance, fmax(dx,fmax(dy,dz)));
 
-			if (P[ipart].Pos[i] > Max_Distance)
-				Max_Distance = P[ipart].Pos[i] - Domain.Center_Of_Mass[i];
-
-			if (-1*P[ipart].Pos[i] > Max_Distance)
-				Max_Distance = -1*P[ipart].Pos[i] - Domain.Center_Of_Mass[i];
-
-		} // for i
 	} // for ipart
 
 	#pragma omp single

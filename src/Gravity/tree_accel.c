@@ -69,8 +69,8 @@ void Gravity_Tree_Acceleration()
 
 			//check_outboxes();
 
-		//	if (interact_with_topnode(j, send, &recv))
-		//		continue;
+			if (interact_with_topnode(j, send, &recv))
+				continue;
 
 			//if (D[j].TNode.Target < 0) { // not local ?
 			//
@@ -79,12 +79,12 @@ void Gravity_Tree_Acceleration()
 			//	continue;
 			//}
 
-		//	if (D[j].TNode.Npart <= 8) { // open top leave
+			if (D[j].TNode.Npart <= 8) { // open top leave
 
-		//		interact_with_topnode_particles(j, send, &recv);
+				interact_with_topnode_particles(j, send, &recv);
 
-		//		continue;
-		//	}
+				continue;
+			}
 
 			int tree_start = D[j].TNode.Target;
 
@@ -161,18 +161,18 @@ static bool interact_with_topnode(const int j, const struct Walk_Data_Send send,
 {
 	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 
-	Float dr[3] = {send.Pos[0] - D[j].TNode.Pos[0],
-				   send.Pos[1] - D[j].TNode.Pos[1],
-				   send.Pos[2] - D[j].TNode.Pos[2]};
+	Float dr[3] = {D[j].TNode.Pos[0] - send.Pos[0] ,
+				   D[j].TNode.Pos[1] - send.Pos[1] ,
+				   D[j].TNode.Pos[2] - send.Pos[2]};
 	
 	if (fabs(dr[0]) < 0.6 * nSize) // inside subtree ? -> always walk
 		if (fabs(dr[1]) < 0.6 * nSize)
 			if (fabs(dr[2]) < 0.6 * nSize)
 				return false; 
 
-	dr[0] = send.Pos[0] - D[j].TNode.CoM[0];
-	dr[1] = send.Pos[1] - D[j].TNode.CoM[1];
-	dr[2] = send.Pos[2] - D[j].TNode.CoM[2];
+	dr[0] = D[j].TNode.CoM[0] - send.Pos[0];
+	dr[1] = D[j].TNode.CoM[1] - send.Pos[1];
+	dr[2] = D[j].TNode.CoM[2] - send.Pos[2];
 
 	Periodic_Nearest(&dr[0]); // PERIODIC
 
@@ -215,9 +215,9 @@ static void interact_with_topnode_particles(const int j,
 		if (jpart == send.Ipart)
 			continue;
 
-		Float dr[3] = { send.Pos[0] - P[jpart].Pos[0],
-					    send.Pos[1] - P[jpart].Pos[1],
-			        	send.Pos[2] - P[jpart].Pos[2] };
+		Float dr[3] = {P[jpart].Pos[0] - send.Pos[0],
+					   P[jpart].Pos[1] - send.Pos[1] ,
+			           P[jpart].Pos[2] - send.Pos[2] };
 
 		Periodic_Nearest(dr); // PERIODIC
 		
@@ -258,9 +258,9 @@ static void gravity_tree_walk(const int tree_start,
 				if (jpart == send.Ipart)
 					continue;
 
-				Float dr[3] = { send.Pos[0] - P[jpart].Pos[0],
-							    send.Pos[1] - P[jpart].Pos[1],
-					            send.Pos[2] - P[jpart].Pos[2] };
+				Float dr[3] = { P[jpart].Pos[0] - send.Pos[0] ,
+								P[jpart].Pos[1] - send.Pos[1],
+								P[jpart].Pos[2] - send.Pos[2]};
 
 				Periodic_Nearest(dr); // PERIODIC
 
@@ -276,10 +276,10 @@ static void gravity_tree_walk(const int tree_start,
 			continue;
 		}
 
-		Float dr[3] = { send.Pos[0] - Tree[node].CoM[0],
-					    send.Pos[1] - Tree[node].CoM[1],
-					    send.Pos[2] - Tree[node].CoM[2] };
-
+		Float dr[3] = {Tree[node].CoM[0] - send.Pos[0],
+					   Tree[node].CoM[1] - send.Pos[1],
+					   Tree[node].CoM[2] - send.Pos[2]};
+		
 		Periodic_Nearest(dr); // PERIODIC
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
@@ -295,15 +295,15 @@ static void gravity_tree_walk(const int tree_start,
 			continue;
 		}
 
-		Float dx = fabs(send.Pos[0] - Tree[node].Pos[0]); // part in node ?
+		Float dx = fabs(Tree[node].Pos[0] - send.Pos[0]); // part in node ?
 
-		if (dx < 0.9 * nSize) {  
+		if (dx < 0.6 * nSize) {  
 
-			Float dy = fabs(send.Pos[1] - Tree[node].Pos[1]);
+			Float dy = fabs(Tree[node].Pos[1] - send.Pos[1]);
 
 			if (dy < 0.6 * nSize) {
 
-				Float dz = fabs(send.Pos[2] - Tree[node].Pos[2]);
+				Float dz = fabs(Tree[node].Pos[2] - send.Pos[2]);
 
 				if (dz < 0.6 * nSize) {
 
@@ -345,9 +345,9 @@ static void gravity_tree_walk_BH(const int tree_start,
 				if (jpart == send.Ipart)
 					continue;
 
-				Float dr[3] = { send.Pos[0] - P[jpart].Pos[0],
-							    send.Pos[1] - P[jpart].Pos[1],
-					            send.Pos[2] - P[jpart].Pos[2] };
+				Float dr[3] = { P[jpart].Pos[0] - send.Pos[0],
+							    P[jpart].Pos[1] - send.Pos[1],
+					            P[jpart].Pos[2] - send.Pos[2]};
 
 				Periodic_Nearest(dr); // PERIODIC
 
@@ -363,9 +363,9 @@ static void gravity_tree_walk_BH(const int tree_start,
 			continue;
 		}
 
-		Float dr[3] = { send.Pos[0] - Tree[node].CoM[0],
-					    send.Pos[1] - Tree[node].CoM[1],
-					    send.Pos[2] - Tree[node].CoM[2] };
+		Float dr[3] = {Tree[node].CoM[0] - send.Pos[0],
+					   Tree[node].CoM[1] - send.Pos[1],
+					   Tree[node].CoM[2] - send.Pos[2]};
 
 		Periodic_Nearest(dr); // PERIODIC
 
@@ -424,7 +424,7 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 #endif
 	}
 
-	Float acc_mag = -Const.Gravity * mass * p2(r_inv);
+	Float acc_mag = Const.Gravity * mass * p2(r_inv);
 
 	recv->Grav_Acc[0] += acc_mag * dr[0] * r_inv;
 	recv->Grav_Acc[1] += acc_mag * dr[1] * r_inv;
@@ -439,9 +439,9 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 
 	Ewald_Correction(dr, &fr[0]);
 
-	recv->Grav_Acc[0] += -fr[0] * mass;
-	recv->Grav_Acc[1] += -fr[1] * mass;
-	recv->Grav_Acc[2] += -fr[2] * mass;
+	recv->Grav_Acc[0] += fr[0] * mass;
+	recv->Grav_Acc[1] += fr[1] * mass;
+	recv->Grav_Acc[2] += fr[2] * mass;
 #endif // PERIODIC
 
 #if defined(GRAVITY_POTENTIAL) && defined(PERIODIC)

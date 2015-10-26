@@ -36,7 +36,8 @@ endif
 
 ifeq ($(TANDAV_SYSTYPE),coma.msi.umn.edu)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O2 -openmp -xhost  -mkl  -ansi-alias-check 
+OPTIMIZE =  -Wall -g -O3 -openmp -xhost  -mkl  -ansi-alias-check \
+			-ipo -ipo-jobs8
 XTRA_LIBS = -lmpich -L$(LD_LIBRARY_PATH)
 XTRA_INCL = -I$(INCLUDE)
 endif

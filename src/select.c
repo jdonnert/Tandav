@@ -97,12 +97,14 @@ static Float *Results = NULL;
 
 Float Median(const int ndata, Float * restrict data)
 {
-	if (Sim.NThreads == 1 || ndata < PARALLEL_THRES || 1) {
+	if (Sim.NThreads == 1 || ndata < PARALLEL_THRES || true) {
 	
 		Float median = 0;
 
+		int middle = ndata >> 1;
+
 		#pragma omp single copyprivate(median)	
-		median = Select(ndata >> 1, ndata, data);
+		median = Select(middle, ndata, data);
 		
 		return median;
 
@@ -153,14 +155,14 @@ Float Median(const int ndata, Float * restrict data)
 
 void test_median()
 {
-	const int N = 100000001;
+	const int N = 100001;
 	Float *arr = Malloc(N*sizeof(Float), "arr");
 	Float *arr2 = Malloc(N*sizeof(Float), "arr2");
 	Float *arr3 = Malloc(N*sizeof(Float), "arr3");
 
 	for (int i = 0; i < N; i++) {
 
-		arr[i] = erand48(Task.Seed);
+		arr[i] = 150000 * erand48(Task.Seed);
 		arr2[i] = arr[i];
 		arr3[i] = arr[i];
 	}

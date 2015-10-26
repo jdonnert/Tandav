@@ -26,7 +26,7 @@
 
 #define CHARBUFSIZE 256L	// Maximum No. of bytes in every char buffer
 #define NPARTYPE 6L			// No of particle types
-#define MEM_ALIGNMENT 64L	// byte memory alignment
+#define MEM_ALIGNMENT 128L	// byte memory alignment
 #define MASTER 0L			// Global master MPI task
 
 #ifdef DOUBLE_PRECISION
@@ -40,12 +40,12 @@ typedef float Float;
 #ifdef LONG_IDS
 typedef uint64_t ID_t;		// type of particle ID
 #else
-typedef uint32_t ID_t;		// type of particle ID
+typedef uint32_t ID_t;		
 #endif
 
-typedef uint32_t intime_t;	// type of integer time 
-typedef __uint128_t peanoKey; // long peanokey, 42 triplets / levels
-typedef uint64_t shortKey;	// short peanokey, 21 triplets / levels
+typedef uint32_t intime_t;		// type of integer time 
+typedef __uint128_t peanoKey; 	// long peanokey, 42 triplets / levels
+typedef uint64_t shortKey;		// short peanokey, 21 triplets / levels
 
 /* 
  * Global function prototypes 
@@ -78,6 +78,7 @@ double erand48(unsigned short xsubi[3]);
 /* 
  * Add here, #ifdefs go into the .h file 
  */
+
 #include "cosmology.h"		// cosmology functions 
 #include "comov.h"			// Comoving coordinates
 #include "periodic.h"		// periodic boundary conditions

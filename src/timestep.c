@@ -79,7 +79,6 @@ void Set_New_Timesteps()
 
 	#pragma omp barrier
 
-
 	Profile("Timesteps");
 
 	return ;

@@ -75,6 +75,8 @@ void Domain_Decomposition()
 	reset_bunchlist(false); // also deallocates Tree
 
 	fill_new_bunches(0, NBunches, 0, Task.Npart_Total);
+	
+	print_domain_decomposition(Max_Level); // DEBUG
 
 	find_mean_cost();
 
@@ -162,9 +164,9 @@ void Setup_Domain_Decomposition()
 
 	reset_bunchlist(true);
 	
-	set_computational_domain();
-
 	Sort_Particles_By_Peano_Key();
+
+	set_computational_domain();
 
 	} // omp parallel
 
@@ -591,7 +593,7 @@ static void zero_particle_cost()
 /*
  * Assign tasks to bunches, top to bottom and measure cost.
  * We use the standard Gadget way of distributing, which is: order the bunches
- * by cost and then assign CPUs top to bottom.
+ * by cost and then assign CPUs.
  */
 
 static void distribute()
@@ -607,13 +609,23 @@ static void distribute()
 		
 	Qsort(Sim.NThreads, &D[0], NBunches, sizeof(*D), &compare_bunches_by_cost);
 	
-	#pragma omp for
+	#pragma omp single
 	for (int i = 0; i < NBunches; i++) {
 
-		int task = i % (2*NTarget);
+		int task = 0; 
+	
+		double max_delta_mean = 0;
 
-		if (task >= NTarget)
-			task = 2*NTarget - task;
+		for (int j = 0; j < NTarget; j++) { // find a task for bunch i
+		
+			double delta_mean = Mean_Cost - Cost[j];
+
+			if (delta_mean > max_delta_mean) {
+			
+				task = j;
+				max_delta_mean = delta_mean;
+			}
+		}
 	
 		#pragma omp atomic
 		Cost[task] += D[i].Bunch.Cost;
@@ -745,12 +757,12 @@ static void set_computational_domain()
 	#pragma omp single
 	{
 	
+	Domain.Size = Sim.Boxsize[0];
+
+	Domain.Center[0] = Domain.Center[1] = Domain.Center[2] = 0.5 * Domain.Size;
+
 	Domain.Origin[0] = Domain.Origin[1] = Domain.Origin[2] = 0;
 
-	Domain.Size = fmax(Sim.Boxsize[0], fmax(Sim.Boxsize[1], Sim.Boxsize[2]));
-
-	for (int i = 0; i < 3; i++)
-		Domain.Origin[i] = Domain.Center[i] - 0.5 * Domain.Size;
 
 	} // omp single
 
@@ -772,7 +784,6 @@ static void set_computational_domain()
 	return ;
 }
 
-#endif // ! PERIODIC
 
 /*
  * Domain Center is not the center of mass but the median of mass, which is
@@ -858,6 +869,10 @@ static void find_largest_particle_distance(double *size_out)
 
 	return ; 
 }
+
+#endif // ! PERIODIC
+
+
 
 static void print_domain_decomposition (const int max_level)
 {

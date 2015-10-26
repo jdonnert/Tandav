@@ -49,7 +49,7 @@ void Drift_To_Sync_Point()
 
 	} // omp single
 
-	Set_Current_Cosmology(); // update immediately
+	Set_Current_Cosmology(Time.Current); // update immediately
 
 	Profile("Drift");
 

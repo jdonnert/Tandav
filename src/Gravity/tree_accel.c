@@ -21,8 +21,8 @@ struct Walk_Data_Recv {
 #endif
 };
 
-static struct Walk_Data_Send prepare_send_from(const int ipart);
-static void write_recv_to(const int ipart, const struct Walk_Data_Recv);
+static struct Walk_Data_Send copy_send_from(const int ipart);
+static void add_recv_to(const int ipart, const struct Walk_Data_Recv);
 
 static bool interact_with_topnode(const int, const struct Walk_Data_Send, 
 		struct Walk_Data_Recv * restrict);
@@ -33,7 +33,7 @@ static void interact(const Float, const Float *, const Float,
 
 static void gravity_tree_walk(const int, const struct Walk_Data_Send, 
 		struct Walk_Data_Recv * restrict);
-static void gravity_tree_walk_first(const int, const struct Walk_Data_Send, 
+static void gravity_tree_walk_BH(const int, const struct Walk_Data_Send, 
 		struct Walk_Data_Recv * restrict);
 
 static double check_total_momentum();
@@ -61,7 +61,7 @@ void Gravity_Tree_Acceleration()
 		int ipart = Active_Particle_List[i];
 
 		struct Walk_Data_Recv recv = { 0 };
-		struct Walk_Data_Send send = prepare_send_from(ipart);
+		struct Walk_Data_Send send = copy_send_from(ipart);
 
 		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
 	
@@ -69,8 +69,8 @@ void Gravity_Tree_Acceleration()
 
 			//check_outboxes();
 
-			if (interact_with_topnode(j, send, &recv))
-				continue;
+		//	if (interact_with_topnode(j, send, &recv))
+		//		continue;
 
 			//if (D[j].TNode.Target < 0) { // not local ?
 			//
@@ -79,23 +79,23 @@ void Gravity_Tree_Acceleration()
 			//	continue;
 			//}
 
-			if (D[j].TNode.Npart <= 8) { // open top leave
+		//	if (D[j].TNode.Npart <= 8) { // open top leave
 
-				interact_with_topnode_particles(j, send, &recv);
+		//		interact_with_topnode_particles(j, send, &recv);
 
-				continue;
-			}
+		//		continue;
+		//	}
 
 			int tree_start = D[j].TNode.Target;
 
 			if (send.Acc == 0) // use BH criterion
-				gravity_tree_walk_first(tree_start, send, &recv);
+				gravity_tree_walk_BH(tree_start, send, &recv);
 			else
 				gravity_tree_walk(tree_start, send, &recv);
 
 		} // for j
 
-		write_recv_to(ipart, recv);
+		add_recv_to(ipart, recv);
 
 		//check_inboxes();
 		
@@ -112,7 +112,7 @@ void Gravity_Tree_Acceleration()
 	return ;
 }
 
-static struct Walk_Data_Send prepare_send_from(const int ipart)
+static struct Walk_Data_Send copy_send_from(const int ipart)
 {
 	struct Walk_Data_Send send = { 0 };
 
@@ -129,7 +129,7 @@ static struct Walk_Data_Send prepare_send_from(const int ipart)
 	return send;
 }
 
-static void write_recv_to(const int ipart, const struct Walk_Data_Recv recv)
+static void add_recv_to(const int ipart, const struct Walk_Data_Recv recv)
 {
 	P[ipart].Acc[0] = recv.Grav_Acc[0];
 	P[ipart].Acc[1] = recv.Grav_Acc[1];
@@ -297,7 +297,7 @@ static void gravity_tree_walk(const int tree_start,
 
 		Float dx = fabs(send.Pos[0] - Tree[node].Pos[0]); // part in node ?
 
-		if (dx < 0.6 * nSize) {  
+		if (dx < 0.9 * nSize) {  
 
 			Float dy = fabs(send.Pos[1] - Tree[node].Pos[1]);
 
@@ -328,7 +328,7 @@ static void gravity_tree_walk(const int tree_start,
  * particle acceleration.
  */
 
-static void gravity_tree_walk_first(const int tree_start, 
+static void gravity_tree_walk_BH(const int tree_start, 
 		const struct Walk_Data_Send send, struct Walk_Data_Recv * restrict recv)
 {
 	int node = tree_start;
@@ -348,6 +348,8 @@ static void gravity_tree_walk_first(const int tree_start,
 				Float dr[3] = { send.Pos[0] - P[jpart].Pos[0],
 							    send.Pos[1] - P[jpart].Pos[1],
 					            send.Pos[2] - P[jpart].Pos[2] };
+
+				Periodic_Nearest(dr); // PERIODIC
 
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
@@ -391,7 +393,7 @@ static void gravity_tree_walk_first(const int tree_start,
 
 
 /*
- * Gravitational force law using Wendland C2 softening kernel with central 
+ * Gravitational force law using Dehnens K1 softening kernel with central 
  * value corresponding to Plummer softening.
  */
 
@@ -416,7 +418,6 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 
 	//	r_inv = sqrt(14*u - 84*u3 + 140*u2*u2 - 90*u2*u3 + 21*u3*u3) / h;
 		r_inv = sqrt(u * (135*u2*u2 - 294*u2 + 175))/(4*h) ;
-		
 
 #ifdef GRAVITY_POTENTIAL
 		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3) / h;
@@ -433,10 +434,7 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 	recv->Grav_Potential += -Const.Gravity * mass * r_inv_pot;
 #endif
 
-	recv->Cost++;
-
 #ifdef PERIODIC
-
 	Float fr[3] = { 0 };
 
 	Ewald_Correction(dr, &fr[0]);
@@ -444,8 +442,9 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 	recv->Grav_Acc[0] += -fr[0] * mass;
 	recv->Grav_Acc[1] += -fr[1] * mass;
 	recv->Grav_Acc[2] += -fr[2] * mass;
+#endif // PERIODIC
 
-#ifdef GRAVITY_POTENTIAL
+#if defined(GRAVITY_POTENTIAL) && defined(PERIODIC)
 	Float fp = 0;
 
 	Ewald_Potential(dr, &fp);
@@ -453,7 +452,7 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 	recv->Grav_Potential += -fp;
 #endif
 		
-#endif
+	recv->Cost++;
 
 	return ;
 }
@@ -518,7 +517,7 @@ static double check_total_momentum()
 
 	double rel_err = (ptotal - Last) / Last;
 
-	rprintf("Rel. change in global momentum due to gravity : %g \n", rel_err);
+	rprintf("Total err. due to gravity : %g \n", rel_err);
 
 	#pragma omp single
 	Last = ptotal;

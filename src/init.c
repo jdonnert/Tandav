@@ -24,6 +24,16 @@ void Read_and_Init(int argc, char *argv[])
 
 	Init_Logs();
 
+	Init_Periodic(); // PERIODIC
+
+	Init_Cosmology(); // COMOVING
+
+	/* Add yours above */
+
+	Profile("Init");
+	
+	Profile("Read");
+
 	switch (Param.Start_Flag) {
 
 	case 0:

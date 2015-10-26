@@ -4,7 +4,7 @@
 
 static double Boxsize = 0, Boxhalf = 0;
 
-void Setup_Periodic()
+void Init_Periodic()
 {
 	Boxsize = Sim.Boxsize[0];
 	Boxhalf = Boxsize/2.0;
@@ -50,22 +50,19 @@ void Periodic_Constrain_Particles_To_Box()
 
 void Periodic_Nearest(Float dr[3])
 {
-	while (dr[0] > Boxhalf)
+	if (dr[0] > Boxhalf)
 		dr[0] -= Boxsize;
-	
-	while (dr[0] < -Boxhalf)
+	else if (dr[0] < -Boxhalf)
 		dr[0] += Boxsize;
 
-	while (dr[1] > Boxhalf)
+	if (dr[1] > Boxhalf)
 		dr[1] -= Boxsize;
-	
-	while (dr[1] < -Boxhalf)
+	else if (dr[1] < -Boxhalf)
 		dr[1] += Boxsize;
 
-	while (dr[2] > Boxhalf)
+	if (dr[2] > Boxhalf)
 		dr[2] -= Boxsize;
-	
-	while (dr[2] < -Boxhalf)
+	else if (dr[2] < -Boxhalf)
 		dr[2] += Boxsize;
 
 	return ;

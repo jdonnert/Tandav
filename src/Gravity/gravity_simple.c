@@ -40,8 +40,9 @@ void Gravity_Simple_Accel()
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
-if (P[ipart].ID != 1)
-	continue;
+
+		if (P[ipart].ID > 10)
+			continue;
 
 		double acc[3] = { P[ipart].Acc[0], P[ipart].Acc[1], P[ipart].Acc[2] };
 
@@ -62,14 +63,6 @@ if (P[ipart].ID != 1)
 
 			Periodic_Nearest(dr); // PERIODIC 
 
-#ifdef GRAVITY_POTENTIAL
-			Float pot_periodic = 0;
-
-			Ewald_Potential(dr, &pot_periodic); // PERIODIC
-
-			P[ipart].Grav_Pot += pot_periodic;
-#endif
-
 			double r = ALENGTH3(dr);
 
 			double rinv = 1/r;
@@ -78,10 +71,11 @@ if (P[ipart].ID != 1)
 
 				double u = r/H;
 				double u2 = u*u;
-				double u3 = u2*u;
 
-				//rinv = sqrt(14*u-84*u3+140*u2*u2-90*u2*u3+21*u3*u3)/H;
 				rinv = sqrt(u * (135*u2*u2 - 294*u2 + 175))/(4*H) ;
+				
+				//double u3 = u2*u;
+				//rinv = sqrt(14*u-84*u3+140*u2*u2-90*u2*u3+21*u3*u3)/H;
 			}
 
 			double acc_mag = Const.Gravity * P[jpart].Mass * p2(rinv);
@@ -89,14 +83,16 @@ if (P[ipart].ID != 1)
 			P[ipart].Acc[0] += acc_mag * dr[0] * rinv;
 			P[ipart].Acc[1] += acc_mag * dr[1] * rinv;
 			P[ipart].Acc[2] += acc_mag * dr[2] * rinv;
-			
+
+#ifdef PERIODIC
 			Float corr[3] = { 0 };
 
-			Ewald_Correction(dr, &corr[0]); // PERIODIC
+			//Ewald_Correction(dr, &corr[0]);
 
 			P[ipart].Acc[0] += P[jpart].Mass * corr[0];
 			P[ipart].Acc[1] += P[jpart].Mass * corr[1];
 			P[ipart].Acc[2] += P[jpart].Mass * corr[2];
+#endif // PERIODIC
 
 #ifdef GRAVITY_POTENTIAL
 			if (r < H) { // WC2 kernel softening
@@ -110,6 +106,15 @@ if (P[ipart].ID != 1)
 
 			P[ipart].Grav_Pot += -Const.Gravity * P[jpart].Mass *rinv;
 #endif
+
+#if  defined (GRAVITY_POTENTIAL) && defined(PERIODIC)
+			Float pot_periodic = 0;
+
+			Ewald_Potential(dr, &pot_periodic); // PERIODIC
+
+			P[ipart].Grav_Pot += P[jpart].Mass * pot_periodic;
+#endif
+
 		} // for jpart
 
 		double error[3] = {(acc[0] - P[ipart].Acc[0]) / P[ipart].Acc[0],
@@ -131,8 +136,7 @@ if (P[ipart].ID != 1)
 
 		} // omp critical
 
-		if (P[ipart].ID == 1)
-			printf("\nipart=%d err=%g tree acc=%g %g %g dir acc=%g %g %g \n",
+		printf("ipart=%d err=%g tree acc=%g %g %g dir acc=%g %g %g \n",
 				ipart, errorl, acc[0], acc[1], acc[2],
 				P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
 

@@ -40,11 +40,6 @@ static void gravity_accel_tree()
 
 	Gravity_Tree_Acceleration();
 
-#pragma omp single
-for (int ipart=0; ipart<Sim.Npart_Total; ipart++)
-	if (P[ipart].ID == 1)
-		printf("ACC ipart=%d, ID=%d pos=%g %g %g, vel=%g %g %g acc= %g %g %g \n",ipart, P[ipart].ID, P[ipart].Pos[0], P[ipart].Pos[1], P[ipart].Pos[2], P[ipart].Vel[0],P[ipart].Vel[1],P[ipart].Vel[2],P[ipart].Grav_Acc[0] ,P[ipart].Grav_Acc[1],P[ipart].Grav_Acc[2]);
-
 	//Gravity_Tree_Periodic(); // PERIODIC && GRAVITY_TREE
 
 	return ;

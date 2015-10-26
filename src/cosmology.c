@@ -17,7 +17,7 @@ struct Current_Cosmology_In_Code_Units Cosmo = {
 
 #ifdef COMOVING
 
-void Setup_Cosmology()
+void Init_Cosmology()
 {
 	const double h0_cgs = HUBBLE_CONST * KM2CGS / MPC2CGS;
 
@@ -30,6 +30,9 @@ void Setup_Cosmology()
 			Cosmo.Omega_Matter, Cosmo.Omega_Baryon, Cosmo.Omega_Rad,
 			3.0/8.0/PI/GRAVITATIONAL_CONST*p2(h0_cgs));
 
+	#pragma omp parallel 
+	Set_Current_Cosmology(Time.Begin);
+
 	return ;
 }
 
@@ -38,10 +41,8 @@ void Setup_Cosmology()
  * expansion factor. 
  */
 
-void Set_Current_Cosmology()
+void Set_Current_Cosmology(const double a)
 {
-	const double a = Time.Current;
-
 	Cosmo.Expansion_Factor = a;
 	Cosmo.Sqrt_Expansion_Factor = sqrt(a);
 
@@ -69,12 +70,12 @@ double Hubble_Parameter(const double a) // H(a) = H0 * E(a), Mo+ eq 3.74
 double E_Hubble(const double a) // E(a), Mo+ eq 3.75
 {
 	return sqrt(Cosmo.Omega_Lambda + (1.0 - Cosmo.Omega_0)/(a*a)
-			+ Cosmo.Omega_Matter/(a*a*a) + OMEGA_RAD/(a*a*a*a));
+			+ Cosmo.Omega_Matter/(a*a*a) + Cosmo.Omega_Rad/(a*a*a*a));
 }
 
-double Critical_Density(double hubble_parameter) // Mo+ eq. 3.63
+double Critical_Density(double a) // Mo+ eq. 3.63
 {
-	return 3.0/(8.0*PI*Const.Gravity) * p2(hubble_parameter);
+	return 3.0 * p2(Cosmo.Hubble_Constant)/(8.0*Pi*Const.Gravity);
 }
 
 #endif // COMOVING

@@ -6,7 +6,10 @@ const struct Code_Units {
 	double Velocity;
 	double Time;
 	double Energy;
+	double Density;
 } Unit;
+
+void Init_Units();
 
 /* Conversion functions from code to code units */
 double Pressure(const int ipart);

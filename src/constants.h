@@ -6,8 +6,8 @@
 #include <gsl/gsl_const_cgsm.h>
 #include <gsl/gsl_const_num.h>
 
-#define PI M_PI
-#define SPEED_OF_LIGHT GSL_CONST_CGSM_SPEED_OF_LIGHT
+#define PI 3.14159265358979323846
+#define SPEED_OF_LIGHT 29979245800.0 // CODATA 2014
 #define PLANCK_CONST GSL_CONST_CGSM_PLANCKS_CONSTANT_H
 #define BOLTZMANN_CONST GSL_CONST_CGSM_BOLTZMANN
 #define ELECTRON_CHARGE (GSL_CONST_CGSM_ELECTRON_CHARGE * SPEED_OF_LIGHT)
@@ -16,7 +16,7 @@
 #define THOMPSON_CROSS_SECTION GSL_CONST_CGSM_THOMSON_CROSS_SECTION
 #define FINE_STRUCTURE_CONST GSL_CONST_NUM_FINE_STRUCTURE
 #define STEPHAN_BOLTZMANN_CONST 5.67037321e-8 // [erg/cm^2/s/K^4]
-#define GRAVITATIONAL_CONST 6.673848e-8 // [cm^3/g/s^2]
+#define GRAVITATIONAL_CONST 6.674e-8 // [cm^3/g/s^2] CODATA 2014
 
 /* 
  * Unit conversions to cgs
@@ -50,3 +50,5 @@ struct Constants_In_Code_Units {
 	const double Hydrogen_Fraction;
 	const double Helium_Fraction;
 } Const ;
+
+void Init_Constants();

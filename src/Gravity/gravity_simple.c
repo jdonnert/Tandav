@@ -25,7 +25,7 @@ void Gravity_Simple_Accel()
 {
 	Profile("Gravity_Simple");
 
-	rprintf("Direct Gravity, get a coffee ... ");
+	rprintf("Direct Gravity, get a coffee ... \n");
 
 	#pragma omp single
 	{
@@ -36,13 +36,17 @@ void Gravity_Simple_Accel()
 
 	} // omp single
 
+	int cnt = 0;
+
 	#pragma omp for reduction(+:Mean_Error)
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
 
-		if (P[ipart].ID > 1)
+		if (P[ipart].ID > 5)
 			continue;
+
+		cnt++;
 
 		double acc[3] = { P[ipart].Acc[0], P[ipart].Acc[1], P[ipart].Acc[2] };
 
@@ -54,10 +58,7 @@ void Gravity_Simple_Accel()
 
 		for (int jpart = 0; jpart < Sim.Npart_Total; jpart++) {
 
-			if (jpart == ipart)
-				continue;
-
-			Float dr[3] = { P[jpart].Pos[0] - P[ipart].Pos[0],
+			double dr[3] = { P[jpart].Pos[0] - P[ipart].Pos[0],
 							P[jpart].Pos[1] - P[ipart].Pos[1],
 							P[jpart].Pos[2] - P[ipart].Pos[2]};
 
@@ -85,13 +86,13 @@ void Gravity_Simple_Accel()
 			P[ipart].Acc[2] += acc_mag * dr[2] * rinv;
 
 #ifdef PERIODIC
-			Float corr[3] = { 0 };
+			Float ew_corr[3] = { 0 };
 
-			Ewald_Correction(dr, &corr[0]);
+			Ewald_Correction(dr, &ew_corr[0]);
 
-			P[ipart].Acc[0] += P[jpart].Mass * corr[0];
-			P[ipart].Acc[1] += P[jpart].Mass * corr[1];
-			P[ipart].Acc[2] += P[jpart].Mass * corr[2];
+			P[ipart].Acc[0] += Const.Gravity * P[jpart].Mass * ew_corr[0];
+			P[ipart].Acc[1] += Const.Gravity * P[jpart].Mass * ew_corr[1];
+			P[ipart].Acc[2] += Const.Gravity * P[jpart].Mass * ew_corr[2];
 
 #endif // PERIODIC
 
@@ -105,16 +106,16 @@ void Gravity_Simple_Accel()
 				rinv = (7*u2-21*u2*u2+28*u3*u2-15*u3*u3+u3*u3*u*8-3)/H;
 			}
 
-			P[ipart].Grav_Pot += -Const.Gravity * P[jpart].Mass *rinv;
+			P[ipart].Grav_Pot += Const.Gravity * P[jpart].Mass *rinv;
 #endif
 
 #if  defined (GRAVITY_POTENTIAL) && defined(PERIODIC)
-			Float pot_periodic = 0;
+			Float pot_corr = 0;
 
-			Ewald_Potential(dr, &pot_periodic); // PERIODIC
+			Ewald_Potential(dr, &pot_corr); // PERIODIC
 
-			P[ipart].Grav_Pot += P[jpart].Mass * pot_periodic;
-#endif
+			P[ipart].Grav_Pot += Const.Gravity * P[jpart].Mass * pot_corr;
+#endif 
 
 		} // for jpart
 
@@ -137,7 +138,7 @@ void Gravity_Simple_Accel()
 
 		} // omp critical
 
-		printf("ipart=%d ID=%d err=%g tree acc=%g %g %g dir acc=%g %g %g \n",
+		printf("  ipart=%d ID=%d err=%g tree acc=%g %g %g dir acc=%g %g %g \n",
 				ipart, P[ipart].ID, errorl, acc[0], acc[1], acc[2],
 				P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
 
@@ -147,7 +148,7 @@ void Gravity_Simple_Accel()
 
 	rprintf("\nForce test: NActive %d, max error %g @ %d, mean error %g \n\n",
 			NActive_Particles, Max_Error, Worst_Part,
-			Mean_Error/NActive_Particles);
+			Mean_Error/cnt);
 
 	Profile("Gravity_Simple");
 	

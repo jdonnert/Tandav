@@ -53,15 +53,15 @@ extern struct Particle_Data {
 	int Time_Bin;
 	intime_t Int_Time_Pos;		// current position on integer timeline
 	unsigned int Cost;			// computational weight of particle
-#ifdef GRAVITY_TREE
-	int Tree_Parent;			// Tree node leave, negative-1 if top node only
-#endif
-	ID_t ID; // add below 
+	ID_t ID; 					// add below 
 	Float Pos[3];
 	Float Vel[3];
 	Float Acc[3];
 	Float Mass;
 	Float Grav_Acc[3];
+#ifdef GRAVITY_TREE
+	int Tree_Parent;			// Tree node leave, negative-1 if top node only
+#endif
 #ifdef GRAVITY_POTENTIAL
 	Float Grav_Pot;
 #endif

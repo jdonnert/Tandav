@@ -21,7 +21,7 @@ void Update(enum Update_Parameters stage)
 
 		Sig.First_Step = true;
 
-		Set_Current_Cosmology();
+		Set_Current_Cosmology(Time.Current); // COMOVING
 
 		Compute_Global_Simulation_Properties();
 

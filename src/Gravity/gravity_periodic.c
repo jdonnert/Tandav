@@ -31,7 +31,7 @@ static Float Fp[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
  * doubled in resolution.
  */
 
-void Ewald_Correction(const Float dr[3], Float f[3])
+void Ewald_Correction(const double dr[3], Float f[3])
 {
 	double dx = dr[0];
 	int sign[3] = { -1, -1, -1 };
@@ -111,7 +111,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 }
 
 #ifdef GRAVITY_POTENTIAL
-void Ewald_Potential(const Float dr[3], Float p[1])
+void Ewald_Potential(const double dr[3], Float p[1])
 {
 	double dx = dr[0];
 

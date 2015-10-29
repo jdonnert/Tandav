@@ -203,7 +203,7 @@ void Init_Memory_Management()
 	rprintf("Init Memory Manager\n"
 			"   Max Usable Memory per task %zu bytes = %zu MB\n"
 			"   Min Usable Memory per task %zu bytes = %zu MB\n"
-			"   Requested  Memory per task %zu bytes = %zu MB\n",
+			"   Requested  Memory per task %zu bytes = %zu MB\n\n",
 			maxNbytes, maxNbytes/1024/1024, minNbytes,
 			minNbytes/1024/1024, Mem_Size, Mem_Size/1024/1024);
 

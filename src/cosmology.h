@@ -24,9 +24,9 @@ double E_Hubble(const double a);
 double Critical_Density(double);
 
 #ifdef COMOVING
-void Set_Current_Cosmology();
+void Set_Current_Cosmology(const double a);
 void Init_Cosmology();
 #else // ! COMOVING
-inline void Set_Current_Cosmology() {};
+inline void Set_Current_Cosmology(const double a) {};
 inline void Init_Cosmology() {};
 #endif // ! COMOVING

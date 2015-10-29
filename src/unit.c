@@ -5,8 +5,24 @@ const struct Code_Units Unit = {
 	MASS2CGS,
 	VELOCITY2CGS,
 	LENGTH2CGS/VELOCITY2CGS, // time
-	MASS2CGS*p2(VELOCITY2CGS) // energy
+	MASS2CGS*p2(VELOCITY2CGS), // energy
+	MASS2CGS/p3(LENGTH2CGS) // density
 };
+
+void Init_Units()
+{
+	printf("Units: \n"
+			"  Length = %g cm\n"
+			"  Mass = %g g\n"
+			"  Velocity = %g cm/s\n"
+			"  Time = %g s \n"
+			"  Energy = %g erg\n"
+			"  Density = %g g/cm^3 \n\n",
+			Unit.Length, Unit.Mass, Unit.Velocity, Unit.Time, Unit.Energy, 
+			Unit.Density);
+
+	return ;
+}
 
 /* 
  * Mostly for reference purposes, these functions convert internal units 

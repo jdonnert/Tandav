@@ -92,7 +92,7 @@ static bool interact_with_topnode(const int ipart, const int j,
 
 	bool want_open_node = false;
 
-	Float dr[3] = {P[ipart].Pos[0] - D[j].TNode.CoM[0],
+	double dr[3] = {P[ipart].Pos[0] - D[j].TNode.CoM[0],
 				   P[ipart].Pos[1] - D[j].TNode.CoM[1],
 				   P[ipart].Pos[2] - D[j].TNode.CoM[2]};
 
@@ -169,7 +169,7 @@ static void interact_with_topnode_particles(const int ipart, const int j,
 		if (jpart == ipart)
 			continue;
 
-		Float dr[3] = { P[ipart].Pos[0] - P[jpart].Pos[0],
+		double dr[3] = { P[ipart].Pos[0] - P[jpart].Pos[0],
 					    P[ipart].Pos[1] - P[jpart].Pos[1],
 			            P[ipart].Pos[2] - P[jpart].Pos[2] };
 
@@ -217,7 +217,7 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 				if (jpart == ipart)
 					continue;
 
-				Float dr[3] = { pos_i[0] - P[jpart].Pos[0],
+				double dr[3] = { pos_i[0] - P[jpart].Pos[0],
 							    pos_i[1] - P[jpart].Pos[1],
 					            pos_i[2] - P[jpart].Pos[2] };
 
@@ -233,7 +233,7 @@ static void gravity_tree_periodic_ewald(const int ipart, const int tree_start,
 			continue;
 		}
 
-		Float dr[3] = { pos_i[0] - Tree[node].CoM[0],
+		double dr[3] = { pos_i[0] - Tree[node].CoM[0],
 					    pos_i[1] - Tree[node].CoM[1],
 					    pos_i[2] - Tree[node].CoM[2] };
 

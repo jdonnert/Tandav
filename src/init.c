@@ -24,6 +24,10 @@ void Read_and_Init(int argc, char *argv[])
 
 	Init_Logs();
 
+	Init_Units();
+
+	Init_Constants();
+
 	Init_Periodic(); // PERIODIC
 
 	Init_Cosmology(); // COMOVING

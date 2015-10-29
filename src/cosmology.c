@@ -25,10 +25,11 @@ void Init_Cosmology()
 			"   h_0          = %6.3g, Omega_0      = %6.3g \n"
 			"   Omega_Lambda = %6.3g, Omega_Matter = %6.3g \n"
 			"   Omega_Baryon = %6.3g, Omega_Rad    = %6.3g \n"
-			"   rho_crit_0   = %6.3g g/cm^3\n",
+			"   rho_crit_0   = %6.3g g/cm^3\n"
+			"	Hubble_Const = %6.3g (internal)\n\n",
 			HUBBLE_CONST/100, Cosmo.Omega_0, Cosmo.Omega_Lambda,
 			Cosmo.Omega_Matter, Cosmo.Omega_Baryon, Cosmo.Omega_Rad,
-			3.0/8.0/PI/GRAVITATIONAL_CONST*p2(h0_cgs));
+			3.0/8.0/PI/GRAVITATIONAL_CONST*p2(h0_cgs), Cosmo.Hubble_Constant);
 
 	#pragma omp parallel 
 	Set_Current_Cosmology(Time.Begin);

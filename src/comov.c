@@ -44,7 +44,7 @@ double Particle_Drift_Step(const int ipart, const double a_next)
 	double drift_factor_beg = gsl_spline_eval(Drift_Spline, a_curr, Acc[2]);
 	double drift_factor_end = gsl_spline_eval(Drift_Spline, a_next, Acc[3]);
 
-	return Cosmo.Sqrt_Expansion_Factor * (drift_factor_end - drift_factor_beg);
+	return (drift_factor_end - drift_factor_beg);
 }
 
 /*

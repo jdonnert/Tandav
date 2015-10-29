@@ -9,7 +9,7 @@ void Init_Periodic()
 	Boxsize = Sim.Boxsize[0];
 	Boxhalf = Boxsize/2.0;
 	
-	rprintf("Periodic Boxsize = %g \n", Boxsize);
+	rprintf("Periodic Boxsize = %g, Boxhalf = %g \n\n", Boxsize, Boxhalf);
 
 	return ;
 }
@@ -48,7 +48,7 @@ void Periodic_Constrain_Particles_To_Box()
  * optimization of the compiler to do the inlining for us. 
  */
 
-void Periodic_Nearest(Float dr[3])
+void Periodic_Nearest(double dr[3])
 {
 	if (dr[0] > Boxhalf)
 		dr[0] -= Boxsize;

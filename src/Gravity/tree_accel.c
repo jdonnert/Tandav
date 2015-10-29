@@ -28,7 +28,7 @@ static bool interact_with_topnode(const int, const struct Walk_Data_Send,
 		struct Walk_Data_Recv * restrict);
 static void interact_with_topnode_particles(const int, 
 		const struct Walk_Data_Send, struct Walk_Data_Recv * restrict);
-static void interact(const Float, const Float *, const Float, 
+static void interact(const Float, const double *, const Float, 
 		struct Walk_Data_Recv * restrict);
 
 static void gravity_tree_walk(const int, const struct Walk_Data_Send, 
@@ -161,7 +161,7 @@ static bool interact_with_topnode(const int j, const struct Walk_Data_Send send,
 {
 	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 
-	Float dr[3] = {D[j].TNode.Pos[0] - send.Pos[0] ,
+	double dr[3] = {D[j].TNode.Pos[0] - send.Pos[0] ,
 				   D[j].TNode.Pos[1] - send.Pos[1] ,
 				   D[j].TNode.Pos[2] - send.Pos[2]};
 	
@@ -215,7 +215,7 @@ static void interact_with_topnode_particles(const int j,
 		if (jpart == send.Ipart)
 			continue;
 
-		Float dr[3] = {P[jpart].Pos[0] - send.Pos[0],
+		double dr[3] = {P[jpart].Pos[0] - send.Pos[0],
 					   P[jpart].Pos[1] - send.Pos[1] ,
 			           P[jpart].Pos[2] - send.Pos[2] };
 
@@ -223,9 +223,7 @@ static void interact_with_topnode_particles(const int j,
 		
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
-		Float mpart = P[jpart].Mass;
-
-		interact(mpart, dr, r2, recv);
+		interact(P[jpart].Mass, dr, r2, recv);
 	}
 
 	return ;
@@ -258,7 +256,7 @@ static void gravity_tree_walk(const int tree_start,
 				if (jpart == send.Ipart)
 					continue;
 
-				Float dr[3] = { P[jpart].Pos[0] - send.Pos[0] ,
+				double dr[3] = {P[jpart].Pos[0] - send.Pos[0] ,
 								P[jpart].Pos[1] - send.Pos[1],
 								P[jpart].Pos[2] - send.Pos[2]};
 
@@ -266,9 +264,7 @@ static void gravity_tree_walk(const int tree_start,
 
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
-				Float mpart = P[jpart].Mass;
-
-				interact(mpart, dr, r2, recv);
+				interact(P[jpart].Mass, dr, r2, recv);
 			}
 
 			node++;
@@ -276,7 +272,7 @@ static void gravity_tree_walk(const int tree_start,
 			continue;
 		}
 
-		Float dr[3] = {Tree[node].CoM[0] - send.Pos[0],
+		double dr[3] = {Tree[node].CoM[0] - send.Pos[0],
 					   Tree[node].CoM[1] - send.Pos[1],
 					   Tree[node].CoM[2] - send.Pos[2]};
 		
@@ -345,7 +341,7 @@ static void gravity_tree_walk_BH(const int tree_start,
 				if (jpart == send.Ipart)
 					continue;
 
-				Float dr[3] = { P[jpart].Pos[0] - send.Pos[0],
+				double dr[3] = { P[jpart].Pos[0] - send.Pos[0],
 							    P[jpart].Pos[1] - send.Pos[1],
 					            P[jpart].Pos[2] - send.Pos[2]};
 
@@ -363,7 +359,7 @@ static void gravity_tree_walk_BH(const int tree_start,
 			continue;
 		}
 
-		Float dr[3] = {Tree[node].CoM[0] - send.Pos[0],
+		double dr[3] = {Tree[node].CoM[0] - send.Pos[0],
 					   Tree[node].CoM[1] - send.Pos[1],
 					   Tree[node].CoM[2] - send.Pos[2]};
 
@@ -397,7 +393,7 @@ static void gravity_tree_walk_BH(const int tree_start,
  * value corresponding to Plummer softening.
  */
 
-static void interact(const Float mass, const Float dr[3], const Float r2, 
+static void interact(const Float mass, const double dr[3], const Float r2, 
 		struct Walk_Data_Recv * restrict recv)
 {
 	//const Float h = GRAV_SOFTENING / 3.0; // Plummer equiv softening
@@ -431,7 +427,7 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 	recv->Grav_Acc[2] += acc_mag * dr[2] * r_inv;
 
 #ifdef GRAVITY_POTENTIAL
-	recv->Grav_Potential += -Const.Gravity * mass * r_inv_pot;
+	recv->Grav_Potential += Const.Gravity * mass * r_inv_pot;
 #endif
 
 #ifdef PERIODIC
@@ -439,9 +435,9 @@ static void interact(const Float mass, const Float dr[3], const Float r2,
 
 	Ewald_Correction(dr, &fr[0]);
 
-	recv->Grav_Acc[0] += fr[0] * mass;
-	recv->Grav_Acc[1] += fr[1] * mass;
-	recv->Grav_Acc[2] += fr[2] * mass;
+	recv->Grav_Acc[0] += Const.Gravity * fr[0] * mass;
+	recv->Grav_Acc[1] += Const.Gravity * fr[1] * mass;
+	recv->Grav_Acc[2] += Const.Gravity * fr[2] * mass;
 #endif // PERIODIC
 
 #if defined(GRAVITY_POTENTIAL) && defined(PERIODIC)

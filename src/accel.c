@@ -38,8 +38,14 @@ static void gravity_accel_tree()
 	if (Sig.Tree_Update)
 		Gravity_Tree_Build();
 
-	if (Sig.First_Step)
+	if (Sig.First_Step) {
+
+		Sig.Use_BH_Criterion = true;
+
 		Gravity_Tree_Acceleration();
+	}
+
+	Sig.Use_BH_Criterion = false;
 
 	Gravity_Tree_Acceleration();
 
@@ -50,13 +56,8 @@ static void accel_gravity()
 {
 	Profile("Gravity");
 
-	if (Sig.Sync_Point)
-		Gravity_Multi_Grid();  // GRAVITY_MULTI_GRID
-
 	gravity_accel_tree(); // GRAVITY_TREE
 	
-		gravity_accel_tree(); // GRAVITY_TREE
-
 	Gravity_Simple_Accel(); // GRAVITY_SIMPLE, performs force test
 
 	Profile("Gravity");

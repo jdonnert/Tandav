@@ -43,7 +43,7 @@ void Gravity_Simple_Accel()
 
 		int ipart = Active_Particle_List[i];
 
-		if (P[ipart].ID > 5)
+		if (P[ipart].ID > 1)
 			continue;
 
 		cnt++;
@@ -58,15 +58,16 @@ void Gravity_Simple_Accel()
 
 		for (int jpart = 0; jpart < Sim.Npart_Total; jpart++) {
 
-			double dr[3] = { P[jpart].Pos[0] - P[ipart].Pos[0],
+			double dr[3] = {P[jpart].Pos[0] - P[ipart].Pos[0],
 							P[jpart].Pos[1] - P[ipart].Pos[1],
 							P[jpart].Pos[2] - P[ipart].Pos[2]};
 
 			Periodic_Nearest(dr); // PERIODIC 
 
-			double r = ALENGTH3(dr);
+			double r2 = ASCALPROD3(dr);
 
-			double rinv = 1/r;
+			double rinv = 1/sqrt(r2);
+			double r = 1/rinv;
 
 			if (r < H) {
 
@@ -86,13 +87,13 @@ void Gravity_Simple_Accel()
 			P[ipart].Acc[2] += acc_mag * dr[2] * rinv;
 
 #ifdef PERIODIC
-			Float ew_corr[3] = { 0 };
+			Float result[3] = { 0 };
 
-			Ewald_Correction(dr, &ew_corr[0]);
+			Ewald_Correction(dr, &result[0]);
 
-			P[ipart].Acc[0] += Const.Gravity * P[jpart].Mass * ew_corr[0];
-			P[ipart].Acc[1] += Const.Gravity * P[jpart].Mass * ew_corr[1];
-			P[ipart].Acc[2] += Const.Gravity * P[jpart].Mass * ew_corr[2];
+			P[ipart].Acc[0] += Const.Gravity * P[jpart].Mass * result[0];
+			P[ipart].Acc[1] += Const.Gravity * P[jpart].Mass * result[1];
+			P[ipart].Acc[2] += Const.Gravity * P[jpart].Mass * result[2];
 
 #endif // PERIODIC
 

@@ -38,9 +38,10 @@ static void gravity_accel_tree()
 	if (Sig.Tree_Update)
 		Gravity_Tree_Build();
 
-	Gravity_Tree_Acceleration();
+	if (Sig.First_Step)
+		Gravity_Tree_Acceleration();
 
-	//Gravity_Tree_Periodic(); // PERIODIC && GRAVITY_TREE
+	Gravity_Tree_Acceleration();
 
 	return ;
 }
@@ -54,13 +55,12 @@ static void accel_gravity()
 
 	gravity_accel_tree(); // GRAVITY_TREE
 	
-	if (Sig.First_Step)
 		gravity_accel_tree(); // GRAVITY_TREE
 
 	Gravity_Simple_Accel(); // GRAVITY_SIMPLE, performs force test
 
 	Profile("Gravity");
-
+exit(0);
 	return ;
 }
 

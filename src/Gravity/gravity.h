@@ -1,3 +1,4 @@
+
 #if defined(GRAVITY) && defined(GRAVITY_SIMPLE)
 void Gravity_Simple_Accel();
 #else
@@ -24,6 +25,21 @@ extern struct Tree_Node {
 } * restrict Tree;
 
 uint32_t NNodes;
+
+struct Walk_Data_Particle { // stores exported particle data
+	ID_t ID;
+	int Pos[3];
+	int Acc; 				// only magnitude of the last acceleration
+	Float Mass;
+};
+
+struct Walk_Data_Result { 	// stores exported summation results
+	Float Cost;
+	Float Grav_Acc[3];
+#ifdef GRAVITY_POTENTIAL
+	Float Grav_Potential;
+#endif
+};
 
 #else
 

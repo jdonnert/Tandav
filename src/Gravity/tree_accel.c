@@ -6,35 +6,20 @@
 
 #ifdef GRAVITY_TREE
 
-struct Walk_Data_Send { 
-	int Ipart;
-	int Pos[3];
-	int Acc; 	// magnitude of the last acceleration
-	Float Mass;
-};
+static struct Walk_Data_Particle copy_send_from(const int ipart);
+static void add_recv_to(const int ipart, const struct Walk_Data_Result);
 
-struct Walk_Data_Recv { 
-	Float Cost;
-	Float Grav_Acc[3];
-#ifdef GRAVITY_POTENTIAL
-	Float Grav_Potential;
-#endif
-};
-
-static struct Walk_Data_Send copy_send_from(const int ipart);
-static void add_recv_to(const int ipart, const struct Walk_Data_Recv);
-
-static bool interact_with_topnode(const int, const struct Walk_Data_Send, 
-		struct Walk_Data_Recv * restrict);
+static bool interact_with_topnode(const int, const struct Walk_Data_Particle, 
+										struct Walk_Data_Result * restrict);
 static void interact_with_topnode_particles(const int, 
-		const struct Walk_Data_Send, struct Walk_Data_Recv * restrict);
+		const struct Walk_Data_Particle, struct Walk_Data_Result * restrict);
 static void interact(const Float, const double *, const Float, 
-		struct Walk_Data_Recv * restrict);
+										struct Walk_Data_Result * restrict);
 
-static void gravity_tree_walk(const int, const struct Walk_Data_Send, 
-		struct Walk_Data_Recv * restrict);
-static void gravity_tree_walk_BH(const int, const struct Walk_Data_Send, 
-		struct Walk_Data_Recv * restrict);
+static void gravity_tree_walk(const int, const struct Walk_Data_Particle, 
+										struct Walk_Data_Result * restrict);
+static void gravity_tree_walk_BH(const int, const struct Walk_Data_Particle, 
+										struct Walk_Data_Result * restrict);
 
 static double check_total_momentum();
 
@@ -60,8 +45,8 @@ void Gravity_Tree_Acceleration()
 
 		int ipart = Active_Particle_List[i];
 
-		struct Walk_Data_Recv recv = { 0 };
-		struct Walk_Data_Send send = copy_send_from(ipart);
+		struct Walk_Data_Particle send = copy_send_from(ipart);
+		struct Walk_Data_Result recv = { 0 };
 
 		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
 	
@@ -88,7 +73,7 @@ void Gravity_Tree_Acceleration()
 
 			int tree_start = D[j].TNode.Target;
 
-			if (send.Acc == 0) // use BH criterion
+			if (Sig.First_Step) // use BH criterion
 				gravity_tree_walk_BH(tree_start, send, &recv);
 			else
 				gravity_tree_walk(tree_start, send, &recv);
@@ -101,6 +86,8 @@ void Gravity_Tree_Acceleration()
 		
 	} // for i
 
+	Gravity_Tree_Periodic(); // PERIODIC 
+
 	rprintf(" done \n");
 
 	check_total_momentum();
@@ -112,11 +99,11 @@ void Gravity_Tree_Acceleration()
 	return ;
 }
 
-static struct Walk_Data_Send copy_send_from(const int ipart)
+static struct Walk_Data_Particle copy_send_from(const int ipart)
 {
-	struct Walk_Data_Send send = { 0 };
+	struct Walk_Data_Particle send = { 0 };
 
-	send.Ipart = ipart;
+	send.ID = P[ipart].ID;
 
 	send.Pos[0] = P[ipart].Pos[0];
 	send.Pos[1] = P[ipart].Pos[1];
@@ -129,7 +116,7 @@ static struct Walk_Data_Send copy_send_from(const int ipart)
 	return send;
 }
 
-static void add_recv_to(const int ipart, const struct Walk_Data_Recv recv)
+static void add_recv_to(const int ipart, const struct Walk_Data_Result recv)
 {
 	P[ipart].Acc[0] = recv.Grav_Acc[0];
 	P[ipart].Acc[1] = recv.Grav_Acc[1];
@@ -156,8 +143,8 @@ static void add_recv_to(const int ipart, const struct Walk_Data_Recv recv)
  * contains the particle and then check the two criteria.
  */
 
-static bool interact_with_topnode(const int j, const struct Walk_Data_Send send,
-		struct Walk_Data_Recv * restrict recv)
+static bool interact_with_topnode(const int j, const struct Walk_Data_Particle send,
+		struct Walk_Data_Result * restrict recv)
 {
 	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 
@@ -204,16 +191,13 @@ static bool interact_with_topnode(const int j, const struct Walk_Data_Send send,
  */
 
 static void interact_with_topnode_particles(const int j, 
-		const struct Walk_Data_Send send, 
-		struct Walk_Data_Recv * restrict recv)
+		const struct Walk_Data_Particle send, 
+		struct Walk_Data_Result * restrict recv)
 {
 	const int first = D[j].TNode.Target;
 	const int last = first + D[j].TNode.Npart;
 
 	for (int jpart = first; jpart < last; jpart++) {
-
-		if (jpart == send.Ipart)
-			continue;
 
 		double dr[3] = {P[jpart].Pos[0] - send.Pos[0],
 					   P[jpart].Pos[1] - send.Pos[1] ,
@@ -236,7 +220,7 @@ static void interact_with_topnode_particles(const int j,
  */
 
 static void gravity_tree_walk(const int tree_start, 
-		const struct Walk_Data_Send send, struct Walk_Data_Recv * restrict recv)
+		const struct Walk_Data_Particle send, struct Walk_Data_Result * restrict recv)
 {
 	const Float fac = send.Acc / Const.Gravity * TREE_OPEN_PARAM_REL;
 
@@ -252,9 +236,6 @@ static void gravity_tree_walk(const int tree_start,
 			int last = first + Tree[node].Npart;
 
 			for (int jpart = first; jpart < last; jpart++ ) {
-
-				if (jpart == send.Ipart)
-					continue;
 
 				double dr[3] = {P[jpart].Pos[0] - send.Pos[0] ,
 								P[jpart].Pos[1] - send.Pos[1],
@@ -325,7 +306,7 @@ static void gravity_tree_walk(const int tree_start,
  */
 
 static void gravity_tree_walk_BH(const int tree_start, 
-		const struct Walk_Data_Send send, struct Walk_Data_Recv * restrict recv)
+		const struct Walk_Data_Particle send, struct Walk_Data_Result * restrict recv)
 {
 	int node = tree_start;
 
@@ -337,9 +318,6 @@ static void gravity_tree_walk_BH(const int tree_start,
 			int last = first + Tree[node].Npart;
 
 			for (int jpart = first; jpart < last; jpart++ ) {
-
-				if (jpart == send.Ipart)
-					continue;
 
 				double dr[3] = { P[jpart].Pos[0] - send.Pos[0],
 							    P[jpart].Pos[1] - send.Pos[1],
@@ -394,7 +372,7 @@ static void gravity_tree_walk_BH(const int tree_start,
  */
 
 static void interact(const Float mass, const double dr[3], const Float r2, 
-		struct Walk_Data_Recv * restrict recv)
+		struct Walk_Data_Result * restrict recv)
 {
 	//const Float h = GRAV_SOFTENING / 3.0; // Plummer equiv softening
 	const Float h = 105/32 * GRAV_SOFTENING;

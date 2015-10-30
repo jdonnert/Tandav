@@ -98,7 +98,7 @@ void Domain_Decomposition()
 		if (Max_Cost_Imbal < DOMAIN_IMBAL_CEIL)
 			if (Max_Mem_Imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
 				break;
-break;
+
 		if (cnt++ > N_SHORT_TRIPLETS - MIN_LEVEL) {
 	
 			#pragma omp master

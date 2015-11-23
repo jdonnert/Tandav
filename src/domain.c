@@ -334,7 +334,7 @@ static void reset_bunchlist(const bool rebuild)
 
 static int find_min_level()
 {
-	return MAX(MIN_LEVEL, log(NTarget)/log(8) + 2);
+	return MAX(MIN_LEVEL, log(NTarget)/log(8) + 1);
 
 }
 

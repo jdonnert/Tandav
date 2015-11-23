@@ -37,25 +37,39 @@ To Do
 	* (DONE) tree
 	- test
 9. Cosmological Sim 
+	* implementation
 	- test case
 	- IDL script for small IC generation
 	- growth rate plotting & comparison
-10. Multi-grid gravity (Minneapolis & Cray)
-	- fast grid definition
-11. MPI parallelisation
+10. Vectorisation 
+	- P to struct of arrays
+	- Reallocate_P to struct of arrays
+	- Adapt code
+	- Adapt tree to struct of arrays
+11. FMM
+	- simple walk
+	- fmm_build
+	- cache blocking
+12. MPI parallelisation
 	- General exchange in domain
 	- Engine in tree_accel. Work queues
 	  via general stack ?
 	- domain decomposition still ok ?
-12. Optimisaton
+13. Optimisaton
 	- single core speed via Cray tools
 	- omp speed 
 	- mpi & mpi stack stability
-	- scalability to 200000 cores
-13. Tree on accelerators
-	- FMM for run & construction
+	- scalability
+14. FMM on accelerators
 	- OpenACC general interface
 	- communication model
-14. MHD via moving mesh
-	- here be dragons
+15. Multi-grid gravity (Minneapolis & Cray)
+	- fast grid definition
+16. MHD 
+	- derive comoving MHD
+	- set thermodynamic model
+	- set composition model
+	- simple 3D TVD mesh
+	- Voronoi generator
+		- convex hull
 

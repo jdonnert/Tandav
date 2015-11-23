@@ -34,7 +34,7 @@ static double check_total_momentum();
  * maximum errors. Barnes & Hut 1984, Springel 2006, Dehnen & Read 2012.
  */
 
-void Gravity_Tree_Acceleration(const bool use_BH_criterion)
+void Gravity_Tree_Acceleration()
 {
 	Profile("Grav Tree Walk");
 
@@ -49,13 +49,11 @@ void Gravity_Tree_Acceleration(const bool use_BH_criterion)
 		struct Walk_Data_Result recv = { 0 };
 
 		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
-		
+
 		for (int j = 0; j < NTop_Nodes; j++) {
-
-			//check_outboxes();
-
-			if (interact_with_topnode(j, send, &recv))
-				continue;
+			
+	//		if (interact_with_topnode(j, send, &recv))
+	//			continue;
 
 			//if (D[j].TNode.Target < 0) { // not local ?
 			//
@@ -64,29 +62,27 @@ void Gravity_Tree_Acceleration(const bool use_BH_criterion)
 			//	continue;
 			//}
 
-			if (D[j].TNode.Npart <= 8) { // open top leave
+	//		if (D[j].TNode.Npart <= 8) { // open top leave
 
-				interact_with_topnode_particles(j, send, &recv);
+	//			interact_with_topnode_particles(j, send, &recv);
 
-				continue;
-			}
+	//			continue;
+	//		}
 
 			int tree_start = D[j].TNode.Target;
 
-			if (use_BH_criterion) // use BH criterion
+			if (Sig.Use_BH_Criterion) 
 				gravity_tree_walk_BH(tree_start, send, &recv);
 			else
 				gravity_tree_walk(tree_start, send, &recv);
 
 		} // for j
+		
+		Gravity_Tree_Periodic(send, &recv); // PERIODIC
 
 		add_recv_to(ipart, recv);
 
-		//check_inboxes();
-		
 	} // for i
-
-	Gravity_Tree_Periodic(); // PERIODIC 
 
 	rprintf(" done \n");
 
@@ -167,7 +163,7 @@ static bool interact_with_topnode(const int j, const struct Walk_Data_Particle s
 
 	Float node_mass = D[j].TNode.Mass;
 
-	if (send.Acc == 0) {
+	if (Sig.Use_BH_Criterion) {
 
 		if (nSize*nSize > r2 * TREE_OPEN_PARAM_BH)
 			return false;
@@ -381,9 +377,9 @@ static void interact(const Float mass, const double dr[3], const Float r2,
 {
 	//const Float h = GRAV_SOFTENING / 3.0; // Plummer equiv softening
 	const Float h = 105.0/32.0 * GRAV_SOFTENING;
-	const Float r = sqrt(r2);
 
-	Float r_inv = 1/r;
+	Float r_inv = 1/sqrt(r2);
+	Float r = 1/r_inv;
 
 #ifdef GRAVITY_POTENTIAL
 	Float r_inv_pot = r_inv;
@@ -413,24 +409,6 @@ static void interact(const Float mass, const double dr[3], const Float r2,
 	recv->Grav_Potential += Const.Gravity * mass * r_inv_pot;
 #endif
 
-#ifdef PERIODIC
-	Float fr[3] = { 0 };
-
-	Ewald_Correction(dr, &fr[0]);
-
-	recv->Grav_Acc[0] += Const.Gravity * fr[0] * mass;
-	recv->Grav_Acc[1] += Const.Gravity * fr[1] * mass;
-	recv->Grav_Acc[2] += Const.Gravity * fr[2] * mass;
-#endif // PERIODIC
-
-#if defined(GRAVITY_POTENTIAL) && defined(PERIODIC)
-	Float fp = 0;
-
-	Ewald_Potential(dr, &fp);
-
-	recv->Grav_Potential += -fp;
-#endif
-		
 	recv->Cost++;
 
 	return ;

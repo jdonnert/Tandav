@@ -14,14 +14,14 @@ XTRA_LIBS = $(LDFLAGS)
 # machine specifics
 ifeq ($(TANDAV_SYSTYPE),DARWIN)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -lmpich -O3 -mtune=native -march=native  -fopt-info-vec
-XTRA_LIBS = 
+OPTIMIZE =  -Wall -g -fopenmp -std=c99 -fstrict-aliasing  -O3 -mtune=native -march=native  -fopt-info-vec
+XTRA_LIBS = -lmpich
 XTRA_INCL = 
 endif
 
 ifeq ($(TANDAV_SYSTYPE),mach64.ira.inaf.it)
 CC       =  mpicc
-OPTIMIZE =  -g -O2  -march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp  \
+OPTIMIZE =  -g -O2 -fopenmp -std=c99 -fstrict-aliasing  -march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp  \
 			-minline-all-stringops -fprefetch-loop-arrays --param prefetch-latency=300 -funroll-all-loops 
 XTRA_LIBS = -L/home/donnert/Libs/lib
 XTRA_INCL = -I/home/donnert/Libs/include
@@ -29,18 +29,26 @@ endif
 
 ifeq ($(TANDAV_SYSTYPE),MSI)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O2 -openmp -xhost  -mkl  -ansi-alias-check 
+OPTIMIZE =  -Wall -g -fopenmp -std=c99 -fstrict-aliasing -O2 -openmp -xhost  -mkl  -ansi-alias-check 
 XTRA_LIBS = -lmpich -L$(LD_LIBRARY_PATH)
 XTRA_INCL = -I$(INCLUDE)
 endif
 
 ifeq ($(TANDAV_SYSTYPE),coma.msi.umn.edu)
 CC       =  mpicc
-OPTIMIZE =  -Wall -g -O3 -openmp -xhost  -mkl  -ansi-alias-check \
+OPTIMIZE =  -Wall -g -fopenmp -std=c99 -fstrict-aliasing  -O3 -openmp -xhost  -mkl  -ansi-alias-check \
 			-ipo -ipo-jobs8
 XTRA_LIBS = -lmpich -L$(LD_LIBRARY_PATH)
 XTRA_INCL = -I$(INCLUDE)
 endif
+
+ifeq ($(TANDAV_SYSTYPE),CRAY)
+CC       =  cc
+OPTIMIZE =  
+XTRA_LIBS = -L/home/users/n17421/Libs/lib
+XTRA_INCL = -I/home/users/n17421/Libs/include
+endif
+
 
 # end systypes
 
@@ -74,8 +82,7 @@ OBJFILES = $(SRCFILES:.c=.o)
 OBJS = $(addprefix $(SRCDIR),$(OBJFILES))
 INCS = $(addprefix $(SRCDIR),$(INCLFILES))
 
-CFLAGS = -fopenmp -std=c99 -fstrict-aliasing  \
-		 $(OPTIMIZE) $(XTRA_INCL) 
+CFLAGS = $(OPTIMIZE) $(XTRA_INCL) 
 
 LIBS = -lm -lgsl -lgslcblas $(XTRA_LIBS)
 

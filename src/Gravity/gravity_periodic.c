@@ -189,7 +189,7 @@ void Gravity_Periodic_Init()
 
 	Boxhalf = Boxsize / 2;
 
-	Box2Ewald_Grid = 2 * N_EWALD / Boxsize; // Volkers clever symmetry mapping
+	Box2Ewald_Grid = 2 * N_EWALD / Boxsize; // clever symmetry mapping
 
 	bool table_found = false;
 

@@ -38,10 +38,16 @@ static void gravity_accel_tree()
 	if (Sig.Tree_Update)
 		Gravity_Tree_Build();
 
-	if (Sig.First_Step)
-		Gravity_Tree_Acceleration(true);
-	
-	Gravity_Tree_Acceleration(false);
+	if (Sig.First_Step) {
+
+		Sig.Use_BH_Criterion = true;
+
+		Gravity_Tree_Acceleration();
+	}
+
+	Sig.Use_BH_Criterion = false;
+
+	Gravity_Tree_Acceleration();
 
 	return ;
 }

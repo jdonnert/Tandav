@@ -8,7 +8,7 @@ inline void Gravity_Simple_Accel() {};
 #if defined(GRAVITY) && defined(GRAVITY_TREE)
 void Setup_Gravity_Tree();
 void Gravity_Tree_Build();
-void Gravity_Tree_Acceleration(const bool);
+void Gravity_Tree_Acceleration();
 void Gravity_Tree_Update_Kicks(const int ipart, const double dt);
 void Gravity_Tree_Update_Topnode_Kicks();
 void Gravity_Tree_Update_Drift(const double dt);
@@ -35,9 +35,9 @@ struct Walk_Data_Particle { // stores exported particle data
 
 struct Walk_Data_Result { 	// stores exported summation results
 	Float Cost;
-	Float Grav_Acc[3];
+	double Grav_Acc[3];
 #ifdef GRAVITY_POTENTIAL
-	Float Grav_Potential;
+	double Grav_Potential;
 #endif
 };
 
@@ -53,7 +53,8 @@ inline void Gravity_Tree_Update_Drift(const double dt) {};
 #endif // (GRAVITY && GRAVITY_TREE)
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE) && defined(PERIODIC)
-void Gravity_Tree_Periodic();
+void Gravity_Tree_Periodic(const struct Walk_Data_Particle,
+								struct Walk_Data_Result *);
 void Tree_Periodic_Nearest(Float dr[3]);
 #else
 inline void Gravity_Tree_Periodic() {};

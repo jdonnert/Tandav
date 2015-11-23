@@ -39,9 +39,9 @@ static void gravity_accel_tree()
 		Gravity_Tree_Build();
 
 	if (Sig.First_Step)
-		Gravity_Tree_Acceleration();
-
-	Gravity_Tree_Acceleration();
+		Gravity_Tree_Acceleration(true);
+	
+	Gravity_Tree_Acceleration(false);
 
 	return ;
 }
@@ -50,22 +50,18 @@ static void accel_gravity()
 {
 	Profile("Gravity");
 
-	if (Sig.Sync_Point)
-		Gravity_Multi_Grid();  // GRAVITY_MULTI_GRID
-
 	gravity_accel_tree(); // GRAVITY_TREE
 	
-		gravity_accel_tree(); // GRAVITY_TREE
-
 	Gravity_Simple_Accel(); // GRAVITY_SIMPLE, performs force test
 
 	Profile("Gravity");
-exit(0);
+//exit(0);
 	return ;
 }
 
-#else // !GRAVITY
+#endif 
 
+#ifndef GRAVITY
 static void zero_active_particle_accelerations()
 {
 	#pragma omp for

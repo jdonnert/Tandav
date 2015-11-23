@@ -58,7 +58,7 @@ void Gravity_Simple_Accel()
 
 		for (int jpart = 0; jpart < Sim.Npart_Total; jpart++) {
 
-			double dr[3] = { P[jpart].Pos[0] - P[ipart].Pos[0],
+			double dr[3] = {P[jpart].Pos[0] - P[ipart].Pos[0],
 							P[jpart].Pos[1] - P[ipart].Pos[1],
 							P[jpart].Pos[2] - P[ipart].Pos[2]};
 

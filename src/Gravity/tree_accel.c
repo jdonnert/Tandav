@@ -34,7 +34,7 @@ static double check_total_momentum();
  * maximum errors. Barnes & Hut 1984, Springel 2006, Dehnen & Read 2012.
  */
 
-void Gravity_Tree_Acceleration()
+void Gravity_Tree_Acceleration(const bool use_BH_criterion)
 {
 	Profile("Grav Tree Walk");
 
@@ -45,11 +45,11 @@ void Gravity_Tree_Acceleration()
 
 		int ipart = Active_Particle_List[i];
 
-		struct Walk_Data_Particle send = copy_send_from(ipart);
+		const struct Walk_Data_Particle send = copy_send_from(ipart);
 		struct Walk_Data_Result recv = { 0 };
 
 		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
-	
+		
 		for (int j = 0; j < NTop_Nodes; j++) {
 
 			//check_outboxes();
@@ -73,7 +73,7 @@ void Gravity_Tree_Acceleration()
 
 			int tree_start = D[j].TNode.Target;
 
-			if (Sig.First_Step) // use BH criterion
+			if (use_BH_criterion) // use BH criterion
 				gravity_tree_walk_BH(tree_start, send, &recv);
 			else
 				gravity_tree_walk(tree_start, send, &recv);
@@ -148,13 +148,13 @@ static bool interact_with_topnode(const int j, const struct Walk_Data_Particle s
 {
 	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 
-	double dr[3] = {D[j].TNode.Pos[0] - send.Pos[0] ,
-				   D[j].TNode.Pos[1] - send.Pos[1] ,
+	double dr[3] = {D[j].TNode.Pos[0] - send.Pos[0],
+				   D[j].TNode.Pos[1] - send.Pos[1],
 				   D[j].TNode.Pos[2] - send.Pos[2]};
 	
-	if (fabs(dr[0]) < 0.6 * nSize) // inside subtree ? -> always walk
-		if (fabs(dr[1]) < 0.6 * nSize)
-			if (fabs(dr[2]) < 0.6 * nSize)
+	if (fabs(dr[0]) < 0.867 * nSize) // inside subtree ? -> always walk
+		if (fabs(dr[1]) < 0.867 * nSize)
+			if (fabs(dr[2]) < 0.867 * nSize)
 				return false; 
 
 	dr[0] = D[j].TNode.CoM[0] - send.Pos[0];
@@ -207,7 +207,8 @@ static void interact_with_topnode_particles(const int j,
 		
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
-		interact(P[jpart].Mass, dr, r2, recv);
+		if (r2 != 0)
+			interact(P[jpart].Mass, dr, r2, recv);
 	}
 
 	return ;
@@ -220,7 +221,8 @@ static void interact_with_topnode_particles(const int j,
  */
 
 static void gravity_tree_walk(const int tree_start, 
-		const struct Walk_Data_Particle send, struct Walk_Data_Result * restrict recv)
+		const struct Walk_Data_Particle send, 
+		struct Walk_Data_Result * restrict recv)
 {
 	const Float fac = send.Acc / Const.Gravity * TREE_OPEN_PARAM_REL;
 
@@ -237,15 +239,16 @@ static void gravity_tree_walk(const int tree_start,
 
 			for (int jpart = first; jpart < last; jpart++ ) {
 
-				double dr[3] = {P[jpart].Pos[0] - send.Pos[0] ,
+				double dr[3] = {P[jpart].Pos[0] - send.Pos[0],
 								P[jpart].Pos[1] - send.Pos[1],
 								P[jpart].Pos[2] - send.Pos[2]};
 
 				Periodic_Nearest(dr); // PERIODIC
 
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
-
-				interact(P[jpart].Mass, dr, r2, recv);
+				
+				if (r2 != 0)
+					interact(P[jpart].Mass, dr, r2, recv);
 			}
 
 			node++;
@@ -274,15 +277,15 @@ static void gravity_tree_walk(const int tree_start,
 
 		Float dx = fabs(Tree[node].Pos[0] - send.Pos[0]); // part in node ?
 
-		if (dx < 0.6 * nSize) {  
+		if (dx < 0.867 * nSize) {  
 
 			Float dy = fabs(Tree[node].Pos[1] - send.Pos[1]);
 
-			if (dy < 0.6 * nSize) {
+			if (dy < 0.867 * nSize) {
 
 				Float dz = fabs(Tree[node].Pos[2] - send.Pos[2]);
 
-				if (dz < 0.6 * nSize) {
+				if (dz < 0.867 * nSize) {
 
 					node++;
 
@@ -319,7 +322,7 @@ static void gravity_tree_walk_BH(const int tree_start,
 
 			for (int jpart = first; jpart < last; jpart++ ) {
 
-				double dr[3] = { P[jpart].Pos[0] - send.Pos[0],
+				double dr[3] = {P[jpart].Pos[0] - send.Pos[0],
 							    P[jpart].Pos[1] - send.Pos[1],
 					            P[jpart].Pos[2] - send.Pos[2]};
 
@@ -329,7 +332,8 @@ static void gravity_tree_walk_BH(const int tree_start,
 
 				Float mpart = P[jpart].Mass;
 
-				interact(mpart, dr, r2, recv);
+				if (r2 != 0)
+					interact(mpart, dr, r2, recv);
 			}
 
 			node++;
@@ -358,6 +362,7 @@ static void gravity_tree_walk_BH(const int tree_start,
 
 		interact(nMass, dr, r2, recv); // use node
 
+
 		node += fmax(1, Tree[node].DNext);
 
 	} // while
@@ -375,7 +380,7 @@ static void interact(const Float mass, const double dr[3], const Float r2,
 		struct Walk_Data_Result * restrict recv)
 {
 	//const Float h = GRAV_SOFTENING / 3.0; // Plummer equiv softening
-	const Float h = 105/32 * GRAV_SOFTENING;
+	const Float h = 105.0/32.0 * GRAV_SOFTENING;
 	const Float r = sqrt(r2);
 
 	Float r_inv = 1/r;

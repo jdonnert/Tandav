@@ -87,7 +87,7 @@ LIBS = -lm -lgsl -lgslcblas $(XTRA_LIBS)
 
 $(EXEC)	: settings $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) $(LIBS) -o $(EXEC)
-	@cd src && ctags -w *.[ch]
+	@ctags -w -t -d $(OBJS) $(INCS)
 
 $(OBJS)	: $(INCS)
 

@@ -10,6 +10,7 @@
 #define NODES_PER_PARTICLE 0.6
 #define TREE_ENLARGEMENT_FACTOR 1.2
 
+static void prepare_tree();
 static bool tree_memory_is_full(const int );
 static int reserve_tree_memory(const int);
 static void set_tree_parent_pointers (const int);
@@ -58,24 +59,7 @@ void Gravity_Tree_Build()
 	for (;;) {
 
 		#pragma omp single
-		{
-
-		if (NNodes != 0) { // tree build aborted, increase mem
-
-			Max_Nodes = TREE_ENLARGEMENT_FACTOR * Max_Nodes;
-		
-			printf("(%d:%d) Increased Tree Memory to %6.1f MB, "
-				"Max %10d Nodes \n", Task.Rank, Task.Thread_ID, 
-				Max_Nodes * sizeof(*Tree)/1024.0/1024.0, Max_Nodes); 
-		}
-
-		Tree = Realloc(Tree, Max_Nodes * sizeof(*Tree), "Tree");
-		
-		memset(Tree, 0, Max_Nodes * sizeof(*Tree));
-
-		NNodes = 0;
-
-		} // omp single
+		prepare_tree();
 
 		#pragma omp for schedule(static,1)
 		for (int i = 0; i < NTop_Nodes; i++) {
@@ -145,11 +129,32 @@ void Setup_Gravity_Tree()
 {
 	omp_init_lock(&Tree_Lock); // we don't destroy this one ...
 
-	Max_Nodes = 0.1 * Task.Npart_Total;
+	Max_Nodes = 0.3 * Task.Npart_Total;
 			
 	Tree = Malloc(Max_Nodes * sizeof(*Tree), "Tree");
 
 	buf_threshold = Task.Buffer_Size/sizeof(*Tree);
+
+	return ;
+}
+
+static void prepare_tree()
+{
+	if (NNodes != 0) { // tree build aborted, increase mem
+
+		Max_Nodes = TREE_ENLARGEMENT_FACTOR * Max_Nodes;
+		
+		printf("(%d:%d) Increased Tree Memory to %6.1f MB, "
+			"Max %10d Nodes, ratio %4g \n", Task.Rank, Task.Thread_ID, 
+			Max_Nodes * sizeof(*Tree)/1024.0/1024.0, Max_Nodes, 
+			(double) Max_Nodes/Task.Npart_Total); 
+	}
+
+	Tree = Realloc(Tree, Max_Nodes * sizeof(*Tree), "Tree");
+		
+	memset(Tree, 0, Max_Nodes * sizeof(*Tree));
+
+	NNodes = 0;
 
 	return ;
 }

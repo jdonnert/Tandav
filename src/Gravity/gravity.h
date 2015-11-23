@@ -8,7 +8,7 @@ inline void Gravity_Simple_Accel() {};
 #if defined(GRAVITY) && defined(GRAVITY_TREE)
 void Setup_Gravity_Tree();
 void Gravity_Tree_Build();
-void Gravity_Tree_Acceleration();
+void Gravity_Tree_Acceleration(const bool);
 void Gravity_Tree_Update_Kicks(const int ipart, const double dt);
 void Gravity_Tree_Update_Topnode_Kicks();
 void Gravity_Tree_Update_Drift(const double dt);
@@ -28,8 +28,8 @@ uint32_t NNodes;
 
 struct Walk_Data_Particle { // stores exported particle data
 	ID_t ID;
-	int Pos[3];
-	int Acc; 				// only magnitude of the last acceleration
+	Float Pos[3];
+	Float Acc; 				// only magnitude of the last acceleration
 	Float Mass;
 };
 

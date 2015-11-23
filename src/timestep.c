@@ -102,7 +102,7 @@ void Setup_Time_Integration()
 			Time.Begin, Time.End, Time.Bet_Snap, Time.NSnap);
 
 #ifdef COMOVING
-	rprintf("   initial redshift = %g, final redshift = %g \n\n",
+	rprintf("   initial redshift = %g, final redshift = %g \n",
 			1.0/Time.Begin - 1, 1.0/Time.End - 1);
 #endif // COMOVING
 
@@ -139,6 +139,15 @@ void Setup_Time_Integration()
 	return ;
 }
 
+static inline Float convert_dt_to_dlna(const Float dt)
+{
+#ifdef COMOVING
+	return dt * Cosmo.Hubble_Parameter;
+#else 
+	return dt;
+#endif
+}
+
 /* 
  * Find smallest allowed timestep for local particles given the time step 
  * criteria. Find local max & min to these bins. 
@@ -155,17 +164,14 @@ static void set_new_particle_timebins()
 
 	} // omp single
 
-
 	#pragma omp for reduction(min:Time_Bin_Min) reduction(max:Time_Bin_Max)
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
 
-		float dt = get_physical_timestep(ipart);
+		Float dt = get_physical_timestep(ipart);
 
-#ifdef COMOVING
-		dt *= Cosmo.Hubble_Parameter; // convert dt to dln(a)
-#endif
+		dt = convert_dt_to_dlna(dt); // COMOVING
 
 		dt = fmin(dt, Dt_Max_Global);
 
@@ -177,7 +183,7 @@ static void set_new_particle_timebins()
 		int want = timestep2timebin(dt);
 
 		int allowed = MAX(Time.Max_Active_Bin, P[ipart].Time_Bin);
-
+		
 		P[ipart].Time_Bin = MIN(want, allowed);
 
 		Time_Bin_Min = MIN(Time_Bin_Min, P[ipart].Time_Bin);

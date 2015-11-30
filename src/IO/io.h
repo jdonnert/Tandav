@@ -1,6 +1,9 @@
 #include "../timestep.h"
 
-/* Function Prototypes */
+/* 
+ * Function Prototypes 
+ */
+
 extern void Read_Parameter_File(const char *);
 extern void Write_Parameter_File(const char *);
 extern void Read_Snapshot();
@@ -8,49 +11,6 @@ extern void Read_Restart_File();
 extern void Read_and_Init();
 extern void Write_Snapshot();
 extern void Write_Restart_File();
-
-/* Parameter I/O */
-typedef struct {
-	char tag[CHARBUFSIZE]; // Parameter file tag
-	char val[CHARBUFSIZE]; // Standard value
-	void *addr; // Address of target variable
-	enum param_type {
-		DOUBLE,
-		INT,
-		STRING,
-		COMMENT,
-	} type; // type of addr
-}  parameter;
-
-static const parameter ParDef[] = {
-
-	{"\n%% Files %%\n", "", NULL, COMMENT},
-	{"InputFile", "IC_file", &Param.Input_File, STRING},
-	{"OutputFileBase", "snap", &Param.Output_File_Base, STRING},
-	{"LogFileDir", "./log", &Param.Log_File_Dir, STRING},
-	{"NumIOTasks", "1", &Param.Num_IO_Tasks, INT},
-	{"NumOutputFiles", "1", &Param.Num_Output_Files, INT},
-
-	{"\n%% Code Parameters %%\n", "", NULL, COMMENT},
-	{"MaxMemSize", "1024", &Param.Max_Mem_Size, INT},
-	{"BufferSize", "32", &Param.Buffer_Size, INT}, // in MB per MPI rank
-	{"TimeLimitCPU", "20864", &Param.Runtime_Limit, DOUBLE},
-
-	{"\n%% Simulation Characteristics %%\n", "", NULL, COMMENT},
-	{"Boxsize0", "-1", &Sim.Boxsize[0], DOUBLE},
-	{"Boxsize1", "-1", &Sim.Boxsize[1], DOUBLE},
-	{"Boxsize2", "-1", &Sim.Boxsize[2], DOUBLE},
-	{"TimeBegin", "0", &Time.Begin, DOUBLE},
-	{"TimeEnd", "10", &Time.End, DOUBLE},
-	{"TimeOfFirstSnaphot", "0", &Time.First_Snap, DOUBLE},
-	{"TimeBetSnapshots", "0", &Time.Bet_Snap, DOUBLE},
-	{"MaxSizeTimestep", "0.05", &Param.Max_Timestep, DOUBLE},
-	{"MinSizeTimestep", "1e-7", &Param.Min_Timestep, DOUBLE},
-
-	/* Add yours below */
-};
-
-static const int NTags = ARRAY_SIZE(ParDef);
 
 /* Snapshot I/O */
 unsigned int Largest_Block_Member_Nbytes();

@@ -7,7 +7,13 @@
 
 #define TABLESIZE 128
 
+#ifdef GADGET_COMOVING_VEL_UNIT
 static void convert_velocities_to_comoving();
+#else
+static inline void convert_velocities_to_comoving(){};
+#endif
+
+
 static void setup_kick_drift_factors();
 
 static double Drift_Table[TABLESIZE] = { 0 }, Kick_Table[TABLESIZE] = { 0 },
@@ -71,7 +77,7 @@ void Setup_Comoving()
 	#pragma omp parallel
 	{
 
-	convert_velocities_to_comoving();
+	convert_velocities_to_comoving(); // GADGET_COMOVING_VEL_UNIT
 
     setup_kick_drift_factors();
 
@@ -162,6 +168,7 @@ static void setup_kick_drift_factors()
  * potential. (Peebles 1980, Mo, v.d.Bosch, White 4.1.8, Springel 2001)
  */
 
+#ifdef GADGET_COMOVING_VEL_UNIT
 static void convert_velocities_to_comoving()
 {
 	const double phys2comov_vel = pow(Time.Current, 1.5);
@@ -176,6 +183,7 @@ static void convert_velocities_to_comoving()
 
 	return ;
 }
+#endif
 
 /* 
  * In cosmological simulations the timestep has to be bound by the maximum 

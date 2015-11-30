@@ -1,6 +1,7 @@
 #include "../globals.h"
 #include "../proto.h"
 #include "io.h"
+#include "rw_parameter_file.h"
 
 void sanity_check_input_parameters();
 
@@ -51,22 +52,22 @@ void Read_Parameter_File(const char *filename)
 
 			switch (ParDef[j].type) {
 
-			case COMMENT:
+			case PAR_COMMENT:
 				break;
 
-			case DOUBLE:
+			case PAR_DOUBLE:
 
 				*((double *)ParDef[j].addr) = atof(buf2);
 
 				break;
 
-			case STRING:
+			case PAR_STRING:
 
 				strncpy((char *)ParDef[j].addr, buf2, CHARBUFSIZE); 
 
 				break;
 
-			case INT:
+			case PAR_INT:
 
 				*((int *)ParDef[j].addr) = atoi(buf2);
 
@@ -82,7 +83,7 @@ void Read_Parameter_File(const char *filename)
 		printf("\n");
 
 		for (int i = 0; i < NTags; i++) // are we missing one ?
-			Assert(tagDone[i] || ParDef[i].type == COMMENT,
+			Assert(tagDone[i] || ParDef[i].type == PAR_COMMENT,
 				"Value for tag '%s' missing in parameter file '%s'.\n",
 				ParDef[i].tag, filename );
 
@@ -110,7 +111,7 @@ void Write_Parameter_File(const char *filename)
 
 			fprintf(fd, "%s", ParDef[i].tag);
 
-			if (ParDef[i].type != COMMENT)
+			if (ParDef[i].type != PAR_COMMENT)
 				fprintf(fd, "		%s \n", ParDef[i].val);
 		}
 

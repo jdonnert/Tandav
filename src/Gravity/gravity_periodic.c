@@ -31,10 +31,11 @@ static Float Fp[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
  * doubled in resolution.
  */
 
-void Ewald_Correction(const double dr[3], Float f[3])
+void Ewald_Correction(const Float dr[3], Float f[3])
 {
-	double dx = dr[0];
 	int sign[3] = { -1, -1, -1 };
+	
+	double dx = dr[0];
 
 	if (dx < 0) {
 
@@ -198,8 +199,17 @@ void Gravity_Periodic_Init()
 
 	MPI_Bcast(&table_found, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
 
-	if (table_found)
+	if (table_found) {
+	
+		int len = p3(N_EWALD + 1);
+
+		MPI_Bcast(&Fx[0][0][0], len, MPI_MYFLOAT, MASTER, MPI_COMM_WORLD);
+		MPI_Bcast(&Fy[0][0][0], len, MPI_MYFLOAT, MASTER, MPI_COMM_WORLD);
+		MPI_Bcast(&Fz[0][0][0], len, MPI_MYFLOAT, MASTER, MPI_COMM_WORLD);
+		MPI_Bcast(&Fp[0][0][0], len, MPI_MYFLOAT, MASTER, MPI_COMM_WORLD);
+		
 		goto skip_computation;
+	}
 
 	compute_ewald_correction_table();
 
@@ -282,7 +292,7 @@ static void compute_ewald_correction_table()
 		len = size;
 
 		if (Task.Rank == (Sim.NRank - 1))
-			len = p3(N_EWALD + 1) - beg;
+			len =  - beg;
 
 		MPI_Bcast(&Fx[0][0][beg], len, MPI_MYFLOAT, rank, MPI_COMM_WORLD);
 		MPI_Bcast(&Fy[0][0][beg], len, MPI_MYFLOAT, rank, MPI_COMM_WORLD);

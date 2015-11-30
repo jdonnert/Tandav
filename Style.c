@@ -30,12 +30,10 @@ This is the Style Guide for Tandav:
 		size_t nBytes = Task.Npart * N_BINS * sizeof(*my_array);
 		int my_array = malloc(nBytes);
 
-
-
 * Self-explaining code doesn't need many comments, if you use functions. 
   If you modulerize properly you will call many static functions whose names 
   will explain most of what needs to be known. These function will be
-  optimised away by modern compilers. Across file, -flto or -ipo switches do
+  optimised away by modern compilers. Across files, -flto or -ipo switches do
   the same.
 
 * Write short functions, whose name is a description of what you are doing.
@@ -60,6 +58,8 @@ This is the Style Guide for Tandav:
 
 		}
 
+  An exception for this rule are hot loops, because this approach does not
+  vectorize !
 
 * The naming scheme of the modules should be consistent on the Makefile, file 
   and function level:
@@ -71,9 +71,21 @@ This is the Style Guide for Tandav:
 * C99: Variables are initialised when declared. Use the const keyword for
   input parameters to avoid bugs.
 
+* In general its a good idea to avoid the pointer picture where possible.
+  E.g. if you declare pointers as function parameters and you know their size
+  beforehand, tell the reader and the compiler: 
+
+			static void find_domain_center(double Center_Out[3]);
+
+  instead of
+
+			static void find_domain_center(double *Center_Out);
+
+  Now the compiler can in principle check for out of bounds accesses.
+
 * Minimize scope! Even declare variables in loop heads like this:
-  for(int i = 0; i < N; i++). This is sometimes even faster in OpenMP and helps
-  the parallelisation in general.
+  for(int i = 0; i < N; i++). This is sometimes even faster in OpenMP 
+  and helps the parallelisation in general.
 
 * Global variables should have long meaningful names, start with a capital
   letters. Scope should be visible and global variables have to be
@@ -145,14 +157,15 @@ This is the Style Guide for Tandav:
   You never know what someone else is going to squeeze into your define later
   so the endif might appear pages down.
 
-* No #ifdefs in C code. Write a function and an empty "inline void F(){};"
-  prototype in the header file. Start the function name with the macro name. 
-  See the handling of Periodic_Constrain_Particles_To_Box() in drift.[ch]
+* Minimize #ifdefs in C code. Write a function and an empty 
+  "inline void F(){};" prototype in the header file. Start the function 
+  name with the macro name.  See the handling of 
+  Periodic_Constrain_Particles_To_Box() in drift.[ch]
 
 * Avoid stacking #ifdef, it becomes unreadable too quickly (hydra.c anybody?) 
   Check Gravity/gravity.h to see how to do it.
 
-* Default integers should be simply int. If you need more bits,unsigned etc, 
+* Default integers should be simply int. If you need more bits, unsigned etc, 
   exclusively use int64_t, uint32_t etc. Standard long and unsigned int are 
   architecture dependent. Array & Malloc sizes should be size_t, pointer 
   positions ptrdiff_t.
@@ -176,3 +189,18 @@ This is the Style Guide for Tandav:
   and Finish_X() functions, defined in the module file and called in init.c 
   setup.c and finish.c. This way you can execute memory allocation etc
   at various stages in code, in particular outside of the omp parallel region.
+  This is a C way of writing object oriented code.
+
+* We use the structures of arrays approach, not the array of structures 
+  approach. The simple reason is aligned memory access for vectorization. 
+  I.e. a loop like this
+  			
+  			for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
+				P.Pos[0][ipart] += P.Vel[0][ipart] * dt;
+
+	vectorizes. This one doesn't :
+
+  			for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
+				P[ipart].Pos[0] += P[ipart].Vel[0] * dt;
+
+	The difference in speed is easily a factor of ten !

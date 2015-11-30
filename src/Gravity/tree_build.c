@@ -121,7 +121,7 @@ void Gravity_Tree_Build()
 	Sig.Tree_Update = false;
 
 	Profile("Build Gravity Tree");
-
+	
 	return ;
 }
 
@@ -595,7 +595,10 @@ static void print_top_nodes()
 
 void test_gravity_tree(const int nNodes)
 {
-	for (int node = 0; node < nNodes; node++) {
+	const int first_node = 122984;
+	const int last_node = 122985;
+
+	for (int node = first_node; node < last_node; node++) {
 
 		int lvl = Level(node);
 
@@ -633,42 +636,17 @@ void test_gravity_tree(const int nNodes)
 						if (dy > nSize * 0.5)
 							if (dz > nSize * 0.5)
 								nout++;
+
+					printf("%d %d \n", jpart, P[jpart].ID);
 				}
 			}
 
 			n++;
 		}
 
-		if (tree[node].DNext < 0) { // bundle
-
-			int first = -tree[node].DNext - 1;
-			int last = first + tree[node].Npart;
-
-			for (int jpart = first; jpart < last; jpart++ ) {
-
-				npart++;
-
-				mass += P[jpart].Mass;
-
-				com[0] += P[jpart].Pos[0] * P[jpart].Mass;
-				com[1] += P[jpart].Pos[1] * P[jpart].Mass;
-				com[2] += P[jpart].Pos[2] * P[jpart].Mass;
-
-				double dx = fabs(P[jpart].Pos[0] - tree[node].Pos[0]);
-				double dy = fabs(P[jpart].Pos[1] - tree[node].Pos[1]);
-				double dz = fabs(P[jpart].Pos[2] - tree[node].Pos[2]);
-
-				if (dx > nSize * 0.5)
-					if (dy > nSize * 0.5)
-						if (dz > nSize * 0.5)
-							nout++;
-			}
-		}
-
 		com[0] /= mass; com[1] /= mass; com[2] /= mass;
 
-		if (Tree[node].DNext == 0)
-			printf("node %4d | m %6g =? %6g | Npart %6d =? %6d | lvl %2d "
+		printf("node %4d | m %6g =? %6g | Npart %6d =? %6d | lvl %2d "
 				"| dnext %4d "
 				"dup %4d nsize %8g | nout %3d | CoM %g %g %g =? %g %g %g \n",
 				node, mass,tree[node].Mass, npart, tree[node].Npart, lvl,

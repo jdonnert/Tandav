@@ -8,6 +8,7 @@
 //static const double H = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
 static const Float H = 105/32 * GRAV_SOFTENING; // Plummer equiv softening
 
+
 static double Mean_Error = 0, Max_Error = 0;
 static int Worst_Part = -1;
 
@@ -49,8 +50,7 @@ void Gravity_Simple_Accel()
 		cnt++;
 
 		double acc[3] = { P[ipart].Acc[0], P[ipart].Acc[1], P[ipart].Acc[2] };
-
-		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
+		double acc_i[3] = { 0 }; 
 
 #ifdef GRAVITY_POTENTIAL
 		P[ipart].Grav_Pot = 0;
@@ -58,67 +58,71 @@ void Gravity_Simple_Accel()
 
 		for (int jpart = 0; jpart < Sim.Npart_Total; jpart++) {
 
-			double dr[3] = {P[jpart].Pos[0] - P[ipart].Pos[0],
+			Float dr[3] = {P[jpart].Pos[0] - P[ipart].Pos[0],
 							P[jpart].Pos[1] - P[ipart].Pos[1],
 							P[jpart].Pos[2] - P[ipart].Pos[2]};
 
 			Periodic_Nearest(dr); // PERIODIC 
 
-			double r2 = ASCALPROD3(dr);
+			double r2 = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
 
-			double rinv = 1/sqrt(r2);
-			double r = 1/rinv;
+			if (r2 > 0) {
 
-			if (r < H) {
+				double r = sqrt(r2);
+				double rinv = 1/r;
+	
+				if (r < H) {
 
-				double u = r/H;
-				double u2 = u*u;
+					double u = r/H;
+					double u2 = u*u;
 
-				rinv = sqrt(u * (135*u2*u2 - 294*u2 + 175))/(4*H) ;
-				
-				//double u3 = u2*u;
-				//rinv = sqrt(14*u-84*u3+140*u2*u2-90*u2*u3+21*u3*u3)/H;
-			}
+					rinv = sqrt(u * (135*u2*u2 - 294*u2 + 175))/(4*H) ;
+				}
 
-			double acc_mag = Const.Gravity * P[jpart].Mass * p2(rinv);
-
-			P[ipart].Acc[0] += acc_mag * dr[0] * rinv;
-			P[ipart].Acc[1] += acc_mag * dr[1] * rinv;
-			P[ipart].Acc[2] += acc_mag * dr[2] * rinv;
+				double acc_mag = Const.Gravity * P[jpart].Mass * p2(rinv);
+			
+				acc_i[0] += acc_mag * dr[0] * rinv;
+				acc_i[1] += acc_mag * dr[1] * rinv;
+				acc_i[2] += acc_mag * dr[2] * rinv;
 
 #ifdef PERIODIC
-			Float result[3] = { 0 };
+				Float result[3] = { 0 };
 
-			Ewald_Correction(dr, &result[0]);
+				Ewald_Correction(dr, &result[0]);
 
-			P[ipart].Acc[0] += Const.Gravity * P[jpart].Mass * result[0];
-			P[ipart].Acc[1] += Const.Gravity * P[jpart].Mass * result[1];
-			P[ipart].Acc[2] += Const.Gravity * P[jpart].Mass * result[2];
+				acc_i[0] += Const.Gravity * P[jpart].Mass * result[0];
+				acc_i[1] += Const.Gravity * P[jpart].Mass * result[1];
+				acc_i[2] += Const.Gravity * P[jpart].Mass * result[2];
 
 #endif // PERIODIC
 
 #ifdef GRAVITY_POTENTIAL
-			if (r < H) { // WC2 kernel softening
+				if (r < H) { // WC2 kernel softening
 
-				double u = r/H;
-				double u2 = u*u;
-				double u3 = u2*u;
+					double u = r/H;
+					double u2 = u*u;
+					double u3 = u2*u;
 
-				rinv = (7*u2-21*u2*u2+28*u3*u2-15*u3*u3+u3*u3*u*8-3)/H;
-			}
+					rinv = (7*u2-21*u2*u2+28*u3*u2-15*u3*u3+u3*u3*u*8-3)/H;
+				}
 
-			P[ipart].Grav_Pot += Const.Gravity * P[jpart].Mass *rinv;
+				P[ipart].Grav_Pot += Const.Gravity * P[jpart].Mass *rinv;
 #endif
 
-#if  defined (GRAVITY_POTENTIAL) && defined(PERIODIC)
-			Float pot_corr = 0;
+#if defined (GRAVITY_POTENTIAL) && defined(PERIODIC)
+				Float pot_corr = 0;
 
-			Ewald_Potential(dr, &pot_corr); // PERIODIC
+				Ewald_Potential(dr, &pot_corr); // PERIODIC
 
-			P[ipart].Grav_Pot += Const.Gravity * P[jpart].Mass * pot_corr;
+				P[ipart].Grav_Pot += Const.Gravity * P[jpart].Mass * pot_corr;
 #endif 
 
+			} // r2 > 0
 		} // for jpart
+
+		P[ipart].Acc[0] = acc_i[0];
+		P[ipart].Acc[1] = acc_i[1];
+		P[ipart].Acc[2] = acc_i[2];
 
 		double error[3] = {(acc[0] - P[ipart].Acc[0]) / P[ipart].Acc[0],
 							(acc[1] - P[ipart].Acc[1]) / P[ipart].Acc[1],
@@ -139,8 +143,9 @@ void Gravity_Simple_Accel()
 
 		} // omp critical
 
-		printf("  ipart=%d ID=%d err=%g tree acc=%g %g %g dir acc=%g %g %g \n",
-				ipart, P[ipart].ID, errorl, acc[0], acc[1], acc[2],
+		printf("  ipart=%d ID=%d pos=%g %g %g err=%g tree acc=%g %g %g dir acc=%g %g %g \n",
+				ipart, P[ipart].ID, P[ipart].Pos[0],P[ipart].Pos[1],
+				P[ipart].Pos[2], errorl, acc[0], acc[1], acc[2],
 				P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
 
 	} // for ipart

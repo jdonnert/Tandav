@@ -15,7 +15,7 @@ static void interact_with_topnode_particles(const int j,
 static void gravity_tree_walk_ewald(const int tree_start,
 		const struct Walk_Data_Particle, struct Walk_Data_Result * restrict);
 
-static void interact_with_ewald_cube(const double *, const Float,
+static void interact_with_ewald_cube(const Float *, const Float,
 		struct Walk_Data_Result * restrict);
 
 /*
@@ -56,7 +56,7 @@ static bool interact_with_topnode (const int j,
 
 	bool want_open_node = false;
 
-	double dr[3] = {D[j].TNode.CoM[0] - send.Pos[0],
+	Float dr[3] = {D[j].TNode.CoM[0] - send.Pos[0],
 					D[j].TNode.CoM[1] - send.Pos[1],
 				    D[j].TNode.CoM[2] - send.Pos[2]};
 
@@ -71,25 +71,25 @@ static bool interact_with_topnode (const int j,
 
 	} else { // relative criterion
 
-		Float nMass = D[j].TNode.Mass;
+		Float node_mass = D[j].TNode.Mass;
 
 		Float fac = send.Acc/Const.Gravity*TREE_OPEN_PARAM_REL;
 
-		if (nMass*node_size*node_size > r2*r2 * fac)
+		if (node_mass*node_size*node_size > r2*r2 * fac)
 			want_open_node = true;
 	}
 
 	double dx = fabs(send.Pos[0] - D[j].TNode.Pos[0]);
 
-	if (dx < 0.6 * node_size) {  // inside subtree ? -> always walk
+	if (dx < 0.867 * node_size) {  // inside subtree ? -> always walk
 	
 		double dy = fabs(send.Pos[1] - D[j].TNode.Pos[1]);
 
-		if (dy < 0.6 * node_size) {
+		if (dy < 0.867 * node_size) {
 		
 			double dz = fabs(send.Pos[2] - D[j].TNode.Pos[2]);
 		
-			if (dz < 0.6 * node_size) {
+			if (dz < 0.867 * node_size) {
 			
 				want_open_node = true;
 			}
@@ -132,13 +132,14 @@ static void interact_with_topnode_particles(const int j,
 
 	for (int jpart = first; jpart < last; jpart++) {
 
-		double dr[3] = {P[jpart].Pos[0] - send.Pos[0],
+		Float dr[3] = {P[jpart].Pos[0] - send.Pos[0],
 					    P[jpart].Pos[1] - send.Pos[1],
 			            P[jpart].Pos[2] - send.Pos[2] };
 
 		Periodic_Nearest(dr);
-	
-		interact_with_ewald_cube(dr, P[jpart].Mass, recv);
+
+		if (dr[0] != 0 && dr[1] != 0 && dr[2] != 0)
+			interact_with_ewald_cube(dr, P[jpart].Mass, recv);
 	}
 
 	return ;
@@ -156,7 +157,7 @@ static void gravity_tree_walk_ewald(const int tree_start,
 		const struct Walk_Data_Particle send,
 		struct Walk_Data_Result * restrict recv)
 {
-	const Float fac = send.Acc / (Const.Gravity) * TREE_OPEN_PARAM_REL;
+	const Float fac = send.Acc / (Const.Gravity) * TREE_OPEN_PARAM_REL ;
 
 	const int tree_end = tree_start + Tree[tree_start].DNext;
 
@@ -173,7 +174,7 @@ static void gravity_tree_walk_ewald(const int tree_start,
 
 			for (int jpart = first; jpart < last; jpart++) {
 
-				double dr[3] = {P[jpart].Pos[0] - send.Pos[0],
+				Float dr[3] = {P[jpart].Pos[0] - send.Pos[0],
 							    P[jpart].Pos[1] - send.Pos[1],
 					            P[jpart].Pos[2] - send.Pos[2]};
 
@@ -183,7 +184,8 @@ static void gravity_tree_walk_ewald(const int tree_start,
 //		P[jpart].Pos[0], P[jpart].Pos[1], P[jpart].Pos[2], 
 //	send.Pos[0],send.Pos[1],send.Pos[2]);
 
-				interact_with_ewald_cube(dr, P[jpart].Mass, recv);
+				if ((dr[0] != 0) && (dr[1] != 0) && (dr[2] != 0))
+					interact_with_ewald_cube(dr, P[jpart].Mass, recv);
 			} // for jpart
 
 			node++;
@@ -191,7 +193,7 @@ static void gravity_tree_walk_ewald(const int tree_start,
 			continue;
 		}
 
-		double dr[3] = {Tree[node].CoM[0] - send.Pos[0],
+		Float dr[3] = {Tree[node].CoM[0] - send.Pos[0],
 					    Tree[node].CoM[1] - send.Pos[1],
 					    Tree[node].CoM[2] - send.Pos[2]};
 
@@ -199,7 +201,7 @@ static void gravity_tree_walk_ewald(const int tree_start,
 
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
-		Float nMass = Tree[node].Mass;
+		Float node_mass = Tree[node].Mass;
 
 		Float node_size = Node_Size(node); // now check opening criteria
 
@@ -210,17 +212,17 @@ static void gravity_tree_walk_ewald(const int tree_start,
 
 		} else { // relative criterion
 
-			if (nMass*node_size*node_size > r2*r2 * fac) 
+			if (node_mass*node_size*node_size > r2*r2 * fac) 
 				want_open_node = true;
 		}
 
-		double ds[3] = {Tree[node].Pos[0]- send.Pos[0],
+		Float ds[3] = {Tree[node].Pos[0]- send.Pos[0],
 						Tree[node].Pos[1]- send.Pos[1],
 						Tree[node].Pos[2]- send.Pos[2]};	
 
-		if (fabs(ds[0]) < 0.6 * node_size)  // particle inside node ?
-			if (fabs(ds[1]) < 0.6 * node_size) 
-				if (fabs(ds[2]) < 0.6 * node_size) 
+		if (fabs(ds[0]) < 0.867 * node_size)  // particle inside node ?
+			if (fabs(ds[1]) < 0.867 * node_size) 
+				if (fabs(ds[2]) < 0.867 * node_size) 
 					want_open_node = true;
 
 		Periodic_Nearest(ds);
@@ -257,7 +259,7 @@ static void gravity_tree_walk_ewald(const int tree_start,
 
 		} // if want_open_node
 
-		interact_with_ewald_cube(dr, nMass, recv);
+		interact_with_ewald_cube(dr, node_mass, recv);
 
 		node += Tree[node].DNext; // skip sub-branch, goto sibling
 
@@ -267,11 +269,9 @@ static void gravity_tree_walk_ewald(const int tree_start,
 }
 
 
-static void interact_with_ewald_cube (const double * dr, const Float mass,
+static void interact_with_ewald_cube (const Float * dr, const Float mass,
 		struct Walk_Data_Result * restrict recv)
 {
-	recv->Cost++;
-
 	Float result[3] = { 0 };
 
 	Ewald_Correction(dr, &result[0]);
@@ -280,7 +280,8 @@ static void interact_with_ewald_cube (const double * dr, const Float mass,
 	recv->Grav_Acc[1] += Const.Gravity * mass * result[1];
 	recv->Grav_Acc[2] += Const.Gravity * mass * result[2];
 	
-//printf("%g %g %g %g %g %g %g \n",mass, dr[0], dr[1], dr[2], result[0], result[1], result[2]);
+	recv->Cost++;
+
 #ifdef GRAVITY_POTENTIAL
 	
 	Float pot_corr = 0;

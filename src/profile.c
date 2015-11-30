@@ -239,7 +239,7 @@ static inline int find_index_from_name(const char *name)
 		if (strncmp(name, Prof[i].Name, CHARBUFSIZE) == 0)
 			break;
 
-	return i; // may return i=NProfObjs, i.e. new item
+	return i; // may return i = NProfObjs, i.e. new item
 }
 
 static double measure_time()

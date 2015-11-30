@@ -6,7 +6,7 @@
 #define MIN_LEVEL 3 // decompose at least 8^MIN_LEVEL domains downward
 
 static void set_computational_domain();
-static void find_domain_center(double *Center_Out);
+static void find_domain_center(double Center_Out[3]);
 static void find_largest_particle_distance(double *);
 static void reset_bunchlist(const bool);
 static void fill_new_bunches(const int, const int, const int, const int);
@@ -334,7 +334,7 @@ static void reset_bunchlist(const bool rebuild)
 
 static int find_min_level()
 {
-	return MAX(MIN_LEVEL, log(NTarget)/log(8) + 1);
+	return fmax(MIN_LEVEL, log(NTarget)/log(8) + 1);
 
 }
 

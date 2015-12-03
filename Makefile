@@ -28,7 +28,7 @@
 #
 # 	export TANDAV_CC="mpicc"
 #	export TANDAV_CFLAGS="-Wall -g -openmp -std=c99 -fstrict-aliasing \
-#		-ansi-alias-check -O3 -xhost"
+#		-ansi-alias-check -O3 -xhost -qopt-report"
 # 	export TANDAV_LDFLAGS="-lmpich"
 # 	export TANDAV_CPPFLAGS=""
 #

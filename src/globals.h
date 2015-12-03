@@ -15,8 +15,8 @@ extern struct Local_Task_Properties {
 	int Npart[NPARTYPE];		// Number of particles on this processor
 	uint64_t Npart_Total_Max;	// per task taking into account imbalance.
 	uint64_t Npart_Max[NPARTYPE];// Use this if array size scales with Npart
+	size_t Buffer_Size;			// for Thread Safe Buffer
 	unsigned short Seed[3];		// Thread safe urand48() seed
-	size_t Buffer_Size;		// for Thread Safe Buffer
 } Task;
 #pragma omp threadprivate(Task) // modifications only in parallel env. !!
 
@@ -41,7 +41,7 @@ extern struct Parameters_From_File {
 	char Log_File_Dir[CHARBUFSIZE];
 	int Num_IO_Tasks;			// written in parallel
 	int Max_Mem_Size;			// Memory Ceiling in 1024^2 Bytes
-	int Buffer_Size;			// Total size of thread safe buffer
+	int Buffer_Size;			// Total size of thread safe buffer in MB
 	int Num_Output_Files;		// Number of files per snapshot
 	double Runtime_Limit;		// in sec
 	double Max_Timestep;		// largest timestep constraint

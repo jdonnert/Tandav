@@ -177,13 +177,15 @@ void *Get_Thread_Safe_Buffer (size_t nBytes)
 void Init_Memory_Management()
 {
 
-#pragma omp parallel
+	#pragma omp parallel
 	{
 
-	Task.Buffer_Size = Param.Buffer_Size * 1024 * 1024 / Sim.NThreads;
+	Task.Buffer_Size = Param.Buffer_Size * 1024L * 1024L / Sim.NThreads;
 
 	#pragma omp critical
 	buffer = malloc(Task.Buffer_Size); // let the system take a local chunk
+	
+	memset(buffer, 0, Task.Buffer_Size);
 
 	} // omp parallel
 

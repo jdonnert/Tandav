@@ -52,7 +52,7 @@ typedef uint64_t shortKey;		// short peanokey, 21 triplets / levels
  */
 
 extern void Finish();
-extern void Print_compile_time_settings();
+extern void Print_Compile_Time_Settings();
 
 /* 
  * Workarounds 

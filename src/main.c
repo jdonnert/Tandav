@@ -130,7 +130,7 @@ static void preamble(int argc, char *argv[])
 
 		printf("#### Tandav ####\n\n");
 
-		Print_compile_time_settings();
+		Print_Compile_Time_Settings();
 
 		printf("\nsizeof(*P) = %zu byte\n", sizeof(*P)*CHAR_BIT/8);
 		printf("sizeof(*D) = %zu byte\n", sizeof(*D)*CHAR_BIT/8);

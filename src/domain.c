@@ -71,7 +71,7 @@ void Domain_Decomposition()
 	set_computational_domain();
 
 	Sort_Particles_By_Peano_Key();
-
+	
 	reset_bunchlist(false); // also deallocates Tree
 
 	fill_new_bunches(0, NBunches, 0, Task.Npart_Total);
@@ -83,7 +83,7 @@ void Domain_Decomposition()
 	int cnt = 0;
 	
 	for (;;) {
-
+		
 		#pragma omp single
 		Max_Level = remove_empty_bunches();
 
@@ -498,13 +498,14 @@ static int remove_empty_bunches()
 static void fill_new_bunches(const int first_bunch, const int nBunches,
 		 const int first_part, const int nPart)
 {
+	
 	const int last_part = first_part + nPart;
 	const int last_bunch = first_bunch + nBunches;
-
+	
 	struct Bunch_Node *buf = Get_Thread_Safe_Buffer(nBunches * sizeof(*buf));
 
 	int run = first_bunch;
-
+	
 	for (int i = 0; i < nBunches; i++) { // init omp buffer
 
 		buf[i].First_Part = INT_MAX;
@@ -548,6 +549,7 @@ static void fill_new_bunches(const int first_bunch, const int nBunches,
 									   buf[run].First_Part);
 		run++;
 	}
+printf("E");
 
 	} // omp critical 
 

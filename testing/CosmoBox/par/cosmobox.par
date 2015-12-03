@@ -2,16 +2,16 @@
 
 
 %% Files %%
-InputFile		IC_Cosmo_Box
+InputFile		IC_Cosmo_Box_Big
 OutputFileBase	snap 
 NumIOTasks		1 
 NumOutputFiles	1 
 LogFileDir		./log/
 
 %% Code Parameters %%
-MaxMemSize		1024
+MaxMemSize		65536
 TimeLimitCPU	20864 
-BufferSize		120
+BufferSize		2048
 
 %% Simulation Characteristics %%
 Boxsize0		150000.0

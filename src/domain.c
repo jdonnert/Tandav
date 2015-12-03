@@ -549,7 +549,6 @@ static void fill_new_bunches(const int first_bunch, const int nBunches,
 									   buf[run].First_Part);
 		run++;
 	}
-printf("E");
 
 	} // omp critical 
 

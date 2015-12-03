@@ -27,15 +27,15 @@
 # icc, mpich:
 #
 # 	export TANDAV_CC="mpicc"
-# 	export TANDAV_CFLAGS="-Wall -g -openmp -std=c99 -fstrict-aliasing  -fast \
-# 						-xhost -vec-report2 -ansi-alias-check"
+#	export TANDAV_CFLAGS="-Wall -g -openmp -std=c99 -fstrict-aliasing \
+#		-ansi-alias-check -O3 -xhost"
 # 	export TANDAV_LDFLAGS="-lmpich"
 # 	export TANDAV_CPPFLAGS=""
 #
 # gcc, mpich, AMD Bulldozer:
 #
 #	export TANDAV_CFLAGS="-g -O2 -fopenmp -std=c99 -fstrict-aliasing  \
-#		-march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp  \
+#		-march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp -flto \
 #		-minline-all-stringops -fprefetch-loop-arrays \
 #		--param prefetch-latency=300 -funroll-all-loops"
 # 	export TANDAV_LDFLAGS="-lmpich -L/home/donnert/Libs/lib"
@@ -44,7 +44,7 @@
 # CrayPE:
 #
 # 	export TANDAV_CC="cc"
-# 	export TANDAV_CFLAGS=""
+# 	export TANDAV_CFLAGS="-O3 -h msglevel_2 -h msgs"
 # 	export TANDAV_LDFLAGS="-L/home/users/n17421/Libs/lib"
 # 	export TANDAV_CPPFLAGS="-I/home/users/n17421/Libs/include"
 

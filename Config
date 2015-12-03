@@ -9,7 +9,7 @@ PART_ALLOC_FACTOR 1.05		// [1.05] maximum npart per rank relative to mean
 TIME_INT_ACCURACY 0.2       // [0.2] cosmo time step accuracy parameter
 
 DOMAIN_UPDATE_PARAM 0.1     // [0.1]  npart drifted before new domain decomp.
-DOMAIN_IMBAL_CEIL 0.05	    // [0.05] desired maximum cost imbalance
+DOMAIN_IMBAL_CEIL 0.01	    // [0.05] desired maximum cost imbalance
 
 #### GRAVITY ####
 

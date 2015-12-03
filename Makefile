@@ -1,68 +1,59 @@
 # 
 # Code parameters (#define) are in 'Config' file
 # 
-# The preferred way to set your compilation parameters is to set the
-# environment variables $CPPFLAGS and $LDFLAGS in ~/.bashrc
-# You can also set $TANDAV_SYSTYPE and then add an entry here.
-#
 # The Makefile uses all .c and .h files in ./src and its subdirs 
 # for compilation automatically. No need to edit this file if you add 
-# something.
-#
+# a file or directory.
 # This Makefile also produces src/config.h and src/print_settings.c from the
 # 'Config' file by means of a few lines of bash.
 # 
+# The way to set your compilation parameters is to set environment variables 
+# in ~/.bashrc :
+#
+#	TANDAV_CC is the compiler, usually mpicc
+# 	TANDAV_CFLAGS are the compilation flags, including optimization. Make sure 
+# 		to enable c99, openmp, all warnings and debugging symbols. With this
+# 		code you REALLY want inter-file-optimization.
+# 	TANDAV_LDFLAGS are the libraries to link in (-lX) and their dirs 
+# 		(-L/home/jdonnert/Libs/lib). Most notably here is MPI. 
+# 		GSL libraries are linked atomatically.
+# 	TANDAV_CPPFLAGS are the include directories (-I/home/jdonnert/Libs/include).
+#
+# If your LD_LIBRARY_PATH and CPPFLAGS variables are set correctly, you dont 
+# have to change TANDAV_LDFLAGS and TANDAV_CPPFLAGS much.
+#
+# Examples: 
+#
+# icc, mpich:
+#
+# 	export TANDAV_CC="mpicc"
+# 	export TANDAV_CFLAGS="-Wall -g -openmp -std=c99 -fstrict-aliasing  -fast \
+# 						-xhost -vec-report2 -ansi-alias-check"
+# 	export TANDAV_LDFLAGS="-lmpich"
+# 	export TANDAV_CPPFLAGS=""
+#
+# gcc, mpich, AMD Bulldozer:
+#
+#	export TANDAV_CFLAGS="-g -O2 -fopenmp -std=c99 -fstrict-aliasing  \
+#		-march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp  \
+#		-minline-all-stringops -fprefetch-loop-arrays \
+#		--param prefetch-latency=300 -funroll-all-loops"
+# 	export TANDAV_LDFLAGS="-lmpich -L/home/donnert/Libs/lib"
+# 	export TANDAV_CPPFLAGS="-I/home/donnert/Libs/include"
+# 
+# CrayPE:
+#
+# 	export TANDAV_CC="cc"
+# 	export TANDAV_CFLAGS=""
+# 	export TANDAV_LDFLAGS="-L/home/users/n17421/Libs/lib"
+# 	export TANDAV_CPPFLAGS="-I/home/users/n17421/Libs/include"
+
 
 SHELL = /bin/bash 			# This should always be present in a Makefile
 
-ifndef TANDAV_SYSTYPE
-TANDAV_SYSTYPE := ${shell hostname}
-endif
-
-CC	 	 = mpicc
-OPTIMIZE = -Wall -g -O2 
-XTRA_INCL = $(CPPFLAGS)
-XTRA_LIBS = $(LDFLAGS)
-
-# machine specifics
-ifeq ($(TANDAV_SYSTYPE),DARWIN) # any Mac with gcc
-CC       =  mpicc
-OPTIMIZE =  -Wall -g -fopenmp -std=c99 -fstrict-aliasing  -O3 -mtune=native -march=native  -fopt-info-vec
-XTRA_LIBS = -lmpich
-XTRA_INCL = 
-endif
-
-ifeq ($(TANDAV_SYSTYPE),mach64.ira.inaf.it)
-CC       =  mpicc
-OPTIMIZE =  -g -O2 -fopenmp -std=c99 -fstrict-aliasing  -march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp  \
-			-minline-all-stringops -fprefetch-loop-arrays --param prefetch-latency=300 -funroll-all-loops 
-XTRA_LIBS = -L/home/donnert/Libs/lib
-XTRA_INCL = -I/home/donnert/Libs/include
-endif
-
-ifeq ($(TANDAV_SYSTYPE),MSI)
-CC       =  mpicc
-OPTIMIZE =  -Wall -g -fopenmp -std=c99 -fstrict-aliasing -O2 -openmp -xhost  -mkl  -ansi-alias-check 
-XTRA_LIBS = -lmpich -L$(LD_LIBRARY_PATH)
-XTRA_INCL = -I$(INCLUDE)
-endif
-
-ifeq ($(TANDAV_SYSTYPE),coma.msi.umn.edu)
-CC       =  mpicc
-OPTIMIZE =  -Wall -g -fopenmp -std=c99 -fstrict-aliasing  -O3 -openmp -xhost  -mkl  -ansi-alias-check \
-			-ipo -ipo-jobs8
-XTRA_LIBS = -lmpich -L$(LD_LIBRARY_PATH)
-XTRA_INCL = -I$(INCLUDE)
-endif
-
-ifeq ($(TANDAV_SYSTYPE),CRAY)
-CC       =  cc
-OPTIMIZE =  
-XTRA_LIBS = -L/home/users/n17421/Libs/lib
-XTRA_INCL = -I/home/users/n17421/Libs/include
-endif
-
-# end systypes
+CC 	 	= $(TANDAV_CC)
+CFLAGS 	= $(TANDAV_CFLAGS) $(TANDAV_CPPFLAGS) 
+LIBS 	= -lm -lgsl -lgslcblas $(TANDAV_LDFLAGS)
 
 EXEC = Tandav
 
@@ -75,10 +66,6 @@ INCLFILES := ${shell find src -name \*.h -print}
 INCLFILES += Config Makefile $(SRCDIR)/config.h
 
 OBJFILES = $(SRCFILES:.c=.o)
-
-CFLAGS = $(OPTIMIZE) $(XTRA_INCL) 
-
-LIBS = -lm -lgsl -lgslcblas $(XTRA_LIBS)
 
 # rules
 

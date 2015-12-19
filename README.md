@@ -35,21 +35,26 @@ To Do
 	* (DONE) cube
 	* (DONE) simple
 	* (DONE) tree
-	- test
+	* test
 9. Cosmological Sim 
 	* implementation
-	- test case
-	- IDL script for small IC generation
+	* test case
+	- IDL script for IC generation
+	- Eisenstein & Hu P(k)
 	- growth rate plotting & comparison
+	- FoF - gadget format ?
+	- Halo Output
 10. Vectorisation 
 	- P to struct of arrays
 	- Reallocate_P to struct of arrays
 	- Adapt code
 	- Adapt tree to struct of arrays
 11. FMM
-	- simple walk
+	- simple walk, same Tree, measure speed
 	- fmm_build
 	- cache blocking
+	- vectorization
+	- 
 12. MPI parallelisation
 	- General exchange in domain
 	- Engine in tree_accel. Work queues
@@ -63,13 +68,14 @@ To Do
 14. FMM on accelerators
 	- OpenACC general interface
 	- communication model
-15. Multi-grid gravity (Minneapolis & Cray)
+15. Multi-grid gravity 
 	- fast grid definition
+	- mapping PH-curve - grid
 16. MHD 
 	- derive comoving MHD
 	- set thermodynamic model
 	- set composition model
 	- simple 3D TVD mesh
 	- Voronoi generator
-		- convex hull
+		- convex hull - MPI
 

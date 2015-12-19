@@ -131,16 +131,16 @@ void sanity_check_input_parameters()
 
 	Assert(Param.Num_IO_Tasks > 0, "NumIOTasks has to be > 0");
 
-	Assert(Param.Buffer_Size < Param.Max_Mem_Size / 8,
+	Warn(Param.Buffer_Size < Param.Max_Mem_Size / 8,
 			"BufferSize should be much smaller than MaxMemSize");
 
-	Warn((double)Param.Buffer_Size*p2(1024)/sizeof(*P) < 1000.0,
+	Warn((double)Param.Buffer_Size * p2(1024.0)/sizeof_P < 1000.0,
 		"Thread Safe buffer holds less than 1024 particles "
 		"Task.Buffer_Size > %d MB recommended, have %g"
-		, 10000*sizeof(*P)/1024/1024 , Param.Buffer_Size/1024.0/1024.0);
+		, 10000*sizeof_P/1024/1024 , Param.Buffer_Size/1024.0/1024.0);
 
 	Warn(Param.Num_IO_Tasks > Sim.NRank,
-		"NRank (=%d) can't be smaller than No_IOTasks (=%d)",
+		"NRank (=%d) can't be smaller than No_IOTasks (=%d), resetting ...",
 		Sim.NRank,  Param.Num_Output_Files);
 
 	Param.Num_IO_Tasks = MIN(Param.Num_IO_Tasks, Sim.NRank);
@@ -152,7 +152,7 @@ void sanity_check_input_parameters()
 	Param.Num_Output_Files = MIN(Param.Num_Output_Files, Sim.NRank);
 
 #ifdef COMOVING
-	Assert(Time.Begin > 0, "TimeBegin > 0 required for COMOVING");
+	Assert(Time.Begin > 0, "TimeBegin = a > 0 required for COMOVING");
 #endif
 
 	/* Add your own ! */

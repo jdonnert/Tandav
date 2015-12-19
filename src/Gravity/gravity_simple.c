@@ -44,23 +44,27 @@ void Gravity_Simple_Accel()
 
 		int ipart = Active_Particle_List[i];
 
-		if (P[ipart].ID > 1)
+		if (P.ID[ipart] > 1)
 			continue;
 
 		cnt++;
 
-		double acc[3] = { P[ipart].Acc[0], P[ipart].Acc[1], P[ipart].Acc[2] };
+		const double acc[3] = { P.Acc[0][ipart], P.Acc[1][ipart], 
+			P.Acc[2][ipart] };
+		const double pos_i[3] = { P.Pos[0][ipart], P.Pos[1][ipart], 
+			P.Pos[2][ipart] };
+
 		double acc_i[3] = { 0 }; 
 
 #ifdef GRAVITY_POTENTIAL
-		P[ipart].Grav_Pot = 0;
+		P.Grav_Pot[ipart] = 0;
 #endif
 
 		for (int jpart = 0; jpart < Sim.Npart_Total; jpart++) {
 
-			Float dr[3] = {P[jpart].Pos[0] - P[ipart].Pos[0],
-							P[jpart].Pos[1] - P[ipart].Pos[1],
-							P[jpart].Pos[2] - P[ipart].Pos[2]};
+			Float dr[3] = {P.Pos[0][jpart] - pos_i[0],
+							P.Pos[1][jpart] - pos_i[1],
+							P.Pos[2][jpart] - pos_i[2]};
 
 			Periodic_Nearest(dr); // PERIODIC 
 
@@ -79,7 +83,7 @@ void Gravity_Simple_Accel()
 					rinv = sqrt(u * (135*u2*u2 - 294*u2 + 175))/(4*H) ;
 				}
 
-				double acc_mag = Const.Gravity * P[jpart].Mass * p2(rinv);
+				double acc_mag = Const.Gravity * P.Mass[jpart] * p2(rinv);
 			
 				acc_i[0] += acc_mag * dr[0] * rinv;
 				acc_i[1] += acc_mag * dr[1] * rinv;
@@ -90,9 +94,9 @@ void Gravity_Simple_Accel()
 
 				Ewald_Correction(dr, &result[0]);
 
-				acc_i[0] += Const.Gravity * P[jpart].Mass * result[0];
-				acc_i[1] += Const.Gravity * P[jpart].Mass * result[1];
-				acc_i[2] += Const.Gravity * P[jpart].Mass * result[2];
+				acc_i[0] += Const.Gravity * P.Mass[jpart] * result[0];
+				acc_i[1] += Const.Gravity * P.Mass[jpart] * result[1];
+				acc_i[2] += Const.Gravity * P.Mass[jpart] * result[2];
 
 #endif // PERIODIC
 
@@ -106,7 +110,7 @@ void Gravity_Simple_Accel()
 					rinv = (7*u2-21*u2*u2+28*u3*u2-15*u3*u3+u3*u3*u*8-3)/H;
 				}
 
-				P[ipart].Grav_Pot += Const.Gravity * P[jpart].Mass *rinv;
+				P.Grav_Pot[ipart] += Const.Gravity * P.Mass[jpart] *rinv;
 #endif
 
 #if defined (GRAVITY_POTENTIAL) && defined(PERIODIC)
@@ -114,19 +118,19 @@ void Gravity_Simple_Accel()
 
 				Ewald_Potential(dr, &pot_corr); // PERIODIC
 
-				P[ipart].Grav_Pot += Const.Gravity * P[jpart].Mass * pot_corr;
+				P.Grav_Pot[ipart] += Const.Gravity * P.Mass[jpart] * pot_corr;
 #endif 
 
 			} // r2 > 0
 		} // for jpart
 
-		P[ipart].Acc[0] = acc_i[0];
-		P[ipart].Acc[1] = acc_i[1];
-		P[ipart].Acc[2] = acc_i[2];
+		P.Acc[0][ipart] = acc_i[0];
+		P.Acc[1][ipart] = acc_i[1];
+		P.Acc[2][ipart] = acc_i[2];
 
-		double error[3] = {(acc[0] - P[ipart].Acc[0]) / P[ipart].Acc[0],
-							(acc[1] - P[ipart].Acc[1]) / P[ipart].Acc[1],
-							(acc[2] - P[ipart].Acc[2]) / P[ipart].Acc[2] };
+		double error[3] = { (acc[0] - acc_i[0]) / acc_i[0],
+							(acc[1] - acc_i[1]) / acc_i[1],
+							(acc[2] - acc_i[2]) / acc_i[2] };
 
 		double errorl = ALENGTH3(error);
 
@@ -143,10 +147,11 @@ void Gravity_Simple_Accel()
 
 		} // omp critical
 
-		printf("  ipart=%d ID=%d pos=%g %g %g err=%g tree acc=%g %g %g dir acc=%g %g %g \n",
-				ipart, P[ipart].ID, P[ipart].Pos[0],P[ipart].Pos[1],
-				P[ipart].Pos[2], errorl, acc[0], acc[1], acc[2],
-				P[ipart].Acc[0],P[ipart].Acc[1],P[ipart].Acc[2] );
+		printf("  ipart=%d ID=%d pos=%g %g %g err=%g tree acc=%g %g %g "
+				"dir acc=%g %g %g \n",
+				ipart, P.ID[ipart], P.Pos[0][ipart], P.Pos[1][ipart],
+				P.Pos[2][ipart], errorl, acc[0], acc[1], acc[2],
+				P.Acc[0][ipart], P.Acc[1][ipart], P.Acc[2][ipart] );
 
 	} // for ipart
 

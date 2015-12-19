@@ -73,7 +73,7 @@ double erand48(unsigned short xsubi[3]);
 #include "log.h"			// run logging
 #include "signal.h"			// signal handlers
 #include "sort.h"			// sort functions
-#include "select.h"			// find median of an array
+#include "select.h"			// select n-th element and find median of an array
 
 /* 
  * Add here, #ifdefs go into the .h file 
@@ -82,6 +82,7 @@ double erand48(unsigned short xsubi[3]);
 #include "cosmology.h"		// cosmology functions 
 #include "comov.h"			// Comoving coordinates
 #include "periodic.h"		// periodic boundary conditions
+#include "particles.h"		// particle book-keeping
 
 
 

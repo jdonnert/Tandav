@@ -2,9 +2,9 @@
 #define Warn(...) Warn_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
 
 #define Reallocate_P(...) \
-					Reallocate_P_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
+		Reallocate_P_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
 
-void Reallocate_P_Info(const char *, const char *, int, int*, size_t*);
+void Reallocate_P_Info(const char *, const char *, int, const int*, size_t*);
 
 void Assert_Info(const char *, const char *, int, int64_t, const char *, ...);
 void Warn_Info(const char *, const char *, int, int64_t, const char *, ...);
@@ -35,3 +35,4 @@ int Fread(void *restrict data, const size_t size, const size_t nWanted,
 int Fwrite(void *restrict data, const size_t size, const size_t nWrite,
 		FILE *stream);
 
+char *Select_Particle(const int ifield, const int icomp, const int ipart);

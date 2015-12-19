@@ -48,29 +48,51 @@ extern struct Parameters_From_File {
 	double Min_Timestep;		// smallest timestep constraint
 } Param;
 
+/*
+ * Here start the particle structures, which hold most of the data of the
+ * code. Because we are using structures containing arrays, not an array of 
+ * structures, automatic allocation etc need a description of these. You can
+ * find these descriptors in particles_fields.h, the allocator in particles.c
+ * We might auto generate these later.
+ */
+
 extern struct Particle_Data {
-	int Type;
-	int Time_Bin;
-	intime_t Int_Time_Pos;		// current position on integer timeline
-	unsigned int Cost;			// computational weight of particle
-	ID_t ID; 					// add below 
-	Float Pos[3];
-	Float Vel[3];
-	Float Acc[3];
-	Float Mass;
-	Float Grav_Acc[3];
+	int * restrict Type;				// keep this first !
+	int * restrict Time_Bin;
+	intime_t * restrict Int_Time_Pos;	// current position on integer timeline
+	ID_t * restrict ID; 					 
+	Float * restrict Cost;				// computational weight of particle
+	Float * restrict Pos[3];
+	Float * restrict Vel[3];
+	Float * restrict Acc[3];
+	Float * restrict Mass;
+	Float * restrict Grav_Acc[3];
 #ifdef GRAVITY_TREE
-	int Tree_Parent;			// Tree node leave, negative-1 if top node only
+	int * restrict Tree_Parent;	// Tree node leave, negative-1 if top node only
 #endif
 #ifdef GRAVITY_POTENTIAL
-	Float Grav_Pot;
+	Float * restrict Grav_Pot;
 #endif
-} * restrict P;
+} P;
 
 extern struct Gas_Particle_Data {
-	Float Entropy;
-	Float Volume;
-	Float Bfld[3];
-} * restrict G;
+	Float * restrict Entropy;
+	Float * restrict Volume;
+	Float * restrict Density;
+	Float * restrict Bfld[3];
+} G;
+
+extern struct Star_Particle_Data {
+	Float * restrict Star_Formation_Rate;
+} S;
+
+extern struct Black_Hole_Particle_Data {
+	Float * restrict Entropy;
+} B;
+
+size_t sizeof_P = 0;
+size_t sizeof_G = 0;
+size_t sizeof_S = 0;
+size_t sizeof_B = 0;
 
 #endif // GLOBALS_H

@@ -12,7 +12,7 @@ static bool find_endianess(FILE *);
 static int find_block(FILE *, const char label[4], const bool);
 static void read_header_data(FILE *fp, const bool, int);
 static void read_file(char *, const bool, const int, const int, MPI_Comm);
-static void empty_comm_buffer(char *, const int, const int, const int *, 
+static void empty_comm_buffer(const char *, const int, const int, const int *, 
 		const size_t *);
 
 static void generate_masses_from_header();
@@ -51,11 +51,12 @@ void Read_Snapshot(char *input_name)
 		fclose(fp);
 	}
 	
-	MPI_Bcast(&nFiles, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&nFiles, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
 
-	MPI_Bcast(&swap_Endian, sizeof(swap_Endian), MPI_BYTE, 0,MPI_COMM_WORLD);
+	MPI_Bcast(&swap_Endian, sizeof(swap_Endian), MPI_BYTE, MASTER, 
+			MPI_COMM_WORLD);
 
-	MPI_Bcast(&Sim, sizeof(Sim), MPI_BYTE, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&Sim, sizeof(Sim), MPI_BYTE, MASTER, MPI_COMM_WORLD);
 
 	Allocate_Particle_Structures();
 	
@@ -267,32 +268,29 @@ static void read_file (char *filename, const bool swap_Endian,
 }
 
 /* 
- * This moves data from the comm buffer to P. Its generic but slow, 
- * but here we should be limited by the I/O of the drive anyway 
- * */
+ * This moves data from the comm buffer to P. Here we should be limited 
+ * by the I/O of the drive 
+ */
 
-static void empty_comm_buffer (char *DataBuf, const int i, 
+static void empty_comm_buffer (const char *DataBuf, const int i, 
 		const int nPartTotal, const int *nPart, const size_t *offsets)
 {
-	const size_t sizeof_P = sizeof(*P);
 	const size_t nBytes = Block[i].Nbytes;
 
-	char * restrict src = DataBuf; 
-	char * restrict dest = NULL;
+	const char * restrict Pfield = (char *) &P + Block[i].Offset + 
+							offsets[0]*nBytes;
 
 	switch (Block[i].Target) { // ptr fun for the whole family
 
 		case VAR_P:
-
-			dest = (char *)P + offsets[0]*sizeof_P + Block[i].Offset;
 			
-			for (int i = 0; i < nPartTotal; i++) {  
-
+			#pragma omp parallel for
+			for (int i = 0; i < nPartTotal; i++) {
+			
+				void * restrict src = (void *) (DataBuf + i*nBytes);
+				void * restrict dest = (void *) (Pfield + i*nBytes);
+				
 				memcpy(dest, src, nBytes);
-					
-				dest += sizeof_P; // in bytes
-
-				src += nBytes;
 			}
 			
 		break;
@@ -405,7 +403,7 @@ static void generate_masses_from_header()
 		
 		#pragma  omp parallel for
 		for (int ipart = iMin; ipart < iMax; ipart++)
-			P[ipart].Mass = Sim.Mpart[type];
+			P.Mass[ipart] = Sim.Mpart[type];
 
 		iMin += Task.Npart[type];
 	}
@@ -445,9 +443,9 @@ static void set_particle_types()
 		
 		for (int type = 0; type < NPARTYPE; type++) {
 			
-			if (P[ipart].ID <= max_ID[type])
-				if (P[ipart].ID >= min_ID[type])
-					P[ipart].Type = type;
+			if (P.ID[ipart] <= max_ID[type])
+				if (P.ID[ipart] >= min_ID[type])
+					P.Type[ipart] = type;
 		}
 	}
 	

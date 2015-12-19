@@ -3,8 +3,9 @@
 #include "peano.h"
 #include "domain.h"
 #include "sort.h"
+#include "particles.h"
 
-static void reorder_collisionless_particles();
+static void reorder_collisionless_particles(const size_t *idx_in);
 
 int compare_peanoKeys(const void * a, const void *b)
 {
@@ -36,20 +37,20 @@ void Sort_Particles_By_Peano_Key()
 
 	#pragma  omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) 
-		keys[ipart] = Peano_Key(P[ipart].Pos);
+		keys[ipart] = Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart],
+				P.Pos[2][ipart]);
 
 	Qsort_Index(Task.Thread_ID, idx, keys, Task.Npart_Total, sizeof(*keys),
 			&compare_peanoKeys);
 
-	#pragma omp single
-	{
+	#pragma omp single nowait
+	Free(keys);
 
 	reorder_collisionless_particles(idx);
 
-	Free(keys); Free(idx);
+	#pragma omp single
+ 	Free(idx);
 	
-	} // omp single
-
 	Make_Active_Particle_List();
 
 	Profile("Peano-Hilbert order");
@@ -57,37 +58,66 @@ void Sort_Particles_By_Peano_Key()
 	return ;
 }
 
-static void reorder_collisionless_particles(size_t *idx)
-{
-	for (size_t i = Task.Npart[0]; i < Task.Npart_Total; i++) {
+static void reorder_collisionless_particles(const size_t *idx_in)
+{	
+	size_t *idx = NULL;
+	const size_t nBytes = Task.Npart_Total * sizeof(*idx);
 
-        if (idx[i] == i)
-            continue;
+	if (nBytes <= Param.Buffer_Size) // try to get local storage
+		idx = Get_Thread_Safe_Buffer(nBytes);
+	else
+		idx = Malloc(nBytes, "idx");
 
-		size_t dest = i;
+	#pragma omp for // burn the bus
+	for (int ifield = 0; ifield < N_Pfields; ifield++) {
+	
+		for (int icomp = 0; icomp < N_Pfields; icomp++) {
 
-		struct Particle_Data Ptmp = P[i];
+			memcpy(idx, idx_in, nBytes); // restore unsorted idx
+	
+			void *p = Select_Particle(ifield, icomp, 0);
+		
+			size_t field_bytes = P_Fields[ifield].Bytes; // <= 8
 
-		size_t src = idx[i];
+			Assert(field_bytes <= 8, "Found a particle field > 8. ");
 
-        for (;;) {
+			char ptmp[8] = { "" };
 
-			P[dest] = P[src];
+			for (size_t i = Task.Npart[0]; i < Task.Npart_Total; i++) {
 
-			idx[dest] = dest;
+    	 	   if (idx[i] == i)
+        	    	continue;
 
-			dest = src;
+				size_t dest = i;
 
-			src = idx[dest];
+				memcpy(ptmp, p[i], field_bytes);
 
-            if (src == i)
-                break;
-        }
+				size_t src = idx[i];
 
-		P[dest] = Ptmp;
-		idx[dest] = dest;
+ 		    	for (;;) {
 
-    } // for i
+					memcpy(p[dest], p[src], field_bytes);
+
+					idx[dest] = dest;
+
+					dest = src;
+
+					src = idx[dest];
+
+    		        if (src == i)
+        		        break;
+    	    	}
+
+				memcpy(p[dest],ptmp, field_bytes);
+				idx[dest] = dest;
+
+    		} // for i
+
+		} // for icomp
+	} // for ifield
+ 	
+	if (! (nBytes <= Param.Buffer_Size))
+		Free(idx);
 
 	return ;
 }
@@ -114,15 +144,15 @@ static void reorder_collisionless_particles(size_t *idx)
  * Campbell+03 'Dynamic Octree Load Balancing Using Space-Filling Curves' 
  */
 
-peanoKey Peano_Key(const Float pos[3])
+peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 {
 	const uint64_t m = ((uint64_t) 1) << 63;
 
 	const double fac = m / Domain.Size; // don't run into precision issues ...
 
-	uint64_t X[3] = { (pos[0] - Domain.Origin[0]) * fac,
-					  (pos[1] - Domain.Origin[1]) * fac,
-					  (pos[2] - Domain.Origin[2]) * fac };
+	uint64_t X[3] = { (px - Domain.Origin[0]) * fac,
+					  (py - Domain.Origin[1]) * fac,
+					  (pz - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
 
@@ -196,15 +226,15 @@ peanoKey Peano_Key(const Float pos[3])
  * to ease tree construction. The most significant bits are undefined.
  */
 
-peanoKey Reversed_Peano_Key(const Float pos[3])
+peanoKey Reversed_Peano_Key(const Float px, const Float py, const Float pz)
 {
 	const uint64_t m = ((uint64_t) 1) << 63;
 
 	const double fac = m / Domain.Size;
 
-	uint64_t X[3] = { (pos[0] - Domain.Origin[0]) * fac,
-					  (pos[1] - Domain.Origin[1]) * fac,
-					  (pos[2] - Domain.Origin[2]) * fac };
+	uint64_t X[3] = { (px - Domain.Origin[0]) * fac,
+					  (py - Domain.Origin[1]) * fac,
+					  (pz - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
 
@@ -275,15 +305,15 @@ peanoKey Reversed_Peano_Key(const Float pos[3])
  * Keys of 64 bit length (21 triplets), standard and reversed
  */
 
-shortKey Short_Peano_Key(const Float pos[3])
+shortKey Short_Peano_Key(const Float px, const Float py, const Float pz)
 {
 	const uint32_t m = ((uint32_t) 1) << 31;
 
 	const double fac = m / Domain.Size;
 
-	uint32_t X[3] = { (pos[0] - Domain.Origin[0]) * fac,
-					  (pos[1] - Domain.Origin[1]) * fac,
-					  (pos[2] - Domain.Origin[2]) * fac };
+	uint32_t X[3] = { (px - Domain.Origin[0]) * fac,
+					  (py - Domain.Origin[1]) * fac,
+					  (pz - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
 
@@ -353,15 +383,16 @@ shortKey Short_Peano_Key(const Float pos[3])
 }
 
 
-shortKey Reversed_Short_Peano_Key(const Float pos[3])
+shortKey Reversed_Short_Peano_Key(const Float px, const Float py, 
+		const Float pz)
 {
 	const uint32_t m = ((uint32_t) 1) << 31;
 
 	const double fac = m / Domain.Size;
 
-	uint32_t X[3] = { (pos[0] - Domain.Origin[0]) * fac,
-					  (pos[1] - Domain.Origin[1]) * fac,
-					  (pos[2] - Domain.Origin[2]) * fac };
+	uint32_t X[3] = { (px - Domain.Origin[0]) * fac,
+					  (py - Domain.Origin[1]) * fac,
+					  (pz - Domain.Origin[2]) * fac };
 
 	/* Inverse undo */
 

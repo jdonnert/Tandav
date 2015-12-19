@@ -246,9 +246,9 @@ static void transform_bunches_into_top_nodes()
 
 		int ipart = D[i].TNode.First_Part;
 
-		double px = P[ipart].Pos[0] - Domain.Origin[0]; 	
-		double py = P[ipart].Pos[1] - Domain.Origin[1];
-		double pz = P[ipart].Pos[2] - Domain.Origin[2];
+		double px = P.Pos[0][ipart] - Domain.Origin[0]; 	
+		double py = P.Pos[1][ipart] - Domain.Origin[1];
+		double pz = P.Pos[2][ipart] - Domain.Origin[2];
 
 		double size = Domain.Size / (1ULL << D[i].TNode.Level);
 
@@ -274,7 +274,7 @@ static void reallocate_topnodes()
 	size_t nBytes = Max_NBunches * sizeof(*D);
 
 	double alloc_factor = Max_NBunches * sizeof(*D) /
-						((double) Sim.Npart_Total* sizeof(*P));
+						((double) Sim.Npart_Total* sizeof_P);
 
 	rprintf("Increasing Top Node Memory by 20%% to %g KB, Max %d Nodes, "
 		   "Factor %4g \n",
@@ -526,7 +526,8 @@ static void fill_new_bunches(const int first_bunch, const int nBunches,
 	#pragma omp for nowait
 	for (int ipart = first_part; ipart < last_part; ipart++) { // sort in
 
-		shortKey pkey = Short_Peano_Key(P[ipart].Pos);
+		shortKey pkey = Short_Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart],
+				P.Pos[2][ipart]);
 
 		while (buf[run].Key < pkey) // particles are ordered by key
 			run++;
@@ -559,7 +560,7 @@ static void fill_new_bunches(const int first_bunch, const int nBunches,
 
 static unsigned int cost_metric(const int ipart)
 {
-	return fmax(1, P[ipart].Cost);
+	return fmax(1, P.Cost[ipart]);
 }
 
 static void find_mean_cost()

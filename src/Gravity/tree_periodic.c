@@ -132,14 +132,14 @@ static void interact_with_topnode_particles(const int j,
 
 	for (int jpart = first; jpart < last; jpart++) {
 
-		Float dr[3] = {P[jpart].Pos[0] - send.Pos[0],
-					    P[jpart].Pos[1] - send.Pos[1],
-			            P[jpart].Pos[2] - send.Pos[2] };
+		Float dr[3] = {P.Pos[0][jpart] - send.Pos[0],
+					    P.Pos[1][jpart] - send.Pos[1],
+			            P.Pos[2][jpart] - send.Pos[2] };
 
 		Periodic_Nearest(dr);
 
 		if (dr[0] != 0 && dr[1] != 0 && dr[2] != 0)
-			interact_with_ewald_cube(dr, P[jpart].Mass, recv);
+			interact_with_ewald_cube(dr, P.Mass[jpart], recv);
 	}
 
 	return ;
@@ -174,18 +174,14 @@ static void gravity_tree_walk_ewald(const int tree_start,
 
 			for (int jpart = first; jpart < last; jpart++) {
 
-				Float dr[3] = {P[jpart].Pos[0] - send.Pos[0],
-							    P[jpart].Pos[1] - send.Pos[1],
-					            P[jpart].Pos[2] - send.Pos[2]};
+				Float dr[3] = {P.Pos[0][jpart] - send.Pos[0],
+							    P.Pos[1][jpart] - send.Pos[1],
+					            P.Pos[2][jpart] - send.Pos[2]};
 
 				Periodic_Nearest(dr);
 
-//printf("%d %g %g %g %g %g %g ", jpart, 
-//		P[jpart].Pos[0], P[jpart].Pos[1], P[jpart].Pos[2], 
-//	send.Pos[0],send.Pos[1],send.Pos[2]);
-
 				if ((dr[0] != 0) && (dr[1] != 0) && (dr[2] != 0))
-					interact_with_ewald_cube(dr, P[jpart].Mass, recv);
+					interact_with_ewald_cube(dr, P.Mass[jpart], recv);
 			} // for jpart
 
 			node++;

@@ -50,7 +50,7 @@ void Gravity_Tree_Acceleration()
 		const struct Walk_Data_Particle send = copy_send_from(ipart);
 		struct Walk_Data_Result recv = { 0 };
 
-		P[ipart].Acc[0] = P[ipart].Acc[1] = P[ipart].Acc[2] = 0;
+		P.Acc[0][ipart] = P.Acc[1][ipart] = P.Acc[2][ipart] = 0;
 
 		for (int j = 0; j < NTop_Nodes; j++) {
 			
@@ -101,36 +101,37 @@ static struct Walk_Data_Particle copy_send_from(const int ipart)
 {
 	struct Walk_Data_Particle send = { 0 };
 
-	send.ID = P[ipart].ID;
+	send.ID = P.ID[ipart];
 
-	send.Pos[0] = P[ipart].Pos[0];
-	send.Pos[1] = P[ipart].Pos[1];
-	send.Pos[2] = P[ipart].Pos[2];
+	send.Pos[0] = P.Pos[0][ipart];
+	send.Pos[1] = P.Pos[1][ipart];
+	send.Pos[2] = P.Pos[2][ipart];
 	
-	send.Acc = ALENGTH3(P[ipart].Acc);
+	send.Acc = sqrt( p2(P.Acc[0][ipart]) + p2(P.Acc[1][ipart]) 
+				   + p2(P.Acc[2][ipart]));
 
-	send.Mass = P[ipart].Mass;
+	send.Mass = P.Mass[ipart];
 
 	return send;
 }
 
 static void add_recv_to(const int ipart, const struct Walk_Data_Result recv)
 {
-	P[ipart].Acc[0] = recv.Grav_Acc[0];
-	P[ipart].Acc[1] = recv.Grav_Acc[1];
-	P[ipart].Acc[2] = recv.Grav_Acc[2];
+	P.Acc[0][ipart] = recv.Grav_Acc[0];
+	P.Acc[1][ipart] = recv.Grav_Acc[1];
+	P.Acc[2][ipart] = recv.Grav_Acc[2];
 
 #ifdef OUTPUT_PARTIAL_ACCELERATIONS
-	P[ipart].Grav_Acc[0] = recv.Grav_Acc[0];
-	P[ipart].Grav_Acc[1] = recv.Grav_Acc[1];
-	P[ipart].Grav_Acc[2] = recv.Grav_Acc[2];
+	P.Grav_Acc[0][ipart] = recv.Grav_Acc[0];
+	P.Grav_Acc[1][ipart] = recv.Grav_Acc[1];
+	P.Grav_Acc[2][ipart] = recv.Grav_Acc[2];
 #endif
 
 #ifdef GRAVITY_POTENTIAL
-	P[ipart].Grav_Pot = recv.Grav_Potential;
+	P.Grav_Pot[ipart] = recv.Grav_Potential;
 #endif
 
-	P[ipart].Cost = recv.Cost;
+	P.Cost[ipart] = recv.Cost;
 
 	return ;
 }
@@ -198,16 +199,16 @@ static void interact_with_topnode_particles(const int j,
 
 	for (int jpart = first; jpart < last; jpart++) {
 
-		Float dr[3] = {P[jpart].Pos[0] - send.Pos[0],
-					   P[jpart].Pos[1] - send.Pos[1] ,
-			           P[jpart].Pos[2] - send.Pos[2] };
+		Float dr[3] = {P.Pos[0][jpart] - send.Pos[0],
+					   P.Pos[1][jpart] - send.Pos[1] ,
+			           P.Pos[2][jpart] - send.Pos[2] };
 
 		Periodic_Nearest(dr); // PERIODIC
 		
 		Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
 		if (r2 != 0)
-			interact(P[jpart].Mass, dr, r2, recv);
+			interact(P.Mass[jpart], dr, r2, recv);
 	}
 
 	return ;
@@ -238,16 +239,16 @@ static void gravity_tree_walk(const int tree_start,
 
 			for (int jpart = first; jpart < last; jpart++ ) {
 
-				Float dr[3] = {P[jpart].Pos[0] - send.Pos[0],
-								P[jpart].Pos[1] - send.Pos[1],
-								P[jpart].Pos[2] - send.Pos[2]};
+				Float dr[3] = {P.Pos[0][jpart] - send.Pos[0],
+								P.Pos[1][jpart] - send.Pos[1],
+								P.Pos[2][jpart] - send.Pos[2]};
 				
 				Periodic_Nearest(dr); // PERIODIC
 
 				Float r2 = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
 				
 				if (r2 != 0) 
-					interact(P[jpart].Mass, dr, r2, recv);
+					interact(P.Mass[jpart], dr, r2, recv);
 			}
 
 			node++;
@@ -320,15 +321,15 @@ static void gravity_tree_walk_BH(const int tree_start,
 
 			for (int jpart = first; jpart < last; jpart++ ) {
 
-				Float dr[3] = {P[jpart].Pos[0] - send.Pos[0],
-							    P[jpart].Pos[1] - send.Pos[1],
-					            P[jpart].Pos[2] - send.Pos[2]};
+				Float dr[3] = {P.Pos[0][jpart] - send.Pos[0],
+							    P.Pos[1][jpart] - send.Pos[1],
+					            P.Pos[2][jpart] - send.Pos[2]};
 
 				Periodic_Nearest(dr); // PERIODIC
 
 				Float r2 = p2(dr[0]) + p2(dr[1]) + p2(dr[2]);
 
-				Float mpart = P[jpart].Mass;
+				Float mpart = P.Mass[jpart];
 
 				if (r2 != 0)
 					interact(mpart, dr, r2, recv);
@@ -464,9 +465,9 @@ static void check_total_momentum()
 	#pragma omp for reduction(+: Px, Py, Pz)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
-		Px += P[ipart].Mass * P[ipart].Vel[0];
-		Py += P[ipart].Mass * P[ipart].Vel[1];
-		Pz += P[ipart].Mass * P[ipart].Vel[2];
+		Px += P.Mass[ipart] * P.Vel[0][ipart];
+		Py += P.Mass[ipart] * P.Vel[1][ipart];
+		Pz += P.Mass[ipart] * P.Vel[2][ipart];
 	}
 	
 	double ptotal = sqrt( Px*Px + Py*Py + Pz*Pz );

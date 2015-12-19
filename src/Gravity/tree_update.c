@@ -14,13 +14,13 @@
 
 void Gravity_Tree_Update_Kicks(const int ipart, const double dt)
 {
-	Float m_dt = P[ipart].Mass * dt; // kick tree nodes
+	Float m_dt = P.Mass[ipart] * dt; // kick tree nodes
 
-	const Float dp[3] = { m_dt*P[ipart].Acc[0],
-						  m_dt*P[ipart].Acc[1],
-						  m_dt*P[ipart].Acc[2] };
+	const Float dp[3] = { m_dt*P.Acc[0][ipart],
+						  m_dt*P.Acc[1][ipart],
+						  m_dt*P.Acc[2][ipart] };
 	int i = 0;
-	int node = P[ipart].Tree_Parent;
+	int node = P.Tree_Parent[ipart];
 
 	if (node >= 0) { // kick sub tree nodes
 
@@ -73,16 +73,17 @@ void Gravity_Tree_Update_Drift(const double dt)
 	#pragma omp for nowait
 	for (int i = 0; i < NNodes; i++) {
 
-		if (! Node_Is(UPDATED, i))
-			continue;
+		if (Node_Is(UPDATED, i)) {
 
-		Tree[i].CoM[0] += dt * Tree[i].Dp[0];
-		Tree[i].CoM[1] += dt * Tree[i].Dp[1];
-		Tree[i].CoM[2] += dt * Tree[i].Dp[2];
+			Tree[i].CoM[0] += dt * Tree[i].Dp[0];
+			Tree[i].CoM[1] += dt * Tree[i].Dp[1];
+			Tree[i].CoM[2] += dt * Tree[i].Dp[2];
 
-		Tree[i].Dp[0] = Tree[i].Dp[1] = Tree[i].Dp[2] = 0;
+			Tree[i].Dp[0] = Tree[i].Dp[1] = Tree[i].Dp[2] = 0;
 
-		Node_Clear(UPDATED, i);
+			Node_Clear(UPDATED, i);
+
+		}
 	}
 
 	#pragma omp for reduction(+:nUpdate)

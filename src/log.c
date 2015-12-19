@@ -80,23 +80,23 @@ static void print_statistics(FILE * stream)
 
 		for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-			double mpart = P[ipart].Mass;
-			double vpart = ALENGTH3(P[ipart].Vel);
+			double mpart = P.Mass[ipart];
+			double vpart = ALENGTH3(P.Vel[ipart]);
 
 			e += mpart * vpart*vpart;
 
 			p += mpart * vpart;
 
-			ang_p[0] = mpart * (P[ipart].Pos[1]*P[ipart].Vel[2]
-					- P[ipart].Pos[2]*P[ipart].Vel[1]);
-			ang_p[1] = mpart * (P[ipart].Pos[2]*P[ipart].Vel[0]
-					- P[ipart].Pos[0]*P[ipart].Vel[2]);
-			ang_p[2] = mpart * (P[ipart].Pos[0]*P[ipart].Vel[1]
-					- P[ipart].Pos[1]*P[ipart].Vel[0]);
+			ang_p[0] = mpart * (P.Pos[1][ipart]*P.Vel[2][ipart]
+					- P.Pos[2][ipart]*P.Vel[1][ipart]);
+			ang_p[1] = mpart * (P.Pos[2][ipart]*P.Vel[0][ipart]
+					- P.Pos[0][ipart]*P.Vel[2][ipart]);
+			ang_p[2] = mpart * (P.Pos[0][ipart]*P.Vel[1][ipart]
+					- P.Pos[1][ipart]*P.Vel[0][ipart]);
 
-			com[0] = mpart * P[ipart].Pos[0];
-			com[1] = mpart * P[ipart].Pos[1];
-			com[2] = mpart * P[ipart].Pos[2];
+			com[0] = mpart * P.Pos[0][ipart];
+			com[1] = mpart * P.Pos[1][ipart];
+			com[2] = mpart * P.Pos[2][ipart];
 		}
 
 		MPI_Reduce(&e, &Stat.Energy, 1, MPI_DOUBLE, MPI_SUM, Sim.Master,

@@ -35,7 +35,7 @@ static gsl_interp_accel *Acc[4] = { NULL };
 
 double Particle_Kick_Step(const int ipart, const double a_next)
 {
-	double a_curr = Integer_Time2Integration_Time(P[ipart].Int_Time_Pos);
+	double a_curr = Integer_Time2Integration_Time(P.Int_Time_Pos[ipart]);
 
 	double kick_factor_beg = gsl_spline_eval(Kick_Spline, a_curr, Acc[0]);
 	double kick_factor_end = gsl_spline_eval(Kick_Spline, a_next, Acc[1]);
@@ -45,7 +45,7 @@ double Particle_Kick_Step(const int ipart, const double a_next)
 
 double Particle_Drift_Step(const int ipart, const double a_next)
 {
-	double a_curr = Integer_Time2Integration_Time(P[ipart].Int_Time_Pos);
+	double a_curr = Integer_Time2Integration_Time(P.Int_Time_Pos[ipart]);
 
 	double drift_factor_beg = gsl_spline_eval(Drift_Spline, a_curr, Acc[2]);
 	double drift_factor_end = gsl_spline_eval(Drift_Spline, a_next, Acc[3]);
@@ -176,9 +176,9 @@ static void convert_velocities_to_comoving()
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-		P[ipart].Vel[0] *= phys2comov_vel;
-		P[ipart].Vel[1] *= phys2comov_vel;
-		P[ipart].Vel[2] *= phys2comov_vel;
+		P.Vel[0][ipart] *= phys2comov_vel;
+		P.Vel[1][ipart] *= phys2comov_vel;
+		P.Vel[2][ipart] *= phys2comov_vel;
 	}
 
 	return ;
@@ -215,11 +215,12 @@ double Comoving_VelDisp_Timestep_Constraint(const double dt_max_ext)
 	#pragma omp for nowait
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-		int type = P[ipart].Type;
+		int type = P.Type[ipart];
 
-		vel2_thread[type] += ASCALPROD3(P[ipart].Vel);
+		vel2_thread[type] += p2(P.Vel[0][ipart]) + p2(P.Vel[1][ipart]) 
+							+ p2(P.Vel[2][ipart]);
 
-		min_mpart_thread[type] = fmin(min_mpart[type], P[ipart].Mass);
+		min_mpart_thread[type] = fmin(min_mpart[type], P.Mass[ipart]);
 
 		npart_thread[type]++;
 	}

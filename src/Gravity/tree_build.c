@@ -214,12 +214,12 @@ static void set_tree_parent_pointers (const int i)
 	if (D[i].TNode.Target > 0) { // correct particle parent pointer
 	
 		for (int ipart = first_part; ipart < last_part; ipart++)
-			P[ipart].Tree_Parent += D[i].TNode.Target;
+			P.Tree_Parent[ipart] += D[i].TNode.Target;
 		
 	} else if (D[i].TNode.Target < 0) {
 	
 		for (int ipart = first_part; ipart < last_part; ipart++)
-			P[ipart].Tree_Parent = -i - 1; // top node w/o tree
+			P.Tree_Parent[ipart] = -i - 1; // top node w/o tree
 	}
 	return ;
 }
@@ -268,8 +268,8 @@ static int build_subtree(const int first_part, const int tnode_idx,
 
 	for (int ipart = first_part+1; ipart < last_part+1; ipart++) {
 
-		peanoKey key = Reversed_Peano_Key(P[ipart].Pos);
-
+		peanoKey key = Reversed_Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart],
+									 	  P.Pos[2][ipart]);
 		key >>= 3 * top_level;
 
 		int node = 0;        // current node
@@ -316,7 +316,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 
 		if (lvl > N_PEANO_TRIPLETS-1) {
 
-			P[ipart].Tree_Parent = parent;
+			P.Tree_Parent[ipart] = parent;
 
 			continue; // particles closer than PH resolution, dump in node
 		}
@@ -358,7 +358,8 @@ static int build_subtree(const int first_part, const int tnode_idx,
 static peanoKey create_first_node(const int first_part,
 		const int tnode_idx, const int top_level)
 {
-	peanoKey key = Reversed_Peano_Key(P[first_part].Pos);
+	peanoKey key = Reversed_Peano_Key(P.Pos[0][first_part], 
+								P.Pos[1][first_part], P.Pos[2][first_part]);
 
 	key >>= 3 * top_level;
 
@@ -406,7 +407,7 @@ static void collapse_last_branch(const int node, const int last_parent,
 	int last = first + tree[n].Npart;
 
 	for (int jpart = first; jpart < last; jpart++)
-		P[jpart].Tree_Parent = n;
+		P.Tree_Parent[jpart] = n;
 
 	return ;
 }
@@ -515,9 +516,9 @@ static inline void create_node_from_particle(const int ipart,const int parent,
 
 	tree[node].Bitfield = lvl | keyfragment | (1UL << 9);
 
-	const int sign[3] = { -1 + 2 * (P[ipart].Pos[0] > tree[parent].Pos[0]),
-					      -1 + 2 * (P[ipart].Pos[1] > tree[parent].Pos[1]),
-		                  -1 + 2 * (P[ipart].Pos[2] > tree[parent].Pos[2]) };
+	const int sign[3] = { -1 + 2 * (P.Pos[0][ipart] > tree[parent].Pos[0]),
+					      -1 + 2 * (P.Pos[1][ipart] > tree[parent].Pos[1]),
+		                  -1 + 2 * (P.Pos[2][ipart] > tree[parent].Pos[2]) };
 
 	Float size = Domain.Size / (1 << lvl);
 
@@ -527,7 +528,7 @@ static inline void create_node_from_particle(const int ipart,const int parent,
 
 	tree[node].DUp = node - parent;
 
-	P[ipart].Tree_Parent = node;
+	P.Tree_Parent[ipart] = node;
 
 	add_particle_to_node(ipart, node);
 
@@ -536,11 +537,11 @@ static inline void create_node_from_particle(const int ipart,const int parent,
 
 static inline void add_particle_to_node(const int ipart, const int node)
 {
-	tree[node].CoM[0] += P[ipart].Pos[0] * P[ipart].Mass;
-	tree[node].CoM[1] += P[ipart].Pos[1] * P[ipart].Mass;
-	tree[node].CoM[2] += P[ipart].Pos[2] * P[ipart].Mass;
+	tree[node].CoM[0] += P.Pos[0][ipart] * P.Mass[ipart];
+	tree[node].CoM[1] += P.Pos[1][ipart] * P.Mass[ipart];
+	tree[node].CoM[2] += P.Pos[2][ipart] * P.Mass[ipart];
 
-	tree[node].Mass += P[ipart].Mass;
+	tree[node].Mass += P.Mass[ipart];
 
 	tree[node].Npart++;
 
@@ -582,8 +583,7 @@ static void print_top_nodes()
 				D[i].TNode.Dp[0],D[i].TNode.Dp[1],D[i].TNode.Dp[2]);
 
 #endif
-	
-		return ;
+	return ;
 }
 
 
@@ -595,8 +595,8 @@ static void print_top_nodes()
 
 void test_gravity_tree(const int nNodes)
 {
-	const int first_node = 122984;
-	const int last_node = 122985;
+	const int first_node = 0;
+	const int last_node = nNodes;
 
 	for (int node = first_node; node < last_node; node++) {
 
@@ -622,22 +622,22 @@ void test_gravity_tree(const int nNodes)
 
 					npart++;
 
-					mass += P[jpart].Mass;
+					mass += P.Mass[jpart];
 
-					com[0] += P[jpart].Pos[0] * P[jpart].Mass;
-					com[1] += P[jpart].Pos[1] * P[jpart].Mass;
-					com[2] += P[jpart].Pos[2] * P[jpart].Mass;
+					com[0] += P.Pos[0][jpart] * P.Mass[jpart];
+					com[1] += P.Pos[1][jpart] * P.Mass[jpart];
+					com[2] += P.Pos[2][jpart] * P.Mass[jpart];
 
-					float dx = fabs(P[jpart].Pos[0] - tree[n].Pos[0]);
-					float dy = fabs(P[jpart].Pos[1] - tree[n].Pos[1]);
-					float dz = fabs(P[jpart].Pos[2] - tree[n].Pos[2]);
+					float dx = fabs(P.Pos[0][jpart] - tree[n].Pos[0]);
+					float dy = fabs(P.Pos[1][jpart] - tree[n].Pos[1]);
+					float dz = fabs(P.Pos[2][jpart] - tree[n].Pos[2]);
 
 					if (dx > nSize * 0.5)
 						if (dy > nSize * 0.5)
 							if (dz > nSize * 0.5)
 								nout++;
 
-					printf("%d %d \n", jpart, P[jpart].ID);
+					printf("%d %d \n", jpart, P.ID[jpart]);
 				}
 			}
 

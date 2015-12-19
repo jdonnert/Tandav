@@ -24,9 +24,9 @@ void Kick_First_Halfstep()
 
 		double dt = 0.5 * Particle_Kick_Step(ipart, Time.Next);
 
-		P[ipart].Vel[0] += dt * P[ipart].Acc[0];
-		P[ipart].Vel[1] += dt * P[ipart].Acc[1];
-		P[ipart].Vel[2] += dt * P[ipart].Acc[2];
+		P.Vel[0][ipart] += dt * P.Acc[0][ipart];
+		P.Vel[1][ipart] += dt * P.Acc[1][ipart];
+		P.Vel[2][ipart] += dt * P.Acc[2][ipart];
 
 		if (!Sig.Domain_Update)
 			Gravity_Tree_Update_Kicks(ipart, dt); // GRAVITY_TREE
@@ -48,11 +48,11 @@ void Kick_Second_Halfstep()
 
 		double dt = 0.5 * Particle_Kick_Step(ipart, Time.Next);
 
-		P[ipart].Vel[0] += dt * P[ipart].Acc[0];
-		P[ipart].Vel[1] += dt * P[ipart].Acc[1];
-		P[ipart].Vel[2] += dt * P[ipart].Acc[2];
+		P.Vel[0][ipart] += dt * P.Acc[0][ipart];
+		P.Vel[1][ipart] += dt * P.Acc[1][ipart];
+		P.Vel[2][ipart] += dt * P.Acc[2][ipart];
 
-		P[ipart].Int_Time_Pos = Int_Time.Next;
+		P.Int_Time_Pos[ipart] = Int_Time.Next;
 
 		if (!Sig.Domain_Update)
 			Gravity_Tree_Update_Kicks(ipart, dt);
@@ -72,7 +72,7 @@ void Kick_Second_Halfstep()
 
 double Particle_Kick_Step(const int ipart, const double time_next)
 {
-	intime_t intime_pos = P[ipart].Int_Time_Pos;
+	const intime_t intime_pos = P.Int_Time_Pos[ipart];
 
 	double time_part = Integer_Time2Integration_Time(intime_pos);
 

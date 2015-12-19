@@ -225,9 +225,6 @@ void write_gadget_header(const int *npart, FILE *fp)
 
 static void fill_data_buffer(const int i, char *dataBuf)
 {
-	const size_t sizeof_P = sizeof(*P);
-	const size_t sizeof_G = sizeof(*G);
-
 	const size_t offset = Block[i].Offset;
 	const size_t nBytes = Block[i].Nbytes;
 
@@ -238,29 +235,14 @@ static void fill_data_buffer(const int i, char *dataBuf)
 
 		case VAR_P:
 
-			src = (char *) P + offset;
+			src = (char *) &P + offset;
 
-			for (int i = 0; i < Task.Npart_Total; i++) {
-
-				memcpy(dest, src, nBytes);
-
-				dest += nBytes;
-				src += sizeof_P;
-			}
+			for (int i = 0; i < Task.Npart_Total; i++) 
+				memcpy(dest + i*nBytes, src + i*nBytes, nBytes);
 
 			break;
 
 		case VAR_GAS:
-
-			src = (char *) G + offset;
-
-			for (int i = 0; i < Task.Npart_Total; i++) {
-
-				memcpy(dest, src, nBytes);
-
-				dest += nBytes;
-				src += sizeof_G;
-			}
 
 			break;
 

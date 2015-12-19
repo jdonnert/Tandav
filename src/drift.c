@@ -25,9 +25,9 @@ void Drift_To_Sync_Point()
 
 		double dt = Particle_Drift_Step(ipart, Time.Next);
 
-		P[ipart].Pos[0] += dt * P[ipart].Vel[0];
-		P[ipart].Pos[1] += dt * P[ipart].Vel[1];
-		P[ipart].Pos[2] += dt * P[ipart].Vel[2];
+		P.Pos[0][ipart] += dt * P.Vel[0][ipart];
+		P.Pos[1][ipart] += dt * P.Vel[1][ipart];
+		P.Pos[2][ipart] += dt * P.Vel[2][ipart];
 	}
 
 	if (Sig.Drifted_To_Snaptime)  // handled out of sync integer timeline
@@ -73,9 +73,9 @@ void Drift_To_Snaptime()
 
 		double dt = Particle_Drift_Step(ipart, Time.Next_Snap);
 
-		P[ipart].Pos[0] +=	dt * P[ipart].Vel[0];
-		P[ipart].Pos[1] +=	dt * P[ipart].Vel[1];
-		P[ipart].Pos[2] +=	dt * P[ipart].Vel[2];
+		P.Pos[0][ipart] +=	dt * P.Vel[0][ipart];
+		P.Pos[1][ipart] +=	dt * P.Vel[1][ipart];
+		P.Pos[2][ipart] +=	dt * P.Vel[2][ipart];
 	}
 
 	Periodic_Constrain_Particles_To_Box();
@@ -85,7 +85,6 @@ void Drift_To_Snaptime()
 	#pragma omp single
 	Time.Current = Time.Next_Snap;
 	
-
 	return ;
 }
 
@@ -94,6 +93,7 @@ void Drift_To_Snaptime()
  */
 
 #ifndef COMOVING 
+
 static double Particle_Drift_Step(const int ipart, const double time_next)
 {
 	double time_part = 0;
@@ -101,10 +101,11 @@ static double Particle_Drift_Step(const int ipart, const double time_next)
 	if (Sig.Drifted_To_Snaptime)
 		time_part = Time.Current;
 	else
-		time_part = Integer_Time2Integration_Time(P[ipart].Int_Time_Pos);
+		time_part = Integer_Time2Integration_Time(P.Int_Time_Pos[ipart]);
 
 	return time_next - time_part;
 }
-#endif
+
+#endif // COMOVING
 
 

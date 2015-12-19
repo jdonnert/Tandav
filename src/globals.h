@@ -1,6 +1,7 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
+
 #include "proto.h"
 
 int * restrict Active_Particle_List, NActive_Particles;
@@ -90,9 +91,6 @@ extern struct Black_Hole_Particle_Data {
 	Float * restrict Entropy;
 } B;
 
-size_t sizeof_P = 0;
-size_t sizeof_G = 0;
-size_t sizeof_S = 0;
-size_t sizeof_B = 0;
+extern size_t sizeof_P; // set in particles.c
 
 #endif // GLOBALS_H

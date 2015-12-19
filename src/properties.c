@@ -21,7 +21,7 @@ static void find_total_mass(double mass_out[1])
 
 	#pragma omp for reduction(+:Total_Mass)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
-		Total_Mass += P[ipart].Mass;
+		Total_Mass += P.Mass[ipart];
 
 	#pragma omp single
 	{
@@ -46,9 +46,9 @@ static void find_center_of_mass(double CoM_out[3])
 	#pragma omp for reduction(+:CoM_X,CoM_Y,CoM_Z)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-		CoM_X += P[ipart].Mass * P[ipart].Pos[0];
-		CoM_Y += P[ipart].Mass * P[ipart].Pos[1];
-		CoM_Z += P[ipart].Mass * P[ipart].Pos[2];
+		CoM_X += P.Mass[ipart] * P.Pos[0][ipart];
+		CoM_Y += P.Mass[ipart] * P.Pos[1][ipart];
+		CoM_Z += P.Mass[ipart] * P.Pos[2][ipart];
 	}
 
 	#pragma omp single

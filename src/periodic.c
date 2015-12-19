@@ -21,23 +21,23 @@ void Periodic_Constrain_Particles_To_Box()
 	#pragma omp for 
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-		while (P[ipart].Pos[0] < 0)
-			P[ipart].Pos[0] += boxsize[0];
+		while (P.Pos[0][ipart] < 0)
+			P.Pos[0][ipart] += boxsize[0];
 
-		while (P[ipart].Pos[0] >= boxsize[0])
-			P[ipart].Pos[0] -= boxsize[0];
+		while (P.Pos[0][ipart] >= boxsize[0])
+			P.Pos[0][ipart] -= boxsize[0];
 
-		while (P[ipart].Pos[1] < 0)
-			P[ipart].Pos[1] += boxsize[1];
+		while (P.Pos[1][ipart] < 0)
+			P.Pos[1][ipart] += boxsize[1];
 
-		while (P[ipart].Pos[1] >= boxsize[1])
-			P[ipart].Pos[1] -= boxsize[1];
+		while (P.Pos[1][ipart] >= boxsize[1])
+			P.Pos[1][ipart] -= boxsize[1];
 
-		while (P[ipart].Pos[2] < 0)
-			P[ipart].Pos[2] += boxsize[2];
+		while (P.Pos[2][ipart] < 0)
+			P.Pos[2][ipart] += boxsize[2];
 
-		while (P[ipart].Pos[2] >= boxsize[2])
-			P[ipart].Pos[2] -= boxsize[2];
+		while (P.Pos[2][ipart] >= boxsize[2])
+			P.Pos[2][ipart] -= boxsize[2];
 	} // for i
 
 	return ;

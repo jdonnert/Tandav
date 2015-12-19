@@ -32,7 +32,4 @@ static const struct Field_Def P_Fields[] = {
 #undef P_OFFSET
 #undef P_FIELD_SIZE
 
-
-
-const int NP_Fields = ARRAY_SIZE(P_Fields);
-//const int NG_Fields = ARRAY_SIZE(G_Fields);
+extern const int NP_Fields;

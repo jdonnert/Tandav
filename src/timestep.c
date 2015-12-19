@@ -177,17 +177,17 @@ static void set_new_particle_timebins()
 
 		Assert(dt >= Time.Step_Min, "Timestep too small for integer timeline"
 				" or not finite ! \n        ipart=%d, ID=%d, dt=%g, "
-				"acc=(%g,%g,%g)", ipart, P[ipart].ID, dt,
-				P[ipart].Acc[0], P[ipart].Acc[1], P[ipart].Acc[2]);
+				"acc=(%g,%g,%g)", ipart, P.ID[ipart], dt,
+				P.Acc[0][ipart], P.Acc[1][ipart], P.Acc[2][ipart]);
 
 		int want = timestep2timebin(dt);
 
-		int allowed = MAX(Time.Max_Active_Bin, P[ipart].Time_Bin);
+		int allowed = MAX(Time.Max_Active_Bin, P.Time_Bin[ipart]);
 		
-		P[ipart].Time_Bin = MIN(want, allowed);
+		P.Time_Bin[ipart] = MIN(want, allowed);
 
-		Time_Bin_Min = MIN(Time_Bin_Min, P[ipart].Time_Bin);
-		Time_Bin_Max = MAX(Time_Bin_Max, P[ipart].Time_Bin);
+		Time_Bin_Min = MIN(Time_Bin_Min, P.Time_Bin[ipart]);
+		Time_Bin_Max = MAX(Time_Bin_Max, P.Time_Bin[ipart]);
 	}
 
 
@@ -245,7 +245,7 @@ void Make_Active_Particle_List()
 
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-		if (P[ipart].Time_Bin <= Time.Max_Active_Bin)
+		if (P.Time_Bin[ipart] <= Time.Max_Active_Bin)
 			Active_Particle_List[i++] = ipart;
 	}
 
@@ -321,7 +321,7 @@ static void print_timebins()
 	int npart[N_INT_BINS] = { 0 };
 
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
-		npart[P[ipart].Time_Bin]++;
+		npart[P.Time_Bin[ipart]]++;
 
 	MPI_Reduce(MPI_IN_PLACE, npart, N_INT_BINS, MPI_INT, MPI_SUM, Sim.Master,
 			MPI_COMM_WORLD);

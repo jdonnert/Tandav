@@ -1,6 +1,6 @@
 /*
  * Automatic particle handling. Because of the changed data structures, we
- * can't simply allocate, shrink and enlarge the particle structure. Instead
+ * can't simply allocate, shrink and enlarge the particles. Instead
  * we now have to loop over all its members and their components and change
  * all these arrays individually. The necessary information is in a const
  * struct array in particles_fields.h, which we may autogenerate from 
@@ -9,6 +9,9 @@
 
 #include "globals.h"
 #include "particles.h"
+
+size_t sizeof_P = 0; 
+const int NP_Fields = ARRAY_SIZE(P_Fields);
 
 static void find_particle_sizes();
 

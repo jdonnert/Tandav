@@ -82,7 +82,6 @@ double erand48(unsigned short xsubi[3]);
 #include "cosmology.h"		// cosmology functions 
 #include "comov.h"			// Comoving coordinates
 #include "periodic.h"		// periodic boundary conditions
-#include "particles.h"		// particle book-keeping
 
 
 

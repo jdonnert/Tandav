@@ -69,9 +69,9 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 		idx = Malloc(nBytes, "idx");
 
 	#pragma omp for // burn the bus
-	for (int ifield = 0; ifield < N_Pfields; ifield++) {
+	for (int ifield = 0; ifield < NP_Fields; ifield++) {
 	
-		for (int icomp = 0; icomp < N_Pfields; icomp++) {
+		for (int icomp = 0; icomp < NP_Fields; icomp++) {
 
 			memcpy(idx, idx_in, nBytes); // restore unsorted idx
 	
@@ -90,13 +90,13 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 
 				size_t dest = i;
 
-				memcpy(ptmp, p[i], field_bytes);
+				memcpy(ptmp, &p[i], field_bytes);
 
 				size_t src = idx[i];
 
  		    	for (;;) {
 
-					memcpy(p[dest], p[src], field_bytes);
+					memcpy(&p[dest], &p[src], field_bytes);
 
 					idx[dest] = dest;
 
@@ -108,7 +108,7 @@ static void reorder_collisionless_particles(const size_t *idx_in)
         		        break;
     	    	}
 
-				memcpy(p[dest],ptmp, field_bytes);
+				memcpy(&p[dest],ptmp, field_bytes);
 				idx[dest] = dest;
 
     		} // for i
@@ -472,8 +472,8 @@ void Test_Peanokey()
 	a[1] = 0.9999999999;
 	a[2] = 0.9999999999;
 
-	peanoKey stdkey =  Peano_Key(a);
-	peanoKey revkey =  Reversed_Peano_Key(a);
+	peanoKey stdkey =  Peano_Key(a[0], a[1], a[2]);
+	peanoKey revkey =  Reversed_Peano_Key(a[0], a[1], a[2]);
 
 	printf("a0=%lg a1=%lg a2=%lg 64bit val=%llu  \n", a[0], a[1], a[2], 
 			(unsigned long long)(stdkey >> 64));
@@ -481,8 +481,8 @@ void Test_Peanokey()
 	Print_Int_Bits(stdkey, 128, 2);
 	Print_Int_Bits(revkey, 128, 3);
 
-	shortKey stdkey_short = Short_Peano_Key(a);
-	shortKey revkey_short = Reversed_Short_Peano_Key(a);
+	shortKey stdkey_short = Short_Peano_Key(a[0], a[1], a[2]);
+	shortKey revkey_short = Reversed_Short_Peano_Key(a[0], a[1], a[2]);
 
 	Print_Int_Bits(stdkey_short, 64, 1);
 	Print_Int_Bits(revkey_short, 64, 3);
@@ -497,8 +497,8 @@ void Test_Peanokey()
 		a[1] = (j + 0.5) * delta / box[1];
 		a[2] = (k + 0.5) * delta / box[2];
 
-		peanoKey stdkey =  Peano_Key(a);
-		peanoKey revkey =  Reversed_Peano_Key(a);
+		peanoKey stdkey =  Peano_Key(a[0], a[1], a[2]);
+		peanoKey revkey =  Reversed_Peano_Key(a[0], a[1], a[2]);
 
 		printf("%g %g %g %llu  \n", a[0], a[1], a[2], 
 				(unsigned long long)(stdkey >> 64));

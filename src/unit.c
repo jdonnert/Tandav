@@ -54,7 +54,8 @@ double Velocity_Cgs(const float v)
 
 double Acceleration_Physical(const int ipart)
 {
-	double grav_accel = ALENGTH3(P[ipart].Grav_Acc);
+	double grav_accel = sqrt( p2(P.Grav_Acc[0][ipart]) 
+			+ p2(P.Grav_Acc[1][ipart]) + p2(P.Grav_Acc[2][ipart]) );
 
 #ifdef COMOVING
 	grav_accel *= Cosmo.Grav_Accel_Factor;

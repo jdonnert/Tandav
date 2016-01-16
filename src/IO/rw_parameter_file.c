@@ -131,7 +131,7 @@ void sanity_check_input_parameters()
 
 	Assert(Param.Num_IO_Tasks > 0, "NumIOTasks has to be > 0");
 
-	Warn(Param.Buffer_Size < Param.Max_Mem_Size / 8,
+	Warn(Param.Buffer_Size > Param.Max_Mem_Size / 8,
 			"BufferSize should be much smaller than MaxMemSize");
 
 	Warn((double)Param.Buffer_Size * p2(1024.0)/sizeof_P < 1000.0,

@@ -48,28 +48,30 @@ void Allocate_Particle_Structures()
 
 	omp_set_lock(&Particle_Lock);
 
-	size_t * start = Malloc(nBytes, "P");
-
-	size_t ** run_P = (size_t *) &P.Type; // start at first field in P
-	size_t run_mem = 0; 	// nbytes from start
-
-	Assert(0, "Check particle alloc adress magic");
+	void * restrict * run_P = (void * restrict *) &P.Type; // first field in P
 
 	for (int i = 0; i < NP_Fields; i++) {
 			
+		int nComp = P_Fields[i].N;
+
 		size_t nBytes = Task.Npart_Total_Max * P_Fields[i].Bytes;
-		int N = P_Fields[i].N;
 
-		for (int j = 0; j < N;  j++) {
+		char name[CHARBUFSIZE] = { "" }; 
+		sprintf(name, "P.%s[3]", P_Fields[i].Name, nComp);
+
+		void * start = Malloc(nComp * nBytes, name); // memory block
+
+		for (int j = 0; j < nComp;  j++) {
 				
-			*run_P = start + run_mem;
+			*run_P = start + j*nBytes;
 
-			run_P += sizeof(void *);
-			run_mem += nBytes;
+			run_P++; // next field in P is 8 bytes away
 		}
 	}
 
 	//G = Malloc(Task.Npart_Max[0] * sizeof(*G), "G");
+
+	Print_Memory_Usage();
 
 	omp_unset_lock(&Particle_Lock);
 
@@ -82,6 +84,8 @@ void Allocate_Particle_Structures()
 
 static void find_particle_sizes()
 {
+	sizeof_P = 0;
+
 	for (int i = 0; i < NP_Fields; i++) {
 
 		sizeof_P += P_Fields[i].Bytes * P_Fields[i].N;
@@ -224,9 +228,9 @@ char * Select_Particle(const int ifield, const int icomp, const int ipart)
 
 	char * result = (char *) &P;
 	
-	result += P_Fields[ifield].Offset; // field, i.e. P.Pos
+	result += ifield * 8; // field, i.e. P.Pos
 	
-	result += icomp * Task.Npart_Total * P_Fields[ifield].Bytes; // component
+	result += icomp * Task.Npart_Total_Max * P_Fields[ifield].Bytes; // component
 	
 	result += ipart * P_Fields[ifield].Bytes; // particle, P.Pos[1][ipart]
 

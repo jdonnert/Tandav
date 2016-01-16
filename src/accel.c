@@ -61,7 +61,7 @@ static void accel_gravity()
 	Gravity_Simple_Accel(); // GRAVITY_SIMPLE, performs force test
 
 	Profile("Gravity");
-//exit(0);
+
 	return ;
 }
 

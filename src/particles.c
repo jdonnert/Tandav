@@ -57,13 +57,15 @@ void Allocate_Particle_Structures()
 		size_t nBytes = Task.Npart_Total_Max * P_Fields[i].Bytes;
 
 		char name[CHARBUFSIZE] = { "" }; 
-		sprintf(name, "P.%s[3]", P_Fields[i].Name, nComp);
+		sprintf(name, "P.%s[%d]", P_Fields[i].Name, nComp);
 
-		void * start = Malloc(nComp * nBytes, name); // memory block
+		void * start = Malloc(nBytes, name); // memory block
+
+		nBytes /= nComp;
 
 		for (int j = 0; j < nComp;  j++) {
 				
-			*run_P = start + j*nBytes;
+			*run_P = start + j * nBytes;
 
 			run_P++; // next field in P is 8 bytes away
 		}

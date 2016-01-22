@@ -210,7 +210,7 @@ static void read_file (char *filename, const bool swap_Endian,
 
 			blocksize = find_block(fp, Block[i].Label, swap_Endian);
 		
-			Assert(blocksize > 0 || !Block[i].IC_Required, 
+			Assert(blocksize > 0 || (Block[i].IC_Required == false), 
 					"Can't find required block '%s'", Block[i].Label);
 			
 			if (blocksize > 0)
@@ -226,23 +226,25 @@ static void read_file (char *filename, const bool swap_Endian,
 		
 		if (groupRank == groupMaster) { // read on master
 			
-			nBytes = Npart_In_Block(i, nPartFile) * Block[i].Nbytes;
+			nBytes = Npart_In_Block(i, nPartFile) 
+										* Block[i].Ncomp * Block[i].Nbytes;
 			
 			Assert(nBytes == blocksize, 
 				"File and Code blocksize inconsistent '%s', %zu != %d byte", 
 				Block[i].Label, nBytes, blocksize);
 
 			SKIP_FORTRAN_RECORD
-			
-			safe_fread(ReadBuf, blocksize, 1, fp, swap_Endian );
-			
+
+			safe_fread(ReadBuf, nBytes, 1, fp, swap_Endian);
+
 			SKIP_FORTRAN_RECORD
 		} 
-
-		int nBytesGetBlock = Npart_In_Block(i, nPartGet) * Block[i].Nbytes;
+		
+		int nBytesGetBlock = Npart_In_Block(i, nPartGet) 
+										* Block[i].Ncomp * Block[i].Nbytes;
 		
 		int nBytesSend[groupSize];
-
+		
 		MPI_Allgather(&nBytesGetBlock, 1 , MPI_INT, nBytesSend, 1, MPI_INT, 
 				mpi_comm_read);
 
@@ -270,34 +272,44 @@ static void read_file (char *filename, const bool swap_Endian,
 
 /* 
  * This moves data from the comm buffer to P. Here we should be limited 
- * by the I/O of the drive 
+ * by the I/O of the drive. We find the destination of the block by counting
+ * the number of pointers (nPtr) starting from &P.Type. nPtr is 
+ * just the offset in Bytes over the size of a pointer in bytes on this 
+ * system.
  */
 
-static void empty_comm_buffer (const char *DataBuf, const int i, 
+static void empty_comm_buffer (const char *DataBuf, const int iB, 
 		const int nPartTotal, const int *nPart, const size_t *offsets)
 {
-	const size_t nBytes = Block[i].Nbytes;
+	const int nComp = Block[iB].Ncomp;
+	const size_t nBytes = Block[iB].Nbytes;
+	const size_t nPtr = Block[iB].Offset/sizeof(void *); 
+			
+	void * restrict src = (void *) DataBuf; 
+	void * restrict dest[nComp];
 
-	const char * restrict Pfield = (char *) &P + Block[i].Offset + 
-							offsets[0]*nBytes;
-
-	switch (Block[i].Target) { // ptr fun for the whole family
+	switch (Block[iB].Target) { // ptr fun for the whole family
 
 		case VAR_P:
-			
-			#pragma omp parallel for
-			for (int i = 0; i < nPartTotal; i++) {
-			
-				void * restrict src = (void *) (DataBuf + i*nBytes);
-				void * restrict dest = (void *) (Pfield + i*nBytes);
-				
-				memcpy(dest, src, nBytes);
-			}
-			
+
+			for (int j = 0; j < nComp; j++)
+				dest[j] = *(&P.Type + nPtr + j); // points to P.X[i]
+
 		break;
 
 		default: 
-			Assert(0, "Input buffer target unknown");
+			Assert(false, "Input buffer target unknown %d", Block[iB].Target);
+	}	
+	
+	for (int i = 0; i < nPartTotal; i++) {
+			
+		for (int j = 0; j < nComp; j++) {
+				
+			memcpy(dest[j], src, nBytes);
+				
+			src += nBytes;
+			dest[j] += nBytes;
+		}
 	}
 
 	return ;
@@ -565,8 +577,9 @@ static int safe_fread(void * restrict data, size_t size, size_t nWanted,
 
 	if (feof(stream)) // we catch EOF further up, because of block finding
 		nRead = nWanted = 0;
-		
-	Assert(nRead == nWanted, "Read %zu bytes, but %zu wanted", nRead, nWanted);
+	
+	Assert(nRead == nWanted, "Read %zu blocks with %zu bytes, but %zu wanted",
+			nRead, size, nWanted);
 
 	if (swap_Endian && !feof(stream)) { // swap endianess
 

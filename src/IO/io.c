@@ -4,12 +4,20 @@
 unsigned int Largest_Block_Member_Nbytes()
 {
 	int imax = 0;
+	size_t nBytes_max = 0;
 
-	for (int i = 0; i < NBlocks; i++)
-		if (Block[i].Nbytes > Block[imax].Nbytes)
+	for (int i = 0; i < NBlocks; i++) {
+	
+		size_t nBytes = Block[i].Ncomp * Block[i].Nbytes;
+
+		if (nBytes > nBytes_max) {
+
 			imax = i;
+			nBytes_max = nBytes;
+		}
+	}
 
-	return Block[imax].Nbytes;
+	return Block[imax].Ncomp * Block[imax].Nbytes;
 }
 
 /* 

@@ -38,7 +38,6 @@ struct gadget_header { // standard gadget header, filled to 256 byte
 
 struct io_block_def {  // everything we need to define a Block in Format 2
 	char Label[5];
-	char Name[CHARBUFSIZE];
 	enum target_variable {
 		VAR_P,
 		VAR_GAS,
@@ -48,41 +47,40 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 		VAR_BND
 	} Target;			// identify global var
 	size_t Offset;		// offset in underlying struct
+	size_t Ncomp;		// vector length / number of components
 	size_t Nbytes;		// sizeof target field
 	bool IC_Required;	// needed on readin from ICs ?
+	char Name[CHARBUFSIZE];
 };
 
 #define P_OFFSET(member) offsetof(struct Particle_Data, member)
 #define P_SIZEOF(member) sizeof(((struct Particle_Data *)0)->member)
 
 static const struct io_block_def Block[] = {
-	{"POS ", "Positions", VAR_P, P_OFFSET(Pos), P_SIZEOF(Pos), true},
-	{"VEL ", "Velocities", VAR_P, P_OFFSET(Vel), P_SIZEOF(Vel),true},
-	{"ID  ", "Short IDs", VAR_P, P_OFFSET(ID), P_SIZEOF(ID), true},
-	{"MASS", "Masses", VAR_P, P_OFFSET(Mass), P_SIZEOF(Mass), false}
+	{"POS ", VAR_P, P_OFFSET(Pos), 3, sizeof(Float), true, "Positions"},
+	{"VEL ", VAR_P, P_OFFSET(Vel), 3, sizeof(Float), true, "Velocities"},
+	{"ID  ", VAR_P, P_OFFSET(ID), 1, sizeof(ID_t), true, "Short IDs"},
+	{"MASS", VAR_P, P_OFFSET(Mass), 1, sizeof(Float), false, "Masses"}
 
 #ifdef OUTPUT_TOTAL_ACCELERATION
-	,{"ACC", "Acceleration", VAR_P, P_OFFSET(Acc), P_SIZEOF(Acc), false}
+	,{"ACC", VAR_P, P_OFFSET(Acc), 1, sizeof(Float), false, "Acceleration"}
 #endif
-
 #ifdef OUTPUT_PARTIAL_ACCELERATIONS
-	,{"GACC", "Grav Acceleration", VAR_P, P_OFFSET(Grav_Acc),
-		P_SIZEOF(Grav_Acc), false}
+	,{"GACC", VAR_P, P_OFFSET(Grav_Acc), 3, sizeof(Float), false, 
+		"Grav Acceleration"}
 #endif
-
 #ifdef OUTPUT_GRAV_POTENTIAL
-	,{"GPOT", "Grav Potential", VAR_P, P_OFFSET(Grav_Pot), P_SIZEOF(Grav_Pot),
-		false}
+	,{"GPOT", VAR_P, P_OFFSET(Grav_Pot), 1, sizeof(Float), false, 
+		"Grav Potential"}
 #endif
-
 #ifdef OUTPUT_PEANO_KEY
-	,{"PKEY","Peanokey",VAR_P,P_OFFSET(Peanokey),P_SIZEOF(peanoKey), false}
+	,{"PKEY", VAR_P, P_OFFSET(Peanokey), 1, sizeof(PeanoKey), false, "Pkeys"}
 #endif
 
 	// Add yours below 
 };
 
 #undef P_OFFSET
-#undef P_FIELD_SIZE
+#undef P_SIZEOF
 
 static const int NBlocks = ARRAY_SIZE(Block);

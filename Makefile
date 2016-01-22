@@ -78,7 +78,7 @@ OBJFILES = $(SRCFILES:.c=.o)
 
 $(EXEC)	: settings $(OBJFILES)
 	$(CC) $(CFLAGS) $(OBJFILES) $(LIBS) -o $(EXEC)
-	@ctags -w -t -d $(OBJFILES) $(INCS)
+	@ctags -w -t -d $(SRCFILES) $(INCS)
 
 $(OBJFILES)	: $(INCLFILES)
 

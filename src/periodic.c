@@ -6,7 +6,7 @@ Float Boxsize = 0, Boxhalf = 0;
 
 void Init_Periodic()
 {
-	Boxsize = Sim.Boxsize[0];
+	Boxsize = Sim.Boxsize[2] = Sim.Boxsize[1] = Sim.Boxsize[0];
 	Boxhalf = Boxsize/2.0;
 	
 	rprintf("Periodic Boxsize = %g, Boxhalf = %g \n\n", Boxsize, Boxhalf);
@@ -16,7 +16,7 @@ void Init_Periodic()
 
 void Periodic_Constrain_Particles_To_Box()
 {
-	const Float boxsize[3] = { Sim.Boxsize[0], Sim.Boxsize[1], Sim.Boxsize[2] };
+	const Float boxsize[3] = {Sim.Boxsize[0], Sim.Boxsize[1], Sim.Boxsize[2]};
 
 	#pragma omp for 
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {

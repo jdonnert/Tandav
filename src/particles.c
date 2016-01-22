@@ -30,14 +30,12 @@ void Allocate_Particle_Structures()
 
 	const double npart_per_rank = (double) Sim.Npart_Total/(double) Sim.NRank;
 
-	Task.Npart_Total_Max = floor(npart_per_rank * PART_ALLOC_FACTOR);
+	Task.Npart_Total_Max = ceil(npart_per_rank * PART_ALLOC_FACTOR);
 
 	for (int i = 0; i < NPARTYPE; i++)
 		Task.Npart_Max[i] = (double)Sim.Npart[i]/Sim.NRank * PART_ALLOC_FACTOR;
 
 	} // omp parallel
-
-	omp_init_lock(&Particle_Lock);
 
 	find_particle_sizes(); 
 
@@ -45,6 +43,8 @@ void Allocate_Particle_Structures()
 
 	rprintf("\nReserving space for %llu particles per task in *P,"
 			" factor %g\n", Task.Npart_Total_Max, PART_ALLOC_FACTOR);
+
+	omp_init_lock(&Particle_Lock);
 
 	omp_set_lock(&Particle_Lock);
 
@@ -54,23 +54,20 @@ void Allocate_Particle_Structures()
 			
 		int nComp = P_Fields[i].N;
 
-		size_t nBytes = Task.Npart_Total_Max * P_Fields[i].Bytes;
-
-		char name[CHARBUFSIZE] = { "" }; 
-		sprintf(name, "P.%s[%d]", P_Fields[i].Name, nComp);
-
-		void * start = Malloc(nBytes, name); // memory block
-
-		nBytes /= nComp;
-
+		nBytes = Task.Npart_Total_Max * P_Fields[i].Bytes;
+		
 		for (int j = 0; j < nComp;  j++) {
-				
-			*run_P = start + j * nBytes;
 
-			run_P++; // next field in P is 8 bytes away
+			char name[CHARBUFSIZE] = { "" }; 
+
+			sprintf(name, "P.%s[%d]", P_Fields[i].Name, j);
+
+			*run_P = Malloc(nBytes, name); // memory block
+
+			run_P++; // next field in P is 8 bytes or one pointer away
 		}
 	}
-
+	
 	//G = Malloc(Task.Npart_Max[0] * sizeof(*G), "G");
 
 	Print_Memory_Usage();
@@ -114,7 +111,7 @@ static void find_particle_sizes()
 void Reallocate_P_Info(const char *func, const char *file, int line,
 		const int dNpart[NPARTYPE], size_t offset_out[NPARTYPE])
 {
-
+	
 	#pragma omp single
 	for (int i = 0; i < NPARTYPE; i++)
 		Assert(Task.Npart[i] + dNpart[i] <= Task.Npart_Max[i],

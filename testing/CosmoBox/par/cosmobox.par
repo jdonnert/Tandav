@@ -2,7 +2,7 @@
 
 
 %% Files %%
-InputFile		IC_Cosmo_Box_Big
+InputFile		IC_Cosmo_Box
 OutputFileBase	snap 
 NumIOTasks		1 
 NumOutputFiles	1 

@@ -55,12 +55,11 @@ void Read_and_Init(int argc, char *argv[])
 
 	case 2:
 
-		Assert(argc > 3, "Missing snapshot number in program invokation");
+		Assert(argc > 3, "Missing snapshot number in program invokation");    
 
 		char snap_file[CHARBUFSIZE] = {""};
 
-		sprintf(snap_file, "%s_%03d", Param.Output_File_Base,
-				 atoi(argv[3]) );
+		sprintf(snap_file, "%s_%03d", Param.Output_File_Base, atoi(argv[3]));
 
 		Read_Snapshot(snap_file);
 
@@ -68,14 +67,14 @@ void Read_and_Init(int argc, char *argv[])
 
 	default:
 
-		Assert(0, "Start Flag not handled");
+		Assert(false, "Start Flag not handled");
 
 		break;
 	}
 
 	#pragma omp parallel
 	Periodic_Constrain_Particles_To_Box();
-
+Assert(false,"done ");
 	Gravity_Periodic_Init();
 
 	Profile("Init");

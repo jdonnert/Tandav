@@ -6,7 +6,8 @@ struct Field_Def {	// define a particle property
 	int N; 			// number of variables
 };
 
-#define P_SIZEOF(member) sizeof(((struct Particle_Data *)0)->member)
+#define P_SIZEOF(member) sizeof(((struct Particle_Data *)0)->member[0])
+#define P_SIZEOF3(member) sizeof(((struct Particle_Data *)0)->member[0][0])
 
 static const struct Field_Def P_Fields[] = { 
 	{"Type", 			P_SIZEOF(Type), 			1}
@@ -14,11 +15,11 @@ static const struct Field_Def P_Fields[] = {
 	,{"Int_Time_Pos",	P_SIZEOF(Int_Time_Pos),		1}
 	,{"ID", 		 	P_SIZEOF(ID),				1}
 	,{"Cost",			P_SIZEOF(Cost),				1}
-	,{"Pos", 			P_SIZEOF(Pos),				3}
-	,{"Vel", 			P_SIZEOF(Vel),				3}
-	,{"Acc", 			P_SIZEOF(Acc),				3}
+	,{"Pos", 			P_SIZEOF3(Pos),				3}
+	,{"Vel", 			P_SIZEOF3(Vel),				3}
+	,{"Acc", 			P_SIZEOF3(Acc),				3}
 	,{"Mass", 			P_SIZEOF(Mass),				1}
-	,{"Grav_Acc",		P_SIZEOF(Grav_Acc),			3}
+	,{"Grav_Acc",		P_SIZEOF3(Grav_Acc),		3}
 #ifdef GRAVITY_POTENTIAL
 	,{"Grav_Pot",		P_SIZEOF(Grav_Pot),			1}
 #endif	
@@ -28,6 +29,7 @@ static const struct Field_Def P_Fields[] = {
 	// Add yours here !
 };
 
-#undef P_FIELD_SIZE
+#undef P_SIZEOF
+#undef P_SIZEOF3
 
 extern const int NP_Fields;

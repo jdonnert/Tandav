@@ -61,11 +61,11 @@ extern struct Particle_Data {
 	int * restrict Type;				// keep this first !
 	int * restrict Time_Bin;
 	intime_t * restrict Int_Time_Pos;	// current position on integer timeline
+	ID_t * restrict ID; 					 
 	Float * restrict Cost;				// computational weight of particle
 	Float * restrict Pos[3];
 	Float * restrict Vel[3];
 	Float * restrict Acc[3];
-	ID_t * restrict ID; 					 
 	Float * restrict Mass;
 	Float * restrict Grav_Acc[3];
 #ifdef GRAVITY_POTENTIAL

@@ -402,15 +402,15 @@ static void compute_ewald_force(const int i, const int j, const int k,
 
 				int h2 = ASCALPROD3(h);
 
-				if (h2 <= 0)
-					continue;
+				if (h2 > 0) {
 
-				double val = 2.0/h2 * exp(-PI*PI*h2/p2(Alpha))
+					double val = 2.0/h2 * exp(-PI*PI*h2/p2(Alpha))
 									* sin(2*PI*hdotx);
 
-				force[0] -= h[0] * val;
-				force[1] -= h[1] * val;
-				force[2] -= h[2] * val;
+					force[0] -= h[0] * val;
+					force[1] -= h[1] * val;
+					force[2] -= h[2] * val;
+				}
 			}
 		}
 	}
@@ -454,11 +454,9 @@ static double compute_ewald_potential(const double r[3])
 
 				int h2 = ASCALPROD3(h);
 
-				if (h2 <= 0)
-					continue;
-
-				sum2 += 1.0/(PI*h2) * exp(-PI*PI*h2 / p2(Alpha)) 
-					* cos(2*PI*hdotr);
+				if (h2 > 0) 
+					sum2 += 1.0/(PI*h2) * exp(-PI*PI*h2 / p2(Alpha)) 
+						* cos(2*PI*hdotr);
 			}
 		}
 	}

@@ -1,5 +1,10 @@
 void Allocate_Particle_Structures();
 
+/*
+ * P_Fields provides a description of P, so we can loop through the components
+ * and allocate, add and remove particles.
+ */
+
 struct Field_Def {	// define a particle property
 	char Name[CHARBUFSIZE]; 	// 
 	size_t Bytes; 	// sizeof member

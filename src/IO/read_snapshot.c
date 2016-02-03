@@ -288,11 +288,11 @@ static void empty_comm_buffer (const char *DataBuf, const int iB,
 	void * restrict src = (void *) DataBuf; 
 	void * restrict dest[nComp];
 
-	switch (Block[iB].Target) { // ptr fun for the whole family
+	switch (Block[iB].Target) { // find the destination pointers
 
 		case VAR_P:
 
-			for (int j = 0; j < nComp; j++)
+			for (int j = 0; j < nComp; j++) // ptr fun for the whole family
 				dest[j] = *(&P.Type + nPtr + j); // points to P.X[i]
 
 		break;

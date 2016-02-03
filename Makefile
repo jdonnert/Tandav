@@ -102,7 +102,6 @@ $(SRCDIR)/print_settings.c : Config	# does not work with sh, needs bash
 settings :
 	@echo " "
 	@echo 'CC = ' $(CC)
-	@echo 'SYSTYPE =' $(TANDAV_SYSTYPE)
 	@echo 'CFLAGS =' $(CFLAGS)
 	@echo 'LDFLAGS =' $(LIBS)
 	@echo 'EXEC =' $(EXEC)

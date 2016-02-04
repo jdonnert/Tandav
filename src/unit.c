@@ -12,12 +12,12 @@ const struct Code_Units Unit = {
 void Init_Units()
 {
 	printf("Units: \n"
-			"  Length = %g cm\n"
-			"  Mass = %g g\n"
+			"  Length   = %g cm\n"
+			"  Mass     = %g g\n"
 			"  Velocity = %g cm/s\n"
-			"  Time = %g s \n"
-			"  Energy = %g erg\n"
-			"  Density = %g g/cm^3 \n\n",
+			"  Time     = %g s \n"
+			"  Energy   = %g erg\n"
+			"  Density  = %g g/cm^3 \n\n",
 			Unit.Length, Unit.Mass, Unit.Velocity, Unit.Time, Unit.Energy, 
 			Unit.Density);
 

@@ -2,10 +2,13 @@
 #include "timestep.h"
 #include "peano.h"
 #include "domain.h"
-#include "sort.h"
 #include "particles.h"
 
 static void reorder_collisionless_particles(const size_t *idx_in);
+static void reorder_array_8(const size_t n, void * restrict p_in, 
+		size_t  * restrict idx);
+static void reorder_array_4(const size_t n, void * restrict p_in, 
+		size_t  * restrict idx);
 
 int compare_peanoKeys(const void * a, const void *b)
 {
@@ -38,7 +41,7 @@ void Sort_Particles_By_Peano_Key()
 	#pragma  omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) 
 		keys[ipart] = Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart],
-				P.Pos[2][ipart]);
+								P.Pos[2][ipart]);
 
 	Qsort_Index(Task.Thread_ID, idx, keys, Task.Npart_Total, sizeof(*keys),
 			&compare_peanoKeys);
@@ -61,66 +64,123 @@ void Sort_Particles_By_Peano_Key()
 static void reorder_collisionless_particles(const size_t *idx_in)
 {	
 	size_t *idx = NULL;
-	const size_t nBytes = Task.Npart_Total * sizeof(*idx);
+	size_t nBytes = Task.Npart_Total * sizeof(*idx);
 
-	if (nBytes <= Param.Buffer_Size) // try to get local storage
-		idx = Get_Thread_Safe_Buffer(nBytes);
-	else
-		idx = Malloc(nBytes, "idx");
+	#pragma omp single
+	Assert(Task.Buffer_Size > Task.Npart_Total * sizeof(size_t), 
+			"BufferSize >= %zu MB for this setup", 
+			Sim.NThreads * Task.Npart_Total * sizeof(size_t)/1024/1024);
 
-	#pragma omp for // burn the bus
-	for (int ifield = 0; ifield < NP_Fields; ifield++) {
+	idx = Get_Thread_Safe_Buffer(nBytes);
+
+	#pragma omp for 
+	for (int i = 0; i < NP_Fields; i++) { // burn the bus
 	
-		for (int icomp = 0; icomp < NP_Fields; icomp++) {
+		for (int j = 0; j < P_Fields[i].N; j++) {
 
 			memcpy(idx, idx_in, nBytes); // restore unsorted idx
 	
-			void *p = Select_Particle(ifield, icomp, 0);
-		
-			size_t field_bytes = P_Fields[ifield].Bytes; // <= 8
+			void * restrict p = Select_Particle(i, j, 0);
+	
+			if (P_Fields[i].Bytes == 8)
+				reorder_array_8(Task.Npart_Total, p, idx);
+			else if (P_Fields[i].Bytes == 4)
+				reorder_array_4(Task.Npart_Total, p, idx);
+			else 
+				Assert(false, "Can order only 4 or 8 byte entries in P");
 
-			Assert(field_bytes <= 8, "Found a particle field > 8. ");
-
-			char ptmp[8] = { "" };
-
-			for (size_t i = Task.Npart[0]; i < Task.Npart_Total; i++) {
-
-    	 	   if (idx[i] == i)
-        	    	continue;
-
-				size_t dest = i;
-
-				memcpy(ptmp, &p[i], field_bytes);
-
-				size_t src = idx[i];
-
- 		    	for (;;) {
-
-					memcpy(&p[dest], &p[src], field_bytes);
-
-					idx[dest] = dest;
-
-					dest = src;
-
-					src = idx[dest];
-
-    		        if (src == i)
-        		        break;
-    	    	}
-
-				memcpy(&p[dest],ptmp, field_bytes);
-				idx[dest] = dest;
-
-    		} // for i
-
-		} // for icomp
-	} // for ifield
- 	
-	if (! (nBytes <= Param.Buffer_Size))
-		Free(idx);
+		} // for j
+	} // for i
 
 	return ;
 }
+
+
+/*
+ * Reorder *p according to *idx. *idx will be changed as well. We have two
+ * versions for 4 and 8 Byte, to avoid using memcpy().
+ */
+
+static void reorder_array_8(const size_t n, void * restrict p_in, 
+		size_t  * restrict idx)
+{
+	uint64_t * restrict p = (uint64_t *) p_in;
+
+	for (size_t i = 0; i < n; i++) {
+
+   		if (idx[i] == i)
+   	    	continue;
+
+		size_t dest = i;
+
+		uint64_t buf = p[i];
+		//memcpy(buf, &p[i], nBytes);
+
+		size_t src = idx[i];
+
+ 	  	for (;;) {
+
+			p[dest] = p[src];
+			//memcpy(&p[dest], &p[src], nBytes);
+
+			idx[dest] = dest;
+
+			dest = src;
+
+			src = idx[dest];
+
+	        if (src == i)
+   		        break;
+    	}
+
+		p[dest] = buf;
+		//memcpy(&p[dest], buf, nBytes);
+
+		idx[dest] = dest;
+    } // for i
+
+	return ;
+}
+
+static void reorder_array_4(const size_t n, void * restrict p_in, 
+		size_t  * restrict idx)
+{
+	uint32_t * restrict p = (uint32_t *) p_in;
+
+	for (size_t i = 0; i < n; i++) {
+
+   		if (idx[i] == i)
+   	    	continue;
+
+		size_t dest = i;
+
+		uint32_t buf = p[i];
+
+		size_t src = idx[i];
+
+ 	  	for (;;) {
+
+			p[dest] = p[src];
+
+			idx[dest] = dest;
+
+			dest = src;
+
+			src = idx[dest];
+
+	        if (src == i)
+   		        break;
+    	}
+
+		p[dest] = buf;
+
+		idx[dest] = dest;
+    } // for i
+
+	return ;
+}
+
+
 
 /* 
  * Construct a 128 bit Peano-Hilbert distance in 3D, input coordinates 
@@ -187,7 +247,7 @@ peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 
     uint64_t t = X[2];
 
-    for(int i = 1; i < 64; i <<= 1 )
+    for(int i = 1; i < N_PEANO_BITS; i <<= 1 )
         X[2] ^= X[2] >> i;
 
     t ^= X[2];
@@ -269,7 +329,7 @@ peanoKey Reversed_Peano_Key(const Float px, const Float py, const Float pz)
 
     uint64_t t = X[2];
 
-    for(int i = 1; i < 64; i <<= 1)
+    for(int i = 1; i < N_PEANO_BITS; i <<= 1)
         X[2] ^= X[2] >> i;
 
     t ^= X[2];
@@ -348,7 +408,7 @@ shortKey Short_Peano_Key(const Float px, const Float py, const Float pz)
 
     uint32_t t = X[2];
 
-    for(int i = 1; i < 32; i <<= 1 )
+    for(int i = 1; i < N_SHORT_BITS; i <<= 1 )
         X[2] ^= X[2] >> i;
 
     t ^= X[2];
@@ -427,7 +487,7 @@ shortKey Reversed_Short_Peano_Key(const Float px, const Float py,
 
     uint32_t t = X[2];
 
-    for(int i = 1; i < 32; i <<= 1)
+    for(int i = 1; i < N_SHORT_BITS; i <<= 1)
         X[2] ^= X[2] >> i;
 
     t ^= X[2];
@@ -476,7 +536,7 @@ void Test_Peanokey()
 	peanoKey revkey =  Reversed_Peano_Key(a[0], a[1], a[2]);
 
 	printf("a0=%lg a1=%lg a2=%lg 64bit val=%llu  \n", a[0], a[1], a[2], 
-			(unsigned long long)(stdkey >> 64));
+			(unsigned long long)(stdkey));
 
 	Print_Int_Bits(stdkey, 128, 2);
 	Print_Int_Bits(revkey, 128, 3);
@@ -501,7 +561,7 @@ void Test_Peanokey()
 		peanoKey revkey =  Reversed_Peano_Key(a[0], a[1], a[2]);
 
 		printf("%g %g %g %llu  \n", a[0], a[1], a[2], 
-				(unsigned long long)(stdkey >> 64));
+				(unsigned long long)(stdkey));
 
 		Print_Int_Bits128(stdkey);
 		Print_Int_Bits(revkey, 128, 3);

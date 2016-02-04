@@ -1,7 +1,6 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-
 #include "proto.h"
 
 int * restrict Active_Particle_List, NActive_Particles;

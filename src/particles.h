@@ -1,4 +1,5 @@
 void Allocate_Particle_Structures();
+char * Select_Particle(const size_t field, const int comp, const int ipart);
 
 /*
  * P_Fields provides a description of P, so we can loop through the components

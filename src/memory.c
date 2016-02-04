@@ -1,7 +1,7 @@
 /* Memory management */
 #include "globals.h"
 
-#define MAXMEMOBJECTS 1024L
+#define MAXMEMOBJECTS 1000L
 
 int posix_memalign(void **memptr, size_t alignment, size_t size);
 static void merge_free_memory_blocks(int);
@@ -158,9 +158,9 @@ void Free_info(const char* file, const char* func, const int line, void *ptr)
 
 void *Get_Thread_Safe_Buffer (size_t nBytes)
 {
-	Assert(nBytes <= Task.Buffer_Size,
+	Assert(nBytes <= Task.Buffer_Size, 
 			"Requested too much Buffer space %d > %d"
-			"Increase BUFFER_SIZE in 'Config' file. ",
+			"Increase BUFFER_SIZE. ",
 			nBytes, Task.Buffer_Size);
 	
 	memset(buffer, 0, nBytes);

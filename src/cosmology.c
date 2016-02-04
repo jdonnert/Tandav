@@ -22,9 +22,9 @@ void Init_Cosmology()
 	const double h0_cgs = HUBBLE_CONST * KM2CGS / MPC2CGS;
 
 	rprintf("Cosmological background model: \n"
-			"   h_0          = %6.3g, Omega_0      = %6.3g \n"
-			"   Omega_Lambda = %6.3g, Omega_Matter = %6.3g \n"
-			"   Omega_Baryon = %6.3g, Omega_Rad    = %6.3g \n"
+			"   h_0          = %6.3g, \n   Omega_0      = %6.3g \n"
+			"   Omega_Lambda = %6.3g, \n   Omega_Matter = %6.3g \n"
+			"   Omega_Baryon = %6.3g, \n   Omega_Rad    = %6.3g \n"
 			"   rho_crit_0   = %6.3g g/cm^3\n"
 			"   Hubble_Const = %6.3g (internal)\n\n",
 			HUBBLE_CONST/100, Cosmo.Omega_0, Cosmo.Omega_Lambda,

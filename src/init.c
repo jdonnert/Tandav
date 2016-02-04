@@ -74,7 +74,7 @@ void Read_and_Init(int argc, char *argv[])
 
 	#pragma omp parallel
 	Periodic_Constrain_Particles_To_Box();
-
+		
 	Gravity_Periodic_Init();
 
 	Profile("Init");

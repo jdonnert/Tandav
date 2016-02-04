@@ -34,5 +34,3 @@ int Fread(void *restrict data, const size_t size, const size_t nWanted,
 		FILE *stream);
 int Fwrite(void *restrict data, const size_t size, const size_t nWrite,
 		FILE *stream);
-
-char *Select_Particle(const int ifield, const int icomp, const int ipart);

@@ -210,29 +210,29 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 }
 
 /*
- * Returns a pointer to particle "ipart", field "ifield", component "icomp".
+ * Returns a pointer to particle "ipart", field "field", component "comp".
  * This lets us move particles in an automated way.
  * Pointer fun for the whole family.
  */
 
-char * Select_Particle(const int ifield, const int icomp, const int ipart)
+char * Select_Particle(const size_t field, const int comp, const int ipart)
 {
-	Assert(icomp >= 0 && icomp < P_Fields[ifield].N, 
-			"Component %d not valid in field %d", icomp, ifield);
+	Assert(comp >= 0 && comp < P_Fields[field].N, 
+			"Component %d not valid in field %d", comp, field);
 
-	Assert(ifield < NP_Fields, "Field %d does not exist", ifield);
+	Assert(field < NP_Fields, "Field %d does not exist", field);
 
 	Assert(ipart >= 0 && ipart < Task.Npart_Total, 
 			"ipart %d out of range", ipart);
 
-	char * result = (char *) &P;
-	
-	result += ifield * 8; // field, i.e. P.Pos
-	
-	result += icomp * Task.Npart_Total_Max * P_Fields[ifield].Bytes; // component
-	
-	result += ipart * P_Fields[ifield].Bytes; // particle, P.Pos[1][ipart]
+	void * restrict * result = (void * restrict *) &P.Type;
 
-	return result;
+	for (int i = 0; i < field; i++)
+		for (int j = 0; j < P_Fields[i].N; j++)
+			result++;
+	
+	result += comp; // now points to P.$field[$comp]
+
+	return *result + ipart*P_Fields[field].Bytes;
 }
 

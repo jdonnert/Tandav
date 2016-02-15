@@ -23,8 +23,6 @@ void Update(enum Update_Parameters stage)
 
 		Set_Current_Cosmology(Time.Current); // COMOVING
 
-		Compute_Global_Simulation_Properties();
-
 		Domain_Decomposition();
 
 		Compute_Acceleration();
@@ -39,6 +37,8 @@ void Update(enum Update_Parameters stage)
 		break;
 
 	case BEFORE_STEP:
+		
+		Compute_Global_Simulation_Properties();
 
 		Write_Logs();
 
@@ -60,11 +60,11 @@ void Update(enum Update_Parameters stage)
 
 		Compute_Global_Simulation_Properties();
 
+		Periodic_Constrain_Particles_To_Box(); // PERIODIC
+
 		break;
 
 	case BEFORE_FORCES:
-
-		Periodic_Constrain_Particles_To_Box(); // PERIODIC
 
 		break;
 

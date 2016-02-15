@@ -8,7 +8,7 @@
 static void set_computational_domain();
 static void find_domain_center(double Center_Out[3]);
 static void find_largest_particle_distance(double *);
-static void reset_bunchlist(const bool);
+static void reset_bunchlist();
 static void fill_new_bunches(const int, const int, const int, const int);
 static void find_mean_cost();
 static void make_new_bunchlist();
@@ -72,7 +72,7 @@ void Domain_Decomposition()
 
 	Sort_Particles_By_Peano_Key();
 	
-	reset_bunchlist(false); // also deallocates Tree
+	reset_bunchlist(); // also deallocates Tree
 
 	fill_new_bunches(0, NBunches, 0, Task.Npart_Total);
 	
@@ -144,7 +144,7 @@ void Domain_Decomposition()
 
 void Setup_Domain_Decomposition()
 {
-	if (Sim.NTask < 32) // decompose on threads as welL
+	if (Sim.NTask < 65) // decompose on threads as welL
 		NTarget = Sim.NTask;
 	else
 		NTarget = Sim.NRank;
@@ -162,11 +162,11 @@ void Setup_Domain_Decomposition()
 	#pragma omp parallel
 	{
 
-	reset_bunchlist(true);
+	reset_bunchlist();
 	
-	Sort_Particles_By_Peano_Key();
-
 	set_computational_domain();
+
+	Sort_Particles_By_Peano_Key();
 
 	} // omp parallel
 
@@ -287,12 +287,10 @@ static void reallocate_topnodes()
 
 
 /*
- * Clear bunchlist.
- * If rebuild is set, we build a vanilla bunch list with a minimum level 
- * to allow immediate omp parallel fill. Also deallocates the Tree
+ * Clear bunchlist. Also deallocates the Tree
  */
 
-static void reset_bunchlist(const bool rebuild)
+static void reset_bunchlist()
 {
 #ifdef GRAVITY_TREE
 	#pragma omp single 
@@ -315,7 +313,7 @@ static void reset_bunchlist(const bool rebuild)
 	const int shift = 3 * level;
 	shortKey basekey = 0xFFFFFFFFFFFFFFFF >> shift;
 	
-	#pragma omp for
+	#pragma omp for 
 	for (int i = 0; i < NBunches; i++) {
 
 		shortKey key = i;
@@ -327,7 +325,6 @@ static void reset_bunchlist(const bool rebuild)
 		D[i].Bunch.Target = -1;
 		D[i].Bunch.Modify = 0;
 	}
-
 
 	return ;
 }
@@ -523,7 +520,7 @@ static void fill_new_bunches(const int first_bunch, const int nBunches,
 		D[i].Bunch.First_Part = INT_MAX;
 	}
 
-	#pragma omp for nowait
+	#pragma omp for nowait 
 	for (int ipart = first_part; ipart < last_part; ipart++) { // sort in
 
 		shortKey pkey = Short_Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart],
@@ -708,7 +705,7 @@ static int compare_bunches_by_key(const void *a, const void *b)
 	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
 	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
 
-	return (int) (x->Key > y->Key) - (x->Key < y->Key);
+	return (int) (x->Key < y->Key) - (x->Key > y->Key);
 }
 
 static int compare_bunches_by_cost(const void *a, const void *b)
@@ -803,9 +800,9 @@ static void find_domain_center(double Center_Out[3])
 	
 	for (int i = 0; i < 3; i++) {
 
-		#pragma omp for
+		#pragma omp for simd
 		for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
-			buffer[ipart] = P[ipart].Pos[i];
+			buffer[ipart] = P.Pos[i][ipart];
 
 		center[i] = Median(Task.Npart_Total, buffer);
 		
@@ -845,14 +842,16 @@ static void find_largest_particle_distance(double *size_out)
 	#pragma omp single
 	Max_Distance = 0;
 
-	#pragma omp for reduction(max:Max_Distance)
+	#pragma omp for  simd reduction(max:Max_Distance)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 		
-		double dx = fabs(P[ipart].Pos[0] - Domain.Center[0]);
-		double dy = fabs(P[ipart].Pos[1] - Domain.Center[1]);
-		double dz = fabs(P[ipart].Pos[2] - Domain.Center[2]);
+		double dx = fabs(P.Pos[0][ipart] - Domain.Center[0]);
+		double dy = fabs(P.Pos[1][ipart] - Domain.Center[1]);
+		double dz = fabs(P.Pos[2][ipart] - Domain.Center[2]);
 
-		Max_Distance = fmax(Max_Distance, fmax(dx,fmax(dy,dz)));
+		Max_Distance = fmax(Max_Distance, dx);
+		Max_Distance = fmax(Max_Distance, dy);
+		Max_Distance = fmax(Max_Distance, dz);
 
 	} // for ipart
 
@@ -877,7 +876,8 @@ static void print_domain_decomposition (const int max_level)
 {
 #ifdef DEBUG
 
-	Qsort(Sim.NThreads, &D[0], NBunches, sizeof(*D), &compare_bunches_by_target);
+	Qsort(Sim.NThreads, &D[0], NBunches, sizeof(*D), 
+			&compare_bunches_by_target);
 
 	#pragma omp master
 	{

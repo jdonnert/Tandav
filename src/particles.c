@@ -225,7 +225,7 @@ char * Select_Particle(const size_t field, const int comp, const int ipart)
 	Assert(ipart >= 0 && ipart < Task.Npart_Total, 
 			"ipart %d out of range", ipart);
 
-	void * restrict * result = (void * restrict *) &P.Type;
+	char * restrict * result = (char * restrict *) &P.Type;
 
 	for (int i = 0; i < field; i++)
 		for (int j = 0; j < P_Fields[i].N; j++)

@@ -3,7 +3,7 @@
 #include "../timestep.h"
 #include "io.h"
 
-#define WRITE_FORTRAN_RECORD(recSize) fwrite(&recSize, 4, 1, fp);
+#define WRITE_FORTRAN_RECORD(recSize) Fwrite(&recSize, 4, 1, fp);
 
 void write_file(const char *, const int, const int, const MPI_Comm);
 void write_gadget_header(const int *npart, FILE *fp);
@@ -115,25 +115,32 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 
 		fill_data_buffer(i, dataBuf);
 
-		size_t nBytesSend = Block[i].Nbytes * Npart_In_Block(i, Task.Npart);
+		size_t nBytesSend = Block[i].Ncomp * Block[i].Nbytes * 
+							Npart_In_Block(i, Task.Npart);
 
-		size_t xferSizes[groupSize]; // get size of data
+		size_t xferSizes[groupSize]; // get size of data for every MPI rank
 
 		MPI_Gather(&nBytesSend, sizeof(nBytesSend), MPI_BYTE,
 					xferSizes,  sizeof(*xferSizes),
 					MPI_BYTE, groupMaster, mpi_comm_write);
 
-		if (groupRank == groupMaster) { // master does all the work
+		if (groupRank != groupMaster) { // slaves just post a blocking send
+
+			MPI_Send(dataBuf, nBytesSend, MPI_BYTE, groupMaster,
+					groupRank, mpi_comm_write);
+
+		} else {  // master does all the work
 
 			uint32_t blocksize = Npart_In_Block(i, nPartFile)
-				* Block[i].Nbytes;
+								* Block[i].Nbytes * Block[i].Ncomp;
 
-			printf("%18s %8d MB\n", Block[i].Name, blocksize/1024/1024);
+			printf("   (%d:%d) %18s %8d MB\n", Task.Rank, Task.Thread_ID, 
+											Block[i].Name, blocksize/1024/1024);
 
 			write_block_header(Block[i].Label, blocksize, fp);
 
-			WRITE_FORTRAN_RECORD(blocksize)
-
+			WRITE_FORTRAN_RECORD(blocksize);
+			
 			MPI_Request request;
 			MPI_Status status;
 
@@ -145,24 +152,24 @@ void write_file(const char *filename, const int groupRank, const int groupSize,
 				char * restrict writeBuf = dataBuf + swap * halfBufSize;
 				char * restrict commBuf = dataBuf + (1 - swap) * halfBufSize;
 
-				MPI_Irecv(commBuf, xferSizes[task+1], MPI_BYTE,	task+1, task+1,
-						mpi_comm_write, &request);
+				if (groupSize > 1)
+					MPI_Irecv(commBuf, xferSizes[task+1], MPI_BYTE,	task+1, 
+							task+1,	mpi_comm_write, &request);
+				
+				Fwrite(writeBuf, xferSizes[task], 1, fp);
 
-				fwrite(writeBuf, xferSizes[task], 1, fp);
-
-				MPI_Wait(&request, &status);
+				if (groupSize > 1)
+					MPI_Wait(&request, &status);
 
 				swap = 1 - swap; // swap memory areas 
 			}
 
 			/* last one in group */
-			fwrite(dataBuf+swap*halfBufSize, xferSizes[groupSize-1], 1, fp);
 
-			WRITE_FORTRAN_RECORD(blocksize)
+			Fwrite(dataBuf+swap*halfBufSize, xferSizes[groupSize-1], 1, fp);
 
-		} else   // slaves just post a blocking send
-			MPI_Send(dataBuf, nBytesSend, MPI_BYTE, groupMaster,
-					groupRank, mpi_comm_write);
+			WRITE_FORTRAN_RECORD(blocksize);
+		}
 
 		MPI_Barrier(mpi_comm_write);
 	} // for (i)
@@ -216,57 +223,60 @@ void write_gadget_header(const int *npart, FILE *fp)
 
 	WRITE_FORTRAN_RECORD(blocksize)
 
-	fwrite(&head, blocksize, 1, fp);
+	Fwrite(&head, blocksize, 1, fp);
 
 	WRITE_FORTRAN_RECORD(blocksize)
 
 	return ;
 }
 
-static void fill_data_buffer(const int i, char *dataBuf)
+static void fill_data_buffer(const int iB, char *dataBuf)
 {
-	const size_t offset = Block[i].Offset;
-	const size_t nBytes = Block[i].Nbytes;
+	const int nComp = Block[iB].Ncomp;
+	const size_t nBytes = Block[iB].Nbytes;
+	const size_t nPtr = Block[iB].Offset/sizeof(void *); 
 
-	char * restrict src = NULL;
-	char * restrict dest = dataBuf;
+	size_t nPart = 0;
+			
+	char * restrict dest = dataBuf; 
+	char * restrict src[nComp];
 
-	switch (Block[i].Target) {
+	switch (Block[iB].Target) { // find the destination pointers
 
 		case VAR_P:
 
-			src = (char *) &P + offset;
+			for (int j = 0; j < nComp; j++) // ptr fun for the whole family
+				src[j] = (char *) *(&P.Type + nPtr + j); // points to P.X[i]
 
-			for (int i = 0; i < Task.Npart_Total; i++) 
-				memcpy(dest + i*nBytes, src + i*nBytes, nBytes);
+			nPart = Task.Npart_Total;
 
-			break;
+		break;
 
-		case VAR_GAS:
+		default: 
 
-			break;
+			Assert(false, "Input buffer target unknown %d", Block[iB].Target);
 
-		case VAR_DM:
-			break;
+		break;
+	}	
+	
+	for (int i = 0; i < nPart; i++) {
+			
+		for (int j = 0; j < nComp; j++) {
+				
+			memcpy(dest, src[j], nBytes); // slow but generic
+				
+			dest += nBytes;
+			src[j] += nBytes;
+		} // j
+	} // i
 
-		case VAR_STAR:
-			break;
-
-		case VAR_DISK:
-			break;
-
-		case VAR_BND:
-			break;
-
-		default:
-			Assert(0, "Block Target not handled : %d", Block[i].Target);
-	}
 
 	return ;
 }
 
 /*
- * This writes the extra block that defines the gadget format2 file format.
+ * This writes the extra block that defines the gadget format2 file format as
+ * proposed by Klaus.
  */
 
 static void write_block_header(const char *name, uint32_t blocksize, FILE *fp)
@@ -276,7 +286,7 @@ static void write_block_header(const char *name, uint32_t blocksize, FILE *fp)
 
 	blocksize += 8; // add 2*4 byte of FORTRAN header to data size
 
-	const size_t fmt2_size = 4 * sizeof(*name) + sizeof(blocksize);
+	uint32_t fmt2_size = 4 * sizeof(*name) + sizeof(blocksize);
 
 	char fmt2_header[fmt2_size]; // construct header
 
@@ -285,7 +295,7 @@ static void write_block_header(const char *name, uint32_t blocksize, FILE *fp)
 
 	WRITE_FORTRAN_RECORD(fmt2_size);
 
-	fwrite(fmt2_header, fmt2_size, 1, fp);
+	Fwrite(fmt2_header, fmt2_size, 1, fp);
 
 	WRITE_FORTRAN_RECORD(fmt2_size);
 

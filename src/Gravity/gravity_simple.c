@@ -39,12 +39,12 @@ void Gravity_Simple_Accel()
 
 	int cnt = 0;
 
-	#pragma omp for reduction(+:Mean_Error)
+	#pragma omp for simd reduction(+:Mean_Error)
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
 
-		if (P.ID[ipart] > 1)
+		if (P.ID[ipart] > 10)
 			continue;
 
 		cnt++;
@@ -162,7 +162,8 @@ void Gravity_Simple_Accel()
 			Mean_Error/cnt);
 
 	Profile("Gravity_Simple");
-	
+
+	exit(0);
 	return ;
 }
 

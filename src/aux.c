@@ -160,7 +160,7 @@ int Fread(void *restrict data, const size_t size, const size_t nWanted,
 {
 	size_t nRead = fread(data, size, nWanted, stream);
 
-	Assert(nRead == nWanted, "Read %zu bytes, but %zu wanted", nRead, nWanted);
+	Assert(nRead == nWanted, "Read %zu objects, but %zu wanted", nRead, nWanted);
 
 	return nRead;
 }

@@ -13,8 +13,8 @@ static bool find_endianess(FILE *);
 static int find_block(FILE *, const char label[4], const bool);
 static void read_header_data(FILE *fp, const bool, int);
 static void read_file(char *, const bool, const int, const int, MPI_Comm);
-static void empty_comm_buffer(const char *, const int, const int, const int *, 
-		const size_t *);
+static void empty_comm_buffer(char * restrict, const int, const int, 
+		const int *, const size_t *);
 
 static void generate_masses_from_header();
 static void set_particle_types();
@@ -204,13 +204,13 @@ static void read_file (char *filename, const bool swap_Endian,
 
 	for (i = 0; i < NBlocks; i++) { // read blockwise
 
-		int blocksize = 0;
+		uint32_t blocksize = 0;
 
 		if (groupRank == groupMaster) { // find blocksize
 
 			blocksize = find_block(fp, Block[i].Label, swap_Endian);
 		
-			Assert(blocksize > 0 || (Block[i].IC_Required == false), 
+			Assert(blocksize != 0 || (Block[i].IC_Required == false), 
 					"Can't find required block '%s'", Block[i].Label);
 			
 			if (blocksize > 0)
@@ -226,18 +226,19 @@ static void read_file (char *filename, const bool swap_Endian,
 		
 		if (groupRank == groupMaster) { // read on master
 			
-			nBytes = Npart_In_Block(i, nPartFile) 
-										* Block[i].Ncomp * Block[i].Nbytes;
+			nBytes = Npart_In_Block(i, nPartFile) * Block[i].Ncomp 
+					* Block[i].Nbytes;
 			
 			Assert(nBytes == blocksize, 
 				"File and Code blocksize inconsistent '%s', %zu != %d byte", 
 				Block[i].Label, nBytes, blocksize);
 
 			SKIP_FORTRAN_RECORD
-
+			
 			safe_fread(ReadBuf, nBytes, 1, fp, swap_Endian);
 
 			SKIP_FORTRAN_RECORD
+		
 		} 
 		
 		int nBytesGetBlock = Npart_In_Block(i, nPartGet) 
@@ -278,27 +279,30 @@ static void read_file (char *filename, const bool swap_Endian,
  * system.
  */
 
-static void empty_comm_buffer (const char *DataBuf, const int iB, 
+static void empty_comm_buffer(char * restrict DataBuf, const int iB, 
 		const int nPartTotal, const int *nPart, const size_t *offsets)
 {
 	const int nComp = Block[iB].Ncomp;
 	const size_t nBytes = Block[iB].Nbytes;
 	const size_t nPtr = Block[iB].Offset/sizeof(void *); 
 			
-	void * restrict src = (void *) DataBuf; 
-	void * restrict dest[nComp];
+	char * restrict src = DataBuf; 
+	char * restrict dest[nComp];
 
 	switch (Block[iB].Target) { // find the destination pointers
 
 		case VAR_P:
 
 			for (int j = 0; j < nComp; j++) // ptr fun for the whole family
-				dest[j] = *(&P.Type + nPtr + j); // points to P.X[i]
+				dest[j] = (char *) *(&P.Type + nPtr + j); // points to P.X[i]
 
 		break;
 
 		default: 
+
 			Assert(false, "Input buffer target unknown %d", Block[iB].Target);
+
+		break;
 	}	
 	
 	for (int i = 0; i < nPartTotal; i++) {
@@ -379,9 +383,9 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 	Warn(head.Num_Files != nFiles, "NumFiles in Header (%d) doesnt match "
 			"number of files found (%d) \n\n", head.Num_Files, nFiles);
 
-	Warn(head.Omega0 != Cosmo.Omega_0,
+	Warn(head.Omega0 != Cosmo.Omega_Matter,
 			"Omega_0 in snapshot different from code: %g <-> %g",
-			head.Omega0, Cosmo.Omega_0);
+			head.Omega0, Cosmo.Omega_Matter);
 
 	Warn(head.Omega_Lambda != Cosmo.Omega_Lambda,
 			"Omega_Lambda in snapshot different from code: %g <-> %g",

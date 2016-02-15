@@ -211,7 +211,7 @@ static void set_tree_parent_pointers (const int i)
 	const int first_part = D[i].TNode.First_Part;
 	const int last_part = first_part + D[i].TNode.Npart;
 
-	if (D[i].TNode.Target > 0) { // correct particle parent pointer
+	if (D[i].TNode.Target > 0) {
 	
 		for (int ipart = first_part; ipart < last_part; ipart++)
 			P.Tree_Parent[ipart] += D[i].TNode.Target;
@@ -270,6 +270,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 
 		peanoKey key = Reversed_Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart],
 									 	  P.Pos[2][ipart]);
+
 		key >>= 3 * top_level;
 
 		int node = 0;        // current node
@@ -302,7 +303,9 @@ static int build_subtree(const int first_part, const int tnode_idx,
 				parent = node;
 
 				node++; // decline
+
 				lvl++;
+				
 				key >>= 3;
 
 			} else { // skip to next node
@@ -334,6 +337,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 		nNodes++;
 
 		last_key = key >> 3;
+
 		last_parent = parent;
 
 	} // for ipart
@@ -365,7 +369,7 @@ static peanoKey create_first_node(const int first_part,
 
 	create_node_from_particle(first_part, 0, key, top_level, 0);
 
-	tree[0].Pos[0] = D[tnode_idx].TNode.Pos[0]; // correct position
+	tree[0].Pos[0] = D[tnode_idx].TNode.Pos[0]; // get top node position 
 	tree[0].Pos[1] = D[tnode_idx].TNode.Pos[1]; // because parent node 
 	tree[0].Pos[2] = D[tnode_idx].TNode.Pos[2]; // did not exist
 

@@ -38,7 +38,7 @@ void Sort_Particles_By_Peano_Key()
 
 	} // omp single
 
-	#pragma  omp for
+	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) 
 		keys[ipart] = Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart],
 								P.Pos[2][ipart]);
@@ -87,7 +87,7 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 			else if (P_Fields[i].Bytes == 4)
 				reorder_array_4(Task.Npart_Total, p, idx);
 			else 
-				Assert(false, "Can order only 4 or 8 byte entries in P");
+				Assert(false, "Can re-order only 4 or 8 byte entries in P");
 
 		} // for j
 	} // for i
@@ -114,14 +114,12 @@ static void reorder_array_8(const size_t n, void * restrict p_in,
 		size_t dest = i;
 
 		uint64_t buf = p[i];
-		//memcpy(buf, &p[i], nBytes);
 
 		size_t src = idx[i];
 
  	  	for (;;) {
 
 			p[dest] = p[src];
-			//memcpy(&p[dest], &p[src], nBytes);
 
 			idx[dest] = dest;
 
@@ -134,7 +132,6 @@ static void reorder_array_8(const size_t n, void * restrict p_in,
     	}
 
 		p[dest] = buf;
-		//memcpy(&p[dest], buf, nBytes);
 
 		idx[dest] = dest;
     } // for i
@@ -213,7 +210,6 @@ peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 	uint64_t X[3] = { (px - Domain.Origin[0]) * fac,
 					  (py - Domain.Origin[1]) * fac,
 					  (pz - Domain.Origin[2]) * fac };
-
 	/* Inverse undo */
 
     for (uint64_t q = m; q > 1; q >>= 1 ) {
@@ -247,7 +243,7 @@ peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 
     uint64_t t = X[2];
 
-    for(int i = 1; i < N_PEANO_BITS; i <<= 1 )
+    for(int i = 1; i < 64; i <<= 1 )
         X[2] ^= X[2] >> i;
 
     t ^= X[2];
@@ -276,7 +272,7 @@ peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 	}
 
 	key <<= 2;
-
+	
 	return key;
 }
 
@@ -329,7 +325,7 @@ peanoKey Reversed_Peano_Key(const Float px, const Float py, const Float pz)
 
     uint64_t t = X[2];
 
-    for(int i = 1; i < N_PEANO_BITS; i <<= 1)
+    for(int i = 1; i < 64; i <<= 1)
         X[2] ^= X[2] >> i;
 
     t ^= X[2];
@@ -408,7 +404,7 @@ shortKey Short_Peano_Key(const Float px, const Float py, const Float pz)
 
     uint32_t t = X[2];
 
-    for(int i = 1; i < N_SHORT_BITS; i <<= 1 )
+    for(int i = 1; i < 32; i <<= 1 )
         X[2] ^= X[2] >> i;
 
     t ^= X[2];
@@ -422,7 +418,7 @@ shortKey Short_Peano_Key(const Float px, const Float py, const Float pz)
 
 	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
 
-	for (int i = 0; i < 22; i++) {
+	for (int i = 0; i < N_SHORT_TRIPLETS+1; i++) {
 
 		uint64_t col = ((X[0] & 0x80000000)
 					  | (X[1] & 0x40000000)
@@ -487,7 +483,7 @@ shortKey Reversed_Short_Peano_Key(const Float px, const Float py,
 
     uint32_t t = X[2];
 
-    for(int i = 1; i < N_SHORT_BITS; i <<= 1)
+    for(int i = 1; i < 32; i <<= 1)
         X[2] ^= X[2] >> i;
 
     t ^= X[2];
@@ -501,7 +497,7 @@ shortKey Reversed_Short_Peano_Key(const Float px, const Float py,
 
 	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
 
-	for (int i = 0; i < 22; i++) {
+	for (int i = 0; i < N_SHORT_TRIPLETS+1; i++) {
 
 		uint32_t col = ((X[0] & 0x4) | (X[1] & 0x2) | (X[2] & 0x1));
 
@@ -522,9 +518,9 @@ shortKey Reversed_Short_Peano_Key(const Float px, const Float py,
 
 void Test_Peanokey()
 {
-	const double box[3]  = { 1.0, 1, 1};
+	const double box[3]  = { 1, 1, 1};
 	Float a[3] = { 0 };
-	int order = 10;
+	int order = 2;
 	double delta = 1/pow(2.0, order);
 	int n = roundf(1/delta);
 

@@ -35,10 +35,6 @@ void Read_and_Init(int argc, char *argv[])
 
 	/* Add yours above */
 
-	Profile("Init");
-	
-	Profile("Read");
-
 	switch (Param.Start_Flag) {
 
 	case 0:

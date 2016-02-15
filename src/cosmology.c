@@ -76,7 +76,7 @@ double E_Hubble(const double a) // E(a), Mo+ eq 3.75
 
 double Critical_Density(double a) // Mo+ eq. 3.63
 {
-	return 3.0 * p2(Cosmo.Hubble_Constant)/(8.0*Pi*Const.Gravity);
+	return 3.0 * p2(Hubble_Parameter(a))/(8.0*Pi*Const.Gravity);
 }
 
 #endif // COMOVING

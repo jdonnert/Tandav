@@ -41,8 +41,8 @@ static inline void swap_size_t(size_t * restrict a, size_t * restrict b)
 	return ;
 }
 
-#define COMPARE_DATA(a,b,size) ((*cmp) ((void *)(data + *a * size), \
-	(void *)(data + *b * size))) // compare with non-permutated data
+#define COMPARE_DATA(a,b,size) ((*cmp) ((char *)(data + *a * size), \
+	(char *)(data + *b * size))) // compare with non-permutated data
 
 #define STACK_SIZE (CHAR_BIT * sizeof(size_t))
 

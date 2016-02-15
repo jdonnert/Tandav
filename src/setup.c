@@ -18,13 +18,13 @@ void Setup()
 
 	Setup_Comoving(); // COMOVING
 
-	Compute_Global_Simulation_Properties();
-
 	Setup_Domain_Decomposition();
 	
 	Setup_Gravity_Tree(); // GRAVITY_TREE
 
 	/* Add yours above */
+	
+	Compute_Global_Simulation_Properties();
 
 	sanity_check_simulation_setup();
 	

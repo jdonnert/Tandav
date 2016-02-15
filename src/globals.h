@@ -30,7 +30,10 @@ extern struct Global_Simulation_Properties {
 	double Mpart[NPARTYPE];		// Global Masses from header
 	double Boxsize[3];			// Now in 3D !
 	double Total_Mass;			// sum over P.Mass, updated every timestep
-	double Center_Of_Mass[3];	// center of Mass, updated every timestep
+	double Center_Of_Mass[3];	// sum of P.Mass*P.Pos, updated every timestep
+	double Kinetic_Energy;		// sum of 0.5 *P.Mass*P.Vel^2
+	double Momentum[3];		    // sum of P.Mass*P.Vel
+	double Angular_Momentum[3];	// sum of P.Mass*P.Pos x P.Vel
 } Sim;
 
 extern struct Parameters_From_File {
@@ -46,6 +49,7 @@ extern struct Parameters_From_File {
 	double Runtime_Limit;		// in sec
 	double Max_Timestep;		// largest timestep constraint
 	double Min_Timestep;		// smallest timestep constraint
+	double Part_Alloc_Factor;	// Allowed mem imbalance in Particles
 } Param;
 
 /*

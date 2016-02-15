@@ -30,8 +30,7 @@ void Drift_To_Sync_Point()
 		P.Pos[2][ipart] += dt * P.Vel[2][ipart];
 	}
 
-	if (Sig.Drifted_To_Snaptime)  // handled out of sync integer timeline
-		Sig.Drifted_To_Snaptime = false;
+	Sig.Drifted_To_Snaptime = false; // handled out of sync integer timeline
 
 	if (!Sig.Domain_Update)
 		Gravity_Tree_Update_Drift(Time.Step);

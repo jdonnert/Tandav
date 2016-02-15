@@ -1,4 +1,7 @@
-/* Memory management */
+/* 
+ * Memory management 
+ */
+
 #include "globals.h"
 
 #define MAXMEMOBJECTS 1000L
@@ -71,9 +74,6 @@ void *Malloc_info(const char* file, const char* func, const int line,
 void *Realloc_info(const char* file, const char* func, const int line,
 		void *ptr, size_t new_size, const char *name)
 {
-	Assert_Info(file, func, line, new_size >= 0,
-			"Reallocate on array of negative size !");
-
 	if (new_size == 0) {
 
 		if (ptr != NULL)

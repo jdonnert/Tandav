@@ -62,9 +62,9 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 #define P_SIZEOF(member) sizeof(((struct Particle_Data *)0)->member)
 
 static const struct io_block_def Block[] = {
-	{"POS ", VAR_P, P_OFFSET(Pos), 3, sizeof(Float), true, "Positions"},
-	{"VEL ", VAR_P, P_OFFSET(Vel), 3, sizeof(Float), true, "Velocities"},
-	{"ID  ", VAR_P, P_OFFSET(ID), 1, sizeof(ID_t), true, "Short IDs"},
+	{"POS ", VAR_P, P_OFFSET(Pos ), 3, sizeof(Float), true, "Positions"},
+	{"VEL ", VAR_P, P_OFFSET(Vel ), 3, sizeof(Float), true, "Velocities"},
+	{"ID  ", VAR_P, P_OFFSET(ID  ), 1, sizeof(ID_t), true, "Short IDs"},
 	{"MASS", VAR_P, P_OFFSET(Mass), 1, sizeof(Float), false, "Masses"}
 
 #ifdef OUTPUT_TOTAL_ACCELERATION

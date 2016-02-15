@@ -26,7 +26,7 @@
 
 #define CHARBUFSIZE 256L	// Maximum No. of bytes in every char buffer
 #define NPARTYPE 6L			// No of particle types
-#define MEM_ALIGNMENT 128L	// byte memory alignment
+#define MEM_ALIGNMENT 64L	// byte memory alignment
 #define MASTER 0L			// Global master MPI task
 
 #ifdef DOUBLE_PRECISION
@@ -44,7 +44,7 @@ typedef uint32_t ID_t;
 #endif
 
 typedef uint32_t intime_t;		// type of integer time 
-typedef uint64_t peanoKey; 	// long peanokey, 42 triplets / levels
+typedef __uint128_t peanoKey; 	// long peanokey, 42 triplets / levels
 typedef uint64_t shortKey;		// short peanokey, 21 triplets / levels
 
 /* 

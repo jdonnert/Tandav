@@ -13,7 +13,6 @@ static void convert_velocities_to_comoving();
 static inline void convert_velocities_to_comoving(){};
 #endif
 
-
 static void setup_kick_drift_factors();
 
 static double Drift_Table[TABLESIZE] = { 0 }, Kick_Table[TABLESIZE] = { 0 },
@@ -158,14 +157,10 @@ static void setup_kick_drift_factors()
 
 /*
  * This converts the particle velocities from the initial conditions to the 
- * internal velocity variable u = v*a^1.5. This is because in an Einstein-
- * de Sitter universe the peculiar velocity at high redshift scales with
- * a^0.5, as can be shown by combining the Newtonian equations of motions in
- * comoving coordinates with the Zeldovich approximation. However, we use a 
- * modified comoving potential from Quinn+ 1997 to construct the symplectic 
- * integrator, which requires another factor "a" in the comoving potential 
- * and hence the peculiar velocity scales with a^1.5 using this comoving 
- * potential. (Peebles 1980, Mo, v.d.Bosch, White 4.1.8, Springel 2001)
+ * internal velocity variable u = v*a^1.5. This is legacy Gadget-1. We use a 
+ * the  comoving potential from Quinn+ 1997 to construct the symplectic 
+ * integrator, which requires "p  = m*v*a^2" in the comoving potential 
+ * (Peebles 1980, Mo, v.d.Bosch, White 4.1.8, Springel 2001)
  */
 
 #ifdef GADGET_COMOVING_VEL_UNIT

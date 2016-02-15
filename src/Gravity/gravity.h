@@ -57,7 +57,8 @@ void Gravity_Tree_Periodic(const struct Walk_Data_Particle,
 								struct Walk_Data_Result *);
 void Tree_Periodic_Nearest(Float dr[3]);
 #else
-inline void Gravity_Tree_Periodic() {};
+inline void Gravity_Tree_Periodic(const struct Walk_Data_Particle Send,
+								struct Walk_Data_Result *Recv) {};
 inline void Tree_Periodic_Nearest(Float dr[3]) {};
 #endif
 

@@ -17,16 +17,20 @@ GRAVITY                     // gravitational interaction master switch
 #GRAVITY_POTENTIAL           // compute gravitational potential
 
 #GRAVITY_SIMPLE              // N^2 law, shows grav force errors 
-GRAVITY_TREE                // B&H gravity tree
+GRAVITY_TREE                // B&H tree
+#GRAVITY_FMM				// Fast Multipole Method + Dual Tree Traversal
 
-GRAV_SOFTENING 10          // Plummer eq. gravitational softening length 
-TREE_OPEN_PARAM_BH 0.2     // [0.2] Barnes & Hut opening criterion parameter
-TREE_OPEN_PARAM_REL 0.01  // [0.005] Relative opening criterion parameter
+GRAV_SOFTENING 100           // Plummer eq. gravitational softening length 
+
+TREE_OPEN_PARAM_BH 0.2      // [0.2] Barnes & Hut opening criterion parameter
+TREE_OPEN_PARAM_REL 0.005     // [0.005] Relative opening criterion parameter
+
+#FMM_BLOCKSIZE 128			// cut tree here and vectorize
 
 #### OUTPUT OPTIONS ####
 
 OUTPUT_TOTAL_ACCELERATION   // total acceleration ACC
-OUTPUT_PARTIAL_ACCELERATIONS// save & output all ACC components
+OUTPUT_PARTIAL_ACCELERATIONS // save & output all ACC components
 #OUTPUT_GRAV_POTENTIAL       // gravitational potential GPOT
 #OUTPUT_PEANO_KEY            // short peano key of particle "PKEY"
 
@@ -43,11 +47,11 @@ COMOVING                    // comoving coordinates for cosmo sims
 TIME_DISPL_CONSTRAINT 0.25 	// [0.25] max displacement from rms vel @ z>>0
 GADGET_COMOVING_VEL_UNIT	// assume vel~sqrt(a) in ICs and convert to a^2
 
-HUBBLE_CONST 100.0          // [70] in km/s/Mpc, set 100 for Gadget behaviour
+HUBBLE_CONST 70.0           // [70] in km/s/Mpc, set 100 for Gadget behaviour
 OMEGA_LAMBDA 0.7
 OMEGA_MATTER 0.3			// was Omega0 in Gadget.
 OMEGA_BARYON 0.0            // assuming H0=100
-OMEGA_RAD 0	
+OMEGA_RAD 2.5e-5	
 
 #### ALWAYS RECOMMENDED ####
 
@@ -57,13 +61,6 @@ MEMORY_MANAGER
 #FOF                         // Friends-of-Friends master switch
 #FOF_LINKING_LENGTH 0.2		 // [0.2] FoF linking parameter
 #FOF_FILENAME				 // base name
-
-#### Particle Binning ####
-#BIN						// requires FFTW3 & HDF5 libraries
-#BIN_FILENAME
-#BIN_KERNEL	3				// [3] NGP,CIC,TSC,D20
-#BIN_FOURIERTRANSFORM
-#BIN_POWERSPECTRUM
 
 #### Map Making ####
 #MAP						// requires cfitsio library

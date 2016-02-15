@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 
 	Setup();
 
-	#pragma omp parallel
+	#pragma omp parallel default(shared)
 	{
 
 	Update(BEFORE_MAIN_LOOP);
@@ -38,8 +38,6 @@ int main(int argc, char *argv[])
 
 		Set_New_Timesteps();
 
-		Update(BEFORE_FIRST_KICK);
-
 		Kick_First_Halfstep();
 
 		if (Time_For_Snapshot())
@@ -51,8 +49,6 @@ int main(int argc, char *argv[])
 
 		if (Time_For_Domain_Update())
 			Domain_Decomposition();
-
-		Update(BEFORE_FORCES);
 
 		Compute_Acceleration();
 
@@ -132,7 +128,7 @@ static void preamble(int argc, char *argv[])
 
 		Print_Compile_Time_Settings();
 
-		printf("sizeof(*D) = %zu byte\n", sizeof(*D)*CHAR_BIT/8);
+		printf("\nsizeof(*D) = %zu byte\n", sizeof(*D)*CHAR_BIT/8);
 
 #ifdef GRAVITY_TREE
 		printf("sizeof(*Tree) = %zu byte\n", sizeof(*Tree)*CHAR_BIT/8);

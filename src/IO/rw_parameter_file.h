@@ -1,4 +1,8 @@
-/* Parameter I/O */
+
+/* 
+ * Parameter File I/O 
+ */
+
 typedef struct {
 	char tag[CHARBUFSIZE]; // Parameter file tag
 	char val[CHARBUFSIZE]; // Standard value

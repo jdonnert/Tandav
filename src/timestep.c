@@ -24,6 +24,9 @@ struct IntegerTimeLine Int_Time = { 0 };
 static float Dt_Max_Global = FLT_MAX;
 static int Time_Bin_Min = N_INT_BINS-1, Time_Bin_Max = 0;
 
+struct Particle_Vectors PVec = { NULL };
+int NPVec = 0;
+
 /* 
  * All active particles get a new step that is smaller than or equal to 
  * the largest active bin. We also set the fullstep signal. 
@@ -66,6 +69,7 @@ void Set_New_Timesteps()
 	}
 
 	Make_Active_Particle_List();
+	Make_Active_Particle_Vectors();
 
 	#pragma omp master
 	{
@@ -89,6 +93,8 @@ void Set_New_Timesteps()
  * corresponds to the whole integration time divided by 2^(N_INT_BINS-1).
  * In comoving coordinates the timesteps are divided in log space, which
  * means, we are effectively stepping in redshift. Time integration is in da.
+ * We also setup the particle loop vectors, where PVec contains blocks of 
+ * particles that are adjacent in memory.
  */
 
 void Setup_Time_Integration()
@@ -135,6 +141,13 @@ void Setup_Time_Integration()
 	#pragma omp parallel for	
 	for (int i = 0; i < NActive_Particles; i++) 
 		Active_Particle_List[i] = i;
+
+	nBytes = Task.Npart_Total_Max * sizeof(int);
+		
+	PVec.First = Malloc(nBytes, "PVec.First");
+	PVec.N = Malloc(nBytes, "PVec.N");
+
+ 	Make_Active_Particle_Vectors();
 
 	return ;
 }
@@ -259,6 +272,56 @@ void Make_Active_Particle_List()
 	return ;
 }
 
+/*
+ * To be able to vectorize particle accesses, we find vectors of particles
+ * that are adjacent in memory. We end up with NParticle_Vectors vectors 
+ * starting at PVec.First with length PVec.N.
+ */
+
+void Make_Active_Particle_Vectors()
+{
+	#pragma omp single
+	{
+
+	size_t nBytes = Task.Npart_Total * sizeof(*PVec.First);
+
+	memset(PVec.First, 0, nBytes);
+	memset(PVec.N, 0, nBytes);
+	
+	NParticle_Vectors = 0;
+
+	int i = 0;
+
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+
+		if (P.Time_Bin[ipart] <= Time.Max_Active_Bin) {
+		
+			PVec.N[i]++;
+		
+			if (PVec.First[i] < 0) // vector starts
+				PVec.First[i] = ipart;
+
+		} else if (PVec.N[i] > 0) { // vector ends
+		
+			i++;
+		}
+	} // ipart
+
+	NParticle_Vectors = i + 1;
+
+	} // omp single
+
+	NActive_Particles = 0;
+
+	for (int i = 0; i < NParticle_Vectors; i++)
+		NActive_Particles += PVec.N[i];
+
+	Assert(NParticle_Vectors > 0, "Invalid Active Particle Vectors : %d", 
+			NParticle_Vectors);
+
+	return ;
+}
+
 /* 
  * Give the integration timestep from timebin and convert from integer to 
  * integration time. In comoving coordinates/cosmological simulations we 
@@ -327,7 +390,7 @@ static void print_timebins()
 			MPI_COMM_WORLD);
 
 	if (!Task.Is_MPI_Master)
-		goto skip;
+		return;
 
 	int imin = -1, imax = -1;
 
@@ -347,25 +410,23 @@ static void print_timebins()
 			break;
 		}
 
-	char step[CHARBUFSIZE] = {"Point"};
-
 	if (Sig.Sync_Point)
-		sprintf(step,"Sync point");
+		printf("\nSync point ");
+	else
+		printf("\nStep ");
 
 #ifdef COMOVING
-	rprintf("\n%s <%d> a = %g -> %g\n\n"
-			"NActive %d, z = %g, da = %g \n"
+	printf("<%d>: \n   a = %g -> %g, z = %g, da = %g \n\n"
 			"   Bin       nGas        nDM A    dlog(a)\n",
-			step, Time.Step_Counter, Time.Current,
+			Time.Step_Counter, Time.Current,
 			Integer_Time2Integration_Time(Int_Time.Next),
-			NActive_Particles, 1/Time.Current-1, Time.Step);
+			1/Time.Current-1, Time.Step);
 #else
-	rprintf("\n%s <%d> t = %g -> %g\n\n"
-			"Systemstep %g, NActive %d \n"
+	printf("<%d> \n   t = %g -> %g, dt = %g \n"
 			"   Bin       nGas        nDM A    dt\n",
-			step, Time.Step_Counter, Time.Current,
+			Time.Step_Counter, Time.Current,
 			Integer_Time2Integration_Time(Int_Time.Next),
-			Time.Step, NActive_Particles );
+			Time.Step);
 #endif // ! COMOVING
 
 	for (int i = imax; i > Time.Max_Active_Bin; i--)
@@ -376,13 +437,14 @@ static void print_timebins()
 		printf("   %2d    %7d     %7d %s  %16.12f \n",
 			i, 0, npart[i], "X", Timebin2Timestep(i));
 
-	printf("\n");
+	double mean_vec_length = (double)NActive_Particles / NParticle_Vectors;
+
+	printf("   ---\n   NActive %d, NVectors %d, Avg. Length %g\n\n",
+			NActive_Particles, NParticle_Vectors, mean_vec_length);
 
 	if (Sig.Sync_Point)
 		rprintf("Next sync point at t = %g \n\n",
 				Integer_Time2Integration_Time(Int_Time.Next_Sync_Point));
-
-	skip:;
 
 	return ;
 }

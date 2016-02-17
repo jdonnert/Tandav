@@ -3,7 +3,14 @@
 
 #include "proto.h"
 
-int * restrict Active_Particle_List, NActive_Particles;
+int * restrict Active_Particle_List;
+
+extern struct Particle_Vectors { // timestep.c
+	int * restrict First;
+	int * restrict N;
+} PVec;
+
+int NParticle_Vectors, NActive_Particles;
 
 extern struct Local_Task_Properties {
 	int Rank;					// MPI Rank of this thread

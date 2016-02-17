@@ -51,7 +51,7 @@
 
 SHELL = /bin/bash 			# This should always be present in a Makefile
 
-CC 	 	= $(TANDAV_CC)
+CC 	 	= $(TANDAV_CC) #  -opt-report=5 -opt-report-phase=vec
 CFLAGS 	= $(TANDAV_CFLAGS) $(TANDAV_CPPFLAGS) 
 LIBS 	= -lm -lgsl -lgslcblas $(TANDAV_LDFLAGS)
 

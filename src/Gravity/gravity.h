@@ -6,6 +6,7 @@ inline void Gravity_Simple_Accel() {};
 #endif // GRAVITY && GRAVITY_SIMPLE
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE)
+
 void Setup_Gravity_Tree();
 void Gravity_Tree_Build();
 void Gravity_Tree_Acceleration();
@@ -24,23 +25,6 @@ extern struct Tree_Node {
 	Float Dp[3];		// Velocity of Center of Mass
 } * restrict Tree;
 
-uint32_t NNodes;
-
-struct Walk_Data_Particle { // stores exported particle data
-	ID_t ID;
-	Float Pos[3];
-	Float Acc; 				// only magnitude of the last acceleration
-	Float Mass;
-};
-
-struct Walk_Data_Result { 	// stores exported summation results
-	Float Cost;
-	double Grav_Acc[3];
-#ifdef GRAVITY_POTENTIAL
-	double Grav_Potential;
-#endif
-};
-
 #else
 
 inline void Setup_Gravity_Tree() {}; 
@@ -50,21 +34,27 @@ inline void Gravity_Tree_Update_Kicks(const int ipart, const double dt) {};
 inline void Gravity_Tree_Update_Topnode_Kicks() {};
 inline void Gravity_Tree_Update_Drift(const double dt) {};
 
-#endif // (GRAVITY && GRAVITY_TREE)
+#endif // ! (GRAVITY && GRAVITY_TREE)
 
-#if defined(GRAVITY) && defined(GRAVITY_TREE) && defined(PERIODIC)
-void Gravity_Tree_Periodic(const struct Walk_Data_Particle,
-								struct Walk_Data_Result *);
-void Tree_Periodic_Nearest(Float dr[3]);
-#else
-inline void Gravity_Tree_Periodic(const struct Walk_Data_Particle Send,
-								struct Walk_Data_Result *Recv) {};
-inline void Tree_Periodic_Nearest(Float dr[3]) {};
-#endif
+#if defined(GRAVITY) && defined(GRAVITY_FMM)
 
-#if defined(GRAVITY) && defined(GRAVITY_MULTI_GRID)
-void Gravity_Multi_Grid();
+inline void Setup_Gravity_FMM();
+inline void Free_Gravity_FMM();
+inline void Gravity_FMM_Build();
+inline void Gravity_FMM_Acceleration();
+inline void Gravity_FMM_Update_Kicks();
+inline void Gravity_FMM_Update_Topnode_Kicks();
+inline void Gravity_FMM_Update_Drift(const double dt);
+
 #else
-inline void Gravity_Multi_Grid() {};
-#endif // GRAVITY_MULTI_GRID
+
+inline void Setup_Gravity_FMM() {};
+inline void Free_Gravity_FMM() {};
+inline void Gravity_FMM_Build() {};
+inline void Gravity_FMM_Acceleration() {};
+inline void Gravity_FMM_Update_Kicks() {};
+inline void Gravity_FMM_Update_Topnode_Kicks() {};
+inline void Gravity_FMM_Update_Drift(const double dt) {};
+
+#endif // GRAVITY && GRAVITY_FMM
 

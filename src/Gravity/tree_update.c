@@ -1,7 +1,7 @@
 #include "../globals.h"
 #include "../domain.h"
 #include "gravity.h"
-#include "gravity_tree.h"
+#include "tree.h"
 
 #ifdef GRAVITY_TREE
 
@@ -82,25 +82,24 @@ void Gravity_Tree_Update_Drift(const double dt)
 			Tree[i].Dp[0] = Tree[i].Dp[1] = Tree[i].Dp[2] = 0;
 
 			Node_Clear(UPDATED, i);
-
 		}
 	}
 
-	#pragma omp for reduction(+:nUpdate)
+	#pragma omp for simd reduction(+:nUpdate)
 	for (int i = 0; i < NTop_Nodes; i++) {
 
-		if (D[i].TNode.Level > 0)
-			continue;
+		if (D[i].TNode.Level < 0) {
 
-		D[i].TNode.CoM[0] += dt * D[i].TNode.Dp[0];
-		D[i].TNode.CoM[1] += dt * D[i].TNode.Dp[1];
-		D[i].TNode.CoM[2] += dt * D[i].TNode.Dp[2];
+			D[i].TNode.CoM[0] += dt * D[i].TNode.Dp[0];
+			D[i].TNode.CoM[1] += dt * D[i].TNode.Dp[1];
+			D[i].TNode.CoM[2] += dt * D[i].TNode.Dp[2];
 
-		D[i].TNode.Dp[0] = D[i].TNode.Dp[1] = D[i].TNode.Dp[2] = 0;
+			D[i].TNode.Dp[0] = D[i].TNode.Dp[1] = D[i].TNode.Dp[2] = 0;
 
-		D[i].TNode.Level *= -1; // reverse "updated" flag
+			D[i].TNode.Level *= -1; // reverse "updated" flag
 
-		nUpdate++;
+			nUpdate++;
+		}
 	}
 
 	rprintf("Tree update: Moved %d top nodes \n", nUpdate);

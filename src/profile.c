@@ -199,17 +199,11 @@ void Profile_Report_Last(FILE *stream)
 
 		scale *= 60; // min
 
-		fprintf(stream, "\nProfiler: Step %d @ t=%g, lasted %g min%s\n", 
-				Time.Step_Counter, Time.Current, delta_last, fullstep);
+	} 
+	fprintf(stream, "\nStep %d t=%g\n", Time.Step_Counter, Time.Current);
 
-	} else {
-
-		fprintf(stream, "\nProfiler: Step %d @ t=%g, lasted %g sec%s\n", 
-				Time.Step_Counter, Time.Current, delta_last, fullstep);
-	}
-
-	fprintf(stream, "                Name"
-			"      Imbal        Max       Min      Mean\n");
+	//fprintf(stream, "                Name"
+	//		"      Imbal        Max       Min      Mean\n");
 
 	for (int i = 0; i < NProfObjs; i++ )
 		fprintf(stream, "%20s   %8.3f   %8.3f  %8.3f  %8.3f  \n", Prof[i].Name,

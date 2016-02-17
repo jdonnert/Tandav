@@ -3,7 +3,7 @@
 #include "domain.h"
 #include "peano.h"
 
-#define MIN_LEVEL 3 // decompose at least 8^MIN_LEVEL domains downward
+#define MIN_LEVEL 2 // decompose at least 8^MIN_LEVEL domains downward
 
 static void set_computational_domain();
 static void find_domain_center(double Center_Out[3]);

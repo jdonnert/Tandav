@@ -30,6 +30,7 @@ struct IntegerTimeLine {
 
 void Set_New_Timesteps();
 void Make_Active_Particle_List();
+void Make_Active_Particle_Vectors();
 
 void Setup_Time_Integration();
 double Timebin2Timestep(const int);

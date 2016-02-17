@@ -256,7 +256,7 @@ double Comoving_VelDisp_Timestep_Constraint(const double dt_max_ext)
 
 	for (int type = 0; type < NPARTYPE; type++) {
 
-		if (npart[type] == 0)
+		if (min_mpart[type] == 0)
 			continue;
 
 		double dmean = 0;

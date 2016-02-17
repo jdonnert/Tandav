@@ -1,7 +1,7 @@
 #include "../globals.h"
 #include "../domain.h"
 #include "gravity.h"
-#include "gravity_tree.h"
+#include "tree.h"
 #include "gravity_periodic.h"
 
 #ifdef GRAVITY_TREE
@@ -16,7 +16,7 @@ static void interact(const Float, const Float *, const Float);
 static void gravity_tree_walk(const int);
 static void gravity_tree_walk_BH(const int);
 
-static void check_total_momentum();
+static void check_total_momentum(const bool show_error);
 
 /*
  * We do not walk referencing particles, but copy the required particle data
@@ -38,6 +38,8 @@ void Gravity_Tree_Acceleration()
 	Profile("Grav Tree Walk");
 
 	rprintf("Tree acceleration ");
+
+	check_total_momentum(false);
 
 	#pragma omp for schedule(dynamic)
 	for (int i = 0; i < NActive_Particles; i++) {
@@ -63,7 +65,7 @@ void Gravity_Tree_Acceleration()
 			//	continue;
 			//}
 
-			if (D[j].TNode.Npart <= 8) { // open top leave
+			if (D[j].TNode.Npart <= VECTOR_SIZE) { // open top leave
 
 				interact_with_topnode_particles(j);
 
@@ -87,7 +89,7 @@ void Gravity_Tree_Acceleration()
 
 	rprintf(" done \n");
 
-	check_total_momentum();
+	check_total_momentum(true);
 
 	Profile("Grav Tree Walk");
 
@@ -312,9 +314,9 @@ static void gravity_tree_walk_BH(const int tree_start)
 
 			for (int jpart = first; jpart < last; jpart++ ) {
 
-				Float dr[3] = {P.Pos[0][jpart] - Send.Pos[0],
+				Float dr[3] = { P.Pos[0][jpart] - Send.Pos[0],
 							    P.Pos[1][jpart] - Send.Pos[1],
-					            P.Pos[2][jpart] - Send.Pos[2]};
+					            P.Pos[2][jpart] - Send.Pos[2] };
 
 				Periodic_Nearest(dr); // PERIODIC
 
@@ -368,27 +370,27 @@ const Float Epsilon = 105.0/32.0 * GRAV_SOFTENING;
 static void interact(const Float mass, const Float dr[3], const Float r2)
 {
 
-	double r_inv = 1/sqrt(r2);
-	double r = 1/r_inv;
+	Float r_inv = 1/sqrtf(r2);
+	Float r = 1/r_inv;
 
 #ifdef GRAVITY_POTENTIAL
-	double r_inv_pot = r_inv;
+	Float r_inv_pot = r_inv;
 #endif
 
 	if (r < Epsilon) { 
 
-		double u = r/Epsilon;
-		double u2 = u*u;
+		Float u = r/Epsilon;
+		Float u2 = u*u;
 
-		r_inv = sqrt(u * (135*u2*u2 - 294*u2 + 175))/(4*Epsilon) ;
+		r_inv = sqrtf(u * (135*u2*u2 - 294*u2 + 175))/(4*Epsilon) ;
 
 #ifdef GRAVITY_POTENTIAL
 		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3) 
-			/ Epsilon;
+					/ Epsilon;
 #endif
 	}
 
-	double acc_mag = Const.Gravity * mass * p2(r_inv);
+	Float acc_mag = Const.Gravity * mass * p2(r_inv);
 
 	Recv.Grav_Acc[0] += acc_mag * dr[0] * r_inv;
 	Recv.Grav_Acc[1] += acc_mag * dr[1] * r_inv;
@@ -398,7 +400,7 @@ static void interact(const Float mass, const Float dr[3], const Float r2)
 	Recv.Grav_Potential += Const.Gravity * mass * r_inv_pot;
 #endif
 
-	Recv.Cost++;
+	Recv.Cost += 1;
 
 	return ;
 }
@@ -449,10 +451,12 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node)
 
 static double Px = 0, Py = 0, Pz = 0, Last = 0;
 
-static void check_total_momentum()
+static void check_total_momentum(const bool show_error)
 {
+	const int last_DM_part = Task.Npart[0]+Task.Npart[1];
+
 	#pragma omp for simd reduction(+: Px, Py, Pz)
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+	for (int ipart = Task.Npart[0]; ipart < last_DM_part; ipart++) {
 	
 		Px += P.Mass[ipart] * P.Vel[0][ipart];
 		Py += P.Mass[ipart] * P.Vel[1][ipart];
@@ -461,9 +465,14 @@ static void check_total_momentum()
 	
 	double ptotal = sqrt( Px*Px + Py*Py + Pz*Pz );
 
+	#pragma omp single
+	MPI_Reduce(MPI_IN_PLACE, &ptotal, 1, MPI_DOUBLE, MPI_SUM, MASTER, 
+			MPI_COMM_WORLD);
+
 	double rel_err = (ptotal - Last) / Last;
 
-	rprintf("Total err. due to gravity : %g \n", rel_err);
+	if (show_error)
+		rprintf("Total err. due to gravity : %g \n", rel_err);
 
 	#pragma omp single
 	Last = ptotal;

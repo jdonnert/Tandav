@@ -60,7 +60,7 @@ void Set_Current_Cosmology(const double a)
 
 /* 
  * These functions implement the cosmological background evolution in
- * code units, see also Peebles 1980, Mo, v.d.Bosch & White Eq. 3.74/5.
+ * _code units_, see also Peebles 1980, Mo, v.d.Bosch & White Eq. 3.74/5.
  */
 
 double Hubble_Parameter(const double a) // H(a) = H0 * E(a), Mo+ eq 3.74

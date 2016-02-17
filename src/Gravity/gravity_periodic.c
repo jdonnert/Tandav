@@ -35,7 +35,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 {
 	int sign[3] = { -1, -1, -1 };
 	
-	double dx = dr[0];
+	Float dx = dr[0];
 
 	if (dx < 0) {
 
@@ -43,7 +43,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 		sign[0] = 1;
 	}
 
-	double dy = dr[1];
+	Float dy = dr[1];
 
 	if (dy < 0) {
 
@@ -51,7 +51,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 		sign[1] = 1;
 	}
 
-	double dz = dr[2];
+	Float dz = dr[2];
 
 	if (dz < 0) {
 
@@ -59,9 +59,9 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 		sign[2] = 1;
 	}
 
-	double u = dx * Box2Ewald_Grid;
-	double v = dy * Box2Ewald_Grid;
-	double w = dz * Box2Ewald_Grid;
+	Float u = dx * Box2Ewald_Grid;
+	Float v = dy * Box2Ewald_Grid;
+	Float w = dz * Box2Ewald_Grid;
 
 	int i = (int) u;
 	int j = (int) v;
@@ -80,7 +80,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 	v -= j;
 	w -= k;
 
-	double weights[8] = { (1 - u) * (1 - v) * (1 - w), // CIC with u,v,w < 2 !
+	Float weights[8] = { (1 - u) * (1 - v) * (1 - w), // CIC with u,v,w < 2 !
 						  (1 - u) * (1 - v) * w,
 						  (1 - u) * v * (1 - w),
 						  (1 - u) * v * (w),
@@ -112,6 +112,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 }
 
 #ifdef GRAVITY_POTENTIAL
+
 void Ewald_Potential(const double dr[3], Float p[1])
 {
 	double dx = dr[0];

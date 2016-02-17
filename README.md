@@ -45,10 +45,13 @@ To Do
 	- FoF - gadget format ?
 	- Halo Output
 10. Vectorisation 
-	- P to struct of arrays
-	- Reallocate_P to struct of arrays
-	- Adapt code
+	* P to struct of arrays
+	* Reallocate_P to struct of arrays
+	* Adapt code
 	- Adapt tree to struct of arrays
+	- Tree build vectorize pre-insert
+	- Tree accel vectorize particle loops
+	- Particle loop to vector blocks
 11. FMM
 	- simple walk, same Tree, measure speed
 	- fmm_build
@@ -65,12 +68,6 @@ To Do
 	- omp speed 
 	- mpi & mpi stack stability
 	- scalability
-14. FMM on accelerators
-	- OpenACC general interface
-	- communication model
-15. Multi-grid gravity 
-	- fast grid definition
-	- mapping PH-curve - grid
 16. MHD 
 	- derive comoving MHD
 	- set thermodynamic model

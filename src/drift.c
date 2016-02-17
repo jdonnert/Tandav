@@ -19,15 +19,16 @@ void Drift_To_Sync_Point()
 	Profile("Drift");
 
 	#pragma omp for
-	for (int i = 0; i < NActive_Particles; i++) {
+	for (int i = 0; i < NParticle_Vectors; i++) {
 
-		int ipart = Active_Particle_List[i];
+		for (int ipart = PVec.First[i]; ipart < PVec.N[i]; ipart++) {
 
-		double dt = Particle_Drift_Step(ipart, Time.Next);
+			double dt = Particle_Drift_Step(ipart, Time.Next);
 
-		P.Pos[0][ipart] += dt * P.Vel[0][ipart];
-		P.Pos[1][ipart] += dt * P.Vel[1][ipart];
-		P.Pos[2][ipart] += dt * P.Vel[2][ipart];
+			P.Pos[0][ipart] += dt * P.Vel[0][ipart];
+			P.Pos[1][ipart] += dt * P.Vel[1][ipart];
+			P.Pos[2][ipart] += dt * P.Vel[2][ipart];
+		}
 	}
 
 	Sig.Drifted_To_Snaptime = false; // handled out of sync integer timeline

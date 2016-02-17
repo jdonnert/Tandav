@@ -3,7 +3,7 @@
 #include "../peano.h"
 #include "../timestep.h"
 #include "gravity.h"
-#include "gravity_tree.h"
+#include "tree.h"
 
 #ifdef GRAVITY_TREE
 
@@ -43,8 +43,8 @@ static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *Buffer
  * A subtree is build starting from the top node in target pointer "*tree". 
  * Every subtree allocated a fixed amount of memory, if it is not build in the
  * buffer.
- * If the number of particles in that top node is <= 8, the subtree is 
- * discarded and the topnode target points directly to the particles and 
+ * If the number of particles in that top node is <= VECTOR_SIZE, the subtree 
+ * is discarded and the topnode target points directly to the particles and 
  * the tree walk will use particles directly from the topnode. 
  * At last the top nodes are broadcasted.
  */
@@ -382,7 +382,7 @@ static peanoKey create_first_node(const int first_part,
 
 /*
  * Remove nodes from the bottom of the last branch so we end up with a
- * node with <= 8 particles. 
+ * node with <= VECTOR_SIZE particles. 
  */
 
 static void collapse_last_branch(const int node, const int last_parent,
@@ -390,9 +390,9 @@ static void collapse_last_branch(const int node, const int last_parent,
 {
 	int n = -1;
 
-	if (tree[node].Npart <= 8)
+	if (tree[node].Npart <= VECTOR_SIZE)
 		n = node;
-	else if (tree[last_parent].Npart <= 8)
+	else if (tree[last_parent].Npart <= VECTOR_SIZE)
 		n = last_parent;
 	else
 		return ;
@@ -418,8 +418,8 @@ static void collapse_last_branch(const int node, const int last_parent,
 
 /* 
  * Do some final operations on the node contents.
- * Copy the first node into the top node. If the subtree contains less than 8 
- * particles, return 0. 
+ * Copy the first node into the top node. If the subtree contains less than 
+ * VECTOR_SIZE particles, return 0. 
  * After the build, some inner DNext pointers are 0. This is corrected 
  * setting these pointers and closing the P-H curve through the sub tree.
  * Remove the top node of the subtree, as it is identical with D.TNode.
@@ -440,7 +440,7 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 	D[tnode_idx].TNode.CoM[1] = tree[0].CoM[1];
 	D[tnode_idx].TNode.CoM[2] = tree[0].CoM[2];
 
-	if (tree[0].Npart <= 8) { // too small, save only topnode, return empty
+	if (tree[0].Npart <= VECTOR_SIZE) { // save only topnode, return empty
 
 		memset(tree, 0, nNodes * sizeof(*tree));
 

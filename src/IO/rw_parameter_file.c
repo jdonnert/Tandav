@@ -45,7 +45,7 @@ void Read_Parameter_File(const char *filename)
 				}
 			}
 
-			if (j < 0) // don't know this one, skip
+			if (j < 0) // I don't know this one, skip
 				continue;
 
 			printf(" %20s  %s\n", buf1, buf2);
@@ -80,12 +80,44 @@ void Read_Parameter_File(const char *filename)
 
 		fclose(fd);
 
-		printf("\n");
+		printf("\nAssuming: \n");
 
-		for (int i = 0; i < NTags; i++) // are we missing one ?
-			Assert(tagDone[i] || ParDef[i].type == PAR_COMMENT,
-				"Value for tag '%s' missing in parameter file '%s'.\n",
-				ParDef[i].tag, filename );
+		for (int i = 0; i < NTags; i++) { // are we missing one ?
+			
+			if (tagDone[i] || ParDef[i].type == PAR_COMMENT) 
+				continue;
+
+			printf(" %20s  %s \n", ParDef[i].tag, ParDef[i].val);
+
+			switch (ParDef[i].type) {
+
+			case PAR_COMMENT:
+				break;
+
+			case PAR_DOUBLE:
+
+				*((double *)ParDef[i].addr) = atof(ParDef[i].val);
+
+				break;
+
+			case PAR_STRING:
+
+				strncpy((char *)ParDef[i].addr, ParDef[i].val, CHARBUFSIZE); 
+
+				break;
+
+			case PAR_INT:
+
+				*((int *)ParDef[i].addr) = atoi(ParDef[i].val);
+
+				break;
+
+			default:
+				Assert(false,"Code Error in ParDef struct: %s", ParDef[i].tag);
+			}
+		}
+		
+		printf("\n");
 
 		sanity_check_input_parameters();
 	}

@@ -30,10 +30,11 @@ void Allocate_Particle_Structures()
 
 	const double npart_per_rank = (double) Sim.Npart_Total/(double) Sim.NRank;
 
-	Task.Npart_Total_Max = ceil(npart_per_rank * PART_ALLOC_FACTOR);
+	Task.Npart_Total_Max = ceil(npart_per_rank * Param.Part_Alloc_Factor);
 
 	for (int i = 0; i < NPARTYPE; i++)
-		Task.Npart_Max[i] = (double)Sim.Npart[i]/Sim.NRank * PART_ALLOC_FACTOR;
+		Task.Npart_Max[i] = (double)Sim.Npart[i]/Sim.NRank * 
+			Param.Part_Alloc_Factor;
 
 	} // omp parallel
 
@@ -42,7 +43,7 @@ void Allocate_Particle_Structures()
 	size_t nBytes = Task.Npart_Total_Max * sizeof_P;
 
 	rprintf("\nReserving space for %llu particles per task in *P,"
-			" factor %g\n", Task.Npart_Total_Max, PART_ALLOC_FACTOR);
+			" factor %g\n", Task.Npart_Total_Max, Param.Part_Alloc_Factor);
 
 	omp_init_lock(&Particle_Lock);
 
@@ -105,7 +106,7 @@ static void find_particle_sizes()
  * Contracts P so that the last nPart[type] particles are removed 
  * Note that actually no real allocation is taking place, because
  * that would fragment memory. Instead this needs to stay with in the
- * limit set by PART_ALLOC_FACTOR. 
+ * limit set by Param.Part_Alloc_Factor. 
  */
 
 void Reallocate_P_Info(const char *func, const char *file, int line,
@@ -116,8 +117,9 @@ void Reallocate_P_Info(const char *func, const char *file, int line,
 	for (int i = 0; i < NPARTYPE; i++)
 		Assert(Task.Npart[i] + dNpart[i] <= Task.Npart_Max[i],
 			"Too many particles type %d on this task. \n"
-			"Have %d, want %d, max %d \nCurrent PARTALLOCFACTOR = %g",
-			i, Task.Npart[i], dNpart[i], Task.Npart_Max[i], PART_ALLOC_FACTOR);
+			"Have %d, want %d, max %d \nCurrent Part alloc factor = %g",
+			i, Task.Npart[i], dNpart[i], Task.Npart_Max[i], 
+			Param.Part_Alloc_Factor);
 
 	int offset[NPARTYPE] = { 0 }, new_npart_total = 0;
 	int new_npart[NPARTYPE] = { 0 };

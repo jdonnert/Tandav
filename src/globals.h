@@ -57,6 +57,7 @@ extern struct Parameters_From_File {
 	double Max_Timestep;		// largest timestep constraint
 	double Min_Timestep;		// smallest timestep constraint
 	double Part_Alloc_Factor;	// Allowed mem imbalance in Particles
+	double Time_Int_Accuracy;	// 
 } Param;
 
 /*

@@ -480,10 +480,10 @@ static float get_physical_timestep(const int ipart)
 static float cosmological_timestep(const int ipart, const Float acc_phys)
 {
 #ifdef COMOVING
-	return TIME_INT_ACCURACY * sqrt(2 * Cosmo.Expansion_Factor
+	return Param.Time_Int_Accuracy * sqrt(2 * Cosmo.Expansion_Factor
 			* GRAV_SOFTENING / acc_phys);
 #else
-	return TIME_INT_ACCURACY * sqrt(2 * GRAV_SOFTENING / acc_phys);
+	return Param.Time_Int_Accuracy * sqrt(2 * GRAV_SOFTENING / acc_phys);
 #endif // ! COMOVING
 }
 

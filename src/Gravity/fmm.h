@@ -1,5 +1,5 @@
 /*
- * Gravity using the Fast Multipole Method with DUal tree traversal.
+ * Gravity using the Fast Multipole Method with dual tree traversal.
  */
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE)

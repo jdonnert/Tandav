@@ -4,10 +4,7 @@
 
 PERIODIC                    // periodic boundary conditions
 
-PART_ALLOC_FACTOR 1.05		// [1.05] maximum npart per rank relative to mean
-VECTOR_SIZE 16			 // size of vector bundles
-
-TIME_INT_ACCURACY 0.2       // [0.2] cosmo time step accuracy parameter
+VECTOR_SIZE 16			 	// size of vector bundles
 
 DOMAIN_UPDATE_PARAM 0.1     // [0.1]  npart drifted before new domain decomp.
 DOMAIN_IMBAL_CEIL 0.01	    // [0.05] desired maximum cost imbalance

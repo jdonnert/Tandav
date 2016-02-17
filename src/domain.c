@@ -96,7 +96,7 @@ void Domain_Decomposition()
 		find_global_imbalances();
 		
 		if (Max_Cost_Imbal < DOMAIN_IMBAL_CEIL)
-			if (Max_Mem_Imbal < PART_ALLOC_FACTOR-1) // distribution OK ?
+			if (Max_Mem_Imbal < Param.Part_Alloc_Factor-1) // distribution OK ?
 				break;
 
 		if (cnt++ > N_SHORT_TRIPLETS - MIN_LEVEL) {

@@ -273,17 +273,22 @@ function read_tandav_snapshot, fname, label, header=header $
         blockinfo = get_block_info(label, header.npart, debug=debug)
 
         want_type *= blockinfo.ptype
+
         if total(want_type) eq 0 then begin ; check consistency
             print, 'Your types do not carry block '+label
             stop
         end
 
         if keyword_set(debug) then begin
-            print, '----------------------------------' 
-            print, 'File :', fin
-            print, "npart:", header.npart
-            print, "nAll :", header.parttotal
-            print, "want :", want_type
+			print, ' -------- ' 
+            print, 'File : ', fin
+            print, "npart: ", header.npart
+            print, "nAll : ", header.parttotal
+            print, "want : ", want_type
+			print, 'Block: ', blockinfo.name
+			print, 'Rank : '+strn(blockinfo.rank)
+			print, 'Type : '+strn(blockinfo.IDLtype)
+			print, 'nBytes per element:'+strn(blockinfo.nBytes)
         end
 
         while not eof(fp) do begin

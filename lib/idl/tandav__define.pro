@@ -159,7 +159,7 @@ function TandavCodeObject::ReadSnap, fname, block, head=head, $
     parttype=parttype, debug=debug
 
     return, read_tandav_snapshot(fname, block, head=head, $
-        parttype=parttype,debug=debug)
+        						parttype=parttype,debug=debug)
 end
 
 ; Include snapshot writing

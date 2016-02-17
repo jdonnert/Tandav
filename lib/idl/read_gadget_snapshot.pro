@@ -26,7 +26,7 @@ function get_next_block_label, fp, blocksize=blocksize
     return, label
 end 
 
-function read_gadget_header, fp
+function read_tandav_header, fp
 
     header = make_head()
 
@@ -221,13 +221,13 @@ pro sort_particles, new_data, new_npart, all_data=all_data, $
     return
 end
 
-function read_gadget_snapshot, fname, label, header=header $
+function read_tandav_snapshot, fname, label, header=header $
     , parttype=parttype, debug=debug
     
     close,/all
 
     if not keyword_set(fname) then begin
-        print, "ReadGadgetSnap, fname, block, head=head, part=part"
+        print, "ReadTandavSnap, fname, block, head=head, part=part"
         print, "    fname   : input file name"
         print, "    block   : block name, 4 chars long"
         print, "    head    : header"
@@ -262,7 +262,7 @@ function read_gadget_snapshot, fname, label, header=header $
         openr, fp, fin, /f77, /get_lun, $
             swap_endian=test_endianess(fin, debug=debug)
         
-        header = read_gadget_header(fp)
+        header = read_tandav_header(fp)
         if label eq "HEAD" then $
             return, header
 

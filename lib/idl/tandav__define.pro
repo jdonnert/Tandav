@@ -1,7 +1,7 @@
-; P-Gadget Class
-pro GadgetCodeObject__define
+; P-Tandav Class
+pro TandavCodeObject__define
 
-    void = {GadgetCodeObject,       $   
+    void = {TandavCodeObject,       $   
                 ; units
                 name    : '  ',     $
                 length  : double(0),$
@@ -19,7 +19,7 @@ pro GadgetCodeObject__define
     return
 end
 
-function GadgetCodeObject::INIT
+function TandavCodeObject::INIT
     
     self.Set, 2
 
@@ -27,7 +27,7 @@ function GadgetCodeObject::INIT
 end
 
 ; expose object variables
-pro GadgetCodeObject::GetProperty, length=length, mass=mass,$
+pro TandavCodeObject::GetProperty, length=length, mass=mass,$
         velocity=velocity, time=time, energy=energy, fr=fr,$
         gamma=gamma, xH=xH
 
@@ -44,7 +44,7 @@ pro GadgetCodeObject::GetProperty, length=length, mass=mass,$
     return
 end
 
-pro GadgetCodeObject::SetProperty, length=length, mass=mass,$
+pro TandavCodeObject::SetProperty, length=length, mass=mass,$
         velocity=velocity, time=time, energy=energy, fr=fr,$
         gamma=gamma, xH=xH, preset=preset
 
@@ -65,7 +65,7 @@ end
 
 
 ; show current values
-pro GadgetCodeObject::Show
+pro TandavCodeObject::Show
     @set_cgs
 
     print, self.name+' :'
@@ -79,12 +79,12 @@ pro GadgetCodeObject::Show
 end
 
 ; set different systems
-pro GadgetCodeObject::Set, val, silent=silent
+pro TandavCodeObject::Set, val, silent=silent
     
     @set_cgs
 
     if n_params() lt 1 then begin
-        print, "List of GADGET unit systems"
+        print, "List of Tandav unit systems"
         print, "    0 - l=kpc/h, m=10^10 Msol, v=1km/sec, xH=0.76, gam=5/3"
     end
 
@@ -125,57 +125,57 @@ pro GadgetCodeObject::Set, val, silent=silent
 end
 
 ;compute physical density
-function GadgetCodeObject::Density, rho, h=h, z=z, electrons=electrons
+function TandavCodeObject::Density, rho, h=h, z=z, electrons=electrons
     
-   return, gadget_density(rho, h=h, z=z, electrons=electrons, xH=self.xH, $
+   return, tandav_density(rho, h=h, z=z, electrons=electrons, xH=self.xH, $
        uMass=self.mass, uLength=self.length)
 end
 
 ; Simple Thermodynamics
-function GadgetCodeObject::U2T, U, inv=inv, radiative=radiative
+function TandavCodeObject::U2T, U, inv=inv, radiative=radiative
 
-    return, gadget_U2T( U, inv=inv, xH=self.xH, uvel=self.velocity, $
+    return, tandav_U2T( U, inv=inv, xH=self.xH, uvel=self.velocity, $
         gamma=self.gamma, radiative=radiative )
 end
 
-function GadgetCodeObject::T2U, T, inv=inv
+function TandavCodeObject::T2U, T, inv=inv
 
     return, self.U2T( T, inv=1 )
 end 
 
-function GadgetCodeObject::ThermalEnergyDensity, rho, T, h=h, z=z, TisU=TisU
+function TandavCodeObject::ThermalEnergyDensity, rho, T, h=h, z=z, TisU=TisU
 
-    return, gadget_thermal_energy_density( rho, T, self.xH, h=h, z=z, TisU=TisU )
+    return, tandav_thermal_energy_density( rho, T, self.xH, h=h, z=z, TisU=TisU )
 end
 
-function GadgetCodeObject::Pressure, rho, U, z=z, h=h
+function TandavCodeObject::Pressure, rho, U, z=z, h=h
 
-    return, gadget_pressure(rho, u, gamma=self.gamma, xH=self.xH, z=z, h=h,$
+    return, tandav_pressure(rho, u, gamma=self.gamma, xH=self.xH, z=z, h=h,$
         uVel=self.Velocity, uMass=self.Mass, uLength=self.Length)
 end
 
 ; Include snapshot reading
-function GadgetCodeObject::ReadSnap, fname, block, head=head, $
+function TandavCodeObject::ReadSnap, fname, block, head=head, $
     parttype=parttype, debug=debug
 
-    return, read_gadget_snapshot(fname, block, head=head, $
+    return, read_tandav_snapshot(fname, block, head=head, $
         parttype=parttype,debug=debug)
 end
 
 ; Include snapshot writing
-function GadgetCodeObject::MakeHead
+function TandavCodeObject::MakeHead
 
     return, make_head()
 end
 
-pro GadgetCodeObject::WriteHead, fname, head, swap_endian=swap_endian
+pro TandavCodeObject::WriteHead, fname, head, swap_endian=swap_endian
 
     write_head, fname, head, swap_endian=swap_endian 
 
     return
 end
 
-pro GadgetCodeObject::AddBlock, fname, data, blockid, debug=debug, $
+pro TandavCodeObject::AddBlock, fname, data, blockid, debug=debug, $
     swap_endian=swap_endian
 
     add_block, fname, data, blockid, debug=debug, swap_endian=swap_endian

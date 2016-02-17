@@ -1,4 +1,4 @@
-; make a gadget header
+; make a tandav header
 function make_head, npart=npart
 	head = {npart		    :	lonarr(6),	$
 			massarr			:	dblarr(6),	$

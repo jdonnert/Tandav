@@ -1,10 +1,10 @@
-; convert density in gadget units to physical
-function gadget_density, rho, h=h, z=z, electrons=electrons, xH=xH, uMass=uMass, uLength=uLength
+; convert density in tandav units to physical
+function tandav_density, rho, h=h, z=z, electrons=electrons, xH=xH, uMass=uMass, uLength=uLength
 
     @set_cgs
 
     if not (exist(rho) or exist(xH) or exist(uMass) or exist(uLength) ) then begin
-        print, "gadget_density( rho, h=h, z=z, electrons=electrons, xH=xH, "
+        print, "tandav_density( rho, h=h, z=z, electrons=electrons, xH=xH, "
         print, "                 uMass=uMass, uLength=uLength )"
         return, -1
     end

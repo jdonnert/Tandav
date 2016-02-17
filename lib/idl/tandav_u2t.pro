@@ -1,4 +1,4 @@
-function gadget_U2T, U, inv=inv, xH=xH, uvel=uvel, gamma=gamma, radiative=radiative
+function tandav_U2T, U, inv=inv, xH=xH, uvel=uvel, gamma=gamma, radiative=radiative
 
     @set_cgs
 

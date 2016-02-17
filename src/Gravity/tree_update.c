@@ -85,7 +85,7 @@ void Gravity_Tree_Update_Drift(const double dt)
 		}
 	}
 
-	#pragma omp for simd reduction(+:nUpdate)
+	#pragma omp simd for reduction(+:nUpdate)
 	for (int i = 0; i < NTop_Nodes; i++) {
 
 		if (D[i].TNode.Level < 0) {

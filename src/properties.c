@@ -32,7 +32,7 @@ static void find_total_mass(double mass_out[1])
 	#pragma omp single
 	Total_Mass = 0;
 
-	#pragma omp for simd reduction(+:Total_Mass) 
+	#pragma omp simd for reduction(+:Total_Mass) 
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
 		Total_Mass += P.Mass[ipart];
 
@@ -56,7 +56,7 @@ static void find_center_of_mass(double CoM_out[3])
 	#pragma omp single
 	CoM_X = CoM_Y = CoM_Z = 0;
 
-	#pragma omp for simd reduction(+:CoM_X,CoM_Y,CoM_Z)
+	#pragma omp simd for reduction(+:CoM_X,CoM_Y,CoM_Z)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
 		CoM_X += P.Mass[ipart] * P.Pos[0][ipart];
@@ -89,7 +89,7 @@ static void find_total_kinetic_energy(double Ekin_out[1])
 	#pragma omp single
 	Ekin = 0;
 
-	#pragma omp for simd reduction(+:Ekin)
+	#pragma omp simd for reduction(+:Ekin)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 		
 		double v2 = p2(P.Vel[0][ipart])+p2(P.Vel[1][ipart])+p2(P.Vel[2][ipart]);
@@ -115,7 +115,7 @@ static void find_angular_momentum(double ang_p_out[3])
 	#pragma omp single
 	Ang_p_x = Ang_p_y = Ang_p_z = 0;
 
-	#pragma omp for simd reduction(+:Ang_p_x, Ang_p_y, Ang_p_z)
+	#pragma omp simd for reduction(+:Ang_p_x, Ang_p_y, Ang_p_z)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
 		Ang_p_x += P.Mass[ipart] * (P.Pos[1][ipart]*P.Vel[2][ipart]
@@ -146,7 +146,7 @@ static void find_momentum(double mom_out[3])
 	#pragma omp single
 	mom_x = mom_y = mom_z = 0;
 	
-	#pragma omp for simd reduction(+:mom_x, mom_y, mom_z)
+	#pragma omp simd for reduction(+:mom_x, mom_y, mom_z)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
 		mom_x += P.Mass[ipart] * P.Vel[0][ipart];

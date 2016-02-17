@@ -455,7 +455,7 @@ static void check_total_momentum(const bool show_error)
 {
 	const int last_DM_part = Task.Npart[0]+Task.Npart[1];
 
-	#pragma omp for simd reduction(+: Px, Py, Pz)
+	#pragma omp simd for reduction(+: Px, Py, Pz)
 	for (int ipart = Task.Npart[0]; ipart < last_DM_part; ipart++) {
 	
 		Px += P.Mass[ipart] * P.Vel[0][ipart];

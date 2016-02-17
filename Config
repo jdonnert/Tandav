@@ -55,11 +55,13 @@ TREE_OPEN_PARAM_REL 0.01     // [0.005] Relative opening criterion parameter
 MEMORY_MANAGER  
 
 #### Friends-of-Friends ####
+
 #FOF                         // Friends-of-Friends master switch
 #FOF_LINKING_LENGTH 0.2		 // [0.2] FoF linking parameter
 #FOF_FILENAME				 // base name
 
 #### Map Making ####
+
 #MAP						// requires cfitsio library
 #MAP_FILENAME
 

@@ -1,6 +1,6 @@
 This is the Style Guide for Tandav:
 
-	“First off, Id suggest printing out a copy of
+	“First off, I'd suggest printing out a copy of
 	 the GNU coding standards, and NOT read it.
 
 	 Burn them, its a great symbolic gesture.”
@@ -23,21 +23,21 @@ This is the Style Guide for Tandav:
   compiler might later optimize away, but which explain the algorithm.
   For example compare :
 
-        int my_array = malloc(Task.Npart*N_BINS*sizeof(*my_array));
+        int *my_array = malloc(Task.Npart*N_BINS*sizeof(*my_array));
 
   with
 
-		size_t nBytes = Task.Npart * N_BINS * sizeof(*my_array);
-		int my_array = malloc(nBytes);
+		size_t nBytes = Task.Npart * N_BINS * sizeof(int);
+		int *my_array = malloc(nBytes);
 
-* Self-explaining code doesn't need many comments, if you use functions. 
+* Self-explaining code doesn't need many comments, you should use functions. 
   If you modulerize properly you will call many static functions whose names 
   will explain most of what needs to be known. These function will be
   optimised away by modern compilers. Across files, -flto or -ipo switches do
   the same.
 
 * Write short functions, whose name is a description of what you are doing.
-  No comment necessary to explain what is happening.
+  No comment necessary to explain how something is happening, only what.
   
 * Avoid a large number of nested loops and conditions. Rewrite conditions
   using continue to ease reading and reduce indentation level, e.g.:
@@ -69,7 +69,7 @@ This is the Style Guide for Tandav:
 			Gravity_Tree_Build();
 
 * C99: Variables are initialised when declared. Use the const keyword for
-  input parameters to avoid bugs.
+  input parameters of functions, to make clear what is returned.
 
 * In general its a good idea to avoid the pointer picture where possible.
   E.g. if you declare pointers as function parameters and you know their size
@@ -90,11 +90,17 @@ This is the Style Guide for Tandav:
 * Global variables should have long meaningful names, start with a capital
   letters. Scope should be visible and global variables have to be
   understandable and unambiguous. This also helps with OpenMP race conditions,
-  global variables must be touched only inside a #pragma omp single region.
+  global variables should be touched only inside a #pragma omp single region.
   You might not want to use long names locally, but define a local variable
-  using the const keyword. Code-wide variables should be embedded in the
-  existing structures, if possible. Minimize the use of global variables if
-  reasonably possible.
+  using the const keyword.
+
+  Globally:
+            const double Speed_Of_Light = SPEED_OF_LIGHT / Unit.Velocity;
+  Locally: 
+            const double c = Speed_Of_Light;
+  
+  Code-wide variables should be embedded in the existing structures, if 
+  possible. Minimize the use of global variables if reasonably possible.
 
 * Local variables are short and start with a small letter. Don't do this :
 
@@ -104,17 +110,19 @@ This is the Style Guide for Tandav:
 
 			int I_Am_A_Very_Long_Variable_Name = 0;
 
+  See Greg KH talk on the kernel
+
 * If subroutines return multiple values make that clear by declaring them
   void and return all values by pointer:
 
-			void my_routine(const int, double *, double *);
+			void my_routine(const int ipart, double * result1, double * result2);
 
 			my_routine(ipart, &return_var_1, &return_var_2);
 
-* Modulerize: Every .c file has a corresponding .h header file of the same 
+* Modulerize: Every .c file/module has a corresponding .h header file of the same 
   name. The header file contains the Global functions and variables. 
   These all start with a capital letter and are enclosed in an #ifdef if
-  the functionality is switchable. All header additional files are includes 
+  the functionality is switchable. All additional header files are includes 
   in proto.h , which itself is contained in globals.h.
 
 * Constants in CGSM are macros, have unique long descriptive capitalised names
@@ -155,7 +163,7 @@ This is the Style Guide for Tandav:
 		#endif // PMGRID
 
   You never know what someone else is going to squeeze into your define later
-  so the endif might appear pages down.
+  so the endif might appear pages down. A negative example is Gadget-3's hydra.c
 
 * Minimize #ifdefs in C code. Write a function and an empty 
   "inline void F(){};" prototype in the header file. Start the function 
@@ -180,7 +188,7 @@ This is the Style Guide for Tandav:
   In some cases, MPI communication is still done in its own function.
 
 * All OpenMP globals are public by default and their modification has to be
-  protected by single, critical, etc to avoid race conditions. Sig is private
+  protected by single, critical, etc to avoid race conditions. Sig is private.
 
 * Comments are // on the side, /* */ on the line. 
   Saves lines, increases readability.
@@ -204,3 +212,5 @@ This is the Style Guide for Tandav:
 				P[ipart].Pos[0] += P[ipart].Vel[0] * dt;
 
 	The difference in speed is easily a factor of ten !
+
+* We (will) use thread multiple MPI and RMA to overlap work and communication.

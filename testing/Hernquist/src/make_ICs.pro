@@ -1,6 +1,6 @@
 pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 
-	common globals, tandav, cosmo
+	tandav = obj_new('TANDAVCODEOBJECT')
 
 	seed = 14041981L
 	msol = 1.989d33

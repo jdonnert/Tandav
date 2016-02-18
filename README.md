@@ -3,6 +3,14 @@ tandav - A cosmological simulation code
 
 Collisionless N-body dynamics
 
+Directories
+-----
+
+doc/ 		- Documentation of algorithms
+lib/ 		- Plumbing layer to read/write data
+src/ 		- All source code
+testing/ 	- Library of test problems, including IC generators in IDL and parameter files 
+
 To Do
 -----
 
@@ -35,33 +43,30 @@ To Do
 	* (DONE) cube
 	* (DONE) simple
 	* (DONE) tree
-	* test
+	* (DONE) test
 9. Cosmological Sim 
-	* implementation
-	* test case
+	- (DONE) implementation
+	- (DONE) test case
 	- IDL script for IC generation
 	- Eisenstein & Hu P(k)
 	- growth rate plotting & comparison
 	- FoF - gadget format ?
 	- Halo Output
 10. Vectorisation 
-	* P to struct of arrays
-	* Reallocate_P to struct of arrays
-	* Adapt code
-	- Adapt tree to struct of arrays
-	- Tree build vectorize pre-insert
-	- Tree accel vectorize particle loops
+	- (DONE) P to struct of arrays
+	- (DONE) Reallocate_P to struct of arrays
+	- (DONE) Adapt code
+	- (DONE) Adapt tree to struct of arrays
+	- (DONE) Tree accel vectorize particle loops
 	- Particle loop to vector blocks
 11. FMM
 	- simple walk, same Tree, measure speed
 	- fmm_build
 	- cache blocking
 	- vectorization
-	- 
 12. MPI parallelisation
 	- General exchange in domain
-	- Engine in tree_accel. Work queues
-	  via general stack ?
+	- Engine in accel. Work queues via general stack ?
 	- domain decomposition still ok ?
 13. Optimisaton
 	- single core speed via Cray tools

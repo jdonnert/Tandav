@@ -380,19 +380,19 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 		(long long unsigned int) Sim.Npart[4], Sim.Mpart[4], 
 		(long long unsigned int) Sim.Npart[5], Sim.Mpart[5], sum);
 
-	Warn(head.Num_Files != nFiles, "NumFiles in Header (%d) doesnt match "
+	Assert(head.Num_Files != nFiles, "NumFiles in Header (%d) doesnt match "
 			"number of files found (%d) \n\n", head.Num_Files, nFiles);
 
 	Warn(head.Omega0 != Cosmo.Omega_Matter,
-			"Omega_0 in snapshot different from code: %g <-> %g",
+			"Omega_0 in snapshot different from code: file %g, code %g",
 			head.Omega0, Cosmo.Omega_Matter);
 
 	Warn(head.Omega_Lambda != Cosmo.Omega_Lambda,
-			"Omega_Lambda in snapshot different from code: %g <-> %g",
+			"Omega_Lambda in snapshot different from code: file %g, code %g",
 			head.Omega_Lambda, Cosmo.Omega_Lambda);
 
 	Warn(head.Hubble_Param != HUBBLE_CONST/100.0,
-			"h_0 in snapshot different from code: %g <-> %g",
+			"h_0 in snapshot different from code: file %g, code  %g",
 			head.Hubble_Param, HUBBLE_CONST/100.0);
 
 	Warn(head.Boxsize != Sim.Boxsize[0], "Boxsize inconsistent %g <-> %g,%g,%g",

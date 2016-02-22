@@ -187,19 +187,19 @@ function TandavCodeObject::ReadSnap, fname, block, head=head, $
 end
 
 ; Include snapshot writing
-function TandavCodeObject::MakeHead
+function TandavCodeObject::Make_Head
 
     return, make_head()
 end
 
-pro TandavCodeObject::WriteHead, fname, head, swap_endian=swap_endian
+pro TandavCodeObject::Write_Head, fname, head, swap_endian=swap_endian
 
     write_head, fname, head, swap_endian=swap_endian 
 
     return
 end
 
-pro TandavCodeObject::AddBlock, fname, data, blockid, debug=debug, $
+pro TandavCodeObject::Add_Block, fname, data, blockid, debug=debug, $
     swap_endian=swap_endian
 
     add_block, fname, data, blockid, debug=debug, swap_endian=swap_endian

@@ -28,7 +28,7 @@ COMOVING                    // comoving coordinates for cosmo sims
 TIME_DISPL_CONSTRAINT 0.25 	// [0.25] max displacement from rms vel @ z>>0
 GADGET_COMOVING_VEL_UNIT	// assume vel~sqrt(a) in ICs and convert to a^2
 
-HUBBLE_CONST 100.0           // [70] in km/s/Mpc, set 100 for Gadget behaviour
+HUBBLE_CONST 70.0           // [70] in km/s/Mpc, set 100 for Gadget behaviour
 OMEGA_LAMBDA 0.7
 OMEGA_MATTER 0.3			// was Omega0 in Gadget.
 OMEGA_BARYON 0.0            // assuming H0=100

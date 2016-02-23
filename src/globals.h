@@ -5,10 +5,10 @@
 
 int * restrict Active_Particle_List;
 
-extern struct Particle_Vectors { // timestep.c
+extern struct Particle_Vector_Blocks{
 	int * restrict First;
-	int * restrict N;
-} PVec;
+	int * restrict Last;
+} V; // contingouos particle blocks on the same timestep
 
 int NParticle_Vectors, NActive_Particles;
 

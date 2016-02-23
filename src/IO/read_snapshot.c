@@ -380,7 +380,7 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 		(long long unsigned int) Sim.Npart[4], Sim.Mpart[4], 
 		(long long unsigned int) Sim.Npart[5], Sim.Mpart[5], sum);
 
-	Assert(head.Num_Files != nFiles, "NumFiles in Header (%d) doesnt match "
+	Assert(head.Num_Files == nFiles, "NumFiles in Header (%d) doesnt match "
 			"number of files found (%d) \n\n", head.Num_Files, nFiles);
 
 	Warn(head.Omega0 != Cosmo.Omega_Matter,

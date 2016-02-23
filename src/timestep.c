@@ -24,8 +24,8 @@ struct IntegerTimeLine Int_Time = { 0 };
 static float Dt_Max_Global = FLT_MAX;
 static int Time_Bin_Min = N_INT_BINS-1, Time_Bin_Max = 0;
 
-struct Particle_Vectors PVec = { NULL };
-int NPVec = 0;
+extern struct Particle_Vector_Blocks V = { NULL };
+int * restrict First = NULL, Last = NULL;
 
 /* 
  * All active particles get a new step that is smaller than or equal to 
@@ -144,8 +144,8 @@ void Setup_Time_Integration()
 
 	nBytes = Task.Npart_Total_Max * sizeof(int);
 		
-	PVec.First = Malloc(nBytes, "PVec.First");
-	PVec.N = Malloc(nBytes, "PVec.N");
+	V.First = Malloc(nBytes, "V.First");
+	V.Last = Malloc(nBytes, "V.Last");
 
  	Make_Active_Particle_Vectors();
 
@@ -274,8 +274,8 @@ void Make_Active_Particle_List()
 
 /*
  * To be able to vectorize particle accesses, we find vectors of particles
- * that are adjacent in memory. We end up with NParticle_Vectors vectors 
- * starting at PVec.First with length PVec.N.
+ * that are adjacent in memory and on the same timestep. We end up with 
+ * NParticle_Vectors vectors starting at First and ending before Last.
  */
 
 void Make_Active_Particle_Vectors()
@@ -283,26 +283,32 @@ void Make_Active_Particle_Vectors()
 	#pragma omp single
 	{
 
-	size_t nBytes = Task.Npart_Total * sizeof(*PVec.First);
+	size_t nBytes = Task.Npart_Total * sizeof(*V.First);
 
-	memset(PVec.First, 0, nBytes);
-	memset(PVec.N, 0, nBytes);
+	memset(V.First, 0, nBytes);
+	memset(V.Last, 0, nBytes);
 	
 	NParticle_Vectors = 0;
 
-	int i = 0;
+	int i = -1;
+	int last_pos = -1; // last position on integer timeline
 
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
 		if (P.Time_Bin[ipart] <= Time.Max_Active_Bin) {
-		
-			PVec.N[i]++;
-		
-			if (PVec.First[i] < 0) // vector starts
-				PVec.First[i] = ipart;
+			
+			if (P.Int_Time_Pos[ipart] != last_pos)
+				i++;
 
-		} else if (PVec.N[i] > 0) { // vector ends
+			V.Last[i]++;
+			last_pos = P.Int_Time_Pos[ipart];
+			
+			if (V.First[i] < 0) // vector starts
+				V,First[i] = ipart;
+
+		} else if (V.Last[i] > 0) { // vector ends
 		
+			V.Last[i]++; // so we can write canonical loops
 			i++;
 		}
 	} // ipart
@@ -310,11 +316,15 @@ void Make_Active_Particle_Vectors()
 	NParticle_Vectors = i + 1;
 
 	} // omp single
-
+	
 	NActive_Particles = 0;
 
 	for (int i = 0; i < NParticle_Vectors; i++)
-		NActive_Particles += PVec.N[i];
+		NActive_Particles += V.Last[i];
+	
+	#pragma omp for
+	for (int i = 0; i < NParticle_Vectors; i++)
+		V.Last[i] += V.First[i];
 
 	Assert(NParticle_Vectors > 0, "Invalid Active Particle Vectors : %d", 
 			NParticle_Vectors);

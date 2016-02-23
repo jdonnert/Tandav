@@ -21,9 +21,12 @@ void Drift_To_Sync_Point()
 	#pragma omp for
 	for (int i = 0; i < NParticle_Vectors; i++) {
 
-		for (int ipart = PVec.First[i]; ipart < PVec.N[i]; ipart++) {
+printf("%d %d %d \n", i, V.Last[i], V.First[i]);
 
-			double dt = Particle_Drift_Step(ipart, Time.Next);
+		Float dt = Particle_Drift_Step(V.First[i], Time.Next);
+
+		#pragma IVDEP
+		for (int ipart = V.First[i]; ipart < V.Last[i]; ipart++) {
 
 			P.Pos[0][ipart] += dt * P.Vel[0][ipart];
 			P.Pos[1][ipart] += dt * P.Vel[1][ipart];

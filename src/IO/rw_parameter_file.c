@@ -163,8 +163,9 @@ void sanity_check_input_parameters()
 
 	Assert(Param.Num_IO_Tasks > 0, "NumIOTasks has to be > 0");
 
-	Warn(Param.Buffer_Size > Param.Max_Mem_Size / 8,
-			"BufferSize should be much smaller than MaxMemSize");
+	Warn(Param.Buffer_Size > Param.Max_Mem_Size / 10.0,
+			"BufferSize (%d MB) should be much smaller than MaxMemSize (%d MB)",
+			Param.Buffer_Size,  Param.Max_Mem_Size);
 
 	Warn((double)Param.Buffer_Size * p2(1024.0)/sizeof_P < 1000.0,
 		"Thread Safe buffer holds less than 1024 particles "

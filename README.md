@@ -47,8 +47,8 @@ To Do
 9. Cosmological Sim 
 	- (DONE) implementation
 	- (DONE) test case
-	- IDL script for IC generation
-	- Eisenstein & Hu P(k)
+	- (DONE) IDL script for IC generation
+	- (DONE) Eisenstein & Hu P(k)
 	- growth rate plotting & comparison
 	- FoF - gadget format ?
 	- Halo Output
@@ -61,8 +61,7 @@ To Do
 	- Particle loop to vector blocks
 11. FMM
 	- simple walk, same Tree, measure speed
-	- fmm_build
-	- cache blocking
+	- fmm_build & cache blocking
 	- vectorization
 12. MPI parallelisation
 	- General exchange in domain
@@ -77,7 +76,7 @@ To Do
 	- derive comoving MHD
 	- set thermodynamic model
 	- set composition model
-	- simple 3D TVD mesh
+	- simple 3D TVD mesh (->Tom)
 	- Voronoi generator
 		- convex hull - MPI
 

@@ -25,3 +25,14 @@
 #define mprintf(...) if(Task.Is_MPI_Master) printf(__VA_ARGS__)
 #define oprintf(...) if(Task.Is_Thread_Main) printf(__VA_ARGS__)
 
+#ifdef __INTEL_COMPILER 
+
+#define IVDEP ivdep // use with caution
+
+#endif // __INTEL_COMPILER
+
+#ifdef _CRAYC
+
+#define IVDEP _CRI ivdep
+
+#endif // _CRAYC

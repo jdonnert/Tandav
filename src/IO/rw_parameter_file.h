@@ -26,8 +26,8 @@ static const parameter ParDef[] = {
 
 	{"\n%% Code Parameters %%\n", "", NULL, PAR_COMMENT},
 	{"MaxMemSize", "1024", &Param.Max_Mem_Size, PAR_INT},
-	{"BufferSize", "32", &Param.Buffer_Size, PAR_INT}, // in MB per MPI rank
-	{"PartAllocFactor", "1.0", &Param.Part_Alloc_Factor, PAR_DOUBLE},
+	{"BufferSize", "32", &Param.Buffer_Size, PAR_INT}, // in MB all threads
+	{"PartAllocFactor", "1.1", &Param.Part_Alloc_Factor, PAR_DOUBLE},
 	{"TimeLimitCPU", "20864", &Param.Runtime_Limit, PAR_DOUBLE},
 
 	{"\n%% Simulation Characteristics %%\n", "", NULL, PAR_COMMENT},

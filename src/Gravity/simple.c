@@ -163,7 +163,6 @@ void Gravity_Simple_Accel()
 
 	Profile("Gravity_Simple");
 
-	exit(0);
 	return ;
 }
 

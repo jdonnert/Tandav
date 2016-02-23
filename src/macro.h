@@ -27,7 +27,7 @@
 
 #ifdef __INTEL_COMPILER 
 
-#define IVDEP ivdep // use with caution
+#define IVDEP ivdep // IGNORE_VECTOR_DEPENDENCE
 
 #endif // __INTEL_COMPILER
 

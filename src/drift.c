@@ -21,8 +21,6 @@ void Drift_To_Sync_Point()
 	#pragma omp for
 	for (int i = 0; i < NParticle_Vectors; i++) {
 
-printf("%d %d %d \n", i, V.Last[i], V.First[i]);
-
 		Float dt = Particle_Drift_Step(V.First[i], Time.Next);
 
 		#pragma IVDEP
@@ -70,15 +68,17 @@ void Drift_To_Snaptime()
 	rprintf("\nDrift to next Shapshot Time %g \n", Time.Next_Snap);
 
 	#pragma omp for
-	for (int i = 0; i < NActive_Particles; i++) {
+	for (int i = 0; i < NParticle_Vectors; i++) {
+		
+		Float dt = Particle_Drift_Step(V.First[i], Time.Next_Snap);
 
-		int ipart = Active_Particle_List[i];
-
-		double dt = Particle_Drift_Step(ipart, Time.Next_Snap);
-
-		P.Pos[0][ipart] +=	dt * P.Vel[0][ipart];
-		P.Pos[1][ipart] +=	dt * P.Vel[1][ipart];
-		P.Pos[2][ipart] +=	dt * P.Vel[2][ipart];
+		#pragma IVDEP
+		for (int ipart = V.First[i]; ipart < V.Last[i]; ipart++) {
+		
+			P.Pos[0][ipart] +=	dt * P.Vel[0][ipart];
+			P.Pos[1][ipart] +=	dt * P.Vel[1][ipart];
+			P.Pos[2][ipart] +=	dt * P.Vel[2][ipart];
+		}
 	}
 
 	Periodic_Constrain_Particles_To_Box();

@@ -267,9 +267,11 @@ void Print_Memory_Usage()
 			Mem_Block[i].Line);
 	}
 
-	printf("\nExternal Thread-Safe Buffer: %d x %g = %g MB\n\n",
+	printf("\nExternal Thread-Safe Buffer: %d x %g = %g MB, "
+			"Minimum required: %g MB\n\n",
 			Sim.NThreads, Task.Buffer_Size/1024.0/1024,
-			(float)Param.Buffer_Size);
+			(float) Param.Buffer_Size, 
+			Task.Npart_Total_Max * Sim.NThreads * sizeof(uint64_t)/1024.0/1024);
 
 	printf("\n");
 

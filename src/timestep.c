@@ -25,7 +25,8 @@ static float Dt_Max_Global = FLT_MAX;
 static int Time_Bin_Min = N_INT_BINS-1, Time_Bin_Max = 0;
 
 extern struct Particle_Vector_Blocks V = { NULL };
-int * restrict First = NULL, Last = NULL;
+int * restrict First = NULL;
+int * restrict Last = NULL;
 
 /* 
  * All active particles get a new step that is smaller than or equal to 
@@ -303,27 +304,29 @@ void Make_Active_Particle_Vectors()
 			V.Last[i]++;
 			last_pos = P.Int_Time_Pos[ipart];
 			
-			if (V.First[i] < 0) // vector starts
-				V,First[i] = ipart;
+			if (V.First[i] <= 0) // vector starts
+				V.First[i] = ipart;
 
 		} else if (V.Last[i] > 0) { // vector ends
 		
 			V.Last[i]++; // so we can write canonical loops
 			i++;
 		}
+
 	} // ipart
 
-	NParticle_Vectors = i + 1;
+	NParticle_Vectors = i+1;
 
-	} // omp single
-	
 	NActive_Particles = 0;
 
+	} // omp single
+
+	#pragma omp for reduction(+:NActive_Particles)
 	for (int i = 0; i < NParticle_Vectors; i++)
 		NActive_Particles += V.Last[i];
 	
 	#pragma omp for
-	for (int i = 0; i < NParticle_Vectors; i++)
+	for (int i = 0; i < NParticle_Vectors; i++) 
 		V.Last[i] += V.First[i];
 
 	Assert(NParticle_Vectors > 0, "Invalid Active Particle Vectors : %d", 

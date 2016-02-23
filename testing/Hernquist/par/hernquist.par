@@ -11,19 +11,19 @@ LogFileDir		./log/
 %% Code Parameters %%
 MaxMemSize		4096
 TimeLimitCPU	20864 
-BufferSize		32
+BufferSize		512
 
 %% Simulation Characteristics %%
-Boxsize0		10000.0
-Boxsize1		10000.0
-Boxsize2		10000.0
+Boxsize0		100000.0
+Boxsize1		100000.0
+Boxsize2		100000.0
 
 TimeBegin		0 
 TimeEnd			10.0
 TimeOfFirstSnaphot		0 
 TimeBetSnapshots		0.1
 
-MaxSizeTimestep 0.05
+MaxSizeTimestep 0.4
 MinSizeTimestep 1e-7
 
 %% Cosmology %%

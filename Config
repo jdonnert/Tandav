@@ -4,12 +4,12 @@
 
 PERIODIC                    // periodic boundary conditions
 
-VECTOR_SIZE 16			 	// size of vector bundles
+VECTOR_SIZE 16			 	// size of vector bundles in trees
 
 DOMAIN_UPDATE_PARAM 0.1     // [0.1]  npart drifted before new domain decomp.
 DOMAIN_IMBAL_CEIL 0.01	    // [0.05] desired maximum cost imbalance
 
-#### GENERIC OUTPUT OPTIONS #### 
+#### OUTPUT OPTIONS #### 
 
 OUTPUT_TOTAL_ACCELERATION   // total acceleration ACC
 OUTPUT_PARTIAL_ACCELERATIONS // save & output all ACC components
@@ -26,7 +26,7 @@ VELOCITY2CGS 1e5        	// [km/s]
 COMOVING                    // comoving coordinates for cosmo sims
 
 TIME_DISPL_CONSTRAINT 0.25 	// [0.25] max displacement from rms vel @ z>>0
-GADGET_COMOVING_VEL_UNIT	// assume vel~sqrt(a) in ICs and convert to a^2
+#GADGET_COMOVING_VEL_UNIT	// assume vel~sqrt(a) in ICs and convert to a^2
 
 HUBBLE_CONST 70.0           // [70] in km/s/Mpc, set 100 for Gadget behaviour
 OMEGA_LAMBDA 0.7

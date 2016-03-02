@@ -247,6 +247,7 @@ function read_tandav_snapshot, fname, label, header=header $
     nfiles = get_nfiles(fname)
 
     if nfiles le 0 then begin
+
         print, 'Error: File "'+fname+'" not found !'
         return, -1
     end
@@ -292,6 +293,7 @@ function read_tandav_snapshot, fname, label, header=header $
         end
 
         while not eof(fp) do begin
+
             this_label = get_next_block_label(fp, blocksize=blocksize)
 
             if keyword_set(debug) then $
@@ -313,7 +315,9 @@ function read_tandav_snapshot, fname, label, header=header $
             data = generate_mass_from_header(header)
 
         if not keyword_set(data) then begin
-            print, "Block "+label+' not found !'
+            
+			print, "Block "+label+' not found !'
+
             return, 0
         end
 

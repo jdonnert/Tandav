@@ -1,6 +1,5 @@
 ; test the kick & drift factor numerical integration against the
 ; analytic solution for a EdS universe.
-; also test spline interpolation
 
 pro EdS_KDFactor ; in dt  integration
 

@@ -1,6 +1,6 @@
 pro show_box, snap
 
-	common globals, tandav, cosmo
+	common globals, gadget, tandav, cosmo
 
 	if not keyword_set(snap) then $
 		snap = 000
@@ -20,9 +20,7 @@ pro show_box, snap
 	bad = where(pos[2,*] gt head.boxsize)
 	pos[2,bad] -= head.boxsize
 	
-	;plot, pos[0,*], pos[1,*], psym=3, /iso
-
-	good = where(pos[2,*] lt 3e4 )
+	good = where(pos[2,*] lt 3d4 )
 
 	plot, pos[0,good], pos[1,good], psym=3, /iso, xtitle="x [kpc]", $
 		ytitle="y [kpc]"

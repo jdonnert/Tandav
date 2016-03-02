@@ -33,7 +33,7 @@ void Gravity_Tree_Periodic(const struct Walk_Data_Particle send_in,
 			if (interact_with_topnode(j))
 				continue;
 
-			if (D[j].TNode.Npart <= 8) { // open top leave
+			if (D[j].TNode.Npart <= VECTOR_LENGTH) { // open top leave
 
 				interact_with_topnode_particles(j);
 

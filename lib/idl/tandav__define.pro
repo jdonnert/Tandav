@@ -97,8 +97,10 @@ pro TandavCodeObject::Set, val, silent=silent
     @set_cgs
 
     if n_params() lt 1 then begin
+
         print, "List of Tandav unit systems"
-        print, "    0 - l=kpc/h, m=10^10 Msol, v=1km/sec, xH=0.76, gam=5/3"
+        print, "    0 - l=cm, m=g, v=cm/sec, xH=0.76, gam=5/3"
+        print, "    1 - l=kpc/h, m=10^10 Msol, v=1km/sec, xH=0.76, gam=5/3"
     end
 
     case val of
@@ -179,10 +181,12 @@ function TandavCodeObject::ReadSnap, fname, block, head=head, $
     result = read_tandav_snapshot(fname, block, head=head, $
         						parttype=parttype,debug=debug)
 
-	if head.hubbleparam ne self.h then $
-		print, "WARNING: Hubble Parameter doesn't match:"
+	if head.hubbleparam ne self.h then begin
+
+		print, "WARNING: Hubble Parameters doesn't match:"
 		print, "         snap = "+strn(head.hubbleparam)+", IDL object: z="+strn(self.h) 
-		
+	end
+
 	return, result
 end
 

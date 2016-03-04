@@ -37,12 +37,16 @@ pro make_ICs, N, boxsize=boxsize, gadget=gadget, showPk=showPk
 
 	set_Pk_vars, Omega_M, Omega_B, hbpar, sigma8, prim_idx, tandav.length
 
+	min_boxsize = find_min_boxsize(N)
+
 	if not keyword_set(boxsize) then $
-		boxsize = find_min_boxsize()
+		boxsize = 150000 $
+	else $
+		boxsize = double(boxsize)
 
 	pos = make_mesh(N, Boxsize)
 
-	a_init = find_initial_time(boxsize)
+	a_init = find_initial_time(N, boxsize)
 	z_init = 1D + 1D/a_init
 
 	Da = Growth_Function(1D) / Growth_Function(a_init) ; growth factor
@@ -127,8 +131,10 @@ pro make_ICs, N, boxsize=boxsize, gadget=gadget, showPk=showPk
 	print, "-------------------------------------"
 	print, "fout            = ", strn(fout)
 	print, "boxsize         = ", strn(boxsize)
-	print, "a               = "+strn(a_init)
+	print, "a_init          = "+strn(a_init)
+	print, "z_init          = "+strn(1/a_init-1)
 	print, "Grav Softening  = "+strn(epsilon)
+	print, "linear mode (sigma_box=1) is at "+strn(min_boxsize)+" unit length "
 
 	return
 end
@@ -229,7 +235,7 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 
 				Pk  =  Power_Spectrum_EH(kmag[k,j,i])
 	
-				Pk_ainit = kmin^1.5 * sqrt(Pk) / Da /1.2; scale to a, Zeldovich approx
+				Pk_ainit = kmin^1.5 * sqrt(Pk) / Da ; scale to a, Zeldovich approx
 			
 				; Set kdata so we get a real field after inverse FFT
 
@@ -326,10 +332,10 @@ pro set_Pk_vars, Omega_M, Omega_B, hbpar, sigma8, prim_idx, unit_length
 	pk0 = 1D ; normalise with = 1
 	pk0 = sigma8^2D / Sigma2_TopHat(R8);
 	
-	print, "P(k) Parameters: "
+	print, "  P(k) Parameters: "
 	print, "   s             = "+strn(s) 
 	print, "   alpha_Gamma   = "+strn(agam)
-	print, "   R8            = "+strn(R8)+" Mpc"
+	print, "   R8            = "+strn(R8)+" code units"
 	print, "   Sigma2_TH(R8) = "+strn(sigma8^2/pk0)
 	print, "   Pk0           = "+strn(pk0) 
 
@@ -362,7 +368,7 @@ end
 ; Eisenstein & Hu 1998/99 power spectrum at z=0 with n=1. 
 ; Note that this is P^vel_cb = P(k)/k^2, because we need
 ; the displacement/velocity. This cancels out with 1D -> 3D
-; P^3D(k) = 4 * pi * k^2 * P^1D(k) 
+; P^3D(k) = 4 * pi * k^2 * P1D(k) 
 function Power_Spectrum_EH, k
 	
 	common Pk_vars, pk0, s, agam, Omh, idx
@@ -396,17 +402,19 @@ function Growth_Function, a
 
 	z_eq = 2.5d4 * Omega_M * hbpar^2 * (Tcmb/2.7d)^(-4D) ; EH99 eq.1
 
-	D1_a = Qromb('growth_integral', 0, a, /double, K=10, Jmax=30D) ; EH99 eq.8
+	D1_a = Qromb('growth_integral', 0D, a, /double, K=10, Jmax=30D) ; EH99 eq.8
 
 	D1_a *= 5.0/2.0*Omega_M * (1+z_eq) * g(a)
 
 	return, D1_a
 end
 
- 
-function sigma_integral, k
 
-	common sigma_param, R_Tophat
+; find square of mass variance inside a tophat
+; window of scale R_Tophat
+function sigma_TH_integrant, k 
+
+	common sigma_TH_param, R_Tophat
 
 	kr = R_Tophat * k
 
@@ -421,18 +429,99 @@ end
 
 function Sigma2_TopHat, R
 
-	common sigma_param, R_Tophat
+	common sigma_TH_param, R_Tophat
 
-	R_Tophat = R
+	R_Tophat = R ; in Mpc
 
 	kmin = 0D
 	kmax = 500D/R
 
-	sigma2 = Qromb('sigma_integral', kmin, kmax, /double, K=10)
+	sigma2 = Qromb('sigma_TH_integrant', kmin, kmax, /double, K=10)
 
 	return, sigma2
 end
 
+; variance integrant without window function
+
+function sigma_integrant, k
+
+	return, 4*!pi*k^2 * Power_Spectrum_EH(k) 
+end
+
+; find initial redshift from the constraint of linearity
+; (no shell crossing) and minimal numerical noise. 
+; Limit mass variance in the box to 0.1 at the
+; initial scale factor
+
+function find_initial_time, N, boxsize
+
+	common sigma_TH_param, R_Tophat
+
+	max_variance = 0.1D ; in box 
+
+	kmin = 2D*!pi/boxsize
+	kmax = N/2D * kmin 
+
+	left = 1e-3
+	right = 1D 
+
+	error = 1
+
+	while abs(error) gt 1e-3 do begin ; bisection
+	
+		a = 0.5 * (right+left)
+
+		Dplus = Growth_Function(1) / Growth_Function(a) 
+
+		int = Qromb('sigma_integrant', kmin, kmax, /double, K=10)
+		sigma = sqrt(int / Dplus / (2*!pi^2))
+
+		error = (sigma - max_variance)/max_variance
+
+		if error lt 0 then $
+			left = a $
+		else $
+			right = a
+	end 
+
+	return, a
+end
+
+; Find the smallest linear mode at z=0. This is
+; the minimal boxsize, even though you probably
+; want something larger.
+
+function find_min_boxsize, N
+
+	max_variance = 1D ; linearity
+
+	a = 1D ; z = 0
+
+	left = 1D
+	right = 1d50 ; code units !
+
+	error = 1
+
+	while abs(error) gt 1e-5 do begin ; bisection
+	
+		boxsize = 0.5D * (right+left)
+
+		kmin = 2D*!pi/boxsize
+		kmax = N/2D * kmin 
+
+		int = Qromb('sigma_integrant', kmin, kmax, /double, K=10)
+		sigma = sqrt(int/(2*!pi^2))
+
+		error = (sigma - max_variance)/max_variance
+	
+		if error gt 0 then $
+			left = boxsize $
+		else $
+			right = boxsize
+	end 
+
+	return, boxsize
+end
 
 ; Cloud in Cell the IDL way, all loops implicit
 function CIC, N, pos, ingrid
@@ -519,31 +608,9 @@ pro constrain_particles_to_box, pos, boxsize
 end
 
 
-; iteratively find the minimal boxsize from P(k)
-; the box should be large enough to hold linear
-; modes at z=0. (Knebe 2015)
-function find_min_boxsize
 
-	common parameters, tandav,  hbpar, Omega_M, Omega_L, Tcmb
-	common Pk_vars, pk0, s, agam, Omh, idx
-	
-	result = 150000D
 
-	return, result
-end
 
-; find initial redshift from the constraint of not
-; shell crossing and minimal numerical noise
-; (Knebe 2015)
-function find_initial_time, boxsize
-
-	common parameters, tandav,  hbpar, Omega_M, Omega_L, Tcmb
-	common Pk_vars, pk0, s, agam, Omh, idx
-
-	result = 1D/(1+63D)
-
-	return, result
-end
 
 ; make a seed table so modes at small k are independent of N
 function make_seeds, seed_in, N

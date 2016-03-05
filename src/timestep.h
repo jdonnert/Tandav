@@ -10,6 +10,7 @@ struct TimeData {
 	double First_Snap;
 	double Bet_Snap;
 	double Next_Snap;
+	double Last_Snap;
 	double Step;			// physical time step
 	double Step_Min;		// smallest physical timestep
 	double Step_Max;		// largest physical timestep

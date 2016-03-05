@@ -363,7 +363,7 @@ static void compute_ewald_force(const int i, const int j, const int k,
 	if(i == 0 && j == 0 && k == 0)
 		return;
 
-	double r = ALENGTH3(x);
+	double r = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
 
 	force[0] = x[0] / p3(r);
 	force[1] = x[1] / p3(r);
@@ -379,7 +379,7 @@ static void compute_ewald_force(const int i, const int j, const int k,
 
 				double dx[3] = { x[0]-n[0], x[1]-n[1], x[2]-n[2] };
 
-				double r = ALENGTH3(dx);
+				double r = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
 
 				double val = erfc(Alpha * r) + 2*Alpha * r/sqrt(PI)
 							* exp(-p2(Alpha*r));
@@ -401,7 +401,7 @@ static void compute_ewald_force(const int i, const int j, const int k,
 
 				double hdotx = x[0]*h[0] + x[1]*h[1] + x[2]*h[2];
 
-				int h2 = ASCALPROD3(h);
+				int h2 = h[0]*h[0] + h[1]*h[1] + h[2]*h[2];
 
 				if (h2 > 0) {
 
@@ -435,7 +435,7 @@ static double compute_ewald_potential(const double r[3])
 
 				double dx[3] = { r[0]-n[0], r[1]-n[1], r[2]-n[2] };
 
-				double dr = ALENGTH3(dx);
+				double dr = sqrt(dx[0]*dx[0] + dx[1]*dx[1] + dx[2]*dx[2]);
 
 				sum1 += erfc(Alpha * dr)/dr;
 			}
@@ -453,7 +453,7 @@ static double compute_ewald_potential(const double r[3])
 
 				double hdotr = r[0]*h[0] + r[1]*h[1] + r[2]*h[2];
 
-				int h2 = ASCALPROD3(h);
+				int h2 = h[0]*h[0] + h[1]*h[1] + h[2]*h[2];
 
 				if (h2 > 0) 
 					sum2 += 1.0/(PI*h2) * exp(-PI*PI*h2 / p2(Alpha)) 
@@ -462,7 +462,8 @@ static double compute_ewald_potential(const double r[3])
 		}
 	}
 
-	return PI/p2(Alpha) - sum1 - sum2 + 1.0/ALENGTH3(r);
+	return PI/p2(Alpha) - sum1 - sum2 
+		+ 1.0/sqrt(r[0]*r[0] + r[1]*r[1] + r[2]*r[2]);
 }
 
 #endif // GRAVITY && PERIODIC

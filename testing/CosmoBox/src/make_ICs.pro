@@ -11,16 +11,19 @@ pro make_ICs, N, boxsize=boxsize, gadget=gadget, showPk=showPk
 
 	tandav = obj_new('TANDAVCODEOBJECT')
 	
-	Grav = tandav.Grav ; tandav units
-
 	Mpc2cm = 3.0856802d24 
 
 	if not keyword_set(N) then $
-		N = 64UL
-
-	N = ulong64(N)
+		N = 64UL $
+	else $
+		N = ulong64(N)
 
 	npart = N^3
+
+	if not keyword_set(boxsize) then $
+		boxsize = 150000D $
+	else $
+		boxsize = double(boxsize)
 
 	prim_idx = 1D  ; index of primordial power spectrum
 	sigma8 = 0.8D  ; normalisation of P(k) at 8 Mpc
@@ -32,21 +35,14 @@ pro make_ICs, N, boxsize=boxsize, gadget=gadget, showPk=showPk
 	
 	H0 = 100D * 1d5 / Mpc2cm  * tandav.time ; tandav Units
 
-	if not keyword_set(gadget) then $ ; hbpar != 1
+	if not keyword_set(gadget) then $ ; hbpar = 1
 		H0 *= hbpar
 
 	set_Pk_vars, Omega_M, Omega_B, hbpar, sigma8, prim_idx, tandav.length
 
-	min_boxsize = find_min_boxsize(N)
-
-	if not keyword_set(boxsize) then $
-		boxsize = 150000 $
-	else $
-		boxsize = double(boxsize)
-
 	pos = make_mesh(N, Boxsize)
 
-	a_init = find_initial_time(N, boxsize)
+	a_init = 1/(1 + 63D); find_initial_time(N, boxsize)
 	z_init = 1D + 1D/a_init
 
 	Da = Growth_Function(1D) / Growth_Function(a_init) ; growth factor
@@ -67,7 +63,7 @@ pro make_ICs, N, boxsize=boxsize, gadget=gadget, showPk=showPk
 	
 	sdev = [stddev(displ[0,*]), stddev(displ[1,*]), stddev(displ[2,*]) ]
 
-	f0 = ( Omega_M / a_init^3 / g(a_init)^2)^(0.6D)  ; EH98, eq. 28
+	f0 = ( Omega_M / a_init^3D / g(a_init)^2D)^(0.6D)  ; EH98, eq. 28
 	displ2vel = a_init * g(a_init) * H0 * f0; EH99, eq. 29
 	
 	vel2comov = 1D ; tandav comoving vel ~ 1/a^2
@@ -81,11 +77,12 @@ pro make_ICs, N, boxsize=boxsize, gadget=gadget, showPk=showPk
 
 	id = ulindgen(npart)+1
 	
-	rho_crit = 3D * H0^2/(8D*!pi*Grav) ; comoving tandav units
-	total_mass = Omega_M * rho_crit * boxsize^3
+	rho_crit = 3D * H0^2D/(8D*!pi*tandav.Grav) ; comoving tandav units
+	total_mass = Omega_M * rho_crit * boxsize^3D
 
 	print, "npart      = "+strn(npart)
-	print, "H0         = "+strn(H0)+" code units"
+	print, "H(0)       = "+strn(H0)+" code units"
+	print, "H(a_i)     = "+strn(H0*g(a_init))
 	print, "hbpar      = "+strn(hbpar)
 	print, "Initial a  = "+strn(a_init)
 	print, "Initial z  = "+strn(z_init)
@@ -126,7 +123,9 @@ pro make_ICs, N, boxsize=boxsize, gadget=gadget, showPk=showPk
 	tandav.add_block, fout, float(vel), "VEL"
 	tandav.add_block, fout, ulong(id), "ID"
 
-	epsilon = (Boxsize^3/npart)^(1D/3D) / 7D
+	epsilon = (Boxsize^3D/npart)^(1D/3D) / 7D
+
+	min_boxsize = find_min_boxsize(N)
 
 	print, "-------------------------------------"
 	print, "fout            = ", strn(fout)
@@ -225,15 +224,15 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 				if k lt N/2. then kvec[2] = k * kmin $
 						     else kvec[2] = -(N - k) * kmin
 	
-				kmag[k,j,i]  = sqrt(kvec[0]^2 + kvec[1]^2 + kvec[2]^2)
+				kmag[i,j,k]  = sqrt(kvec[0]^2 + kvec[1]^2 + kvec[2]^2)
 	
-				if kmag[k,j,i] gt kmax then $ ; Only do a sphere in k space
+				if kmag[i,j,k] gt kmax then $ ; Only do a sphere in k space
 					continue    
 
 				y1 = random_numbers[0,k]
 				y2 = random_numbers[1,k]
 
-				Pk  =  Power_Spectrum_EH(kmag[k,j,i])
+				Pk  =  Power_Spectrum_EH(kmag[i,j,k])
 	
 				Pk_ainit = kmin^1.5 * sqrt(Pk) / Da ; scale to a, Zeldovich approx
 			
@@ -241,11 +240,11 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 
     	        if k gt 0 then begin ; grid is hermitian in k > ngrid/2
 
-        	        kdata_rl[k,j,i] = -kvec[comp] / kmag[k,j,i]^2 * Pk_ainit * y1
-		    		kdata_im[k,j,i] = kvec[comp] / kmag[k,j,i]^2 * Pk_ainit * y2
+        	        kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y1
+		    		kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y2
 
-         	       	kdata_rl[kconj,jconj,iconj] = kdata_rl[k,j,i] ; this is not stored in FFTW
-		    		kdata_im[kconj,jconj,iconj] = -1*kdata_im[k,j,i]
+         	       	kdata_rl[iconj,jconj,kconj] = kdata_rl[i,j,k] ; this is not stored in FFTW
+		    		kdata_im[iconj,jconj,kconj] = -1*kdata_im[i,j,k]
             
 				end else begin  ; k = 0 plane is where we have to get the symmetry right
 	
@@ -254,29 +253,37 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
         	            if j ge N/2. then $ ; set already via conjugated indices
             	             continue 
                 	
-	                    kdata_rl[k,j,i] = -kvec[comp] / kmag[k,j,i]^2 * Pk_ainit * y1
-			    	    kdata_im[k,j,i] = kvec[comp] / kmag[k,j,i]^2 * Pk_ainit * y2
+	                    kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y1
+			    	    kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y2
                 
-       	             	kdata_rl[k,jconj,i] = kdata_rl[k,j,i]
-    			    	kdata_im[k,jconj,i] = -1*kdata_im[k,j,i]
+       	             	kdata_rl[i,jconj,k] = kdata_rl[i,j,k]
+    			    	kdata_im[i,jconj,k] = -1*kdata_im[i,j,k]
 
 	                end else begin  ; i != 0
 
     	                if i ge N/2. then $  ; set already via conjugated indices
         	                continue 
 	
-    	                kdata_rl[k,j,i] = -kvec[comp] / kmag[k,j,i]^2 * Pk_ainit * y1
-			    	    kdata_im[k,j,i] = kvec[comp] / kmag[k,j,i]^2 * Pk_ainit * y2
+    	                kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y1
+			    	    kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y2
 
-            	        kdata_rl[k,jconj,iconj] = kdata_rl[k,j,i]
-    		    		kdata_im[k,jconj,iconj] = -1*kdata_im[k,j,i]
+            	        kdata_rl[iconj,jconj,k] = kdata_rl[i,j,k]
+    		    		kdata_im[iconj,jconj,k] = -1*kdata_im[i,j,k]
 	                end
     	        end ; if i
 			end ; for k
 		end ; for i j 
 
 		kdata[comp,*,*,*] = Complex(kdata_rl, kdata_im, /double)
-		data = reform( FFT(kdata[comp,*,*,*], /inverse, /double ) ) ; uses FORTRAN convention
+	
+		kdata_inv = make_array(N,N,N, val=0D)
+
+		for i = 0, N-1 do $ 
+		for j = 0, N-1 do $
+		for k = 0, N-1 do $
+			kdata_inv[i,j,k] = kdata[comp, k,j,i] ; IDL FFT uses FORTRAN convention
+
+		data = reform( FFT(kdata[comp, *,*,*], /inverse, /double ) ) 
 
 		bad = where( abs(imaginary(data)) gt 1e-5 * abs(real_part(data)), cnt)
 
@@ -302,7 +309,7 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 			dk = alog10(kmax/kmin)/99D
 			k_arr = kmin * 10D^(indgen(100)*dk)
 			pk_scaled = Power_Spectrum_EH(k_arr)* kmin^1.5/Da
-			oplot, k_arr, pk_scaled/(2*!pi^2), col=color(0)
+			oplot, k_arr, pk_scaled/(2*!pi^2D), col=color(0)
 	end
 
 	return, displ
@@ -608,10 +615,6 @@ pro constrain_particles_to_box, pos, boxsize
 end
 
 
-
-
-
-
 ; make a seed table so modes at small k are independent of N
 function make_seeds, seed_in, N
 
@@ -705,3 +708,25 @@ pro test_distribution
 	return
 end
 
+pro test_fft
+
+	N =5
+
+	arr = randomu(14041981, N,N, N, /double)
+
+	karr = FFT(arr, /double)
+	
+	print, indgen(N) , indgen(N)
+
+	for i = 0, N-1 do begin
+
+		strng = strn(i)+" "
+		for j=0,N-1 do $
+			strng += "  "+strn(real_part(karr[0, i,j]), len=6)
+ 
+		print, strng
+
+	end
+
+	return
+end

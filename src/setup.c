@@ -52,5 +52,18 @@ static void sanity_check_simulation_setup()
 
 #endif // COMOVING
 
+#ifdef GRAVITY
+
+	double volume = Sim.Boxsize[0]*Sim.Boxsize[1]*Sim.Boxsize[2]; 
+	double mean_part_dist = pow(volume / Sim.Npart_Total, 1.0/3.0);
+	double eps_std = mean_part_dist/7;
+
+	Warn(Param.Grav_Softening[1] > eps_std*10, "GravSoftening seems large,"
+			"have %d, Recommended %g", Param.Grav_Softening, eps_std);
+	Warn(Param.Grav_Softening[1] < eps_std/10, "GravSoftening seems small"
+			"have %d, recommended %g", Param.Grav_Softening, eps_std);
+
+#endif // GRAVITY
+
 	return ;
 }

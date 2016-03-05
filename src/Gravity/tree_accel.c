@@ -365,10 +365,9 @@ static void gravity_tree_walk_BH(const int tree_start)
  * value corresponding to Plummer softening.
  */
 
-const Float Epsilon = 105.0/32.0 * GRAV_SOFTENING;
-
 static void interact(const Float mass, const Float dr[3], const Float r2)
 {
+	const Float epsilon = 105.0/32.0 * Param.Grav_Softening[1]; // Plummer eqiv
 
 	Float r_inv = 1/sqrtf(r2);
 	Float r = 1/r_inv;
@@ -377,16 +376,16 @@ static void interact(const Float mass, const Float dr[3], const Float r2)
 	Float r_inv_pot = r_inv;
 #endif
 
-	if (r < Epsilon) { 
+	if (r < epsilon) { 
 
-		Float u = r/Epsilon;
+		Float u = r/epsilon;
 		Float u2 = u*u;
 
-		r_inv = sqrtf(u * (135*u2*u2 - 294*u2 + 175))/(4*Epsilon) ;
+		r_inv = sqrtf(u * (135*u2*u2 - 294*u2 + 175))/(4*epsilon) ;
 
 #ifdef GRAVITY_POTENTIAL
 		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3) 
-					/ Epsilon;
+					/ epsilon;
 #endif
 	}
 

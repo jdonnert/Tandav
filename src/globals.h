@@ -37,7 +37,7 @@ extern struct Global_Simulation_Properties {
 	double Mpart[NPARTYPE];		// Global Masses from header
 	double Boxsize[3];			// Now in 3D !
 	double Total_Mass;			// sum over P.Mass, updated every timestep
-	double Center_Of_Mass[3];	// sum of P.Mass*P.Pos, updated every timestep
+	double Center_Of_Mass[3];	// sum of P.Mass*P.Pos
 	double Kinetic_Energy;		// sum of 0.5 *P.Mass*P.Vel^2
 	double Momentum[3];		    // sum of P.Mass*P.Vel
 	double Angular_Momentum[3];	// sum of P.Mass*P.Pos x P.Vel
@@ -58,6 +58,7 @@ extern struct Parameters_From_File {
 	double Min_Timestep;		// smallest timestep constraint
 	double Part_Alloc_Factor;	// Allowed mem imbalance in Particles
 	double Time_Int_Accuracy;	// 
+	double Grav_Softening[NPARTYPE]; // gravitiational softening
 } Param;
 
 /*

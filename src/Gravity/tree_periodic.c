@@ -33,7 +33,7 @@ void Gravity_Tree_Periodic(const struct Walk_Data_Particle send_in,
 			if (interact_with_topnode(j))
 				continue;
 
-			if (D[j].TNode.Npart <= VECTOR_LENGTH) { // open top leave
+			if (D[j].TNode.Npart <= VECTOR_SIZE) { // open top leave
 
 				interact_with_topnode_particles(j);
 
@@ -66,7 +66,7 @@ static bool interact_with_topnode (const int j)
 
 	Periodic_Nearest(&dr[0]);
 
-	Float r2 = ASCALPROD3(dr);
+	Float r2 = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
 
 	if (Sig.Use_BH_Criterion) {
 

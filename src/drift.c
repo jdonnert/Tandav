@@ -32,7 +32,12 @@ void Drift_To_Sync_Point()
 		}
 	}
 
-	Sig.Drifted_To_Snaptime = false; // handled out of sync integer timeline
+	if (Sig.Drifted_To_Snaptime == true) { // handle out of sync int timeline
+	
+		rprintf("Drift the rest %g -> %g \n", Time.Current, Time.Next);
+
+		Sig.Drifted_To_Snaptime = false; 
+	}
 
 	if (!Sig.Domain_Update)
 		Gravity_Tree_Update_Drift(Time.Step);
@@ -65,28 +70,29 @@ void Drift_To_Sync_Point()
 
 void Drift_To_Snaptime()
 {
-	rprintf("\nDrift to next Shapshot Time %g \n", Time.Next_Snap);
+	rprintf("\nDrift to next Shapshot Time %g -> %g \n", Time.Current, 
+			Time.Next_Snap);
 
 	#pragma omp for
 	for (int i = 0; i < NParticle_Vectors; i++) {
+	
+		for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 		
-		Float dt = Particle_Drift_Step(V.First[i], Time.Next_Snap);
+			Float dt = Particle_Drift_Step(V.First[i], Time.Next_Snap);
 
-		#pragma IVDEP
-		for (int ipart = V.First[i]; ipart < V.Last[i]; ipart++) {
-		
 			P.Pos[0][ipart] +=	dt * P.Vel[0][ipart];
 			P.Pos[1][ipart] +=	dt * P.Vel[1][ipart];
 			P.Pos[2][ipart] +=	dt * P.Vel[2][ipart];
 		}
 	}
 
-	Periodic_Constrain_Particles_To_Box();
-
 	Sig.Drifted_To_Snaptime = true;
+
+	Periodic_Constrain_Particles_To_Box();
 
 	#pragma omp single
 	Time.Current = Time.Next_Snap;
+	Time.Last_Snap = Time.Next_Snap;
 	
 	return ;
 }

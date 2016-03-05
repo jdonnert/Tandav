@@ -46,7 +46,11 @@ double Particle_Drift_Step(const int ipart, const double a_next)
 {
 	double a_curr = Integer_Time2Integration_Time(P.Int_Time_Pos[ipart]);
 
+	if (Sig.Drifted_To_Snaptime)
+		a_curr = Time.Last_Snap;
+	
 	double drift_factor_beg = gsl_spline_eval(Drift_Spline, a_curr, Acc[2]);
+
 	double drift_factor_end = gsl_spline_eval(Drift_Spline, a_next, Acc[3]);
 
 	return (drift_factor_end - drift_factor_beg);
@@ -115,26 +119,27 @@ static void setup_kick_drift_factors()
 	gsl_integration_workspace *gsl_workspace = NULL;
 	gsl_workspace = gsl_integration_workspace_alloc(TABLESIZE);
 
-	const double time_min = Time.Begin;
-	const double da = (log(Time.End) - log(Time.Begin)) /(TABLESIZE - 1.0);
+	const double time_beg = 0.99 * Time.Begin;
+	const double time_end = 1.01 * Time.End;
+	const double da = (log(time_end/time_beg)) /(TABLESIZE - 1.0);
 
 	#pragma omp for
 	for (int i = 0; i < TABLESIZE; i++) {
 
 		double error = 0;
 
-		double time_max = exp(log(Time.Begin) + da * i );
+		double time_max = exp(log(time_beg) + da * i );
 
 		Exp_Factor_Table[i] = time_max;
 
 		gsl_F.function = &comoving_symplectic_drift_integrant;
 
-		gsl_integration_qag(&gsl_F, time_min, time_max, 0, 1e-8, TABLESIZE,
+		gsl_integration_qag(&gsl_F, time_beg, time_max, 0, 1e-8, TABLESIZE,
 				GSL_INTEG_GAUSS41, gsl_workspace, &Drift_Table[i], &error);
 
 		gsl_F.function = &comoving_symplectic_kick_integrant;
 
-		gsl_integration_qag(&gsl_F, time_min, time_max, 0, 1e-8, TABLESIZE,
+		gsl_integration_qag(&gsl_F, time_beg, time_max, 0, 1e-8, TABLESIZE,
 				GSL_INTEG_GAUSS41, gsl_workspace, &Kick_Table[i], &error);
 
 	} // for i

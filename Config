@@ -43,8 +43,6 @@ GRAVITY                     // gravitational interaction master switch
 GRAVITY_TREE                // B&H tree
 #GRAVITY_FMM				// Fast Multipole Method + Dual Tree Traversal
 
-GRAV_SOFTENING 100           // Plummer eq. gravitational softening length 
-
 TREE_OPEN_PARAM_BH 0.2      // [0.2] Barnes & Hut opening criterion parameter
 TREE_OPEN_PARAM_REL 0.01     // [0.005] Relative opening criterion parameter
 

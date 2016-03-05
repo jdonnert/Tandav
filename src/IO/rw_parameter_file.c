@@ -184,8 +184,13 @@ void sanity_check_input_parameters()
 
 	Param.Num_Output_Files = MIN(Param.Num_Output_Files, Sim.NRank);
 
+	Assert(Time.First_Snap >= Time.Begin, "TimeBegin > TimeOfFirstSnaphot !!");
+
 #ifdef COMOVING
-	Assert(Time.Begin > 0, "TimeBegin = a > 0 required for COMOVING");
+	Assert(Time.Begin > 0, "TimeBegin > 0 required for COMOVING, have %g ", 
+			Time.Begin); 
+	
+	Warn(Time.Begin > 1, "Simulation starts in the future !");
 #endif
 
 	/* Add your own ! */

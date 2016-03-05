@@ -18,10 +18,12 @@ Boxsize0		150000.0
 Boxsize1		150000.0
 Boxsize2		150000.0
 
-TimeBegin		0.0329 
+TimeBegin		0.015625
 TimeEnd			1 % z=0
-TimeOfFirstSnaphot		0.01562
+TimeOfFirstSnaphot		0.015625
 TimeBetSnapshots		0.01
+
+GravSoftening  150
 
 MaxSizeTimestep 0.05
 MinSizeTimestep 1e-7

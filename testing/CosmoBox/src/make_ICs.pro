@@ -184,7 +184,7 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 
 	kvec = make_array(3, val=0D)
 
-	seed_table = make_seeds(14041981UL, N)
+	seed_table = make_seeds(N)
 	
 	for comp = 0, 2 do begin
 
@@ -281,7 +281,9 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 		for i = 0, N-1 do $ 
 		for j = 0, N-1 do $
 		for k = 0, N-1 do $
-			kdata_inv[i,j,k] = kdata[comp, k,j,i] ; IDL FFT uses FORTRAN convention
+			kdata_inv[i,j,k] = kdata[comp, k,j,i] ; IDL FFT uses FORTRAN array order
+
+		;kdata[comp, *,*,*] = kdata_inv
 
 		data = reform( FFT(kdata[comp, *,*,*], /inverse, /double ) ) 
 
@@ -616,45 +618,47 @@ end
 
 
 ; make a seed table so modes at small k are independent of N
-function make_seeds, seed_in, N
+function make_seeds, N
 
 	N = ulong(N)
 
 	float2ulong = (0UL-1UL)/2UL
 	
-	seed = float2ulong * randomu(seed_in, /double)
-
 	seed_table = make_array(N, N, val=0UL) 
+
+	random_numbers = randomu(14041981UL, 8*N*N ,/double) ; IDL rng is the devil
+
+	cnt = 0UL
 
 	for i = 0UL, N/2-1 do begin
 	
 		if i ne 0 then $ ; prevent underflow
 			for j = 0UL, i-1 do $
-				seed_table[i*N + j] = float2ulong * randomu(seed, /double)
+				seed_table[i*N + j] = float2ulong * random_numbers[cnt++]
 
 		for j = 0UL, i do $
-			seed_table[j*N + i] = float2ulong * randomu(seed, /double)
+			seed_table[j*N + i] = float2ulong * random_numbers[cnt++]
 		
 		if i ne 0 then $
 			for j = 0UL, i-1 do $
-				seed_table[(N-1-i)*N + j] = float2ulong * randomu(seed, /double)
+				seed_table[(N-1-i)*N + j] = float2ulong * random_numbers[cnt++]
 
 		for j = 0UL, i do $
-			seed_table[(N-1-j)*N + i] = float2ulong * randomu(seed, /double)
+			seed_table[(N-1-j)*N + i] = float2ulong * random_numbers[cnt++]
 		
 		if i ne 0 then $
 			for j = 0UL, i-1 do $
-				seed_table[i*N + (N-1-j)] = float2ulong * randomu(seed, /double)
+				seed_table[i*N + (N-1-j)] = float2ulong *random_numbers[cnt++] 
 		
 		for j = 0UL, i do $
-			seed_table[j*N + (N-1-i)] = float2ulong * randomu(seed, /double)
+			seed_table[j*N + (N-1-i)] = float2ulong *random_numbers[cnt++] 
 		
 		if i ne 0 then $
 			for j = 0UL, i-1 do $
-				seed_table[(N-1-i)*N + (N-1-j)] = float2ulong * randomu(seed, /double)
+				seed_table[(N-1-i)*N + (N-1-j)] = float2ulong * random_numbers[cnt++]
 		
 		for j = 0UL, i do $
-			seed_table[(N-1-j)*N + (N-1-i)] = float2ulong * randomu(seed, /double)
+			seed_table[(N-1-j)*N + (N-1-i)] = float2ulong * random_numbers[cnt++]
 	
 	end ; i
 
@@ -674,7 +678,7 @@ pro test_distribution
 	print, mean(velIDL[0,*]), mean(velIDL[1,*]), mean(velIDL[2,*])
 	print, stddev(velIDL[0,*]), stddev(velIDL[1,*]), stddev(velIDL[2,*])
 
-	fNG = 'IC_Cosmo_Box_IDL_128'
+	fNG = 'IC_Cosmo_Box'
 	print, fNG, " green"
 	velNG = tandav.readsnap(fng, "VEL", head=headNG)
 
@@ -694,7 +698,7 @@ pro test_distribution
 	oplot, bin_pos, double(cntIDL1)/headIDL.npart[1], psym=10
 	oplot, bin_pos, double(cntIDL2)/headIDL.npart[1], psym=10
 
-	tmp = bin_arr(one, pos=velNG[0,*], bin_pos=bin_pos, cnt=cntNG0)
+	tmp = bin_arr(one, pos=velNG[0,*], bin_pos=bin_pos,nbins=200, cnt=cntNG0)
 	tmp = bin_arr(one, pos=velNG[1,*], bin_pos=bin_pos, cnt=cntNG1)
 	tmp = bin_arr(one, pos=velNG[2,*], bin_pos=bin_pos, cnt=cntNG2)
 
@@ -704,29 +708,6 @@ pro test_distribution
 
 	;plot, length(velIDL)
 	;oplot, length(velng), col=color(0)
-
-	return
-end
-
-pro test_fft
-
-	N =5
-
-	arr = randomu(14041981, N,N, N, /double)
-
-	karr = FFT(arr, /double)
-	
-	print, indgen(N) , indgen(N)
-
-	for i = 0, N-1 do begin
-
-		strng = strn(i)+" "
-		for j=0,N-1 do $
-			strng += "  "+strn(real_part(karr[0, i,j]), len=6)
- 
-		print, strng
-
-	end
 
 	return
 end

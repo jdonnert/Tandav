@@ -279,7 +279,7 @@ void Make_Active_Particle_List()
  * NParticle_Vectors vectors starting at First and ending before Last.
  */
 
-void Make_Active_Particle_Vectors()
+void Make_Active_Particle_Vectors(const int max_active_bin)
 {
 	#pragma omp single
 	{
@@ -354,6 +354,11 @@ double Integer_Time2Integration_Time(const intime_t Integer_Time)
 	return Time.Begin * exp(Integer_Time * Time.Step_Min); // a
 }
 
+intime_t Integration_Time2Integer_Time(const double Integration_Time)
+{
+	return (intime_t) (log(Integration_Time/Time.Begin)/Time.Step_Min);
+}
+
 double Integer2Physical_Time(const intime_t Integer_Time)
 {
 	return Integer_Time2Integration_Time(Integer_Time) / Cosmo.Hubble_Parameter;
@@ -369,6 +374,11 @@ double Timebin2Timestep(const int TimeBin)
 double Integer2Physical_Time(const intime_t Integer_Time)
 {
 	return Time.Begin + Integer_Time * Time.Step_Min;
+}
+
+intime_t Integration_Time2Integer_Time(const double Integration_Time)
+{
+	return (intime_t) ((Integration_Time - Time.Begin)/Time.Step_Min)
 }
 
 double Integer_Time2Integration_Time(const intime_t Integer_Time)

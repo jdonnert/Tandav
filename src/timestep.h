@@ -10,7 +10,6 @@ struct TimeData {
 	double First_Snap;
 	double Bet_Snap;
 	double Next_Snap;
-	double Last_Snap;
 	double Step;			// physical time step
 	double Step_Min;		// smallest physical timestep
 	double Step_Max;		// largest physical timestep
@@ -35,7 +34,8 @@ void Make_Active_Particle_Vectors();
 
 void Setup_Time_Integration();
 double Timebin2Timestep(const int);
-double Integer2Physical_Time(intime_t);
-double Integer_Time2Integration_Time(intime_t);
+double Integer2Physical_Time(const intime_t);
+double Integer_Time2Integration_Time(const intime_t);
+intime_t Integration_Time2Integer_Time(const double);
 
 #endif // TIMESTEP_H

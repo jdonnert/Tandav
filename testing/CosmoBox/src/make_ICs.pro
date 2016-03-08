@@ -184,7 +184,11 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 
 	kvec = make_array(3, val=0D)
 
-	seed_table = make_seeds(N)
+	random_numbers = randomn(14041981, 2, 256, 256, 256, /double) ; res. independent
+	
+	;readcol, "kspace.dat", ax, ii,jj,kk, km, kx,ky,kz, PowSpec, dplus, fac, aa, pp, dd
+ 	
+	;run = 0L
 	
 	for comp = 0, 2 do begin
 
@@ -196,94 +200,65 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 		kmag[*,*,*] = 0D
 
 		for i = 0UL, N-1 do  $
-		for j = 0UL, N-1 do begin
+		for j = 0UL, N-1 do  $
+		for k = 0UL, N/2-1 do begin 
+           
+			if (i eq 0) and (j eq 0) and (k eq 0) then $ ;  no DC current
+				continue
+
+			if (i eq N/2) or (j eq N/2) or (k eq N/2) then $
+				continue
+
+			if i lt N/2. then kvec[0] = i * kmin $ ; k vector at i,j.k
+						 else kvec[0] = -(N - i) * kmin
 		
-			random_numbers = randomu(seed_table[i,j], 2, N/2, /double,/normal) 
+			if j lt N/2. then kvec[1] = j * kmin $
+						 else kvec[1] = -(N - j) * kmin
 
-			for k = 0UL, N/2-1 do begin 
-            
-				if (i eq N/2) or (j eq N/2) or (k eq N/2) then $
-					continue
-
-				if (i eq 0) and (j eq 0) and (k eq 0) then $ ;  no DC current
-					continue
-
-				if i ne 0 then iconj = N - i $ ; conjugated indizes of i j k
-						  else iconj = 0
-				if j ne 0 then jconj = N - j $
-						  else jconj = 0
-				if k ne 0 then kconj = N - k $
-						  else kconj = 0
-            
-				if i lt N/2. then kvec[0] = i * kmin $ ; k vector at i,j.k
-							 else kvec[0] = -(N - i) * kmin
-		
-				if j lt N/2. then kvec[1] = j * kmin $
-							 else kvec[1] = -(N - j) * kmin
+			if k lt N/2. then kvec[2] = k * kmin $
+					     else kvec[2] = -(N - k) * kmin
 	
-				if k lt N/2. then kvec[2] = k * kmin $
-						     else kvec[2] = -(N - k) * kmin
+			kmag[i,j,k]  = sqrt(kvec[0]^2 + kvec[1]^2 + kvec[2]^2)
 	
-				kmag[i,j,k]  = sqrt(kvec[0]^2 + kvec[1]^2 + kvec[2]^2)
-	
-				if kmag[i,j,k] gt kmax then $ ; Only do a sphere in k space
-					continue    
+			if kmag[i,j,k] gt kmax then $ ; Only do a sphere in k space
+				continue    
 
-				y1 = random_numbers[0,k]
-				y2 = random_numbers[1,k]
+;if (k eq 0) and (i eq 0) and (j ge N/2) then continue
+;if (k eq 0) and (i ge N/2) then continue
 
-				Pk  =  Power_Spectrum_EH(kmag[i,j,k])
-	
-				Pk_ainit = kmin^1.5 * sqrt(Pk) / Da ; scale to a, Zeldovich approx
+			y1 = random_numbers[0, i,j,k] ; not the Box Mueller transform
+			y2 = 2*!pi*random_numbers[1, i,j,k]
+
+			;phase = pp[run]
+
+			Pk  =  Power_Spectrum_EH(kmag[i,j,k])
+
+			Delta =kmin^1.5 * sqrt(Pk/2D) / Da ; scale to a, Zeldovich approx
+
+			; Set kdata so we get a real field after inverse FFT
+
+            kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2D * Delta * y1
+	    	kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2D * Delta * y1
 			
-				; Set kdata so we get a real field after inverse FFT
+			iconj = N - i  ; conjugated indizes of i j k
+			if i eq 0 then $ 
+				iconj = 0
 
-    	        if k gt 0 then begin ; grid is hermitian in k > ngrid/2
+			jconj = N - j 
+			if j eq 0 then $ 
+				jconj = 0
 
-        	        kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y1
-		    		kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y2
+			kconj = N - k 
+			if k eq 0 then $
+				kconj = 0
+			
+   	       	kdata_rl[iconj,jconj,kconj] = kdata_rl[i,j,k]
+			kdata_im[iconj,jconj,kconj] = -kdata_im[i,j,k]
 
-         	       	kdata_rl[iconj,jconj,kconj] = kdata_rl[i,j,k] ; this is not stored in FFTW
-		    		kdata_im[iconj,jconj,kconj] = -1*kdata_im[i,j,k]
-            
-				end else begin  ; k = 0 plane is where we have to get the symmetry right
-	
-    	            if i eq 0 then begin ; first row
-                    
-        	            if j ge N/2. then $ ; set already via conjugated indices
-            	             continue 
-                	
-	                    kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y1
-			    	    kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y2
-                
-       	             	kdata_rl[i,jconj,k] = kdata_rl[i,j,k]
-    			    	kdata_im[i,jconj,k] = -1*kdata_im[i,j,k]
-
-	                end else begin  ; i != 0
-
-    	                if i ge N/2. then $  ; set already via conjugated indices
-        	                continue 
-	
-    	                kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y1
-			    	    kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2 * Pk_ainit * y2
-
-            	        kdata_rl[iconj,jconj,k] = kdata_rl[i,j,k]
-    		    		kdata_im[iconj,jconj,k] = -1*kdata_im[i,j,k]
-	                end
-    	        end ; if i
-			end ; for k
-		end ; for i j 
+		;	run++
+		end ; for i j k
 
 		kdata[comp,*,*,*] = Complex(kdata_rl, kdata_im, /double)
-	
-		kdata_inv = make_array(N,N,N, val=0D)
-
-		for i = 0, N-1 do $ 
-		for j = 0, N-1 do $
-		for k = 0, N-1 do $
-			kdata_inv[i,j,k] = kdata[comp, k,j,i] ; IDL FFT uses FORTRAN array order
-
-		;kdata[comp, *,*,*] = kdata_inv
 
 		data = reform( FFT(kdata[comp, *,*,*], /inverse, /double ) ) 
 
@@ -293,7 +268,6 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 			stop 
 	
 		displ[comp, *,*,*] = real_part(data)
-
 	end ; comp 
 
 	if keyword_set(showPk) then begin
@@ -303,7 +277,8 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 			good = where(PK_data ne 0 )
 
 			plot, kmag, PK_data, /xlog, /ylog, xrange=[kmin, kmax], psym=3, $
-				xtitle='k [Mpc!U-1!N]', ytitle='P(k, z!Dinit!N)', yrange=minmax(PK_data[good])
+				xtitle='k [Mpc!U-1!N]', ytitle='P(k, z!Dinit!N)', $
+				yrange=minmax(PK_data[good])
 
 			bin_pk = bin_arr(PK_data, pos=kmag, bin_pos=bin_pos, nbins=60, /log)
 			oplot, bin_pos, bin_pk, col=color(1)
@@ -335,13 +310,14 @@ pro set_Pk_vars, Omega_M, Omega_B, hbpar, sigma8, prim_idx, unit_length
 	s = 44.5 * alog(9.83D / Omh2) / sqrt(1D + 10D * obh2^0.75) * hbpar ; EH98 eq. 26
 
 	agam = 1D - 0.328 * alog(431D * Omh2) * Omega_B/Omega_M $ ; EH98 eq. 31
-			  + 0.38D * alog(22.3D*Omh2) * (Omega_B/Omega_M)^2
+			  + 0.38D * alog(22.3D* Omh2) * (Omega_B/Omega_M)^2
 
 	R8 = 8D * Mpc2cm / unit_length ; 8 Mpc/h 
 	pk0 = 1D ; normalise with = 1
 	pk0 = sigma8^2D / Sigma2_TopHat(R8);
 	
 	print, "  P(k) Parameters: "
+	print, "   prim. idx     = "+strn(idx)
 	print, "   s             = "+strn(s) 
 	print, "   alpha_Gamma   = "+strn(agam)
 	print, "   R8            = "+strn(R8)+" code units"
@@ -355,7 +331,7 @@ end
 ; neutrinos. 
 function Transfer_Function, k 
 
-	common parameters, tandav,  hbpar,   Omega_M, Omega_L, Tcmb
+	common parameters, Tandav,  hbpar,   Omega_M, Omega_L, Tcmb
 	common Pk_vars, pk0, s, agam, Omh, idx
 
 	Mpc2cm = 3.0856802d24 
@@ -369,7 +345,7 @@ function Transfer_Function, k
 
 	L0 = alog(2D*exp(1D) + 1.8D * q) ; EH98 eq. 29
 	C0 = 14.2D + 731D / (1D + 62.5D * q) 
-	T0 = L0 / (L0 + C0 * q^2)
+	T0 = L0 / (L0 + C0 * q^2D)
 
 	return, T0
 end
@@ -384,7 +360,7 @@ function Power_Spectrum_EH, k
 	
 	T0 = Transfer_Function(k)
 
-	return, pk0 * k^idx * T0^2 ; EH99 eq. 25 + 29
+	return, pk0 * k^(double(idx)) * T0^2D ; EH99 eq. 25 + 29
 end
 
 ; EH99 eq.9
@@ -616,55 +592,6 @@ pro constrain_particles_to_box, pos, boxsize
 	return
 end
 
-
-; make a seed table so modes at small k are independent of N
-function make_seeds, N
-
-	N = ulong(N)
-
-	float2ulong = (0UL-1UL)/2UL
-	
-	seed_table = make_array(N, N, val=0UL) 
-
-	random_numbers = randomu(14041981UL, 8*N*N ,/double) ; IDL rng is the devil
-
-	cnt = 0UL
-
-	for i = 0UL, N/2-1 do begin
-	
-		if i ne 0 then $ ; prevent underflow
-			for j = 0UL, i-1 do $
-				seed_table[i*N + j] = float2ulong * random_numbers[cnt++]
-
-		for j = 0UL, i do $
-			seed_table[j*N + i] = float2ulong * random_numbers[cnt++]
-		
-		if i ne 0 then $
-			for j = 0UL, i-1 do $
-				seed_table[(N-1-i)*N + j] = float2ulong * random_numbers[cnt++]
-
-		for j = 0UL, i do $
-			seed_table[(N-1-j)*N + i] = float2ulong * random_numbers[cnt++]
-		
-		if i ne 0 then $
-			for j = 0UL, i-1 do $
-				seed_table[i*N + (N-1-j)] = float2ulong *random_numbers[cnt++] 
-		
-		for j = 0UL, i do $
-			seed_table[j*N + (N-1-i)] = float2ulong *random_numbers[cnt++] 
-		
-		if i ne 0 then $
-			for j = 0UL, i-1 do $
-				seed_table[(N-1-i)*N + (N-1-j)] = float2ulong * random_numbers[cnt++]
-		
-		for j = 0UL, i do $
-			seed_table[(N-1-j)*N + (N-1-i)] = float2ulong * random_numbers[cnt++]
-	
-	end ; i
-
-	return, seed_table
-end
-
 pro test_distribution
 	
 	common globals, gadget, tandav, cosmo
@@ -690,20 +617,22 @@ pro test_distribution
 	one = velIDL * 0+1D
 
 	tmp = bin_arr(one, pos=velIDL[0,*], bin_pos=bin_pos, nbins=200, cnt=cntIDL0)
-	tmp = bin_arr(one, pos=velIDL[1,*], bin_pos=bin_pos, cnt=cntIDL1)
-	tmp = bin_arr(one, pos=velIDL[2,*], bin_pos=bin_pos, cnt=cntIDL2)
-
 	plot, bin_pos, double(cntIDL0)/headIDL.npart[1], psym=10, yrange=[0, 0.03d], $
 		xrange=[-2000D,2000]
+
+	tmp = bin_arr(one, pos=velIDL[1,*], bin_pos=bin_pos, nbins=200, cnt=cntIDL1)
 	oplot, bin_pos, double(cntIDL1)/headIDL.npart[1], psym=10
+
+	tmp = bin_arr(one, pos=velIDL[2,*], bin_pos=bin_pos, nbins=200, cnt=cntIDL2)
 	oplot, bin_pos, double(cntIDL2)/headIDL.npart[1], psym=10
 
-	tmp = bin_arr(one, pos=velNG[0,*], bin_pos=bin_pos,nbins=200, cnt=cntNG0)
-	tmp = bin_arr(one, pos=velNG[1,*], bin_pos=bin_pos, cnt=cntNG1)
-	tmp = bin_arr(one, pos=velNG[2,*], bin_pos=bin_pos, cnt=cntNG2)
-
+	tmp = bin_arr(one, pos=velNG[0,*], bin_pos=bin_pos, nbins=200, cnt=cntNG0)
 	oplot, bin_pos, double(cntNG0)/headNG.npart[1], psym=10, col=color(0)
+
+	tmp = bin_arr(one, pos=velNG[1,*], bin_pos=bin_pos, nbins=200, cnt=cntNG1)
 	oplot, bin_pos, double(cntNG1)/headNG.npart[1], psym=10, col=color(0)
+
+	tmp = bin_arr(one, pos=velNG[2,*], bin_pos=bin_pos, nbins=200, cnt=cntNG2)
 	oplot, bin_pos, double(cntNG2)/headNG.npart[1], psym=10, col=color(0)
 
 	;plot, length(velIDL)

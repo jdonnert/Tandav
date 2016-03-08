@@ -20,7 +20,7 @@ pro show_box, snap
 	bad = where(pos[2,*] gt head.boxsize)
 	pos[2,bad] -= head.boxsize
 	
-	good = where(pos[2,*] lt 3d4 )
+	good = where(pos[2,*] lt 2d4 )
 
 	plot, pos[0,good], pos[1,good], psym=3, /iso, xtitle="x [kpc]", $
 		ytitle="y [kpc]"

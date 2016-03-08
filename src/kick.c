@@ -28,6 +28,8 @@ void Kick_First_Halfstep()
 		P.Vel[1][ipart] += dt * P.Acc[1][ipart];
 		P.Vel[2][ipart] += dt * P.Acc[2][ipart];
 
+		P.Int_Time_Pos[ipart] = Int_Time.Next;
+
 		if (!Sig.Domain_Update)
 			Gravity_Tree_Update_Kicks(ipart, dt); // GRAVITY_TREE
 	}
@@ -51,8 +53,6 @@ void Kick_Second_Halfstep()
 		P.Vel[0][ipart] += dt * P.Acc[0][ipart];
 		P.Vel[1][ipart] += dt * P.Acc[1][ipart];
 		P.Vel[2][ipart] += dt * P.Acc[2][ipart];
-
-		P.Int_Time_Pos[ipart] = Int_Time.Next;
 
 		if (!Sig.Domain_Update)
 			Gravity_Tree_Update_Kicks(ipart, dt);

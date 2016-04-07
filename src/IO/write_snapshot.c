@@ -205,7 +205,7 @@ void write_gadget_header(const int *npart, FILE *fp)
 	head.Time = Time.Current;
 
 #ifdef COMOVING
-	head.Redshift = 1.0/(1.0 + head.Time);
+	head.Redshift = 1/head.Time - 1;
 #endif // COMOVING
 
 	head.Flag_Sfr = 0;

@@ -5,7 +5,7 @@
 
 #ifdef COMOVING
 
-#define TABLESIZE 128
+#define TABLESIZE 512
 
 #ifdef GADGET_COMOVING_VEL_UNIT
 static void convert_velocities_to_comoving();
@@ -27,14 +27,13 @@ static gsl_interp_accel *Acc[4] = { NULL };
  * in comoving coordinates from a spline interpolation of the integral in
  * Appendix of Quinn+ 1997. This allows us to use a short table resulting in
  * relative errors < 1e-4, which is the same as the numerical integrator 
- * gives. As our velocity variable is \dot{x}*a^1.5, but the canonical momentum
- * is m*a^2\dot{x}, we have to add sqrt(a) to the particle drift step.
- * These functions are thread safe.
+ * gives. These functions are thread safe.
  */
 
-double Particle_Kick_Step(const int ipart, const double a_next)
+double Particle_Kick_Step(const intime_t it_curr, const intime_t it_next)
 {
-	double a_curr = Integer_Time2Integration_Time(P.Int_Time_Pos[ipart]);
+	double a_curr = Integer_Time2Integration_Time(it_curr);
+	double a_next = Integer_Time2Integration_Time(it_next);
 
 	double kick_factor_beg = gsl_spline_eval(Kick_Spline, a_curr, Acc[0]);
 	double kick_factor_end = gsl_spline_eval(Kick_Spline, a_next, Acc[1]);
@@ -42,10 +41,12 @@ double Particle_Kick_Step(const int ipart, const double a_next)
 	return kick_factor_end - kick_factor_beg;
 }
 
-double Particle_Drift_Step(const int ipart, const double a_next)
+double Particle_Drift_Step(const int ipart, const intime_t it_curr, const intime_t it_next)
 {
-	double a_curr = Integer_Time2Integration_Time(P.Int_Time_Pos[ipart]);
+	double a_curr = Integer_Time2Integration_Time(it_curr);
+	double a_next = Integer_Time2Integration_Time(it_next);
 
+//printf("%d %u %g %u %g \n", ipart, it_curr, a_curr, it_next, a_next);
 	double drift_factor_beg = gsl_spline_eval(Drift_Spline, a_curr, Acc[2]);
 	double drift_factor_end = gsl_spline_eval(Drift_Spline, a_next, Acc[3]);
 
@@ -53,12 +54,12 @@ double Particle_Drift_Step(const int ipart, const double a_next)
 }
 
 /*
- * Integrate in s = \int^{t_i}_{t_0} dt/a^{-2} so we are conserving 
+ * Integrate in s = \int^{t_i}_{t_0} dt/a^2 so we are conserving 
  * canonical momentum m * a^2 * \dot{x}.
  * See Quinn, Katz, Stadel & Lake 1997, Peebles 1980, Bertschinger 1999. 
  * Note that in code units "dt = da" so the integrals from Quinns paper 
  * have to be transformed from dt -> da, which gives the additional factor of 
- * 1/\dot{a} = 1/H(a)/a. Time stepping however is done in dln(a) = 1+z.
+ * 1/\dot{a} = 1/H(a)/a. Time stepping is done in dln(a) = 1+z.
  */
 
 static double comoving_symplectic_drift_integrant(double a, void *param)
@@ -115,16 +116,16 @@ static void setup_kick_drift_factors()
 	gsl_integration_workspace *gsl_workspace = NULL;
 	gsl_workspace = gsl_integration_workspace_alloc(TABLESIZE);
 
-	const double time_beg = 0.99 * Time.Begin;
-	const double time_end = 1.01 * Time.End;
-	const double da = (log(time_end/time_beg)) /(TABLESIZE - 1.0);
+	const double time_beg = 0.95*Time.Begin;
+	const double time_end = 1.05*Time.End;
+	const double da = (log(time_end/time_beg)) / (TABLESIZE-1);
 
 	#pragma omp for
-	for (int i = 0; i < TABLESIZE; i++) {
+	for (int i = 1; i < TABLESIZE; i++) {
 
 		double error = 0;
 
-		double time_max = exp(log(time_beg) + da * i );
+		double time_max = time_beg * exp(da * i );
 
 		Exp_Factor_Table[i] = time_max;
 
@@ -137,7 +138,6 @@ static void setup_kick_drift_factors()
 
 		gsl_integration_qag(&gsl_F, time_beg, time_max, 0, 1e-8, TABLESIZE,
 				GSL_INTEG_GAUSS41, gsl_workspace, &Kick_Table[i], &error);
-
 	} // for i
 
 	gsl_integration_workspace_free(gsl_workspace);
@@ -167,14 +167,19 @@ static void setup_kick_drift_factors()
 #ifdef GADGET_COMOVING_VEL_UNIT
 static void convert_velocities_to_comoving()
 {
-	const double phys2comov_vel = pow(Time.Current, 1.5);
+	if (Param.Start_Flag != 0)
+		return;
+
+	rprintf("Converting velocities from GADGET units a^0.5 -> a^2\n\n");
+
+	const double gadget2comov_vel = pow(Time.Current, 1.5);
 
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
-		P.Vel[0][ipart] *= phys2comov_vel;
-		P.Vel[1][ipart] *= phys2comov_vel;
-		P.Vel[2][ipart] *= phys2comov_vel;
+		P.Vel[0][ipart] *= gadget2comov_vel;
+		P.Vel[1][ipart] *= gadget2comov_vel;
+		P.Vel[2][ipart] *= gadget2comov_vel;
 	}
 
 	return ;

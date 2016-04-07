@@ -17,17 +17,18 @@ This is the Style Guide for Tandav:
 * We format like the Linux kernel, but a tab is just 4 spaces 
   (helps with long formulas).
 
-* If code is broader than 80 characters, you are doing it wrong (except if it
-  is a formula). Broad code is hard to read and usually obscures the algorithm.
+* If code is broader than 80 characters, you are doing it wrong. This is basic 
+  typography: reading text becomes harder, when it is broader than 90 characters. 
+  Broad code is not only hard to read, but usually also obscures the algorithm.
   This can often be solved by introducing new variables, which the
   compiler might later optimize away, but which explain the algorithm.
   For example compare :
 
-        int *my_array = malloc(Task.Npart*N_BINS*sizeof(*my_array));
+        int *my_array = malloc(3*Task.Npart[1]*N_BINS*sizeof(*my_array));
 
   with
 
-		size_t nBytes = Task.Npart * N_BINS * sizeof(int);
+		size_t nBytes = 3 * Task.Npart[3] * N_BINS * sizeof(int);
 		int *my_array = malloc(nBytes);
 
 * Self-explaining code doesn't need many comments, you should use functions. 

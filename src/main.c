@@ -28,8 +28,8 @@ int main(int argc, char *argv[])
 	{
 
 	Update(BEFORE_MAIN_LOOP);
-
-	for (;;) { // run, Forest, run !
+	
+	for (;;) { // run Forest run !
 
 		if (Time_Is_Up())
 			break;
@@ -37,11 +37,15 @@ int main(int argc, char *argv[])
 		Update(BEFORE_STEP);
 
 		Set_New_Timesteps();
-
+		
 		Kick_First_Halfstep();
 
-		if (Time_For_Snapshot())
+		if (Time_For_Snapshot()) {
+
+	//		Drift_To_Snaptime();
+
 			Write_Snapshot();
+		}
 
 		Drift_To_Sync_Point();
 
@@ -151,7 +155,7 @@ static void preamble(int argc, char *argv[])
 	if (argc > 2) // Start Flag given, == 0 otherwise
 		Param.Start_Flag = atoi(argv[2]);
 
-	if (Param.Start_Flag == 10) {
+	if (Param.Start_Flag == DUMP_PARFILE) {
 
 		Write_Parameter_File(Param.File); // dead end
 

@@ -398,6 +398,9 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 	Warn(head.Boxsize != Sim.Boxsize[0], "Boxsize inconsistent %g <-> %g,%g,%g",
 			head.Boxsize, Sim.Boxsize[0], Sim.Boxsize[1], Sim.Boxsize[2]);
 
+	if (Param.Start_Flag == READ_SNAP) 
+		Restart.Time_Continue = head.Time;
+
 	return ;
 }
 
@@ -427,7 +430,6 @@ static void generate_masses_from_header()
 
 	return;
 }
-
 
 /*
  * We recover the particle types from the IDs which are assumed strictly 

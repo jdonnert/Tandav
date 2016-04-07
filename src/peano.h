@@ -9,6 +9,6 @@ peanoKey Peano_Key(const Float px, const Float py,const Float pz);
 peanoKey Reversed_Peano_Key(const Float px, const Float py,const Float pz);
 
 shortKey Short_Peano_Key(const Float px, const Float py,const Float pz);
-shortKey Reversed_Short_Peano_Key(const Float px, const Float py,const Float pz);
+shortKey Reversed_Short_Peano_Key(const Float px,const Float py,const Float pz);
 
 void Test_Peanokey();

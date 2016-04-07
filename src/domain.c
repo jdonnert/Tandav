@@ -3,6 +3,8 @@
 #include "domain.h"
 #include "peano.h"
 
+//#define DEBUG_DOMAIN
+
 #define MIN_LEVEL 2 // decompose at least 8^MIN_LEVEL domains downward
 
 static void set_computational_domain();
@@ -76,7 +78,7 @@ void Domain_Decomposition()
 
 	fill_new_bunches(0, NBunches, 0, Task.Npart_Total);
 	
-	print_domain_decomposition(Max_Level); // DEBUG
+	print_domain_decomposition(Max_Level); // DEBUG_DOMAIN
 
 	find_mean_cost();
 
@@ -116,7 +118,7 @@ void Domain_Decomposition()
 
 	//remove_excess_bunches();
 
-	print_domain_decomposition(Max_Level); // DEBUG
+	print_domain_decomposition(Max_Level); // DEBUG_DOMAIN
 
 	communicate_particles();
 
@@ -874,7 +876,7 @@ static void find_largest_particle_distance(double *size_out)
 
 static void print_domain_decomposition (const int max_level)
 {
-#ifdef DEBUG
+#ifdef DEBUG_DOMAIN
 
 	Qsort(Sim.NThreads, &D[0], NBunches, sizeof(*D), 
 			&compare_bunches_by_target);

@@ -4,8 +4,6 @@
 
 PERIODIC                    // periodic boundary conditions
 
-VECTOR_SIZE 16			 	// size of vector bundles in trees
-
 DOMAIN_UPDATE_PARAM 0.1     // [0.1]  npart drifted before new domain decomp.
 DOMAIN_IMBAL_CEIL 0.01	    // [0.05] desired maximum cost imbalance
 
@@ -49,6 +47,8 @@ TREE_OPEN_PARAM_REL 0.01     // [0.005] Relative opening criterion parameter
 #OUTPUT_GRAV_POTENTIAL       // gravitational potential GPOT
 
 #### ALWAYS RECOMMENDED ####
+
+VECTOR_SIZE 32			 	// size of vector bundles
 
 MEMORY_MANAGER  
 

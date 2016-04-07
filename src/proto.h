@@ -44,12 +44,19 @@ typedef uint32_t ID_t;
 #endif
 
 typedef uint32_t intime_t;		// type of integer time 
-typedef __uint128_t peanoKey; 	// long peanokey, 42 triplets / levels
-typedef uint64_t shortKey;		// short peanokey, 21 triplets / levels
+typedef uint64_t shortKey;		// short peanokey, 64 bit = 21 triplets/levels
+typedef __uint128_t peanoKey; 	// long peanokey, 128 bit = 42 triplets/levels
 
 /* 
- * Global function prototypes 
+ * Global prototypes 
  */
+
+enum Start_Parameters {
+	READ_IC = 0,
+	READ_RESTART = 1,
+	READ_SNAP = 2,
+	DUMP_PARFILE = 10
+};
 
 extern void Finish();
 extern void Print_Compile_Time_Settings();

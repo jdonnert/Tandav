@@ -18,7 +18,8 @@ struct Field_Def {	// define a particle property
 static const struct Field_Def P_Fields[] = { 
 	{"Type", 			P_SIZEOF(Type), 			1}
 	,{"Time_Bin", 		P_SIZEOF(Time_Bin),			1}
-	,{"Int_Time_Pos",	P_SIZEOF(Int_Time_Pos),		1}
+	,{"It_Drift_Pos",	P_SIZEOF(It_Drift_Pos),		1}
+	,{"It_Kick_Pos",	P_SIZEOF(It_Kick_Pos),		1}
 	,{"ID", 		 	P_SIZEOF(ID),				1}
 	,{"Cost",			P_SIZEOF(Cost),				1}
 	,{"Pos", 			P_SIZEOF3(Pos),				3}

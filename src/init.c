@@ -37,21 +37,23 @@ void Read_and_Init(int argc, char *argv[])
 
 	switch (Param.Start_Flag) {
 
-	case 0:
+	case READ_IC:
 
 		Read_Snapshot(Param.Input_File); // also init particle structures
 
 		break;
 
-	case 1:
+	case READ_RESTART:
 
 		Read_Restart_File();
 
 		break;
 
-	case 2:
+	case READ_SNAP:
 
 		Assert(argc > 3, "Missing snapshot number in program invokation");    
+
+		Restart.Snap_Counter =  atoi(argv[3]);
 
 		char snap_file[CHARBUFSIZE] = {""};
 
@@ -63,7 +65,7 @@ void Read_and_Init(int argc, char *argv[])
 
 	default:
 
-		Assert(false, "Start Flag not handled");
+		Assert(false, "Start Flag %d not handled", Param.Start_Flag);
 
 		break;
 	}

@@ -1,11 +1,15 @@
-; make resolution independent DM only cosmological initial conditions
-; Power spectrum, Eisenstein & Hu 1998/99 
-; Algorithm from N-GenIC, Springel 2006
-; Zeldovich approximation, Bertschinger 1998 Ann. Rev., Efstathiou 1985
-; [gadget]: use gadget units in velocity and hbpar=1
+; Make DM only cosmological initial conditions
+;
+; Power spectrum: Eisenstein & Hu 1998/99 
+; Algorithm : adapted from N-GenIC, Springel 2006
+;
+; N: Npart^(1/3)
+; [gadget]: use legacy gadget units in velocity and hbpar=1
 ; [showPk]: plot P(k) from sampled data and analytic formula
+; [boxsize]: if not set explicitely, choose the minimal boxsize based
+;            on resolution and the constrain of linear modes at z=0.
 
-pro make_ICs, N, boxsize=boxsize, gadget=gadget, showPk=showPk
+pro make_ICs, N, boxsize=boxsize, a_init=a_init, gadget=gadget, showPk=showPk
 
 	common parameters, tandav,  hbpar,  Omega_M, Omega_L, Tcmb
 
@@ -33,16 +37,16 @@ pro make_ICs, N, boxsize=boxsize, gadget=gadget, showPk=showPk
 	Omega_M = 0.3D ; Total Matter, EH98 call this Omega_0
 	Omega_B = 0.04 ; Baryons 
 	
-	H0 = 100D * 1d5 / Mpc2cm  * tandav.time ; tandav Units
+	H0 = 100D * 1d5 / Mpc2cm  * tandav.time ; in tandav Units
 
-	if not keyword_set(gadget) then $ ; hbpar = 1
+	if not keyword_set(gadget) then $ ; hbpar = 1 in legacy gadget
 		H0 *= hbpar
 
 	set_Pk_vars, Omega_M, Omega_B, hbpar, sigma8, prim_idx, tandav.length
-
-	pos = make_mesh(N, Boxsize)
-
-	a_init = 1/(1 + 63D); find_initial_time(N, boxsize)
+	
+	if not keyword_set(a_init) then $
+		a_init = find_initial_time(N, boxsize)
+	
 	z_init = 1D + 1D/a_init
 
 	Da = Growth_Function(1D) / Growth_Function(a_init) ; growth factor
@@ -53,6 +57,8 @@ pro make_ICs, N, boxsize=boxsize, gadget=gadget, showPk=showPk
 			stddev(displ_grid[2,*,*,*]) ]
 
 	cellsize = boxsize/N
+
+	pos = make_mesh(N, Boxsize)
 
 	displ = make_array(3, npart, val=0D)
 	displ[0,*] = CIC(N, pos/cellsize, displ_grid[0,*,*,*])
@@ -142,7 +148,7 @@ function make_mesh, N,  boxsize
 	
 	pos = make_array(3, N^3, val=0D)
 
-	fac = boxsize/N
+	fac = double(boxsize)/N
 
 	for i = 0UL, N-1 do begin
 		for j = 0UL, N-1 do begin
@@ -150,9 +156,9 @@ function make_mesh, N,  boxsize
 
 				idx = i*N^2 + j*N + k;  
 
-				pos[0, idx] = double(i+0.5) * fac
-				pos[1, idx] = double(j+0.5) * fac
-				pos[2, idx] = double(k+0.5) * fac
+				pos[0, idx] = double(i) * fac
+				pos[1, idx] = double(j) * fac
+				pos[2, idx] = double(k) * fac
 
 			end
 		end
@@ -162,15 +168,16 @@ function make_mesh, N,  boxsize
 end
 
 ; Sample the power spectrum in a sphere in k space, given from the 
-; resolution N. We generate two Gaussian random
-; numbers using the Box-Mueller method. The FFT of the complex 3D Fourier
-; modes has to be real, so the 3D cube of the modes has to be Hermitian. Now
-; what does that mean in 3D ? In particular, the k=0 plane becomes rather involved.
-; We the scale back the power spectrum to initial redshift using the Zeldovich 
-; approximation (Hui & Bertschinger 96). This is known to cause transients, 
-; and 2LPT is needed to make it better (Crocce+ 2006).
-; If we would start from a glass, we'd need to deconvolve the CIC kernel 
-; as well. The displacement fields are resolution independent as well.
+; resolution N. We generate Gaussian random numbers on a large grid
+; using IDLs routine. This has the positive side effect of ensuring 
+; resolution independence. It is also faster than the standard 
+; Box-Mueller method. The FFT of the complex 3D Fourier
+; modes has to be real, so the 3D cube of the modes has to be Hermitian. 
+; We scale back the power spectrum to initial redshift using the Zeldovich 
+; approximation (Hui & Bertschinger 96, Bertschinger 98). This is known
+; to cause transients, and 2LPT is needed to make it better (Crocce+ 2006).
+; If we'd start from a glass, we'd need to deconvolve the CIC kernel 
+; as well. 
 
 function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 	
@@ -185,17 +192,21 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 	kvec = make_array(3, val=0D)
 
 	random_numbers = randomn(14041981, 2, 256, 256, 256, /double) ; res. independent
-	
+	bad = where(random_numbers eq 0, cnt)
+	if cnt ne 0 then stop
 	;readcol, "kspace.dat", ax, ii,jj,kk, km, kx,ky,kz, PowSpec, dplus, fac, aa, pp, dd
- 	
-	;run = 0L
+ 	readcol, 'test', ax, ii,jj,kk, kveca,  km, dd, aa, pp, rl, im
+	run = 0L
 	
+	num = machar(/double) ; get a magic number
+	dbl_max = num.xmax
+
 	for comp = 0, 2 do begin
 
 		print, comp
 
-		kdata_rl =  make_array(N, N, N, val=0D) ; keep real and imaginary parts separately
-		kdata_im =  make_array(N, N, N, val=0D)
+		kdata_rl =  make_array(N, N, N, val=dbl_max) ; keep real and imaginary parts separately
+		kdata_im =  make_array(N, N, N, val=dbl_max)
 
 		kmag[*,*,*] = 0D
 
@@ -209,38 +220,7 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 			if (i eq N/2) or (j eq N/2) or (k eq N/2) then $
 				continue
 
-			if i lt N/2. then kvec[0] = i * kmin $ ; k vector at i,j.k
-						 else kvec[0] = -(N - i) * kmin
-		
-			if j lt N/2. then kvec[1] = j * kmin $
-						 else kvec[1] = -(N - j) * kmin
-
-			if k lt N/2. then kvec[2] = k * kmin $
-					     else kvec[2] = -(N - k) * kmin
-	
-			kmag[i,j,k]  = sqrt(kvec[0]^2 + kvec[1]^2 + kvec[2]^2)
-	
-			if kmag[i,j,k] gt kmax then $ ; Only do a sphere in k space
-				continue    
-
-;if (k eq 0) and (i eq 0) and (j ge N/2) then continue
-;if (k eq 0) and (i ge N/2) then continue
-
-			y1 = random_numbers[0, i,j,k] ; not the Box Mueller transform
-			y2 = 2*!pi*random_numbers[1, i,j,k]
-
-			;phase = pp[run]
-
-			Pk  =  Power_Spectrum_EH(kmag[i,j,k])
-
-			Delta =kmin^1.5 * sqrt(Pk/2D) / Da ; scale to a, Zeldovich approx
-
-			; Set kdata so we get a real field after inverse FFT
-
-            kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2D * Delta * y1
-	    	kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2D * Delta * y1
-			
-			iconj = N - i  ; conjugated indizes of i j k
+			iconj = N - i  ; enforce Hermitian symmetry
 			if i eq 0 then $ 
 				iconj = 0
 
@@ -251,25 +231,74 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 			kconj = N - k 
 			if k eq 0 then $
 				kconj = 0
-			
-   	       	kdata_rl[iconj,jconj,kconj] = kdata_rl[i,j,k]
-			kdata_im[iconj,jconj,kconj] = -kdata_im[i,j,k]
 
-		;	run++
+			if i lt N/2. then kvec[0] = i * kmin $ ; k vector at i,j.k
+						 else kvec[0] = -iconj * kmin
+		
+			if j lt N/2. then kvec[1] = j * kmin $
+						 else kvec[1] = -jconj * kmin
+
+			if k lt N/2. then kvec[2] = k * kmin $
+					     else kvec[2] = -kconj * kmin
+	
+			kmag[i,j,k]  = sqrt(kvec[0]^2 + kvec[1]^2 + kvec[2]^2)
+	
+			if kmag[i,j,k] gt kmax then $ ; Only do a sphere in k space
+				continue    
+
+			y1 = random_numbers[0, i,j,k] ; not the Box Mueller transform
+			y2 = random_numbers[1, i,j,k]
+
+phase = pp[run]
+;if kk[run] ne k then stop
+;if abs(kveca[run] - kvec[comp]) / kveca[run] gt 0.01 then stop
+;if abs(km[run] - kmag[i,j,k])/km[run] gt 0.001 then stop
+
+			Pk  =  Power_Spectrum_EH(kmag[i,j,k])
+
+			Delta = sqrt(0.5 * kmin^3 * Pk) / Da ; scale to a, Zeldovich approx
+Delta = dd[run] 
+
+			run++
+
+			if kdata_rl[i,j,k] eq dbl_max then begin ; don't set twice obviously !!
+
+            	kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2D * Delta * sin(phase)
+	    		kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2D * Delta * cos(phase)
+
+	   	     	kdata_rl[iconj,jconj,kconj] = kdata_rl[i,j,k] ; ensure FFT is real !
+				kdata_im[iconj,jconj,kconj] = -1*kdata_im[i,j,k]
+			end
+
 		end ; for i j k
+
+		bad = where(kdata_rl eq dbl_max, cnt)
+		kdata_rl[bad] = 0
+		kdata_im[bad] = 0
 
 		kdata[comp,*,*,*] = Complex(kdata_rl, kdata_im, /double)
 
-		data = reform( FFT(kdata[comp, *,*,*], /inverse, /double ) ) 
+		data = reform( FFT(kdata[comp, *,*,*], /inverse, /double) ) 
 
 		bad = where( abs(imaginary(data)) gt 1e-5 * abs(real_part(data)), cnt)
-
 		if cnt ne 0 then $ ; check if we got the symmetries correct
 			stop 
 	
 		displ[comp, *,*,*] = real_part(data)
 	end ; comp 
 
+readcol, "displ.dat", aaxx, i,j,k,ddis
+
+for i=0, 0 do $
+for j=0, 2 do $
+for k=0, 63 do begin
+
+	idx = i* N*N+ j*N + k
+
+print, i,j,k, ddis[idx], displ[0,i,j,k]
+
+end
+;stop
 	if keyword_set(showPk) then begin
 			
 			PK_data = sqrt(kdata[0,*,*,*]^2 + kdata[1,*,*,*]^2 + kdata[2,*,*,*]^2)
@@ -283,9 +312,9 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 			bin_pk = bin_arr(PK_data, pos=kmag, bin_pos=bin_pos, nbins=60, /log)
 			oplot, bin_pos, bin_pk, col=color(1)
 
-			dk = alog10(kmax/kmin)/99D
-			k_arr = kmin * 10D^(indgen(100)*dk)
-			pk_scaled = Power_Spectrum_EH(k_arr)* kmin^1.5/Da
+			dk = alog10(kmax/kmin)/999D
+			k_arr = kmin * 10D^(indgen(1000)*dk)
+			pk_scaled = Power_Spectrum_EH(k_arr)* kmin^1.5 * sqrt(0.6)/Da
 			oplot, k_arr, pk_scaled/(2*!pi^2D), col=color(0)
 	end
 
@@ -316,7 +345,7 @@ pro set_Pk_vars, Omega_M, Omega_B, hbpar, sigma8, prim_idx, unit_length
 	pk0 = 1D ; normalise with = 1
 	pk0 = sigma8^2D / Sigma2_TopHat(R8);
 	
-	print, "  P(k) Parameters: "
+	print, "P(k) Parameters (Eisenstein& Hu 1998) : "
 	print, "   prim. idx     = "+strn(idx)
 	print, "   s             = "+strn(s) 
 	print, "   alpha_Gamma   = "+strn(agam)
@@ -329,6 +358,7 @@ end
 
 ; Eisenstein & Hu 1998, Apj 496; Transfer function for DM and Baryons, no
 ; neutrinos. 
+
 function Transfer_Function, k 
 
 	common parameters, Tandav,  hbpar,   Omega_M, Omega_L, Tcmb
@@ -354,6 +384,7 @@ end
 ; Note that this is P^vel_cb = P(k)/k^2, because we need
 ; the displacement/velocity. This cancels out with 1D -> 3D
 ; P^3D(k) = 4 * pi * k^2 * P1D(k) 
+
 function Power_Spectrum_EH, k
 	
 	common Pk_vars, pk0, s, agam, Omh, idx
@@ -616,24 +647,35 @@ pro test_distribution
 
 	one = velIDL * 0+1D
 
-	tmp = bin_arr(one, pos=velIDL[0,*], bin_pos=bin_pos, nbins=200, cnt=cntIDL0)
-	plot, bin_pos, double(cntIDL0)/headIDL.npart[1], psym=10, yrange=[0, 0.03d], $
+	npart = headIDL.npart[1]
+	nbins = 100L
+
+	tmp = bin_arr(one, pos=velIDL[0,*], bin_pos=bin_pos, nbins=nbins, cnt=cntIDL0)
+	norm = max(velIDL[0,*] - min(velIDL[0,*])) * npart/nbins
+	plot, bin_pos, cntIDL0/norm, psym=10, yrange=[0, 0.002d], $
 		xrange=[-2000D,2000]
 
-	tmp = bin_arr(one, pos=velIDL[1,*], bin_pos=bin_pos, nbins=200, cnt=cntIDL1)
-	oplot, bin_pos, double(cntIDL1)/headIDL.npart[1], psym=10
+	tmp = bin_arr(one, pos=velIDL[1,*], bin_pos=bin_pos, nbins=nbins, cnt=cntIDL1)
+	norm = max(velIDL[1,*] - min(velIDL[1,*])) * npart/nbins
+	oplot, bin_pos, cntIDL1/norm, psym=10
 
-	tmp = bin_arr(one, pos=velIDL[2,*], bin_pos=bin_pos, nbins=200, cnt=cntIDL2)
-	oplot, bin_pos, double(cntIDL2)/headIDL.npart[1], psym=10
+	tmp = bin_arr(one, pos=velIDL[2,*], bin_pos=bin_pos,nbins=nbins, cnt=cntIDL2)
+	norm = max(velIDL[2,*] - min(velIDL[2,*])) * npart/nbins
+	oplot, bin_pos, cntIDL2/norm, psym=10
 
-	tmp = bin_arr(one, pos=velNG[0,*], bin_pos=bin_pos, nbins=200, cnt=cntNG0)
-	oplot, bin_pos, double(cntNG0)/headNG.npart[1], psym=10, col=color(0)
+	npart = headNG.npart[1]
 
-	tmp = bin_arr(one, pos=velNG[1,*], bin_pos=bin_pos, nbins=200, cnt=cntNG1)
-	oplot, bin_pos, double(cntNG1)/headNG.npart[1], psym=10, col=color(0)
+	tmp = bin_arr(one, pos=velNG[0,*], bin_pos=bin_pos, nbins=nbins, cnt=cntNG0)
+	norm = max(velNG[0,*] - min(velNG[0,*])) * npart/nbins
+	oplot, bin_pos, cntNG0/norm, psym=10, col=color(0)
 
-	tmp = bin_arr(one, pos=velNG[2,*], bin_pos=bin_pos, nbins=200, cnt=cntNG2)
-	oplot, bin_pos, double(cntNG2)/headNG.npart[1], psym=10, col=color(0)
+	tmp = bin_arr(one, pos=velNG[1,*], bin_pos=bin_pos, nbins=nbins, cnt=cntNG1)
+	norm = max(velNG[1,*] - min(velNG[1,*])) * npart/nbins
+	oplot, bin_pos, cntNG1/norm, psym=10, col=color(0)
+
+	norm = max(velNG[2,*] - min(velNG[2,*])) * npart/nbins
+	tmp = bin_arr(one, pos=velNG[2,*], bin_pos=bin_pos, nbins=nbins, cnt=cntNG2)
+	oplot, bin_pos, cntNG2/norm, psym=10, col=color(0)
 
 	;plot, length(velIDL)
 	;oplot, length(velng), col=color(0)

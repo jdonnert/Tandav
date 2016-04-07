@@ -3,10 +3,6 @@
 #include "drift.h"
 #include "Gravity/gravity.h"
 
-#ifndef COMOVING 
-static double Particle_Drift_Step(const int ipart, const double time_next);
-#endif
-
 /* 
  * This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 
  * As a snapshot time may not fall onto an integertime, we have to 
@@ -18,31 +14,57 @@ void Drift_To_Sync_Point()
 {
 	Profile("Drift");
 
-	#pragma omp for
-	for (int i = 0; i < NParticle_Vectors; i++) {
+	#pragma omp single //for
+	for (int i = 0; i < NActive_Particles; i++) {
 
-		Float dt = Particle_Drift_Step(V.First[i], Time.Next);
+		int ipart = Active_Particle_List[i];
 
-		#pragma IVDEP
-		for (int ipart = V.First[i]; ipart < V.Last[i]; ipart++) {
+		intime_t it_step = Timebin2It_Timestep(P.Time_Bin[ipart]);
+		intime_t it_curr = P.It_Drift_Pos[ipart];
+		intime_t it_next = it_curr + it_step;
 
-			P.Pos[0][ipart] += dt * P.Vel[0][ipart];
-			P.Pos[1][ipart] += dt * P.Vel[1][ipart];
-			P.Pos[2][ipart] += dt * P.Vel[2][ipart];
-		}
+if (it_next != Int_Time.Next) {
+printf("GREP %d %u %u %u %u %u %d %d %d\n", ipart, it_curr, it_next, it_step,Int_Time.Current, Int_Time.Next, P.Time_Bin[ipart], P.ID[ipart], Time.Max_Active_Bin );
+
+	for (int j = 0; j < NActive_Particles; j++) {
+
+		int jpart =  Active_Particle_List[j];
+		
+		printf("%d %d %d %d %d \n", 
+		j, Active_Particle_List[j], P.ID[jpart], P.Time_Bin[jpart], 
+		P.It_Drift_Pos[jpart]);
+	}
+
+exit(0);
+}
+		Assert(it_next <= Int_Time.End, 
+				"overstepped ipart=%d, curr=%u next=%u max=%u"
+				"IT.curr=%u IT.next=%u ", 
+				ipart, it_curr, it_next, Int_Time.End, Int_Time.Current, 
+				Int_Time.Next);
+
+		double dt = Particle_Drift_Step(ipart, it_curr, it_next);
+
+		P.Pos[0][ipart] += dt * P.Vel[0][ipart];
+		P.Pos[1][ipart] += dt * P.Vel[1][ipart];
+		P.Pos[2][ipart] += dt * P.Vel[2][ipart];
+
+		P.It_Drift_Pos[ipart] += it_step;
 	}
 
 	if (!Sig.Domain_Update)
 		Gravity_Tree_Update_Drift(Time.Step);
 
-	Periodic_Constrain_Particles_To_Box();
+	Periodic_Constrain_Particles_To_Box(); // PERIODIC
 
 	#pragma omp single
 	{
 
 	Int_Time.Current += Int_Time.Step;
+	Int_Time.Next += Int_Time.Step;
 
 	Time.Current = Integer_Time2Integration_Time(Int_Time.Current);
+	Time.Next = Integer_Time2Integration_Time(Int_Time.Next);
 
 	Time.Step_Counter++;
 
@@ -66,18 +88,21 @@ void Drift_To_Snaptime()
 	rprintf("\nDrift to next Shapshot Time %g -> %g \n", Time.Current, 
 			Time.Next_Snap);
 
-	const intime_t int_time_pos = Integration_Time2Integer_Time(Time.Next_Snap);
+	const intime_t it_next = Integration_Time2Integer_Time(Time.Next_Snap);
 	
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 		
-		Float dt = Particle_Drift_Step(ipart, Time.Next_Snap);
+		intime_t it_curr = P.It_Drift_Pos[ipart];
+
+		double dt = Particle_Drift_Step(ipart, it_curr, it_next);
 
 		P.Pos[0][ipart] +=	dt * P.Vel[0][ipart];
 		P.Pos[1][ipart] +=	dt * P.Vel[1][ipart];
 		P.Pos[2][ipart] +=	dt * P.Vel[2][ipart];
 
-		P.Int_Time_Pos[ipart] = int_time_pos;
+		P.It_Drift_Pos[ipart] = it_next;
+		P.Time_Bin[ipart] = log2(it_next - it_curr); // dt_it -> timebin
 	}
 
 	Periodic_Constrain_Particles_To_Box();
@@ -91,16 +116,19 @@ void Drift_To_Snaptime()
 }
 
 /*
- * Return the amount of time since the last drift of particle ipart.
+ * Return the amount of real time between two points on the integer timeline.
+ * This is a 2^X of the smallest increment representable on the integer time-
+ * line, when we are not in comoving coordinates. 
  */
 
 #ifndef COMOVING 
 
-static double Particle_Drift_Step(const int ipart, const double time_next)
+double Particle_Drift_Step(const intime_t it_curr, const intime_t it_next)
 {
-	double time_part = Integer_Time2Integration_Time(P.Int_Time_Pos[ipart]);
+	double t_curr = Integer_Time2Integration_Time(it_curr);
+	double t_next = Integer_Time2Integration_Time(it_next);
 
-	return time_next - time_part;
+	return t_next - t_curr;
 }
 
 #endif // COMOVING

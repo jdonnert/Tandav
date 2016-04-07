@@ -61,6 +61,11 @@ extern struct Parameters_From_File {
 	double Grav_Softening[NPARTYPE]; // gravitiational softening
 } Param;
 
+extern struct Restart_Parameters {
+	double Time_Continue;		// hold time if we restart
+	double Snap_Counter;
+} Restart;
+
 /*
  * Here start the particle structures, which hold most of the data of the
  * code. Because we are using structures containing arrays, not an array of 
@@ -72,7 +77,8 @@ extern struct Parameters_From_File {
 extern struct Particle_Data {
 	int * restrict Type;				// keep this first !
 	int * restrict Time_Bin;
-	intime_t * restrict Int_Time_Pos;	// current position on integer timeline
+	intime_t * restrict It_Drift_Pos;	// drift position on integer timeline
+	intime_t * restrict It_Kick_Pos;	// kick position on integer timeline
 	ID_t * restrict ID; 					 
 	Float * restrict Cost;				// computational weight of particle
 	Float * restrict Pos[3];

@@ -33,7 +33,7 @@ void Make_Active_Particle_List();
 void Make_Active_Particle_Vectors();
 
 void Setup_Time_Integration();
-double Timebin2Timestep(const int);
+intime_t Timebin2It_Timestep(const int);
 double Integer2Physical_Time(const intime_t);
 double Integer_Time2Integration_Time(const intime_t);
 intime_t Integration_Time2Integer_Time(const double);

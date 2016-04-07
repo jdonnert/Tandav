@@ -51,6 +51,8 @@ void Sort_Particles_By_Peano_Key()
 
 	reorder_collisionless_particles(idx);
 
+	//reorder_gas_particles(idx);
+
 	#pragma omp single
  	Free(idx);
 	

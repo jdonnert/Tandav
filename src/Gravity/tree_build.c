@@ -7,6 +7,8 @@
 
 #ifdef GRAVITY_TREE
 
+//#DEFINE DEBUG_TREE
+
 #define NODES_PER_PARTICLE 0.6
 #define TREE_ENLARGEMENT_FACTOR 1.2
 
@@ -116,7 +118,7 @@ void Gravity_Tree_Build()
 	rprintf("Tree build: %d of %d Nodes used (%g MB)\n",
 			NNodes, Max_Nodes, Max_Nodes*sizeof(*Tree)/1024.0/1024);
 
-	print_top_nodes(); // DEBUG only
+	print_top_nodes(); // DEBUG_TREE only
 
 	Sig.Tree_Update = false;
 
@@ -250,8 +252,8 @@ static void set_tree_parent_pointers (const int i)
 static int build_subtree(const int first_part, const int tnode_idx,
 		const int top_level)
 {
-#ifdef DEBUG
-	printf("DEBUG (%d:%d) Tree Build for top node=%d : "
+#ifdef DEBUG_TREE
+	printf(" (%d:%d) Tree Build for top node=%d : "
 		   "first part=%d npart=%d Tree build target=%d  \n"
 		,Task.Rank, Task.Thread_ID,  tnode_idx, first_part,
 		D[tnode_idx].TNode.Npart, D[tnode_idx].TNode.Target);
@@ -344,7 +346,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 
 	nNodes = finalise_subtree(top_level, tnode_idx, nNodes);
 
-#ifdef DEBUG
+#ifdef DEBUG_TREE
 	printf("DEBUG (%d:%d) TNode %d tree done, nNodes %d, npart/nNodes %g \n",
 			Task.Rank,Task.Thread_ID, tnode_idx, nNodes,
 			(double)nNodes/D[tnode_idx].TNode.Npart);
@@ -575,7 +577,7 @@ static inline void node_set(const enum Tree_Bitfield bit, const int node)
 
 static void print_top_nodes()
 {
-#ifdef DEBUG
+#ifdef DEBUG_TREE
 	#pragma omp single
 	for (int i = 0; i < NTop_Nodes; i++) 
 		printf("%d Target=%d Level=%d Npart=%d Pos=%g %g %g, "

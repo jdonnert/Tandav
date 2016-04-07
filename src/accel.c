@@ -58,6 +58,8 @@ static void accel_gravity()
 
 	gravity_accel_tree(); // GRAVITY_TREE
 	
+	//gravity_accel_fmm(); // GRAVITY_FMM
+	
 	Gravity_Simple_Accel(); // GRAVITY_SIMPLE, performs force test
 
 	Profile("Gravity");

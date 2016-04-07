@@ -93,9 +93,17 @@ void Set_New_Timesteps()
  * The timeline is represented by an integer, where an increment of one 
  * corresponds to the whole integration time divided by 2^(N_INT_BINS-1).
  * In comoving coordinates the timesteps are divided in log space, which
- * means, we are effectively stepping in redshift. Time integration is in da.
- * We also setup the particle loop vectors, where PVec contains blocks of 
- * particles that are adjacent in memory.
+ * means, we are effectively stepping in redshift. 
+ * This means, the size of a timestep can change, depending on the current 
+ * position of the particle on the integer timeline ! Because of this, we
+ * never find the timestep as a multiple of the smallest timestep representable
+ * by the integer timeline, but from the difference of It_curr and It_next,
+ * given the current timebin the particle is on. As a result we have to
+ * store the current position of the particle on the integer timeline for
+ * the kick operation and the drift operation (It_Drift_Pos & It_Kick_Pos).
+ * We also setup the particle loop vectors, where V describes blocks of 
+ * particles that are adjacent in memory and on the same time step. 
+ * Time integration is in da.
  */
 
 void Setup_Time_Integration()
@@ -118,18 +126,35 @@ void Setup_Time_Integration()
 	Assert(Time.NSnap > 0, "Timeline does not seem to produce any outputs");
 
 	Int_Time.Beg = (intime_t) 0;
-	Int_Time.End = (intime_t) 1 << (N_INT_BINS - 1);
-	Int_Time.Current = Int_Time.Beg;
-
+	Int_Time.End = (intime_t) 1 << (N_INT_BINS - 1); 
+	
 #ifdef COMOVING
 	Time.Step_Max = log(Time.End) - log(Time.Begin); // step in log(a)
 #else
 	Time.Step_Max = Time.End - Time.Begin;
 #endif // ! COMOVING
 
-	Time.Step_Min = Time.Step_Max / Int_Time.End;
+	Time.Step_Min = Time.Step_Max / (Int_Time.End - Int_Time.Beg);
+	
+	Int_Time.Current = Int_Time.Beg;
 
-	Time.Current = Integer_Time2Integration_Time(Int_Time.Beg);
+	if (Param.Start_Flag == READ_SNAP) {// restart from snap
+
+		Int_Time.Current = Integration_Time2Integer_Time(Restart.Time_Continue);
+
+		Time.Snap_Counter = Restart.Snap_Counter;
+		
+		Time.Next_Snap = Time.First_Snap + Time.Snap_Counter * Time.Bet_Snap;
+		
+		#pragma omp parallel for	
+		for (int ipart = 0; ipart < Task.Npart_Total; ipart++) 
+			P.It_Drift_Pos[ipart] = P.It_Drift_Pos[ipart] = Int_Time.Current;
+
+		rprintf("Continue simulation from snapshot %d at %g, next snap at %g \n", 
+				Time.Snap_Counter, Restart.Time_Continue, Time.Next_Snap);
+	}
+
+	Time.Current = Integer_Time2Integration_Time(Int_Time.Current);
 
 	Time.Max_Active_Bin = N_INT_BINS - 1;
 
@@ -140,7 +165,7 @@ void Setup_Time_Integration()
 	NActive_Particles = Task.Npart_Total;
 
 	#pragma omp parallel for	
-	for (int i = 0; i < NActive_Particles; i++) 
+	for (int i = 0; i < Task.Npart_Total; i++) 
 		Active_Particle_List[i] = i;
 
 	nBytes = Task.Npart_Total_Max * sizeof(int);
@@ -153,17 +178,22 @@ void Setup_Time_Integration()
 	return ;
 }
 
+/*
+ * Convert time to log(a). This is exact only in a de Sitter cosmology,
+ * where a = exp(H*t).
+ */
+
 static inline Float convert_dt_to_dlna(const Float dt)
 {
 #ifdef COMOVING
-	return dt * Cosmo.Hubble_Parameter;
+	return dt * Cosmo.Hubble_Parameter; 
 #else 
 	return dt;
 #endif
 }
 
 /* 
- * Find smallest allowed timestep for local particles given the time step 
+ * Find smallest allowed timestep for rank local particles given the time step 
  * criteria. Find local max & min to these bins. 
  */
 
@@ -179,9 +209,7 @@ static void set_new_particle_timebins()
 	} // omp single
 
 	#pragma omp for reduction(min:Time_Bin_Min) reduction(max:Time_Bin_Max)
-	for (int i = 0; i < NActive_Particles; i++) {
-
-		int ipart = Active_Particle_List[i];
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
 		Float dt = get_physical_timestep(ipart);
 
@@ -228,11 +256,11 @@ static void set_system_timestep()
 
 	Int_Time.Step = umin(step_end, umin(step_bin, step_sync));
 
-	Int_Time.Next =  Int_Time.Current + Int_Time.Step;
+	Int_Time.Next = Int_Time.Current + Int_Time.Step;
 
 	Time.Next = Integer_Time2Integration_Time(Int_Time.Next);
 
-	Time.Step = Time.Next - Time.Current; // if COMOVING in a
+	Time.Step = Time.Next - Time.Current; // if COMOVING in 'a'
 
 	if (Sig.First_Step)
 		Time.Max_Active_Bin = Time_Bin_Min; // correct first step
@@ -257,11 +285,9 @@ void Make_Active_Particle_List()
 
 	int i = 0;
 
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) 
 		if (P.Time_Bin[ipart] <= Time.Max_Active_Bin)
 			Active_Particle_List[i++] = ipart;
-	}
 
 	NActive_Particles = i;
 
@@ -298,11 +324,11 @@ void Make_Active_Particle_Vectors(const int max_active_bin)
 
 		if (P.Time_Bin[ipart] <= Time.Max_Active_Bin) {
 			
-			if (P.Int_Time_Pos[ipart] != last_pos)
+			if (P.It_Drift_Pos[ipart] != last_pos)
 				i++;
 
 			V.Last[i]++;
-			last_pos = P.Int_Time_Pos[ipart];
+			last_pos = P.It_Drift_Pos[ipart];
 			
 			if (V.First[i] <= 0) // vector starts
 				V.First[i] = ipart;
@@ -342,12 +368,12 @@ void Make_Active_Particle_Vectors(const int max_active_bin)
  * Note that dt = da / H(a).
  */
 
-#ifdef COMOVING
-
-double Timebin2Timestep(const int TimeBin)
+intime_t Timebin2It_Timestep(const int TimeBin)
 {
-	return Time.Step_Min*((intime_t) 1 << TimeBin); // in dlog(a)
+	return ((intime_t) 1) << TimeBin;
 }
+
+#ifdef COMOVING
 
 double Integer_Time2Integration_Time(const intime_t Integer_Time)
 {
@@ -365,11 +391,6 @@ double Integer2Physical_Time(const intime_t Integer_Time)
 }
 
 #else // ! COMOVING
-
-double Timebin2Timestep(const int TimeBin)
-{
-	return Time.Step_Min * ((intime_t) 1 << TimeBin);
-}
 
 double Integer2Physical_Time(const intime_t Integer_Time)
 {
@@ -439,13 +460,13 @@ static void print_timebins()
 		printf("\nStep ");
 
 #ifdef COMOVING
-	printf("<%d>: \n   a = %g -> %g, z = %g, da = %g \n\n"
+	printf("<%d>: \n   a = %g -> %g, z = %g, da_min = %g \n\n"
 			"   Bin       nGas        nDM A    dlog(a)\n",
 			Time.Step_Counter, Time.Current,
 			Integer_Time2Integration_Time(Int_Time.Next),
 			1/Time.Current-1, Time.Step);
 #else
-	printf("<%d> \n   t = %g -> %g, dt = %g \n"
+	printf("<%d> \n   t = %g -> %g, dt_min = %g \n"
 			"   Bin       nGas        nDM A    dt\n",
 			Time.Step_Counter, Time.Current,
 			Integer_Time2Integration_Time(Int_Time.Next),
@@ -454,11 +475,11 @@ static void print_timebins()
 
 	for (int i = imax; i > Time.Max_Active_Bin; i--)
 		printf("   %2d    %7d     %7d %s  %16.12f \n",
-				i, 0, npart[i], " ", Timebin2Timestep(i));
+				i, 0, npart[i], " ", Time.Step_Min*Timebin2It_Timestep(i));
 
 	for (int i = MIN(Time.Max_Active_Bin, imax); i >= imin; i--)
 		printf("   %2d    %7d     %7d %s  %16.12f \n",
-			i, 0, npart[i], "X", Timebin2Timestep(i));
+			i, 0, npart[i], "X", Time.Step_Min*Timebin2It_Timestep(i));
 
 	double mean_vec_length = (double)NActive_Particles / NParticle_Vectors;
 

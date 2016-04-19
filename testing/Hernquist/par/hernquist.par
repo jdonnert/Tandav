@@ -23,6 +23,8 @@ TimeEnd			10.0
 TimeOfFirstSnaphot		0 
 TimeBetSnapshots		0.1
 
+GravSoftening  5
+
 MaxSizeTimestep 0.4
 MinSizeTimestep 1e-7
 

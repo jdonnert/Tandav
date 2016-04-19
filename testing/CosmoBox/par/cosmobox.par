@@ -23,7 +23,7 @@ TimeEnd			1
 TimeOfFirstSnaphot		0.01562
 TimeBetSnapshots		0.01
 
-GravSoftening  300
+GravSoftening  150
 
 MaxSizeTimestep 0.05
 MinSizeTimestep 1e-7

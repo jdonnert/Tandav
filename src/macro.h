@@ -1,7 +1,3 @@
-#ifdef DEBUG
-#undef MEMORY_MANAGER
-#endif
-
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
 
@@ -11,19 +7,27 @@
 #define p2(a) ((a)*(a))
 #define p3(a) ((a)*(a)*(a))
 
-#define rprintf(...) if(Task.Is_Master) printf(__VA_ARGS__) // ease printf
-#define mprintf(...) if(Task.Is_MPI_Master) printf(__VA_ARGS__)
-#define oprintf(...) if(Task.Is_Thread_Main) printf(__VA_ARGS__)
+#define rprintf(...) if (Task.Is_Master) printf(__VA_ARGS__) // ease printf
+#define mprintf(...) if (Task.Is_MPI_Master) printf(__VA_ARGS__)
+#define oprintf(...) if (Task.Is_Thread_Main) printf(__VA_ARGS__)
+
+/*
+ * Check for some compile time errors
+ */
+
+#if __STDC_VERSION__ < 199901L
+#error Recompile with C99 support
+#endif
+
+#ifdef DEBUG
+#undef MEMORY_MANAGER
+#endif
 
 /*
  * Compiler specific stuff
  */
 
-#if __STDC_VERSION__ < 199901L
-# error Recompile with C99 support
-#endif
-
-#ifdef __INTEL_COMPILER 
+#ifdef __INTEL_COMPILER
 
 #define IVDEP ivdep // IGNORE_VECTOR_DEPENDENCE
 

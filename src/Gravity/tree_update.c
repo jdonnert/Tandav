@@ -16,16 +16,15 @@ void Gravity_Tree_Update_Kicks(const int ipart, const double dt)
 {
 	Float m_dt = P.Mass[ipart] * dt; // kick tree nodes
 
-	const Float dp[3] = { m_dt*P.Acc[0][ipart],
-						  m_dt*P.Acc[1][ipart],
-						  m_dt*P.Acc[2][ipart] };
+	const Float dp[3] = { m_dt * P.Acc[0][ipart], m_dt * P.Acc[1][ipart],
+						  m_dt * P.Acc[2][ipart] };
 	int i = 0;
 	int node = P.Tree_Parent[ipart];
 
 	if (node >= 0) { // kick sub tree nodes
-
+		
 		while (! Node_Is(TOP, node)) {
-
+			
 			#pragma omp atomic update
 			Tree[node].Dp[0] += dp[0] / Tree[node].Mass;
 			#pragma omp atomic update
@@ -34,7 +33,7 @@ void Gravity_Tree_Update_Kicks(const int ipart, const double dt)
 			Tree[node].Dp[2] += dp[2] / Tree[node].Mass;
 
 			#pragma omp atomic update
-			Tree[node].Bitfield |= 1UL << UPDATED; // = Node_Set(UPDATED,node)
+			Tree[node].Bitfield |= 1UL << UPDATED; // = Node_Set(UPDATED,node);
 
 			node -= Tree[node].DUp;
 		} // while 

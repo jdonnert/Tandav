@@ -69,8 +69,8 @@ void Set_New_Timesteps()
 		Int_Time.Next_Sync_Point += 1ULL << Time_Bin_Max;
 	}
 
-	Make_Active_Particle_List();
 	Make_Active_Particle_Vectors();
+	Make_Active_Particle_List();
 
 	#pragma omp master
 	{
@@ -227,7 +227,7 @@ static void set_new_particle_timebins()
 		int allowed = MAX(Time.Max_Active_Bin, P.Time_Bin[ipart]);
 		
 		P.Time_Bin[ipart] = MIN(want, allowed);
-
+		
 		Time_Bin_Min = MIN(Time_Bin_Min, P.Time_Bin[ipart]);
 		Time_Bin_Max = MAX(Time_Bin_Max, P.Time_Bin[ipart]);
 	}
@@ -343,14 +343,8 @@ void Make_Active_Particle_Vectors(const int max_active_bin)
 
 	NParticle_Vectors = i+1;
 
-	NActive_Particles = 0;
-
 	} // omp single
 
-	#pragma omp for reduction(+:NActive_Particles)
-	for (int i = 0; i < NParticle_Vectors; i++)
-		NActive_Particles += V.Last[i];
-	
 	#pragma omp for
 	for (int i = 0; i < NParticle_Vectors; i++) 
 		V.Last[i] += V.First[i];
@@ -399,7 +393,7 @@ double Integer2Physical_Time(const intime_t Integer_Time)
 
 intime_t Integration_Time2Integer_Time(const double Integration_Time)
 {
-	return (intime_t) ((Integration_Time - Time.Begin)/Time.Step_Min)
+	return (intime_t) ((Integration_Time - Time.Begin)/Time.Step_Min);
 }
 
 double Integer_Time2Integration_Time(const intime_t Integer_Time)

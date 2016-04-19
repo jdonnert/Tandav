@@ -20,23 +20,10 @@ void Drift_To_Sync_Point()
 		int ipart = Active_Particle_List[i];
 
 		intime_t it_step = Timebin2It_Timestep(P.Time_Bin[ipart]);
+
 		intime_t it_curr = P.It_Drift_Pos[ipart];
 		intime_t it_next = it_curr + it_step;
 
-if (it_next != Int_Time.Next) {
-printf("GREP %d %u %u %u %u %u %d %d %d\n", ipart, it_curr, it_next, it_step,Int_Time.Current, Int_Time.Next, P.Time_Bin[ipart], P.ID[ipart], Time.Max_Active_Bin );
-
-	for (int j = 0; j < NActive_Particles; j++) {
-
-		int jpart =  Active_Particle_List[j];
-		
-		printf("%d %d %d %d %d \n", 
-		j, Active_Particle_List[j], P.ID[jpart], P.Time_Bin[jpart], 
-		P.It_Drift_Pos[jpart]);
-	}
-
-exit(0);
-}
 		Assert(it_next <= Int_Time.End, 
 				"overstepped ipart=%d, curr=%u next=%u max=%u"
 				"IT.curr=%u IT.next=%u ", 
@@ -123,7 +110,8 @@ void Drift_To_Snaptime()
 
 #ifndef COMOVING 
 
-double Particle_Drift_Step(const intime_t it_curr, const intime_t it_next)
+double Particle_Drift_Step(const int ipart ,
+		const intime_t it_curr, const intime_t it_next)
 {
 	double t_curr = Integer_Time2Integration_Time(it_curr);
 	double t_next = Integer_Time2Integration_Time(it_next);

@@ -249,7 +249,7 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 			y1 = random_numbers[0, i,j,k] ; not the Box Mueller transform
 			y2 = random_numbers[1, i,j,k]
 
-phase = pp[run]
+;;phase = pp[run]
 ;if kk[run] ne k then stop
 ;if abs(kveca[run] - kvec[comp]) / kveca[run] gt 0.01 then stop
 ;if abs(km[run] - kmag[i,j,k])/km[run] gt 0.001 then stop
@@ -257,14 +257,14 @@ phase = pp[run]
 			Pk  =  Power_Spectrum_EH(kmag[i,j,k])
 
 			Delta = sqrt(0.5 * kmin^3 * Pk) / Da ; scale to a, Zeldovich approx
-Delta = dd[run] 
+;;Delta = dd[run] 
 
 			run++
 
 			if kdata_rl[i,j,k] eq dbl_max then begin ; don't set twice obviously !!
 
-            	kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2D * Delta * sin(phase)
-	    		kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2D * Delta * cos(phase)
+            	kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2D * Delta * y1 ;; sin(phase)
+	    		kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2D * Delta * y2 ;;cos(phase)
 
 	   	     	kdata_rl[iconj,jconj,kconj] = kdata_rl[i,j,k] ; ensure FFT is real !
 				kdata_im[iconj,jconj,kconj] = -1*kdata_im[i,j,k]
@@ -287,7 +287,7 @@ Delta = dd[run]
 		displ[comp, *,*,*] = real_part(data)
 	end ; comp 
 
-readcol, "displ.dat", aaxx, i,j,k,ddis
+;;readcol, "displ.dat", aaxx, i,j,k,ddis
 
 for i=0, 0 do $
 for j=0, 2 do $
@@ -295,7 +295,7 @@ for k=0, 63 do begin
 
 	idx = i* N*N+ j*N + k
 
-print, i,j,k, ddis[idx], displ[0,i,j,k]
+;;print, i,j,k, ddis[idx], displ[0,i,j,k]
 
 end
 ;stop

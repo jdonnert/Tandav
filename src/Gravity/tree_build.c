@@ -7,7 +7,7 @@
 
 #ifdef GRAVITY_TREE
 
-//#DEFINE DEBUG_TREE
+//#define DEBUG_TREE
 
 #define NODES_PER_PARTICLE 0.6
 #define TREE_ENLARGEMENT_FACTOR 1.2
@@ -213,15 +213,15 @@ static void set_tree_parent_pointers (const int i)
 	const int first_part = D[i].TNode.First_Part;
 	const int last_part = first_part + D[i].TNode.Npart;
 
-	if (D[i].TNode.Target > 0) {
+	if (D[i].TNode.Npart > VECTOR_SIZE) {
 	
 		for (int ipart = first_part; ipart < last_part; ipart++)
 			P.Tree_Parent[ipart] += D[i].TNode.Target;
 		
-	} else if (D[i].TNode.Target < 0) {
+	} else { // top node without tree
 	
 		for (int ipart = first_part; ipart < last_part; ipart++)
-			P.Tree_Parent[ipart] = -i - 1; // top node w/o tree
+			P.Tree_Parent[ipart] = -i - 1; 
 	}
 	return ;
 }
@@ -237,7 +237,7 @@ static void set_tree_parent_pointers (const int i)
  * In the tree, DNext is the difference to the next sibling in the walk, if the
  * node is not opened. Opening a node is then node++. If DNext is negative, it 
  * points to Npart particles starting at ipart=-DNext-1, and the next node in 
- * line is node++. DNext=0 is only once, at the end of the branch. 
+ * line is node++. DNext=0 is true only once, at the end of the branch. 
  * The tree saves only one particle per node, up to eight are combined in a 
  * node. This is achieved on the fly in an explicit cleaning step when a
  * particle opens a new branch. 
@@ -272,10 +272,9 @@ static int build_subtree(const int first_part, const int tnode_idx,
 
 		peanoKey key = Reversed_Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart],
 									 	  P.Pos[2][ipart]);
-
 		key >>= 3 * top_level;
 
-		int node = 0;        // current node
+		int node = 0;        // running node
 		int lvl = top_level; // counts current level
 		int parent = node;   // parent of current node
 
@@ -444,12 +443,15 @@ static int finalise_subtree(const int top_level, const int tnode_idx,
 
 	if (tree[0].Npart <= VECTOR_SIZE) { // save only topnode, return empty
 
+		D[tnode_idx].TNode.Target = -INT_MAX;
+
 		memset(tree, 0, nNodes * sizeof(*tree));
 
 		return 0;
 	}
 
 	node_set(TOP, nNodes); // add a zero node at the end to terminate tree walk
+
 	tree[nNodes].Mass = 1;
 
 	nNodes++;
@@ -581,12 +583,13 @@ static void print_top_nodes()
 	#pragma omp single
 	for (int i = 0; i < NTop_Nodes; i++) 
 		printf("%d Target=%d Level=%d Npart=%d Pos=%g %g %g, "
-				"Mass=%g CoM=%g %g %g Dp=%g %g %g \n",i, 
+				"Mass=%g CoM=%g %g %g Dp=%g %g %g TOP=%d \n",i, 
 				D[i].TNode.Target,D[i].TNode.Level, D[i].TNode.Npart,
 				D[i].TNode.Pos[0],D[i].TNode.Pos[1],D[i].TNode.Pos[2],
 				D[i].TNode.Mass,
 				D[i].TNode.CoM[0],D[i].TNode.CoM[1],D[i].TNode.CoM[2],
-				D[i].TNode.Dp[0],D[i].TNode.Dp[1],D[i].TNode.Dp[2]);
+				D[i].TNode.Dp[0],D[i].TNode.Dp[1],D[i].TNode.Dp[2],
+				Node_Is(TOP, i));
 
 #endif
 	return ;

@@ -46,7 +46,10 @@ double Particle_Drift_Step(const int ipart, const intime_t it_curr, const intime
 	double a_curr = Integer_Time2Integration_Time(it_curr);
 	double a_next = Integer_Time2Integration_Time(it_next);
 
-//printf("%d %u %g %u %g \n", ipart, it_curr, a_curr, it_next, a_next);
+	if (a_next > Time.End)
+printf("CRASH %d %u %g %u %g %d %d \n", 
+ipart, it_curr, a_curr, it_next, a_next, P.Time_Bin[ipart], NActive_Particles);
+
 	double drift_factor_beg = gsl_spline_eval(Drift_Spline, a_curr, Acc[2]);
 	double drift_factor_end = gsl_spline_eval(Drift_Spline, a_next, Acc[3]);
 

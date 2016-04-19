@@ -13,6 +13,7 @@ extern struct Particle_Vector_Blocks{
 int NParticle_Vectors, NActive_Particles;
 
 extern struct Local_Task_Properties {
+	int ID;						// unique ID of thread
 	int Rank;					// MPI Rank of this thread
 	int Thread_ID;				// OpenMP ID of this thread
 	bool Is_Master;				// == true on global master rank 

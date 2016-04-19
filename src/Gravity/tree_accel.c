@@ -16,7 +16,7 @@ static void interact(const Float, const Float *, const Float);
 static void gravity_tree_walk(const int);
 static void gravity_tree_walk_BH(const int);
 
-static void check_total_momentum(const bool show_error);
+static void check_total_momentum(const bool show_change);
 
 /*
  * We do not walk referencing particles, but copy the required particle data
@@ -450,7 +450,7 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node)
 
 static double Px = 0, Py = 0, Pz = 0, Last = 0;
 
-static void check_total_momentum(const bool show_error)
+static void check_total_momentum(const bool show_change)
 {
 	const int last_DM_part = Task.Npart[0]+Task.Npart[1];
 
@@ -470,8 +470,8 @@ static void check_total_momentum(const bool show_error)
 
 	double rel_err = (ptotal - Last) / Last;
 
-	if (show_error)
-		rprintf("Total err. due to gravity : %g \n", rel_err);
+	if (show_change)
+		rprintf("Total change in momentum due to gravity: %g \n", rel_err);
 
 	#pragma omp single
 	Last = ptotal;

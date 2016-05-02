@@ -1,58 +1,58 @@
 #### BASIC CODE PARAMETERS ####
 
-#DEBUG                       // verbose (!) output
-#DOMAIN_DEBUG				// print topnodes and distribution
-TREE_DEBUG					 // print node distribution 
+#DEBUG                        // verbose (!) output
+#DOMAIN_DEBUG                 // print topnodes and distribution
+#TREE_DEBUG                   // print node distribution 
 
-#PERIODIC                    // periodic boundary conditions
+PERIODIC                     // periodic boundary conditions
 
-DOMAIN_UPDATE_PARAM 0.1     // [0.1]  npart drifted before new domain decomp.
-DOMAIN_IMBAL_CEIL 0.01	    // [0.05] desired maximum cost imbalance
+DOMAIN_UPDATE_PARAM 0.1      // [0.1]  npart drifted before new domain decomp.
+DOMAIN_IMBAL_CEIL 0.01       // [0.05] desired maximum cost imbalance
 
 #### OUTPUT OPTIONS #### 
 
-OUTPUT_TOTAL_ACCELERATION   // total acceleration ACC
+OUTPUT_TOTAL_ACCELERATION    // total acceleration ACC
 OUTPUT_PARTIAL_ACCELERATIONS // save & output all ACC components
 #OUTPUT_PEANO_KEY            // short peano key of particle "PKEY"
 
 #### CODE UNITS ####
 
-LENGTH2CGS 3.085677581e21   // [1 kpc]
-MASS2CGS 1.989e43      		// [10^10 Msol]
-VELOCITY2CGS 1e5        	// [km/s]
+LENGTH2CGS 3.085677581e21    // [1 kpc]
+MASS2CGS 1.989e43            // [10^10 Msol]
+VELOCITY2CGS 1e5             // [km/s]
 
 #### COSMOLOGY & COMOVING ####
 
-#COMOVING                    // comoving coordinates for cosmo sims
+COMOVING                     // comoving coordinates for cosmo sims
 
-TIME_DISPL_CONSTRAINT 0.25 	// [0.25] max displacement from rms vel @ z>>0
-GADGET_COMOVING_VEL_UNIT	// assume vel~sqrt(a) in ICs and convert to a^2
+TIME_DISPL_CONSTRAINT 0.25   // [0.25] max displacement from rms vel @ z>>0
+GADGET_COMOVING_VEL_UNIT     // assume vel~sqrt(a) in ICs and convert to a^2
 
 HUBBLE_CONST 100.0           // [70] in km/s/Mpc, set 100 for Gadget behaviour
 OMEGA_LAMBDA 0.7
-OMEGA_MATTER 0.3			// was Omega0 in Gadget.
-OMEGA_BARYON 0.0            // assuming H0=100
-OMEGA_RAD 0.0	
+OMEGA_MATTER 0.3             // was Omega0 in Gadget.
+OMEGA_BARYON 0.0             // assuming H0=100
+OMEGA_RAD 0
 
 #### GRAVITY ####
 
-GRAVITY                     // gravitational interaction master switch
-#GRAVITY_POTENTIAL           // compute gravitational potential
+GRAVITY                      // gravitational interaction master switch
+#GRAVITY_POTENTIAL            // compute gravitational potential
 
-#GRAVITY_SIMPLE              // N^2 law, shows grav force errors 
-GRAVITY_TREE                // B&H tree
-#GRAVITY_FMM				// Fast Multipole Method + Dual Tree Traversal
+#GRAVITY_SIMPLE               // N^2 law, shows grav force errors 
+GRAVITY_TREE                 // B&H tree
+#GRAVITY_FMM                  // Fast Multipole Method + Dual Tree Traversal
 
-TREE_OPEN_PARAM_BH 0.2      // [0.2] Barnes & Hut opening criterion parameter
+TREE_OPEN_PARAM_BH 0.2       // [0.2] Barnes & Hut opening criterion parameter
 TREE_OPEN_PARAM_REL 0.01     // [0.005] Relative opening criterion parameter
 
-#OUTPUT_GRAV_POTENTIAL       // gravitational potential GPOT
+#OUTPUT_GRAV_POTENTIAL        // gravitational potential GPOT
 
 #### ALWAYS RECOMMENDED ####
 
-VECTOR_SIZE 8			 	// max number of particles in tree leaf
+VECTOR_SIZE 8                // max number of particles in tree leaf
 
-MEMORY_MANAGER  
+MEMORY_MANAGER               // code allocates memory
 
 #### Friends-of-Friends ####
 

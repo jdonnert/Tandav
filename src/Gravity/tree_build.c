@@ -146,8 +146,8 @@ static void prepare_tree()
 
 		Max_Nodes = TREE_ENLARGEMENT_FACTOR * Max_Nodes;
 		
-		printf("(%d:%d) Increased Tree Memory to %6.1f MB, "
-			"Max %10d Nodes, ratio %4g \n", Task.Rank, Task.Thread_ID, 
+		printf("(%d:%d) Increased tree memory to %6.1f MB, "
+			"max %10d nodes, ratio %4g \n", Task.Rank, Task.Thread_ID, 
 			Max_Nodes * sizeof(*Tree)/1024.0/1024.0, Max_Nodes, 
 			(double) Max_Nodes/Task.Npart_Total); 
 	}

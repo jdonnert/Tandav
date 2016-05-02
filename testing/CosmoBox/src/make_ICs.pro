@@ -53,8 +53,8 @@ pro make_ICs, N, boxsize=boxsize, a_init=a_init, gadget=gadget, showPk=showPk
 
 	displ_grid = displacement_fields(N, Boxsize, Da, showPk=showPk)
 
-	sdev = [stddev(displ_grid[0,*,*,*]), stddev(displ_grid[1,*,*,*]), $
-			stddev(displ_grid[2,*,*,*]) ]
+	sdev_grid = [stddev(displ_grid[0,*,*,*]), stddev(displ_grid[1,*,*,*]), $
+				stddev(displ_grid[2,*,*,*]) ]
 
 	cellsize = boxsize/N
 
@@ -105,7 +105,6 @@ pro make_ICs, N, boxsize=boxsize, a_init=a_init, gadget=gadget, showPk=showPk
 	print, "   mean    = ", mean(displ[0,*]),mean(displ[1,*]),mean(displ[2,*])
 	print, "   std_dev = ", sdev 
 
-
 	head = tandav.make_head()
 	head.npart = [0,1,0,0,0,0] * npart
 	head.massarr = [0,1,0,0,0,0] * total_mass/npart
@@ -139,7 +138,7 @@ pro make_ICs, N, boxsize=boxsize, a_init=a_init, gadget=gadget, showPk=showPk
 	print, "a_init          = "+strn(a_init)
 	print, "z_init          = "+strn(1/a_init-1)
 	print, "Grav Softening  = "+strn(epsilon)
-	print, "linear mode (sigma_box=1) is at "+strn(min_boxsize)+" unit length "
+	print, "last linear mode (sigma_box=1) is at "+strn(min_boxsize)+" kpc"
 
 	return
 end
@@ -186,18 +185,11 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 
 	displ = make_array(3, N, N, N, val=0D)
 	kmag = make_array(N, N, N, val=0D)
-
 	kdata = make_array(3, N, N, N, val=0D, /complex) ; sampled power spectrum in k-space, 
-
 	kvec = make_array(3, val=0D)
 
-	random_numbers = randomn(14041981, 2, 256, 256, 256, /double) ; res. independent
-	bad = where(random_numbers eq 0, cnt)
-	if cnt ne 0 then stop
-	;readcol, "kspace.dat", ax, ii,jj,kk, km, kx,ky,kz, PowSpec, dplus, fac, aa, pp, dd
- 	readcol, 'test', ax, ii,jj,kk, kveca,  km, dd, aa, pp, rl, im
-	run = 0L
-	
+	seed_arr = make_seeds(N, 14041981L) ; resolution independent seed field
+
 	num = machar(/double) ; get a magic number
 	dbl_max = num.xmax
 
@@ -211,94 +203,80 @@ function displacement_fields, N, boxsize, Da, showPk=showPk, fout=fout
 		kmag[*,*,*] = 0D
 
 		for i = 0UL, N-1 do  $
-		for j = 0UL, N-1 do  $
-		for k = 0UL, N/2-1 do begin 
+		for j = 0UL, N-1 do begin
+
+			random_numbers = randomn(seed_arr[i,j], 2, N/2, /double) 
+
+			for k = 0UL, N/2 do begin 
            
-			if (i eq 0) and (j eq 0) and (k eq 0) then $ ;  no DC current
-				continue
+				if (i eq 0) and (j eq 0) and (k eq 0) then $ ;  no DC current
+					continue
 
-			if (i eq N/2) or (j eq N/2) or (k eq N/2) then $
-				continue
+				if (i eq N/2) or (j eq N/2) or (k eq N/2) then $
+					continue
 
-			iconj = N - i  ; enforce Hermitian symmetry
-			if i eq 0 then $ 
-				iconj = 0
+				iconj = N - i  ; conjugated indices
+				if i eq 0 then $ 
+					iconj = 0
 
-			jconj = N - j 
-			if j eq 0 then $ 
-				jconj = 0
+				jconj = N - j 
+				if j eq 0 then $ 
+					jconj = 0
 
-			kconj = N - k 
-			if k eq 0 then $
-				kconj = 0
+				kconj = N - k 
+				if k eq 0 then $
+					kconj = 0
 
-			if i lt N/2. then kvec[0] = i * kmin $ ; k vector at i,j.k
-						 else kvec[0] = -iconj * kmin
-		
-			if j lt N/2. then kvec[1] = j * kmin $
-						 else kvec[1] = -jconj * kmin
+				if i lt N/2. then kvec[0] = i * kmin $ ; k vector at i,j.k
+							 else kvec[0] = -iconj * kmin
+			
+				if j lt N/2. then kvec[1] = j * kmin $
+							 else kvec[1] = -jconj * kmin
 
-			if k lt N/2. then kvec[2] = k * kmin $
-					     else kvec[2] = -kconj * kmin
+				if k lt N/2. then kvec[2] = k * kmin $
+						     else kvec[2] = -kconj * kmin
 	
-			kmag[i,j,k]  = sqrt(kvec[0]^2 + kvec[1]^2 + kvec[2]^2)
+				kmag[i,j,k]  = sqrt(kvec[0]^2D + kvec[1]^2D + kvec[2]^2D)
+				kmag2 =  kmag[i,j,k]^2D
 	
-			if kmag[i,j,k] gt kmax then $ ; Only do a sphere in k space
-				continue    
+				if kmag[i,j,k] gt kmax then $ ; Only do a sphere in k space
+					continue    
 
-			y1 = random_numbers[0, i,j,k] ; not the Box Mueller transform
-			y2 = random_numbers[1, i,j,k]
+				Pk  =  Power_Spectrum_EH(kmag[i,j,k])
 
-;;phase = pp[run]
-;if kk[run] ne k then stop
-;if abs(kveca[run] - kvec[comp]) / kveca[run] gt 0.01 then stop
-;if abs(km[run] - kmag[i,j,k])/km[run] gt 0.001 then stop
+				Delta = sqrt(0.5 * kmin^3 * Pk) / Da ; scale to a, Zeldovich approx.
 
-			Pk  =  Power_Spectrum_EH(kmag[i,j,k])
+				if kdata_rl[i,j,k] eq dbl_max then begin ; not the Box Mueller transform
 
-			Delta = sqrt(0.5 * kmin^3 * Pk) / Da ; scale to a, Zeldovich approx
-;;Delta = dd[run] 
+            	 	kdata_rl[i,j,k] = -kvec[comp] / kmag2 * Delta * random_numbers[0, k]
+	    			kdata_im[i,j,k] = kvec[comp] / kmag2 * Delta * random_numbers[1, k]
+				end
 
-			run++
+				if kdata_rl[iconj,jconj,kconj] eq dbl_max then begin ; Hermetian symmetry !
 
-			if kdata_rl[i,j,k] eq dbl_max then begin ; don't set twice obviously !!
+	   	     		kdata_rl[iconj,jconj,kconj] = kdata_rl[i,j,k] 
+					kdata_im[iconj,jconj,kconj] = -1D * kdata_im[i,j,k]
+				end
 
-            	kdata_rl[i,j,k] = -kvec[comp] / kmag[i,j,k]^2D * Delta * y1 ;; sin(phase)
-	    		kdata_im[i,j,k] = kvec[comp] / kmag[i,j,k]^2D * Delta * y2 ;;cos(phase)
+			end ; for i j k
+		end
 
-	   	     	kdata_rl[iconj,jconj,kconj] = kdata_rl[i,j,k] ; ensure FFT is real !
-				kdata_im[iconj,jconj,kconj] = -1*kdata_im[i,j,k]
-			end
-
-		end ; for i j k
-
-		bad = where(kdata_rl eq dbl_max, cnt)
+		bad = where(kdata_rl eq dbl_max, cnt) ; remove magic number
 		kdata_rl[bad] = 0
 		kdata_im[bad] = 0
 
 		kdata[comp,*,*,*] = Complex(kdata_rl, kdata_im, /double)
 
 		data = reform( FFT(kdata[comp, *,*,*], /inverse, /double) ) 
-
+		
+		; symmetries correct ?
 		bad = where( abs(imaginary(data)) gt 1e-5 * abs(real_part(data)), cnt)
-		if cnt ne 0 then $ ; check if we got the symmetries correct
+		if cnt ne 0 then $ 
 			stop 
 	
 		displ[comp, *,*,*] = real_part(data)
 	end ; comp 
 
-;;readcol, "displ.dat", aaxx, i,j,k,ddis
-
-for i=0, 0 do $
-for j=0, 2 do $
-for k=0, 63 do begin
-
-	idx = i* N*N+ j*N + k
-
-;;print, i,j,k, ddis[idx], displ[0,i,j,k]
-
-end
-;stop
 	if keyword_set(showPk) then begin
 			
 			PK_data = sqrt(kdata[0,*,*,*]^2 + kdata[1,*,*,*]^2 + kdata[2,*,*,*]^2)
@@ -623,6 +601,50 @@ pro constrain_particles_to_box, pos, boxsize
 	return
 end
 
+; Make a plane of seed values so the phases are resolution
+; independent. We are filling 4 quadrants of a plane of seed values,
+; from the edges inwards. 
+; Tip: Compare the way how kmag is generated with this
+
+function make_seeds, N, seed
+
+	seed_arr = make_array(N,N, /ULONG)
+
+	float2ulong = (0UL - 1UL) /2UL ; 0x7fffffff - roll over, shift right
+
+	random_numbers = ULONG(float2ulong * randomu(seed, N^3))
+	run = 0UL
+
+	for i = 0, N/2 do begin
+		
+		for j = 0, i-1 do $
+			seed_arr[i, j] = random_numbers[run++] ; bottom left
+		
+		for j = 0, i do $
+			seed_arr[j, i] = random_numbers[run++]
+		
+		for j = 0, i-1 do $
+			seed_arr[N - 1 - i, j] = random_numbers[run++] ; bottom right
+
+		for j = 0, i do $
+			seed_arr[N - 1 - j, i] = random_numbers[run++]
+
+		for j = 0, i-1 do $
+			seed_arr[i, N - 1 - j] = random_numbers[run++] ; top left
+
+		for j = 0, i do $
+			seed_arr[j, N - 1 - i] = random_numbers[run++]
+
+		for j = 0, i-1 do $
+			seed_arr[N - 1 - i, N - 1 - j] = random_numbers[run++] ; top right
+
+		for j = 0, i do $
+			seed_arr[N - 1 - j, N - 1 - i] = random_numbers[run++]
+	end
+
+	return, reform(seed_arr, N, N)
+end
+
 pro test_distribution
 	
 	common globals, gadget, tandav, cosmo
@@ -636,7 +658,7 @@ pro test_distribution
 	print, mean(velIDL[0,*]), mean(velIDL[1,*]), mean(velIDL[2,*])
 	print, stddev(velIDL[0,*]), stddev(velIDL[1,*]), stddev(velIDL[2,*])
 
-	fNG = 'IC_Cosmo_Box'
+	fNG = 'IC_Cosmo_Box_IDL_128'
 	print, fNG, " green"
 	velNG = tandav.readsnap(fng, "VEL", head=headNG)
 

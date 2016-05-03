@@ -165,8 +165,6 @@ void Ewald_Potential(const double dr[3], Float p[1])
 		   weights[4] * Fp[i+1][j][k] + weights[5] * Fp[i+1][j][k+1] +
 		   weights[6] * Fp[i+1][j+1][k] + weights[7] * Fp[i+1][j+1][k+1];
 
-
-
 	return ;
 }
 #endif // GRAVITY_POTENTIAL

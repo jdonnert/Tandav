@@ -30,17 +30,27 @@
 #define MASTER 0L			// Global master MPI task
 
 #ifdef DOUBLE_PRECISION
+
 typedef double Float;		// type of floating point variables in P
 #define MPI_MYFLOAT MPI_DOUBLE // corresponding MPI communication type macro
+#define SQRT sqrt			// type aware square root function for speed
+
 #else
+
 typedef float Float;
 #define MPI_MYFLOAT MPI_FLOAT
+#define SQRT sqrtf
+
 #endif // DOUBLEPRECISION
 
 #ifdef LONG_IDS
+
 typedef uint64_t ID_t;		// type of particle ID
+
 #else
+
 typedef uint32_t ID_t;		
+
 #endif
 
 typedef uint32_t intime_t;		// type of integer time 

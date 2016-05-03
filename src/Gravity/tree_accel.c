@@ -20,8 +20,8 @@ static void check_total_momentum(const bool show_change);
 
 /*
  * We do not walk referencing particles, but copy the required particle data
- * into a Send buffer "Send". The results are written into a sink buffer "Recv".
- * This also makes communication easier.
+ * into a Send buffer "Send". The results are written into a sink buffer 
+ * "Recv". 
  * These buffers interact with all local topnodes, either with the node 
  * directly, or with the particles it contains (small top node). Or, walk 
  * the tree and estimate gravitational acceleration using two different
@@ -362,41 +362,37 @@ static void gravity_tree_walk_BH(const int tree_start)
 
 /*
  * Gravitational force law using Dehnens K1 softening kernel with central 
- * value corresponding to Plummer softening.
+ * value corresponding to Plummer softening of potential : 
+ * h_K1 = -41.0/32.0 * eps_plummer;
  */
 
 static void interact(const Float mass, const Float dr[3], const Float r2)
 {
-	const Float epsilon = 105.0/32.0 * Param.Grav_Softening[1]; // Plummer eqiv
+	Float fac = Const.Gravity * mass;
+	Float fac_pot = Const.Gravity * mass;
 
-	Float r_inv = 1/sqrtf(r2);
-	Float r = 1/r_inv;
+	if (r2 < Epsilon2[1]) { 
 
-#ifdef GRAVITY_POTENTIAL
-	Float r_inv_pot = r_inv;
-#endif
+		Float u2 = r2 / Epsilon2[1];
 
-	if (r < epsilon) { 
+		fac *= (175 - u2 * (294 - u2 * 135)) / (16*Epsilon2[1]*Epsilon[1]) ;
 
-		Float u = r/epsilon;
-		Float u2 = u*u;
+		fac_pot *= (u2 * (175 - (u2 * 147  - u2 * 45)) - 105)/(32*Epsilon[1]);
 
-		r_inv = sqrtf(u * (135*u2*u2 - 294*u2 + 175))/(4*epsilon) ;
+	} else {
 
-#ifdef GRAVITY_POTENTIAL
-		r_inv_pot = (7*u2 - 21*u2*u2 + 28*u3*u2 - 15*u3*u3 + u3*u3*u*8 - 3) 
-					/ epsilon;
-#endif
+		Float r_inv = 1/SQRT(r2);
+
+		fac *= r_inv * r_inv * r_inv;
+		fac_pot *= r_inv;
 	}
 
-	Float acc_mag = Const.Gravity * mass * p2(r_inv);
-
-	Recv.Grav_Acc[0] += acc_mag * dr[0] * r_inv;
-	Recv.Grav_Acc[1] += acc_mag * dr[1] * r_inv;
-	Recv.Grav_Acc[2] += acc_mag * dr[2] * r_inv;
+	Recv.Grav_Acc[0] += fac * dr[0];
+	Recv.Grav_Acc[1] += fac * dr[1];
+	Recv.Grav_Acc[2] += fac * dr[2];
 
 #ifdef GRAVITY_POTENTIAL
-	Recv.Grav_Potential += Const.Gravity * mass * r_inv_pot;
+	Recv.Grav_Potential += fac_pot;
 #endif
 
 	Recv.Cost += 1;

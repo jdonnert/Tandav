@@ -209,7 +209,10 @@ void Init_Memory_Management()
 			maxNbytes, maxNbytes/1024/1024, minNbytes,
 			minNbytes/1024/1024, Mem_Size, Mem_Size/1024/1024);
 
+printf("before \n");
+
 	int fail = posix_memalign(&Memory, MEM_ALIGNMENT, Mem_Size);
+printf("after \n");
 
 	Assert(!fail, "Couldn't allocate Memory. MaxMemSize %d too large ?",
 			Param.Max_Mem_Size);

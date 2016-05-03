@@ -25,6 +25,8 @@ extern struct Tree_Node {
 	Float Dp[3];		// Velocity of Center of Mass
 } * restrict Tree;
 
+double Epsilon[NPARTYPE], Epsilon2[NPARTYPE]; // grav. softening
+
 #else
 
 inline void Setup_Gravity_Tree() {}; 

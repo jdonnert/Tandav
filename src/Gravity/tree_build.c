@@ -137,6 +137,12 @@ void Setup_Gravity_Tree()
 
 	buf_threshold = Task.Buffer_Size/sizeof(*Tree);
 
+	for (int i = 0; i < NPARTYPE; i++) { // Plummer eqiv. softening
+	
+		Epsilon[i] = -41.0/32.0 * Param.Grav_Softening[i]; // for Dehnen K1
+		Epsilon2[i] = Epsilon[i] * Epsilon[i];
+	}
+
 	return ;
 }
 

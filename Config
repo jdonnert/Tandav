@@ -4,7 +4,7 @@
 #DOMAIN_DEBUG                 // print topnodes and distribution
 #TREE_DEBUG                   // print node distribution 
 
-PERIODIC                     // periodic boundary conditions
+#PERIODIC                     // periodic boundary conditions
 
 DOMAIN_UPDATE_PARAM 0.1      // [0.1]  npart drifted before new domain decomp.
 DOMAIN_IMBAL_CEIL 0.01       // [0.05] desired maximum cost imbalance
@@ -23,7 +23,7 @@ VELOCITY2CGS 1e5             // [km/s]
 
 #### COSMOLOGY & COMOVING ####
 
-COMOVING                     // comoving coordinates for cosmo sims
+#COMOVING                     // comoving coordinates for cosmo sims
 
 TIME_DISPL_CONSTRAINT 0.25   // [0.25] max displacement from rms vel @ z>>0
 GADGET_COMOVING_VEL_UNIT     // assume vel~sqrt(a) in ICs and convert to a^2

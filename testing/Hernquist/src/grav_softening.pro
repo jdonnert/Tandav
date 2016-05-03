@@ -13,9 +13,7 @@ pro softening
 
 	eps = 1.85D
 
-	;h = 3/eps ; for Wendland W2 
-
-	h = eps * 105/32D
+	h = eps * (-105D)/32D
 
 	kernel = make_array(N, /double, val=0)
 	force = make_array(N, /double, val=0)
@@ -23,7 +21,6 @@ pro softening
 	
 	for i = 0,N-1 do begin
 
-		;kernel[i] = WC2(r[i], h)
 		kernel[i] = K1(r[i], eps)
 
 		force[i] = force_K1(1,1,r[i], eps)
@@ -63,7 +60,7 @@ function force_K1, M0, M1, r, h
 	if u gt 1 then $
 		return,  grav_const * M0 * M1 / r^2
 
-	rinv2 = r * (135*u^4 - 294*u^2 + 175D)/16D/h^3 
+	rinv2 = u * (135*u^4 - 294*u^2 + 175D)/16D/h^2 
 
 	return,  grav_const * M0 * M1 * rinv2
 	

@@ -29,7 +29,7 @@ static const parameter ParDef[] = {
 	{"BufferSize", "32", &Param.Buffer_Size, PAR_INT}, // in MB all threads
 	{"PartAllocFactor", "1.1", &Param.Part_Alloc_Factor, PAR_DOUBLE},
 	{"TimeLimitCPU", "20864", &Param.Runtime_Limit, PAR_DOUBLE},
-	{"GravSoftening", "10", &Param.Grav_Softening[1], PAR_DOUBLE}, // Plummer equiv.
+	{"GravSoftening", "10", &Param.Grav_Softening[1], PAR_DOUBLE}, // Plummer
 
 	{"\n%% Simulation Characteristics %%\n", "", NULL, PAR_COMMENT},
 	{"Boxsize0", "-1", &Sim.Boxsize[0], PAR_DOUBLE},

@@ -141,6 +141,7 @@ void Setup_Gravity_Tree()
 	
 		Epsilon[i] = -41.0/32.0 * Param.Grav_Softening[i]; // for Dehnen K1
 		Epsilon2[i] = Epsilon[i] * Epsilon[i];
+		Epsilon3[i] = Epsilon[i] * Epsilon[i] * Epsilon[i];
 	}
 
 	return ;

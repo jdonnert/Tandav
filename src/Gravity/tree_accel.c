@@ -375,13 +375,13 @@ static void interact(const Float mass, const Float dr[3], const Float r2)
 
 		Float u2 = r2 / Epsilon2[1];
 
-		fac *= (175 - u2 * (294 - u2 * 135)) / (16*Epsilon2[1]*Epsilon[1]) ;
+		fac *= (175 - u2 * (294 - u2 * 135)) / (16*Epsilon3[1]) ;
 
 		fac_pot *= (u2 * (175 - (u2 * 147  - u2 * 45)) - 105)/(32*Epsilon[1]);
 
 	} else {
 
-		Float r_inv = 1/SQRT(r2);
+		Float r_inv = 1/SQRT(r2); // tempt the compiler to use rsqrtss
 
 		fac *= r_inv * r_inv * r_inv;
 		fac_pot *= r_inv;

@@ -24,10 +24,10 @@
  * Unexposed Code Parameters
  */
 
-#define CHARBUFSIZE 256L	// Maximum No. of bytes in every char buffer
+#define CHARBUFSIZE 512L	// Maximum No. of bytes in every char buffer
 #define NPARTYPE 6L			// No of particle types
 #define MEM_ALIGNMENT 64L	// byte memory alignment
-#define MASTER 0L			// Global master MPI task
+#define MASTER 0L			// Global master MPI task for printing
 
 #ifdef DOUBLE_PRECISION
 
@@ -41,7 +41,7 @@ typedef float Float;
 #define MPI_MYFLOAT MPI_FLOAT
 #define SQRT sqrtf
 
-#endif // DOUBLEPRECISION
+#endif // ! DOUBLEPRECISION
 
 #ifdef LONG_IDS
 
@@ -51,9 +51,10 @@ typedef uint64_t ID_t;		// type of particle ID
 
 typedef uint32_t ID_t;		
 
-#endif
+#endif // ! LONG_IDS
 
 typedef uint32_t intime_t;		// type of integer time 
+
 typedef uint64_t shortKey;		// short peanokey, 64 bit = 21 triplets/levels
 typedef __uint128_t peanoKey; 	// long peanokey, 128 bit = 42 triplets/levels
 

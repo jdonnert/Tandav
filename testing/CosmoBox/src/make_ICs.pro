@@ -4,30 +4,35 @@
 ; Algorithm : adapted from N-GenIC, Springel 2006
 ;
 ; N: Npart^(1/3)
-; [gadget]: use legacy gadget units in velocity and hbpar=1
-; [showPk]: plot P(k) from sampled data and analytic formula
 ; [boxsize]: if not set explicitely, choose the minimal boxsize based
 ;            on resolution and the constrain of linear modes at z=0.
 
-pro make_ICs, N, boxsize=boxsize, a_init=a_init, gadget=gadget, showPk=showPk
+pro make_ICs, N, boxsize, a_init=a_init, gadget=gadget, showPk=showPk, fout=fout
 
 	common parameters, tandav,  hbpar,  Omega_M, Omega_L, Tcmb
 
+	if not keyword_set(N) then begin
+
+		print, "USAGE:"
+		print, "	make_ICs, N, boxsize, a_init=a_init, gadget=gadget, showPk=showPk"
+		print, "    N       - resolution, i.e. npart = N^3"
+		print, "    a_init - initial scale factor"
+		print, "    gadget - gadget legacy mode: H0=100, vel~1/sqrt(a_init)"
+		print, "    showPk - show matter power spectrum from the kgrid."
+		print, "    fout - name of the IC file in gadget format 2"
+		print, "returning"
+
+		return
+	end
+
 	tandav = obj_new('TANDAVCODEOBJECT')
-	
+
 	Mpc2cm = 3.0856802d24 
+		
+	boxsize = double(boxsize)
 
-	if not keyword_set(N) then $
-		N = 64UL $
-	else $
-		N = ulong64(N)
-
+	N = ulong64(N)
 	npart = N^3
-
-	if not keyword_set(boxsize) then $
-		boxsize = 150000D $
-	else $
-		boxsize = double(boxsize)
 
 	prim_idx = 1D  ; index of primordial power spectrum
 	sigma8 = 0.8D  ; normalisation of P(k) at 8 Mpc
@@ -72,7 +77,7 @@ pro make_ICs, N, boxsize=boxsize, a_init=a_init, gadget=gadget, showPk=showPk
 	f0 = ( Omega_M / a_init^3D / g(a_init)^2D)^(0.6D)  ; EH98, eq. 28
 	displ2vel = a_init * g(a_init) * H0 * f0; EH99, eq. 29
 	
-	vel2comov = 1D ; tandav comoving vel ~ 1/a^2
+	vel2comov = 1D/a_init^2 ; tandav comoving vel ~ 1/a^2
 
 	if keyword_set(gadget) then $
 		vel2comov = 1D/sqrt(a_init)  ; Gadget comoving vel ~ 1/sqrt(a)
@@ -646,8 +651,9 @@ function make_seeds, N, seed
 end
 
 pro test_distribution
-	
-	common globals, gadget, tandav, cosmo
+
+	tandav = obj_new('TANDAVCODEOBJECT')
+
 
 	fIDL = 'IC_Cosmo_Box_IDL_64'
 	print, fIDL, " black"

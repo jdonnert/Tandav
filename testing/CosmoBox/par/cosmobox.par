@@ -8,7 +8,7 @@ NumOutputFiles	1
 LogFileDir		./log/
 
 %% Code Parameters %%
-MaxMemSize		4000
+MaxMemSize		6000
 TimeLimitCPU	20864 
 BufferSize		256
 PartAllocFactor 1.05

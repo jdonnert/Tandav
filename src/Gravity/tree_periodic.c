@@ -206,17 +206,16 @@ static void gravity_tree_walk_ewald(const int tree_start)
 
 		Float node_size = Node_Size(node); // now check opening criteria
 
-		if (node_mass*node_size*node_size > r2*r2 * fac) 
-			want_open_node = true;
-
 		Float ds[3] = { Tree[node].Pos[0]- Send.Pos[0],
 						Tree[node].Pos[1]- Send.Pos[1],
 						Tree[node].Pos[2]- Send.Pos[2] };	
 
-		if (fabs(ds[0]) < 0.6 * node_size)  // particle inside node ?
-			if (fabs(ds[1]) < 0.6 * node_size) 
-				if (fabs(ds[2]) < 0.6 * node_size) 
-					want_open_node = true;
+		if (node_mass*node_size*node_size > r2*r2 * fac) 
+			want_open_node = true;
+		else if (fabs(ds[0]) < 0.6 * node_size)  // particle inside node ?
+				if (fabs(ds[1]) < 0.6 * node_size) 
+					if (fabs(ds[2]) < 0.6 * node_size) 
+						want_open_node = true;
 
 		Periodic_Nearest(ds);
 
@@ -310,17 +309,16 @@ static void gravity_tree_walk_ewald_BH(const int tree_start)
 
 		Float node_size = Node_Size(node); // now check opening criteria
 
-		if (node_size*node_size > r2 * p2(TREE_OPEN_PARAM_BH)) 
-			want_open_node = true;
-
 		Float ds[3] = { Tree[node].Pos[0]- Send.Pos[0],
 						Tree[node].Pos[1]- Send.Pos[1],
 						Tree[node].Pos[2]- Send.Pos[2] };	
 
-		if (fabs(ds[0]) < 0.6 * node_size)  // particle inside node ?
-			if (fabs(ds[1]) < 0.6 * node_size) 
-				if (fabs(ds[2]) < 0.6 * node_size) 
-					want_open_node = true;
+		if (node_size*node_size > r2 * p2(TREE_OPEN_PARAM_BH)) 
+			want_open_node = true;
+		else if (fabs(ds[0]) < 0.6 * node_size)  // particle inside node ?
+				if (fabs(ds[1]) < 0.6 * node_size) 
+					if (fabs(ds[2]) < 0.6 * node_size) 
+						want_open_node = true;
 
 		Periodic_Nearest(ds);
 

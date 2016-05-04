@@ -216,6 +216,14 @@ void Init_Memory_Management()
 
 	NBytes_Left = Mem_Size;
 
+	int64_t N_int = Mem_Size / sizeof(int);
+
+	int *init = (int *) Memory;
+
+	#pragma omp parallel for
+	for (int64_t i = 0; i < N_int; i++)
+		init[i] = 0;
+
 #endif // MEMORY_MANAGER
 
 	return;

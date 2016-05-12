@@ -128,12 +128,12 @@ void Profile_Report(FILE *stream)
 	} 
 
 	fprintf(stream, "\nProfiler: All sections, total runtime of %g %s\n"
-		"                Name       Total   Relat.        Max       "
-		"Min       Mean      Waiting\n", runtime, t_unit);
+		"                Name       Total              Max       "
+		"Min       Mean       Imbalance\n", runtime, t_unit);
 
 	for (int i = 0; i < NProfObjs; i++ )
 		fprintf(stream, 
-				"%20s    %8.3f   %4.1f %%   %8.3f  %8.3f  %8.3f   %8.3f\n",
+				"%20s    %8.3f (%4.1f%%)   %8.3f  %8.3f  %8.3f   %8.3f\n",
 				Prof[i].Name, Prof[i].Total/scale, 
 				Prof[i].Total/runtime*100, Prof[i].Max/scale, 
 				Prof[i].Min/scale, Prof[i].Mean/scale, 

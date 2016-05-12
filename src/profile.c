@@ -24,8 +24,6 @@ static double measure_time();
 
 void Init_Profiler()
 {
-	Profile("Simulation");
-
 	Last_Report_Call = measure_time();
 
 	return ;
@@ -33,8 +31,6 @@ void Init_Profiler()
 
 void Finish_Profiler()
 {
-	Profile("Simulation");
-
 	Profile_Report(stdout);
 
 	return ;
@@ -119,31 +115,31 @@ void Profile_Report(FILE *stream)
 	if (! Task.Is_MPI_Master) 
 		goto skip; 
 
-	const double runtime = Runtime();
+	double runtime = Runtime();
 
 	double scale = 1; // sec
+	char t_unit[CHARBUFSIZE] = { "sec" };
 
-	if (runtime > 1) { // switch to minutes ?
+	if (runtime > 60) { // switch to minutes ?
 
 		scale *= 60;
+	
+		sprintf(t_unit,"min ");
+	} 
 
-		fprintf(stream, "\nProfiler: All sections, total runtime of %g min\n"
-		"                Name       Total    Imbalance         Max      "
-		"Mean       Min      Imbal\n", runtime);
-
-	} else { 
-
-		fprintf(stream, "\nProfiler: All sections, total runtime of %g sec\n"
-		"                Name       Total    Imbalance         Max      "
-		"Mean       Min      Waiting\n", runtime*60);
-	}
+	fprintf(stream, "\nProfiler: All sections, total runtime of %g %s\n"
+		"                Name       Total   Relat.        Max       "
+		"Min       Mean      Waiting\n", runtime, t_unit);
 
 	for (int i = 0; i < NProfObjs; i++ )
 		fprintf(stream, 
-				"%20s    %8.3f   %8.3f      %8.3f  %8.3f  %8.3f   %8.3f%%\n",
-				Prof[i].Name, Prof[i].Total/scale, Prof[i].Imbalance/scale, 
-				Prof[i].Max/scale, Prof[i].Min/scale, Prof[i].Mean/scale, 
-				Prof[i].Imbalance/Prof[i].Total / 100.0);
+				"%20s    %8.3f   %4.1f %%   %8.3f  %8.3f  %8.3f   %8.3f\n",
+				Prof[i].Name, Prof[i].Total/scale, 
+				Prof[i].Total/runtime*100, Prof[i].Max/scale, 
+				Prof[i].Min/scale, Prof[i].Mean/scale, 
+				Prof[i].Imbalance/scale);
+
+	
 
 	skip:;
 
@@ -222,7 +218,7 @@ double Runtime()
 {
 	double now = measure_time();
 
-	return (now - Prof[0].Tbeg) / 60; // in minutes
+	return (now - Prof[0].Tbeg) ; // in sec
 }
 
 static inline int find_index_from_name(const char *name)

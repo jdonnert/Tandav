@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
 
 		if (Time_For_Snapshot()) {
 
-	//		Drift_To_Snaptime();
+			//Drift_To_Snaptime();
 
 			Write_Snapshot();
 		}
@@ -78,8 +78,9 @@ int main(int argc, char *argv[])
 /* 
  * Here we do OpenMP and MPI init. 
  * We are using full thread parallelism, i.e. every thread is an MPI rank and
- * takes part in the MPI communication. Hence, every thread needs to have an 
- * unique ID: Task.ID, MPI rank: Task.Rank and a thread ID: Task.Thread_ID.
+ * takes part in the MPI communication. Hence, every thread needs to have a 
+ * unique ID: Task.ID and an MPI rank: Task.Rank and a 
+ * thread ID: Task.Thread_ID.
  * There is a global MPI master with Task.Is_MPI_Master == true, used only for
  * printing messages. On every MPI rank there is a main thread on which 
  * Task.Is_Thread_Main == true. 

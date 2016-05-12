@@ -26,7 +26,7 @@ static gsl_interp_accel *Acc[4] = { NULL };
  * These functions get the kick & drift factors of the symplectic integrator
  * in comoving coordinates from a spline interpolation of the integral in
  * Appendix of Quinn+ 1997. This allows us to use a short table resulting in
- * relative errors < 1e-4, which is the same as the numerical integrator 
+ * relative errors < 1e-4, which is the same as what the numerical integrator 
  * gives. These functions are thread safe.
  */
 
@@ -45,10 +45,6 @@ double Particle_Drift_Step(const int ipart, const intime_t it_curr, const intime
 {
 	double a_curr = Integer_Time2Integration_Time(it_curr);
 	double a_next = Integer_Time2Integration_Time(it_next);
-
-	if (a_next > Time.End)
-printf("CRASH %d %u %g %u %g %d %d \n", 
-ipart, it_curr, a_curr, it_next, a_next, P.Time_Bin[ipart], NActive_Particles);
 
 	double drift_factor_beg = gsl_spline_eval(Drift_Spline, a_curr, Acc[2]);
 	double drift_factor_end = gsl_spline_eval(Drift_Spline, a_next, Acc[3]);

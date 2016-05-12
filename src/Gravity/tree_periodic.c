@@ -6,6 +6,8 @@
 
 #if defined(GRAVITY_TREE) && defined (PERIODIC)
 
+static struct Walk_Data_Particle copy_send_from(const int ipart);
+static void add_recv_to(const int ipart);
 static bool interact_with_topnode(const int);
 static void interact_with_topnode_particles(const int j);
 static void gravity_tree_walk_ewald(const int tree_start);
@@ -22,37 +24,96 @@ static struct Walk_Data_Particle Send = { 0 };
 static struct Walk_Data_Result Recv = { 0 };
 #pragma omp threadprivate(Send,Recv)
 
-void Gravity_Tree_Periodic(const struct Walk_Data_Particle send_in, 
-							struct Walk_Data_Result *recv_in)
+void Gravity_Tree_Periodic()
 {
-	memcpy(&Send, &send_in, sizeof(send_in));
-	memcpy(&Recv, recv_in, sizeof(*recv_in));
+	Profile("Grav Tree Periodic");
 
-	for (int j = 0; j < NTop_Nodes; j++) {
+	#pragma omp for schedule(dynamic)
+	for (int i = 0; i < NActive_Particles; i++) {
 
-			if (interact_with_topnode(j))
-				continue;
+		int ipart = Active_Particle_List[i];
 
-			if (D[j].TNode.Npart <= VECTOR_SIZE) { // open top leave
+		memset(&Send, 0, sizeof(Send));
+		memset(&Recv, 0, sizeof(Recv));
 
-				interact_with_topnode_particles(j);
+		Send = copy_send_from(ipart);
 
-				continue;
-			}
+		for (int j = 0; j < NTop_Nodes; j++) {
+
+				if (interact_with_topnode(j))
+					continue;
+
+				//if (D[j].TNode.Target < 0) { // not local ?
+				//
+				//	export_particle_to_rank(ipart, -target-1);	
+				//
+				//	continue;
+				//}
+
+				if (D[j].TNode.Npart <= VECTOR_SIZE) { // open top leave
+
+					interact_with_topnode_particles(j);
+
+					continue;
+				}
 			
-		int tree_start = D[j].TNode.Target;
+			int tree_start = D[j].TNode.Target;
 
-		if (Sig.Use_BH_Criterion)  // use BH criterion
-			gravity_tree_walk_ewald_BH(tree_start);
-		else
-			gravity_tree_walk_ewald(tree_start);
+			if (Sig.Use_BH_Criterion)  // use BH criterion
+				gravity_tree_walk_ewald_BH(tree_start);
+			else
+				gravity_tree_walk_ewald(tree_start);
 
-	} // for j
+		} // for j
 
-	memcpy(recv_in, &Recv, sizeof(Recv));
-	
+		add_recv_to(ipart);
+
+	} // for i
+
+	Profile("Grav Tree Periodic");
+
 	return ;
 }
+
+static struct Walk_Data_Particle copy_send_from(const int ipart)
+{
+	struct Walk_Data_Particle Send = { 0 };
+
+	Send.ID = P.ID[ipart];
+
+	Send.Pos[0] = P.Pos[0][ipart];
+	Send.Pos[1] = P.Pos[1][ipart];
+	Send.Pos[2] = P.Pos[2][ipart];
+	
+	Send.Acc = P.Last_Acc_Mag[ipart];
+
+	Send.Mass = P.Mass[ipart];
+
+	return Send;
+}
+
+static void add_recv_to(const int ipart)
+{
+	P.Acc[0][ipart] += Recv.Grav_Acc[0];
+	P.Acc[1][ipart] += Recv.Grav_Acc[1];
+	P.Acc[2][ipart] += Recv.Grav_Acc[2];
+
+#ifdef OUTPUT_PARTIAL_ACCELERATIONS
+	P.Grav_Acc[0][ipart] += Recv.Grav_Acc[0];
+	P.Grav_Acc[1][ipart] += Recv.Grav_Acc[1];
+	P.Grav_Acc[2][ipart] += Recv.Grav_Acc[2];
+#endif
+
+#ifdef GRAVITY_POTENTIAL
+	P.Grav_Pot[ipart] += Recv.Grav_Potential;
+#endif
+
+	P.Cost[ipart] += Recv.Cost;
+
+	return ;
+}
+
+
 
 static bool interact_with_topnode (const int j)
 {
@@ -120,6 +181,7 @@ static bool interact_with_topnode (const int j)
 
 	return true;
 }
+
 
 /*
  * Top nodes with less than 8 particles point not to the tree but to P as 

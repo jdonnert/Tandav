@@ -33,13 +33,11 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node);
 #endif // GRAVITY && GRAVITY_TREE
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE) && defined(PERIODIC)
-void Gravity_Tree_Periodic(const struct Walk_Data_Particle,
-								struct Walk_Data_Result *);
+void Gravity_Tree_Periodic();
 void Tree_Periodic_Nearest(Float dr[3]);
 
 #else
 
-inline void Gravity_Tree_Periodic(const struct Walk_Data_Particle Send,
-								struct Walk_Data_Result *Recv) {};
+inline void Gravity_Tree_Periodic() {};
 inline void Tree_Periodic_Nearest(Float dr[3]) {};
 #endif // GRAVITY && GRAVITY_TREE && PERIODIC

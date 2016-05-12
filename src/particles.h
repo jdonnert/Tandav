@@ -32,6 +32,7 @@ static const struct Field_Def P_Fields[] = {
 #endif	
 #ifdef GRAVITY_TREE
 	,{"Tree_Parent",	P_SIZEOF(Tree_Parent),		1}
+	,{"Last_Acc_Mag",	P_SIZEOF(Last_Acc_Mag),	1}
 #endif
 	// Add yours here !
 };

@@ -14,11 +14,11 @@ struct Simulation_Signals Sig;
 bool Time_Is_Up()
 {
 	if (Sig.Endrun)
-		rprintf("Encountered Signal: Endrun, t=%g", Time.Current);
+		rprintf("\nEncountered Signal: Endrun, t=%g\n\n", Time.Current);
 
 	if (test_for_stop_file()) {
 
-		rprintf("Found stop file t=%g\n", Time.Current);
+		rprintf("\nFound stop file t=%g\n\n", Time.Current);
 
 		Sig.Write_Restart_File = true;
 
@@ -27,14 +27,14 @@ bool Time_Is_Up()
 
 	if (Int_Time.Current == Int_Time.End) {
 
-		rprintf("\nEndTime reached: %g \n", Time.End);
+		rprintf("\nEndTime reached: %g \n\n", Time.End);
 
 		Sig.Endrun = true;
 	}
 
 	if (Runtime() >= Param.Runtime_Limit) {
 
-		rprintf("Runtime limit reached: t=%g at %g min\n",
+		rprintf("\nRuntime limit reached: t=%g at %g min\n\n",
 				Time.Current, Param.Runtime_Limit/60);
 
 		Sig.Write_Restart_File = true;

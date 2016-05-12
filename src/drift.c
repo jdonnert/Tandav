@@ -14,7 +14,7 @@ void Drift_To_Sync_Point()
 {
 	Profile("Drift");
 
-	#pragma omp single //for
+	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];

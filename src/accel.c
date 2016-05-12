@@ -18,15 +18,11 @@ static void zero_active_particle_accelerations();
 
 void Compute_Acceleration()
 {
-	Profile("Accelerations");
-
 	zero_active_particle_accelerations(); // !GRAVITY
 
 	accel_gravity(); // GRAVITY
 
 	// accel_hydro();
-
-	Profile("Accelerations");
 
 	return ;
 }
@@ -54,15 +50,11 @@ static void gravity_accel_tree()
 
 static void accel_gravity()
 {
-	Profile("Gravity");
-
 	gravity_accel_tree(); // GRAVITY_TREE
 	
 	//gravity_accel_fmm(); // GRAVITY_FMM
 	
 	Gravity_Simple_Accel(); // GRAVITY_SIMPLE, performs force test
-
-	Profile("Gravity");
 
 	return ;
 }

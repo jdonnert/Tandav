@@ -87,6 +87,7 @@ extern struct Particle_Data {
 	Float * restrict Acc[3];
 	Float * restrict Mass;
 	Float * restrict Grav_Acc[3];
+	Float * restrict Last_Acc_Mag;		// Magnitude of Last Acc for tree force
 #ifdef GRAVITY_POTENTIAL
 	Float * restrict Grav_Pot;
 #endif

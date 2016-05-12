@@ -51,6 +51,10 @@ void Gravity_Tree_Acceleration()
 
 		Send = copy_send_from(ipart);
 
+		P.Last_Acc_Mag[ipart] = sqrt( p2(P.Acc[0][ipart]) 
+									+ p2(P.Acc[1][ipart]) 
+									+ p2(P.Acc[2][ipart]));
+
 		P.Acc[0][ipart] = P.Acc[1][ipart] = P.Acc[2][ipart] = 0;
 
 		for (int j = 0; j < NTop_Nodes; j++) {
@@ -81,17 +85,17 @@ void Gravity_Tree_Acceleration()
 
 		} // for j
 	
-		Gravity_Tree_Periodic(Send, &Recv); // PERIODIC
-
 		add_recv_to(ipart);
 
 	} // for i
 
+	Profile("Grav Tree Walk");
+
+	Gravity_Tree_Periodic(); // PERIODIC , add Ewald correction
+
 	rprintf(" done \n");
 
 	check_total_momentum(true);
-
-	Profile("Grav Tree Walk");
 
 	return ;
 }

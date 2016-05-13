@@ -2,42 +2,52 @@
 
 #ifdef PERIODIC
 
-Float Boxsize = 0, Boxhalf = 0;
+static Float Boxhalf[3] = { 0 };
 
 void Init_Periodic()
 {
-	Boxsize = Sim.Boxsize[2] = Sim.Boxsize[1] = Sim.Boxsize[0];
-	Boxhalf = Boxsize/2.0;
+#ifndef PERIODIC_NO_CUBE
 	
-	rprintf("Periodic Boxsize = %g, Boxhalf = %g \n\n", Boxsize, Boxhalf);
+	Boxhalf[0] = Boxhalf[1] = Boxhalf[2] = Boxsize/2.0;
+
+	rprintf("Periodic Boxsize = %g, Boxhalf = %g \n\n", 
+			Sim.Boxsize[0], Boxhalf[0]);
+#else
+	
+	Boxhalf[0] = Sim.Boxsize[0];
+	Boxhalf[1] = Sim.Boxsize[1];
+	Boxhalf[2] = Sim.Boxsize[2];
+	
+	rprintf("Periodic Boxsizes = %g %g %g \n\n", Sim.Boxsize[0], 
+			Sim.Boxsize[1],Sim.Boxsize[2]);
+
+#endif // PERIODIC_NO_CUBE
 
 	return ;
 }
 
 void Periodic_Constrain_Particles_To_Box()
 {
-	const Float boxsize[3] = {Sim.Boxsize[0], Sim.Boxsize[1], Sim.Boxsize[2]};
-
 	#pragma omp for 
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 
 		while (P.Pos[0][ipart] < 0)
-			P.Pos[0][ipart] += boxsize[0];
+			P.Pos[0][ipart] += Sim.Boxsize[0];
 
-		while (P.Pos[0][ipart] >= boxsize[0])
-			P.Pos[0][ipart] -= boxsize[0];
+		while (P.Pos[0][ipart] >= Sim.Boxsize[0])
+			P.Pos[0][ipart] -= Sim.Boxsize[0];
 
 		while (P.Pos[1][ipart] < 0)
-			P.Pos[1][ipart] += boxsize[1];
+			P.Pos[1][ipart] += Sim.Boxsize[1];
 
-		while (P.Pos[1][ipart] >= boxsize[1])
-			P.Pos[1][ipart] -= boxsize[1];
+		while (P.Pos[1][ipart] >= Sim.Boxsize[1])
+			P.Pos[1][ipart] -= Sim.Boxsize[1];
 
 		while (P.Pos[2][ipart] < 0)
-			P.Pos[2][ipart] += boxsize[2];
+			P.Pos[2][ipart] += Sim.Boxsize[2];
 
-		while (P.Pos[2][ipart] >= boxsize[2])
-			P.Pos[2][ipart] -= boxsize[2];
+		while (P.Pos[2][ipart] >= Sim.Boxsize[2])
+			P.Pos[2][ipart] -= Sim.Boxsize[2];
 	} // for i
 
 	return ;
@@ -50,20 +60,20 @@ void Periodic_Constrain_Particles_To_Box()
 
 void Periodic_Nearest(Float dr[3])
 {
-	if (dr[0] > Boxhalf)
-		dr[0] -= Boxsize;
-	else if (dr[0] < -Boxhalf)
-		dr[0] += Boxsize;
+	if (dr[0] > Boxhalf[0])
+		dr[0] -= Sim.Boxsize[0];
+	else if (dr[0] < -Boxhalf[0])
+		dr[0] += SimBoxsize[0];
 
-	if (dr[1] > Boxhalf)
-		dr[1] -= Boxsize;
-	else if (dr[1] < -Boxhalf)
-		dr[1] += Boxsize;
+	if (dr[1] > Boxhalf[1])
+		dr[1] -= Sim.Boxsize[1];
+	else if (dr[1] < -Boxhalf[1])
+		dr[1] += SimBoxsize[1];
 
-	if (dr[2] > Boxhalf)
-		dr[2] -= Boxsize;
-	else if (dr[2] < -Boxhalf)
-		dr[2] += Boxsize;
+	if (dr[2] > Boxhalf[2])
+		dr[2] -= Sim.Boxsize[2];
+	else if (dr[2] < -Boxhalf[2])
+		dr[2] += SimBoxsize[2];
 
 	return ;
 }

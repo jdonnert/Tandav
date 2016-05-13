@@ -5,8 +5,9 @@
 #TREE_DEBUG                   // print node distribution 
 
 PERIODIC                     // periodic boundary conditions
+#PERIODIC_NO_CUBE			 // use a periodic box that is not a cube
 
-DOMAIN_UPDATE_PARAM 0.1      // [0.1]  npart drifted before new domain decomp.
+DOMAIN_UPDATE_PARAM 0.1      // [0.1] npart drifted before new domain decomp.
 DOMAIN_IMBAL_CEIL 0.05       // [0.05] desired maximum cost imbalance
 
 #### OUTPUT OPTIONS #### 

@@ -123,6 +123,8 @@ void Profile_Report(FILE *stream)
 	if (runtime > 60) { // switch to minutes ?
 
 		scale *= 60;
+
+		runtime /= scale;
 	
 		sprintf(t_unit,"min ");
 	} 
@@ -135,7 +137,7 @@ void Profile_Report(FILE *stream)
 		fprintf(stream, 
 				"%20s    %8.3f (%4.1f%%)   %8.3f  %8.3f  %8.3f   %8.3f\n",
 				Prof[i].Name, Prof[i].Total/scale, 
-				Prof[i].Total/runtime*100, Prof[i].Max/scale, 
+				Prof[i].Total/scale/runtime*100, Prof[i].Max/scale, 
 				Prof[i].Min/scale, Prof[i].Mean/scale, 
 				Prof[i].Imbalance/scale);
 

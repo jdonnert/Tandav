@@ -113,8 +113,6 @@ static void add_recv_to(const int ipart)
 	return ;
 }
 
-
-
 static bool interact_with_topnode (const int j)
 {
 	const Float node_size = Domain.Size / (1UL << D[j].TNode.Level);

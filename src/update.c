@@ -19,7 +19,7 @@ void Update(enum Update_Parameters stage)
 
 	case BEFORE_MAIN_LOOP:
 
-		Sig.First_Step = true;
+		Sig.Prepare_Step = true;
 
 		Set_Current_Cosmology(Time.Current); // COMOVING
 
@@ -34,6 +34,10 @@ void Update(enum Update_Parameters stage)
 		if (Time_For_Snapshot())
 			Write_Snapshot();
 
+		Sig.Prepare_Step = false;
+
+		Sig.First_Step = true;
+		
 		break;
 
 	case BEFORE_STEP:

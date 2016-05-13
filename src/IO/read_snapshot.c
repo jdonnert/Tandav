@@ -360,8 +360,16 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 		Sim.Npart_Total += Sim.Npart[i];
 	}
 
+	Assert(head.Boxsize >= 0, "Boxsize in header not > 0, but %g", Sim.Boxsize);
+
 #ifdef PERIODIC
-	Assert(Sim.Boxsize >= 0, "Boxsize in header not > 0, but %g", Sim.Boxsize);
+	if (Sim.Boxsize[0] == -1) {
+
+		Sim.Boxsize[0] = Sim.Boxsize[1] = Sim.Boxsize[2] = head.Boxsize;
+
+		printf("Setting boxsize from snapshot header: %g \n\n",Sim.Boxsize[0]);
+	}
+
 #endif	
 
 	size_t sum = 0;
@@ -369,10 +377,13 @@ static void read_header_data(FILE *fp, const bool swap_Endian, int nFiles)
 	for (int i = 0; i < NPARTYPE; i++)
 		sum += Sim.Npart[i];
 
-	printf("Total Particle Numbers (Masses) in Snapshot Header:	\n"
-		"   Gas   %9llu (%g), DM   %9llu (%g), Disk %9llu (%g)\n"
-		"   Bulge %9llu (%g), Star %9llu (%g), Bndy %9llu (%g)\n"
+	printf("Snapshot Header:"
+		" %d Files, Boxsize of %g at time %g \n\n"
+		"Total Particle Numbers (Masses):	\n"
+		"   Gas   %9llu (%5.2g), DM   %9llu (%5.2g), Disk %9llu (%5.2g)\n"
+		"   Bulge %9llu (%5.2g), Star %9llu (%5.2g), Bndy %9llu (%5.2g)\n"
 		"   Sum %10zu \n",
+		head.Num_Files, head.Boxsize, head.Time,
 		(long long unsigned int) Sim.Npart[0], Sim.Mpart[0], 
 		(long long unsigned int) Sim.Npart[1], Sim.Mpart[1], 
 		(long long unsigned int) Sim.Npart[2], Sim.Mpart[2], 

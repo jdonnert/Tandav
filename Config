@@ -7,13 +7,13 @@
 PERIODIC                     // periodic boundary conditions
 
 DOMAIN_UPDATE_PARAM 0.1      // [0.1]  npart drifted before new domain decomp.
-DOMAIN_IMBAL_CEIL 0.01       // [0.05] desired maximum cost imbalance
+DOMAIN_IMBAL_CEIL 0.05       // [0.05] desired maximum cost imbalance
 
 #### OUTPUT OPTIONS #### 
 
 OUTPUT_TOTAL_ACCELERATION    // total acceleration ACC
 OUTPUT_PARTIAL_ACCELERATIONS // save & output all ACC components
-#OUTPUT_PEANO_KEY            // short peano key of particle "PKEY"
+#OUTPUT_PEANO_KEY             // short peano key of particle "PKEY"
 
 #### CODE UNITS ####
 
@@ -39,12 +39,12 @@ OMEGA_RAD 0
 GRAVITY                      // gravitational interaction master switch
 #GRAVITY_POTENTIAL            // compute gravitational potential
 
-#GRAVITY_SIMPLE               // N^2 law, shows grav force errors 
+GRAVITY_FORCETEST            // N^2 law, shows grav force errors 
 GRAVITY_TREE                 // B&H tree
 #GRAVITY_FMM                  // Fast Multipole Method + Dual Tree Traversal
 
-TREE_OPEN_PARAM_BH 0.2       // [0.2] Barnes & Hut opening criterion parameter
-TREE_OPEN_PARAM_REL 0.01     // [0.005] Relative opening criterion parameter
+TREE_OPEN_PARAM_BH 0.1       // [0.1] Barnes & Hut opening criterion param
+TREE_OPEN_PARAM_REL 0.02     // [0.02] Relative opening criterion param
 
 #OUTPUT_GRAV_POTENTIAL        // gravitational potential GPOT
 

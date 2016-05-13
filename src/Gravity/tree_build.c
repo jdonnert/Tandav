@@ -53,7 +53,7 @@ static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *Buffer
 
 void Gravity_Tree_Build()
 {
-	Profile("Build Gravity Tree");
+	Profile("Grav Tree Build");
 
 	#pragma omp single
 	NNodes = 0;
@@ -122,7 +122,7 @@ void Gravity_Tree_Build()
 
 	Sig.Tree_Update = false;
 
-	Profile("Build Gravity Tree");
+	Profile("Grav Tree Build");
 	
 	return ;
 }

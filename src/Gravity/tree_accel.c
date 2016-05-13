@@ -35,7 +35,7 @@ static struct Walk_Data_Result Recv = { 0 };
 
 void Gravity_Tree_Acceleration()
 {
-	Profile("Grav Tree Walk");
+	Profile("Grav Tree Accel");
 
 	rprintf("Tree acceleration ");
 
@@ -49,11 +49,12 @@ void Gravity_Tree_Acceleration()
 		memset(&Send, 0, sizeof(Send));
 		memset(&Recv, 0, sizeof(Recv));
 
-		Send = copy_send_from(ipart);
 
 		P.Last_Acc_Mag[ipart] = sqrt( p2(P.Acc[0][ipart]) 
 									+ p2(P.Acc[1][ipart]) 
 									+ p2(P.Acc[2][ipart]));
+
+		Send = copy_send_from(ipart);
 
 		P.Acc[0][ipart] = P.Acc[1][ipart] = P.Acc[2][ipart] = 0;
 
@@ -89,7 +90,7 @@ void Gravity_Tree_Acceleration()
 
 	} // for i
 
-	Profile("Grav Tree Walk");
+	Profile("Grav Tree Accel");
 
 	Gravity_Tree_Periodic(); // PERIODIC , add Ewald correction
 
@@ -110,8 +111,7 @@ static struct Walk_Data_Particle copy_send_from(const int ipart)
 	Send.Pos[1] = P.Pos[1][ipart];
 	Send.Pos[2] = P.Pos[2][ipart];
 	
-	Send.Acc = sqrt(p2(P.Acc[0][ipart]) + p2(P.Acc[1][ipart]) 
-				   + p2(P.Acc[2][ipart]));
+	Send.Acc = P.Last_Acc_Mag[ipart];
 
 	Send.Mass = P.Mass[ipart];
 

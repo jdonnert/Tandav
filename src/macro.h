@@ -1,4 +1,4 @@
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0])) // works only for non-allocatables
 #define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
 
 #define MIN(a,b) ((a)<(b)?(a):(b)) // this doesnt always work: c = MAX(a++, b)
@@ -7,9 +7,7 @@
 #define p2(a) ((a)*(a))
 #define p3(a) ((a)*(a)*(a))
 
-#define rprintf(...) if (Task.Is_Master) printf(__VA_ARGS__) // ease printf
-#define mprintf(...) if (Task.Is_MPI_Master) printf(__VA_ARGS__)
-#define oprintf(...) if (Task.Is_Thread_Main) printf(__VA_ARGS__)
+#define rprintf(...) if (Task.Is_Master) printf(__VA_ARGS__) // printf on master only
 
 /*
  * Check for some compile time errors

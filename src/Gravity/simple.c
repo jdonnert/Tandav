@@ -1,32 +1,36 @@
 #include "../globals.h"
 
-#ifdef GRAVITY_SIMPLE 
+#ifdef GRAVITY_FORCETEST
 
 #include "gravity.h"
 #include "gravity_periodic.h"
 
-//static const double H = GRAV_SOFTENING / 3.0; // Plummer equivalent softening
-static const Float H = 105/32 * GRAV_SOFTENING; // Plummer equiv softening
+#define NTEST 10
 
+//static const Float H = 105/32 * GRAV_SOFTENING; // Plummer equiv softening
+
+static Float H = 0;
 
 static double Mean_Error = 0, Max_Error = 0;
 static int Worst_Part = -1;
 
+static double xacc_i = 0, yacc_i = 0, zacc_i = 0, pot_i = 0;
+static int idx[NTEST] = { 0 };
+
 /*
  * This computes the gravitational interaction via direct summation and shows
- * the relative error resp. the old force. Note that the max relative error 
+ * the relative error resp. the old force. Note that the total relative error 
  * can become large if one component of the force is close to 0 without 
- * consequence.
- * Check to the total force to make sure this is not the case. Make sure the
- * mean rel. error in computations with many particles is a few percent if all
- * particles are kicked !
+ * consequence. We check NTEST particles only.
  */
 
 void Gravity_Simple_Accel()
 {
 	Profile("Gravity_Simple");
 
-	rprintf("Direct Gravity, get a coffee ... \n");
+	rprintf("Direct Gravity, N = %d \n"
+			"      ID          Errors                 Tree Accel.         "
+			"             Direct Accel. \n", NTEST);
 
 	#pragma omp single
 	{
@@ -35,36 +39,36 @@ void Gravity_Simple_Accel()
 
 	Worst_Part = -1;
 
+	H = -41.0/32.0 * Param.Grav_Softening[1];
+
 	} // omp single
 
-	int cnt = 0;
+	
+	#pragma omp single
+	for (int i = 0; i < NTEST; i++) 
+		idx[i] = erand48(Task.Seed) * NActive_Particles;		
 
-	#pragma omp for simd reduction(+:Mean_Error)
-	for (int i = 0; i < NActive_Particles; i++) {
+	for (int i = 0; i < NTEST; i++) {
 
-		int ipart = Active_Particle_List[i];
+		int ipart = Active_Particle_List[idx[i]];
 
-		if (P.ID[ipart] > 10)
-			continue;
+		const double acc_old[3] = { P.Acc[0][ipart], 
+									P.Acc[1][ipart], 
+									P.Acc[2][ipart] };
 
-		cnt++;
+		const double pos_i[3] = { P.Pos[0][ipart], 
+								  P.Pos[1][ipart], 
+								  P.Pos[2][ipart] };
 
-		const double acc[3] = { P.Acc[0][ipart], P.Acc[1][ipart], 
-			P.Acc[2][ipart] };
-		const double pos_i[3] = { P.Pos[0][ipart], P.Pos[1][ipart], 
-			P.Pos[2][ipart] };
+		#pragma omp single 
+		xacc_i = yacc_i = zacc_i = pot_i = 0;
 
-		double acc_i[3] = { 0 }; 
-
-#ifdef GRAVITY_POTENTIAL
-		P.Grav_Pot[ipart] = 0;
-#endif
-
+		#pragma omp for reduction(+:xacc_i,yacc_i,zacc_i,pot_i)
 		for (int jpart = 0; jpart < Sim.Npart_Total; jpart++) {
 
-			Float dr[3] = {P.Pos[0][jpart] - pos_i[0],
+			Float dr[3] = { P.Pos[0][jpart] - pos_i[0],
 							P.Pos[1][jpart] - pos_i[1],
-							P.Pos[2][jpart] - pos_i[2]};
+							P.Pos[2][jpart] - pos_i[2] };
 
 			Periodic_Nearest(dr); // PERIODIC 
 
@@ -72,31 +76,38 @@ void Gravity_Simple_Accel()
 
 			if (r2 > 0) {
 
-				double r = sqrt(r2);
-				double rinv = 1/r;
+				Float fac = Const.Gravity * P.Mass[jpart];
+				Float fac_pot = Const.Gravity * P.Mass[jpart];
+
+				if (r2 < Epsilon2[1]) { 
+
+					Float u2 = r2 / Epsilon2[1];
 	
-				if (r < H) {
+					fac *= (175 - u2 * (294 - u2 * 135)) / (16*Epsilon3[1]) ;
 
-					double u = r/H;
-					double u2 = u*u;
+					fac_pot *= (u2 * (175 - (u2 * 147  - u2 * 45)) - 105)
+								/(32*Epsilon[1]);
 
-					rinv = sqrt(u * (135*u2*u2 - 294*u2 + 175))/(4*H) ;
+				} else {
+
+					Float r_inv = 1/SQRT(r2); // tempt the compiler for rsqrts
+
+					fac *= r_inv * r_inv * r_inv;
+					fac_pot *= r_inv;
 				}
 
-				double acc_mag = Const.Gravity * P.Mass[jpart] * p2(rinv);
-			
-				acc_i[0] += acc_mag * dr[0] * rinv;
-				acc_i[1] += acc_mag * dr[1] * rinv;
-				acc_i[2] += acc_mag * dr[2] * rinv;
+				xacc_i += fac * dr[0];
+				yacc_i += fac * dr[1];
+				zacc_i += fac * dr[2];
 
 #ifdef PERIODIC
 				Float result[3] = { 0 };
-
+	
 				Ewald_Correction(dr, &result[0]);
 
-				acc_i[0] += Const.Gravity * P.Mass[jpart] * result[0];
-				acc_i[1] += Const.Gravity * P.Mass[jpart] * result[1];
-				acc_i[2] += Const.Gravity * P.Mass[jpart] * result[2];
+				xacc_i += Const.Gravity * P.Mass[jpart] * result[0];
+				yacc_i += Const.Gravity * P.Mass[jpart] * result[1];
+				zacc_i += Const.Gravity * P.Mass[jpart] * result[2];
 
 #endif // PERIODIC
 
@@ -110,7 +121,7 @@ void Gravity_Simple_Accel()
 					rinv = (7*u2-21*u2*u2+28*u3*u2-15*u3*u3+u3*u3*u*8-3)/H;
 				}
 
-				P.Grav_Pot[ipart] += Const.Gravity * P.Mass[jpart] *rinv;
+				pot_i += Const.Gravity * P.Mass[jpart] *rinv;
 #endif
 
 #if defined (GRAVITY_POTENTIAL) && defined(PERIODIC)
@@ -118,52 +129,51 @@ void Gravity_Simple_Accel()
 
 				Ewald_Potential(dr, &pot_corr); // PERIODIC
 
-				P.Grav_Pot[ipart] += Const.Gravity * P.Mass[jpart] * pot_corr;
+				pot_i += Const.Gravity * P.Mass[jpart] * pot_corr;
 #endif 
 
 			} // r2 > 0
 		} // for jpart
 
-		P.Acc[0][ipart] = acc_i[0];
-		P.Acc[1][ipart] = acc_i[1];
-		P.Acc[2][ipart] = acc_i[2];
-
-		double error[3] = { (acc[0] - acc_i[0]) / acc_i[0],
-							(acc[1] - acc_i[1]) / acc_i[1],
-							(acc[2] - acc_i[2]) / acc_i[2] };
-
-		double errorl = ALENGTH3(error);
-
-		Mean_Error += errorl;
-
-		#pragma omp critical
+		#pragma omp single
 		{
 
-		if (errorl > Max_Error) {
+		double error[3] = { (acc_old[0] - xacc_i) / xacc_i,
+							(acc_old[1] - yacc_i) / yacc_i,
+							(acc_old[2] - zacc_i) / zacc_i };
 
-			Max_Error = ALENGTH3(error);
+		double error1 = sqrt( p2(error[0]) + p2(error[1]) + p2(error[2]));
+	
+		double acc = sqrt( p2(xacc_i) + p2(yacc_i) + p2(zacc_i) );
+		double acc2 = sqrt( p2(acc_old[0]) + p2(acc_old[1]) + p2(acc_old[2]) );
+
+		double error2 = (acc2 - acc) /acc;
+
+		Mean_Error += error2;
+
+		if (error2 > Max_Error) {
+
+			Max_Error = error2;
 			Worst_Part = ipart;
 		}
 
-		} // omp critical
+		printf("   %9d  %05.4f %+05.4f   %+09.3f %+09.3f %+09.3f	"
+				"%+09.3f %+09.3f %+09.3f\n",
+				P.ID[ipart], error1, error2, acc_old[0], acc_old[1], 
+				acc_old[2],	xacc_i, yacc_i, zacc_i);
 
-		printf("  ipart=%d ID=%d pos=%g %g %g err=%g tree acc=%g %g %g "
-				"dir acc=%g %g %g \n",
-				ipart, P.ID[ipart], P.Pos[0][ipart], P.Pos[1][ipart],
-				P.Pos[2][ipart], errorl, acc[0], acc[1], acc[2],
-				P.Acc[0][ipart], P.Acc[1][ipart], P.Acc[2][ipart] );
-
+		} // omp single
 	} // for ipart
 
 	rprintf("done\n");
 
 	rprintf("\nForce test: NActive %d, max error %g @ %d, mean error %g \n\n",
 			NActive_Particles, Max_Error, Worst_Part,
-			Mean_Error/cnt);
+			Mean_Error/NTEST);
 
 	Profile("Gravity_Simple");
 
 	return ;
 }
 
-#endif // GRAVITY_SIMPLE
+#endif // GRAVITY_FORCETEST

@@ -29,8 +29,6 @@ void Read_and_Init(int argc, char *argv[])
 
 	Init_Constants();
 
-	Init_Periodic(); // PERIODIC
-
 	Init_Cosmology(); // COMOVING
 
 	/* Add yours above */
@@ -70,8 +68,10 @@ void Read_and_Init(int argc, char *argv[])
 		break;
 	}
 
+	Init_Periodic(); // PERIODIC
+
 	#pragma omp parallel
-	Periodic_Constrain_Particles_To_Box();
+	Periodic_Constrain_Particles_To_Box(); // PERIODIC
 		
 	Gravity_Periodic_Init();
 

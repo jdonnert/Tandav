@@ -1,9 +1,9 @@
 
-#if defined(GRAVITY) && defined(GRAVITY_SIMPLE)
+#if defined(GRAVITY) && defined(GRAVITY_FORCETEST)
 void Gravity_Simple_Accel();
 #else
 inline void Gravity_Simple_Accel() {};
-#endif // GRAVITY && GRAVITY_SIMPLE
+#endif // GRAVITY && GRAVITY_FORCETEST
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE)
 

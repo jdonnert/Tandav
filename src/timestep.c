@@ -37,7 +37,7 @@ void Set_New_Timesteps()
 {
 	Profile("Timesteps");
 
-	if (Sig.Sync_Point || Sig.First_Step)
+	if (Sig.Sync_Point || Sig.Prepare_Step)
 		set_global_timestep_constraint(); // set t_max_global
 
 	set_new_particle_timebins();

@@ -42,13 +42,13 @@ int main(int argc, char *argv[])
 
 		if (Time_For_Snapshot()) {
 
-			//Drift_To_Snaptime();
+			Drift_To_Snaptime();
 
 			Write_Snapshot();
 		}
 
 		Drift_To_Sync_Point();
-
+		
 		Update(BEFORE_DOMAIN);
 
 		if (Time_For_Domain_Update())

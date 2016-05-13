@@ -16,7 +16,7 @@ PartAllocFactor 1.05
 %% Simulation Characteristics %%
 TimeBegin		0.01562
 TimeEnd			1
-TimeOfFirstSnaphot		0.01562
+TimeOfFirstSnaphot		0.0157
 TimeBetSnapshots		0.01
 
 GravSoftening  330

@@ -11,12 +11,12 @@
 static int max_active_time_bin();
 static void set_new_particle_timebins();
 static void set_system_timestep();
-static int timestep2timebin(const double dt);
 static void print_timebins();
 
 static void set_global_timestep_constraint();
 static float get_physical_timestep(const int);
 static float cosmological_timestep(const int ipart, const Float accel);
+static int timestep2timebin(const double dt);
 
 struct TimeData Time = { 0 };
 struct IntegerTimeLine Int_Time = { 0 };
@@ -37,7 +37,7 @@ void Set_New_Timesteps()
 {
 	Profile("Timesteps");
 
-	if (Sig.Sync_Point || Sig.Prepare_Step)
+	if (Sig.Sync_Point || Sig.Prepare_Step || Sig.First_Step)
 		set_global_timestep_constraint(); // set t_max_global
 
 	set_new_particle_timebins();

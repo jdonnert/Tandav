@@ -3,7 +3,11 @@
 #include "gravity.h"
 #include "gravity_periodic.h"
 
-#if defined(GRAVITY) && defined (PERIODIC)
+#if defined(GRAVITY) && defined(PERIODIC)
+
+#ifdef PERIODIC_NO_CUBE
+#error Cannot run with GRAVITY and PERIODIC_NO_CUBE
+#endif
 
 #define N_EWALD 64 // Hernquist+ 1991
 
@@ -17,7 +21,7 @@ static double compute_ewald_potential(const double r[3]);
 const static double Alpha = 2.0; // Hernquist+ 1991 (2.13)
 const static char fname[CHARBUFSIZE] = { "./ewald_tables.dat" };
 
-static double Box2Ewald_Grid = 0;
+static double Boxsize = 0, Boxhalf = 0, Box2Ewald_Grid = 0;
 
 static Float Fx[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
 static Float Fy[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
@@ -167,6 +171,7 @@ void Ewald_Potential(const double dr[3], Float p[1])
 
 	return ;
 }
+
 #endif // GRAVITY_POTENTIAL
 
 /*
@@ -178,12 +183,6 @@ void Ewald_Potential(const double dr[3], Float p[1])
 void Gravity_Periodic_Init()
 {
 	rprintf("Init Ewald correction ");
-
-	Warn((Sim.Boxsize[0] != Sim.Boxsize[1])
-		&& (Sim.Boxsize[0] != Sim.Boxsize[2]),
-		 "Periodic Gravity requires cubic boxes.\n"
-		 "                Setting global Boxsize %g",
-		 Sim.Boxsize[0]);
 
 	Boxsize = Sim.Boxsize[1] = Sim.Boxsize[2] = Sim.Boxsize[0];
 

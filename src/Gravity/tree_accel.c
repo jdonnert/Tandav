@@ -69,7 +69,7 @@ void Gravity_Tree_Acceleration()
 			//
 			//	continue;
 			//}
-
+ 
 			if (D[j].TNode.Npart <= VECTOR_SIZE) { // open top leave
 
 				interact_with_topnode_particles(j);

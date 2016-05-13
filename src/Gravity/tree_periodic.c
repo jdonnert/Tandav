@@ -161,16 +161,16 @@ static bool interact_with_topnode (const int j)
 
 	if (want_open_node) { // check if we really have to open
 
-			if (fabs(dr[0]) > 0.5 * (Boxsize - node_size))
+			if (fabs(dr[0]) > 0.5 * (Sim.Boxsize[0] - node_size))
 				return false;
 
-			if (fabs(dr[1]) > 0.5 * (Boxsize - node_size))
+			if (fabs(dr[1]) > 0.5 * (Sim.Boxsize[0] - node_size))
 				return false;
 
-			if (fabs(dr[2]) > 0.5 * (Boxsize - node_size))
+			if (fabs(dr[2]) > 0.5 * (Sim.Boxsize[0] - node_size))
 				return false;
 
-			if (node_size > 0.2 * Boxsize)
+			if (node_size > 0.2 * Sim.Boxsize[0])
 				return false;
 
 	} // if want_open_node
@@ -281,7 +281,7 @@ static void gravity_tree_walk_ewald(const int tree_start)
 
 		if (want_open_node) { // check if we really have to open
 
-			double dl = 0.5 * (Boxsize - node_size);
+			double dl = 0.5 * (Sim.Boxsize[0] - node_size);
 
 			if (fabs(ds[0]) > dl) {
 
@@ -304,7 +304,7 @@ static void gravity_tree_walk_ewald(const int tree_start)
 				continue;
 			}
 
-			if (node_size > 0.2 * Boxsize) { // too large
+			if (node_size > 0.2 * Sim.Boxsize[0]) { // too large
 
 				node++;
 
@@ -384,7 +384,7 @@ static void gravity_tree_walk_ewald_BH(const int tree_start)
 
 		if (want_open_node) { // check if we really have to open
 
-			double dl = 0.5 * (Boxsize - node_size);
+			double dl = 0.5 * (Sim.Boxsize[0] - node_size);
 
 			if (fabs(ds[0]) > dl) {
 
@@ -407,7 +407,7 @@ static void gravity_tree_walk_ewald_BH(const int tree_start)
 				continue;
 			}
 
-			if (node_size > 0.2 * Boxsize) { // too large
+			if (node_size > 0.2 * Sim.Boxsize[0]) { // too large
 
 				node++;
 

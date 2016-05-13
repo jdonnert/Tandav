@@ -1,5 +1,5 @@
 # 
-# Code parameters (#define) are in 'Config' file
+# Code parameters (#define) are in 'Config' file.
 # 
 # The Makefile uses all .c and .h files in ./src and its subdirs 
 # for compilation automatically. No need to edit this file if you add 
@@ -11,16 +11,19 @@
 # in ~/.bashrc :
 #
 #	TANDAV_CC is the compiler, usually mpicc
+#
 # 	TANDAV_CFLAGS are the compilation flags, including optimization. Make sure 
 # 		to enable c99, openmp, all warnings and debugging symbols. With this
-# 		code you REALLY want inter-file-optimization.
+# 		code you REALLY want inter-file-optimization & vectorization.
+# 	
 # 	TANDAV_LDFLAGS are the libraries to link in (-lX) and their dirs 
 # 		(-L/home/jdonnert/Libs/lib). Most notably here is MPI. 
 # 		GSL libraries are linked atomatically.
-# 	TANDAV_CPPFLAGS are the include directories (-I/home/jdonnert/Libs/include).
+# 	
+# 	TANDAV_CPPFLAGS are the include directories (-I/home/username/include)
 #
-# If your LD_LIBRARY_PATH and CPPFLAGS variables are set correctly, you dont 
-# have to change TANDAV_LDFLAGS and TANDAV_CPPFLAGS much.
+# If your LD_LIBRARY_PATH and CPPFLAGS variables are set correctly, you might 
+# not have to change TANDAV_LDFLAGS and TANDAV_CPPFLAGS at all.
 #
 # Examples: 
 #
@@ -48,24 +51,23 @@
 # 	export TANDAV_LDFLAGS="-L/home/users/n17421/Libs/lib"
 # 	export TANDAV_CPPFLAGS="-I/home/users/n17421/Libs/include"
 
-
-SHELL = /bin/bash 			# This should always be present in a Makefile
-
-CC 	 	= $(TANDAV_CC) #  -opt-report=5 -opt-report-phase=vec
-CFLAGS 	= $(TANDAV_CFLAGS) $(TANDAV_CPPFLAGS) 
-LIBS 	= -lm -lgsl -lgslcblas $(TANDAV_LDFLAGS)
+SHELL = /bin/bash 	# This should always be present in a Makefile
 
 EXEC = Tandav
 
+CC 	 	= $(TANDAV_CC)
+CFLAGS 	= $(TANDAV_CFLAGS) $(TANDAV_CPPFLAGS)
+LIBS 	= -lm -lgsl -lgslcblas $(TANDAV_LDFLAGS)
+
 SRCDIR = src
 
-SRCFILES := ${shell find $(SRCDIR) -name \*.c -print}
+SRCFILES := ${shell find $(SRCDIR) -name \*.c -print} # all .c files in SRCDIR
 
 ifeq (,$(wildcard $(SRCDIR)/print_settings.c)) # add if missing
 SRCFILES += $(SRCDIR)/print_settings.c 
 endif
 
-INCLFILES := ${shell find src -name \*.h -print}
+INCLFILES := ${shell find src -name \*.h -print} # all .h files in SRCDIR
 INCLFILES += Config Makefile $(SRCDIR)/config.h
 
 OBJFILES = $(SRCFILES:.c=.o)
@@ -76,7 +78,7 @@ OBJFILES = $(SRCFILES:.c=.o)
 	@echo [CC] $@
 	@$(CC) $(CFLAGS)  -o $@ -c $<
 
-$(EXEC)	: settings $(OBJFILES)
+$(EXEC)	: $(OBJFILES) | settings
 	$(CC) -g $(CFLAGS) $(OBJFILES) $(LIBS) -o $(EXEC)
 	@ctags -w $(SRCFILES) $(INCLFILES)
 

@@ -8,11 +8,12 @@ void Init_Periodic()
 {
 #ifndef PERIODIC_NO_CUBE
 	
-	Boxhalf[0] = Boxhalf[1] = Boxhalf[2] = Boxsize/2.0;
+	Boxhalf[0] = Boxhalf[1] = Boxhalf[2] = Sim.Boxsize[0]/2.0;
 
 	rprintf("Periodic Boxsize = %g, Boxhalf = %g \n\n", 
 			Sim.Boxsize[0], Boxhalf[0]);
-#else
+
+#else // PERIODIC_NO_CUBE
 	
 	Boxhalf[0] = Sim.Boxsize[0];
 	Boxhalf[1] = Sim.Boxsize[1];
@@ -63,17 +64,17 @@ void Periodic_Nearest(Float dr[3])
 	if (dr[0] > Boxhalf[0])
 		dr[0] -= Sim.Boxsize[0];
 	else if (dr[0] < -Boxhalf[0])
-		dr[0] += SimBoxsize[0];
+		dr[0] += Sim.Boxsize[0];
 
 	if (dr[1] > Boxhalf[1])
 		dr[1] -= Sim.Boxsize[1];
 	else if (dr[1] < -Boxhalf[1])
-		dr[1] += SimBoxsize[1];
+		dr[1] += Sim.Boxsize[1];
 
 	if (dr[2] > Boxhalf[2])
 		dr[2] -= Sim.Boxsize[2];
 	else if (dr[2] < -Boxhalf[2])
-		dr[2] += SimBoxsize[2];
+		dr[2] += Sim.Boxsize[2];
 
 	return ;
 }

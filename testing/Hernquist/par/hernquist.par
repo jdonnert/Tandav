@@ -11,7 +11,7 @@ LogFileDir		./log/
 %% Code Parameters %%
 MaxMemSize		4096
 TimeLimitCPU	20864 
-BufferSize		512
+BufferSize		256
 
 %% Simulation Characteristics %%
 Boxsize			100000.0

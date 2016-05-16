@@ -21,6 +21,14 @@ struct Walk_Data_Result { 	// stores exported summation results
 #endif
 };
 
+struct Leaf_Data {
+	int * restrict First;
+	int * restrict N;
+	peanoKey * restrict Key;
+} Leafs;
+
+int NLeafs;
+
 int Level(const int node); // bitfield functions
 
 enum Tree_Bitfield { LOCAL=9, TOP=10, UPDATED=11 }; // offset by one

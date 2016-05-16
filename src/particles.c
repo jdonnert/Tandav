@@ -8,7 +8,6 @@
  */
 
 #include "globals.h"
-#include "particles.h"
 
 size_t sizeof_P = 0; 
 const int NP_Fields = ARRAY_SIZE(P_Fields);

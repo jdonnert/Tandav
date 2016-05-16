@@ -1,5 +1,4 @@
 #include "globals.h"
-#include "particles.h"
 
 /*
  * Show bits of an unsigned integer in triplets, 'delta' controls the dot 
@@ -44,14 +43,17 @@ void Print_Int_Bits128 (const __uint128_t val)
 }
 
 
-/* Error Handling, we use variable arguments to be able
- * to print more informative error messages */
+/* 
+ * Error Handling, we use variable arguments to print informative messages 
+ */
 
 void Assert_Info(const char *func, const char *file, int line,
 		int64_t expr, const char *errmsg, ...)
 {
 	if (expr != 0)
         return;
+
+	Print_Memory_Usage();
 
 	va_list varArgList;
 

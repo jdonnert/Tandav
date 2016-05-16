@@ -1,5 +1,4 @@
 #include "globals.h"
-#include "particles.h"
 #include "IO/io.h"
 #include "Gravity/gravity.h"
 #include "Gravity/gravity_periodic.h"

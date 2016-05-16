@@ -82,6 +82,7 @@ double erand48(unsigned short xsubi[3]);
  * Global module headers  
  */
 
+#include "particles.h"		// particle management    
 #include "macro.h"			// macro definitions
 #include "unit.h"			// unit functions
 #include "constants.h"		// physical constants

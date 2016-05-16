@@ -12,6 +12,7 @@
 #define NODES_PER_PARTICLE 0.6
 #define TREE_ENLARGEMENT_FACTOR 1.2
 
+static void find_leafs();
 static void prepare_tree();
 static bool tree_memory_is_full(const int );
 static int reserve_tree_memory(const int);
@@ -32,6 +33,7 @@ size_t buf_threshold = 0;
 uint32_t NNodes = 0;
 static int Max_Nodes = 0;
 struct Tree_Node  * restrict Tree = NULL; // global pointer to all nodes
+struct Leaf_Data Leafs = { NULL }; 
 static omp_lock_t Tree_Lock; // lock global *Tree, NNodes, Max_Nodes
 
 static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *Buffer
@@ -57,6 +59,8 @@ void Gravity_Tree_Build()
 
 	#pragma omp single
 	NNodes = 0;
+
+	find_leafs();
 
 	for (;;) {
 
@@ -135,6 +139,13 @@ void Setup_Gravity_Tree()
 			
 	Tree = Malloc(Max_Nodes * sizeof(*Tree), "Tree");
 
+	Leafs.First = Malloc(Task.Npart_Total_Max*sizeof(*Leafs.First),
+			"Leafs.First");
+	Leafs.N = Malloc(Task.Npart_Total_Max*sizeof(*Leafs.N), 
+			"Leafs.N");
+	Leafs.Key = Malloc(Task.Npart_Total_Max*sizeof(*Leafs.Key), 
+			"Leafs.N");
+
 	buf_threshold = Task.Buffer_Size/sizeof(*Tree);
 
 	for (int i = 0; i < NPARTYPE; i++) { // Plummer eqiv. softening
@@ -143,6 +154,111 @@ void Setup_Gravity_Tree()
 		Epsilon2[i] = Epsilon[i] * Epsilon[i];
 		Epsilon3[i] = Epsilon[i] * Epsilon[i] * Epsilon[i];
 	}
+
+	return ;
+}
+
+/*
+ * We find all leafs in local topnodes using the PH keys. This is basically
+ * a tree walk on the bit level ! VECTOR_LENGTH sets the max number of 
+ * particles in a leaf. Hence we find the smallest level, at which a tree
+ * node will contain this many particles.
+ * */
+
+static void find_leafs()
+{
+	int *first_leafs = Get_Thread_Safe_Buffer(Task.Npart_Total_Max);
+
+	#pragma omp single // for schedule(static,1) nowait
+	for (int i = 1; i < NTop_Nodes; i++) {
+
+		int first_part = D[i].TNode.First_Part;
+		int last_part = first_part + D[i].TNode.Npart - 1;
+
+		int nLeafs = 0;
+		int curr_part = first_part;
+
+		while (curr_part <= last_part) { // all particles in the top node
+
+			int lvl = D[i].TNode.Level + 1;
+
+printf("L: first=%d last=%d lvl=%d nLeafs=%d\n", 
+first_part, last_part, lvl, nLeafs);
+
+			peanoKey keys[VECTOR_SIZE+2] = { 0 };
+			
+			int jmax = imin(last_part-curr_part, VECTOR_SIZE+1);
+
+printf("jmax=%d curr=%d \n", jmax, curr_part);
+
+			for (int j = 0; j < jmax+1; j++) {
+
+				int ipart = curr_part + j;
+				
+				keys[j] = Reverse_Peano_Key(P.Key[ipart]) >> (3*lvl);
+			}
+
+			keys[jmax+1] = ~ keys[jmax]; // stop here for sure
+
+if (curr_part == 131088ULL)
+			for (int j = 0; j < jmax+1; j++) {
+				printf("%d ", curr_part + j);
+				Print_Int_Bits(keys[j],128,0);
+			}
+
+			int run = 0; 
+
+			for (;;) {
+
+				run = 1;
+
+				while ( (keys[run] & 0x7) == (keys[0] & 0x7) ) // burn baby
+					run++;
+				
+if (curr_part == 131088)
+printf("%d %d %d \n", run, lvl, jmax);
+				if (run < jmax+1) // leaf found
+					break;
+
+				for (int j = 0; j < VECTOR_SIZE+2; j++) // next lvl
+					keys[j] >>= 3;
+
+				lvl++;
+				Assert(lvl < 30, "lvl= %d",lvl);
+			}
+printf("Out; lvl=%d curr=%d n=%d \n", lvl, curr_part, run);
+			
+			first_leafs[nLeafs] = curr_part;
+
+			nLeafs++;
+
+			curr_part += run;
+		
+		} // while
+
+	int start = 0;
+
+	#pragma omp critical
+	{
+		start = NLeafs;
+		NLeafs += nLeafs;
+
+	} // omp critical
+	
+	for (int j = start; j > start+nLeafs; j++)
+		Leafs.First[j] = first_leafs[j-start];
+
+	} // for i
+
+	#pragma omp for 
+	for (int i = 0; i < NLeafs -1; i++) {
+
+		Leafs.N[i] = Leafs.First[i+1] - Leafs.First[i];
+
+		Leafs.Key[i] = P.Key[Leafs.First[i]];
+	}
+
+
 
 	return ;
 }
@@ -277,8 +393,8 @@ static int build_subtree(const int first_part, const int tnode_idx,
 
 	for (int ipart = first_part+1; ipart < last_part+1; ipart++) {
 
-		peanoKey key = Reversed_Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart],
-									 	  P.Pos[2][ipart]);
+		peanoKey key = Reverse_Peano_Key(P.Key[ipart]);
+
 		key >>= 3 * top_level;
 
 		int node = 0;        // running node
@@ -370,8 +486,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 static peanoKey create_first_node(const int first_part,
 		const int tnode_idx, const int top_level)
 {
-	peanoKey key = Reversed_Peano_Key(P.Pos[0][first_part], 
-								P.Pos[1][first_part], P.Pos[2][first_part]);
+	peanoKey key = Reverse_Peano_Key(P.Key[first_part]);
 
 	key >>= 3 * top_level;
 

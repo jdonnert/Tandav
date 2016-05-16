@@ -2,13 +2,14 @@
 #include "timestep.h"
 #include "peano.h"
 #include "domain.h"
-#include "particles.h"
 
 static void reorder_collisionless_particles(const size_t *idx_in);
 static void reorder_array_8(const size_t n, void * restrict p_in, 
 		size_t  * restrict idx);
 static void reorder_array_4(const size_t n, void * restrict p_in, 
 		size_t  * restrict idx);
+static void reorder_array_char(const size_t nBytes, const size_t n, 
+		void * restrict p_in, size_t  * restrict idx);
 
 int compare_peanoKeys(const void * a, const void *b)
 {
@@ -40,13 +41,13 @@ void Sort_Particles_By_Peano_Key()
 
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) 
-		keys[ipart] = Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart],
-								P.Pos[2][ipart]);
+		P.Key[ipart] = 
+			Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart], P.Pos[2][ipart]);
 
-	Qsort_Index(Task.Thread_ID, idx, keys, Task.Npart_Total, sizeof(*keys),
+	Qsort_Index(Task.Thread_ID, idx, P.Key, Task.Npart_Total, sizeof(*keys),
 			&compare_peanoKeys);
 
-	#pragma omp single nowait
+	#pragma omp single
 	Free(keys);
 
 	reorder_collisionless_particles(idx);
@@ -60,7 +61,7 @@ void Sort_Particles_By_Peano_Key()
 	Make_Active_Particle_Vectors();
 
 	Profile("Peano-Hilbert order");
-
+	
 	return ;
 }
 
@@ -70,9 +71,8 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 	size_t nBytes = Task.Npart_Total * sizeof(*idx);
 
 	#pragma omp single
-	Assert(Task.Buffer_Size > Task.Npart_Total * sizeof(size_t), 
-			"BufferSize >= %g MB for this setup", 
-			Sim.NThreads * nBytes/1024.0/1024.0);
+	Assert(Task.Buffer_Size > nBytes, "BufferSize >= %g MB for %d threads", 
+			Sim.NThreads * nBytes/1024.0/1024.0, Sim.NThreads);
 
 	idx = Get_Thread_Safe_Buffer(nBytes);
 
@@ -89,9 +89,9 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 				reorder_array_8(Task.Npart_Total, p, idx);
 			else if (P_Fields[i].Bytes == 4)
 				reorder_array_4(Task.Npart_Total, p, idx);
-			else 
-				Assert(false, "Can re-order only 4 or 8 byte entries in P");
-
+			else  
+				reorder_array_char(P_Fields[i].Bytes, Task.Npart_Total, p, 
+						idx);
 		} // for j
 	} // for i
 
@@ -180,7 +180,43 @@ static void reorder_array_4(const size_t n, void * restrict p_in,
 	return ;
 }
 
+static void reorder_array_char(const size_t nBytes, const size_t n, 
+		void * restrict p, size_t  * restrict idx)
+{
+	char buf[nBytes];
 
+	for (size_t i = 0; i < n; i++) {
+
+   		if (idx[i] == i)
+   	    	continue;
+
+		size_t dest = i;
+
+		memcpy(buf, p + i*nBytes, nBytes);
+
+		size_t src = idx[i];
+
+ 	  	for (;;) {
+
+			memcpy(p + dest*nBytes, p + src*nBytes, nBytes);
+
+			idx[dest] = dest;
+
+			dest = src;
+
+			src = idx[dest];
+
+	        if (src == i)
+   		        break;
+    	}
+
+		memcpy(p + dest*nBytes, buf, nBytes);
+
+		idx[dest] = dest;
+    } // for i
+
+	return ;
+}
 
 /* 
  * Construct a 128 bit Peano-Hilbert distance in 3D, input coordinates 
@@ -360,164 +396,42 @@ peanoKey Reversed_Peano_Key(const Float px, const Float py, const Float pz)
 	return key;
 }
 
+peanoKey Reverse_Peano_Key(peanoKey pkey)
+{
+	peanoKey key = 0;
+	peanoKey left = ((peanoKey) 0x7) << N_PEANO_BITS-3;
+	peanoKey right = ((peanoKey) 0x7) << 2;
+
+	for (int i = N_PEANO_BITS-3; i > 0; i-=6) { // swap triplets
+
+		key |= (pkey & left) >> i;
+		key |= (pkey & right) << (i-4);
+
+		left >>= 3;
+		right <<= 3;
+	}
+
+	key <<= 3; // carry the 0
+
+	return key;
+}
+
 /* 
  * Keys of 64 bit length (21 triplets), standard and reversed
  */
 
 shortKey Short_Peano_Key(const Float px, const Float py, const Float pz)
 {
-	const uint32_t m = ((uint32_t) 1) << 31;
-
-	const double fac = m / Domain.Size;
-
-	uint32_t X[3] = { (px - Domain.Origin[0]) * fac,
-					  (py - Domain.Origin[1]) * fac,
-					  (pz - Domain.Origin[2]) * fac };
-
-	/* Inverse undo */
-
-    for (uint32_t q = m; q > 1; q >>= 1 ) {
-
-        uint32_t P = q - 1;
-
-		if( X[0] & q )
-			X[0] ^= P;  // invert
-
-        for(int i = 1; i < 3; i++ ) {
-
-			if( X[i] & q ) {
-
-				X[0] ^= P; // invert                              
-
-			} else {
-
-				uint32_t t = (X[0] ^ X[i]) & P;
-
-				X[0] ^= t;
-				X[i] ^= t;
-
-			} // exchange
-		}
-    }
-
-	/* Gray encode (inverse of decode) */
-
-	for(int i = 1; i < 3; i++ )
-        X[i] ^= X[i-1];
-
-    uint32_t t = X[2];
-
-    for(int i = 1; i < 32; i <<= 1 )
-        X[2] ^= X[2] >> i;
-
-    t ^= X[2];
-
-    for(int i = 1; i >= 0; i-- )
-        X[i] ^= t;
-
-	/* branch free bit interleave of transpose array X into key */
-
-	peanoKey key = 0;
-
-	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
-
-	for (int i = 0; i < N_SHORT_TRIPLETS+1; i++) {
-
-		uint64_t col = ((X[0] & 0x80000000)
-					  | (X[1] & 0x40000000)
-					  | (X[2] & 0x20000000)) >> 29;
-
-		key <<= 3;
-
-		X[0] <<= 1;
-		X[1] <<= 1;
-		X[2] <<= 1;
-
-		key |= col;
-	}
-
-	key <<= 1;
-
-	return key;
+	return (shortKey) (Peano_Key(px, py, pz) >> DELTA_PEANO_BITS);
 }
 
 
 shortKey Reversed_Short_Peano_Key(const Float px, const Float py, 
 		const Float pz)
-{
-	const uint32_t m = ((uint32_t) 1) << 31;
+{													    
+	return (shortKey) (Reversed_Peano_Key(px, py, pz) & 0x00000000FFFFFFFF);
 
-	const double fac = m / Domain.Size;
-
-	uint32_t X[3] = { (px - Domain.Origin[0]) * fac,
-					  (py - Domain.Origin[1]) * fac,
-					  (pz - Domain.Origin[2]) * fac };
-
-	/* Inverse undo */
-
-    for (uint32_t q = m; q > 1; q >>= 1) {
-
-        uint32_t P = q - 1;
-
-		if( X[0] & q )
-			X[0] ^= P;  // invert
-
-        for(int i = 1; i < 3; i++) {
-
-			if(X[i] & q) {
-
-				X[0] ^= P; // invert                              
-
-			} else {
-
-				uint32_t t = (X[0] ^ X[i]) & P;
-
-				X[0] ^= t;
-				X[i] ^= t;
-
-			} // exchange
-		}
-    }
-
-	/* Gray encode (inverse of decode) */
-
-	for(int i = 1; i < 3; i++)
-        X[i] ^= X[i-1];
-
-    uint32_t t = X[2];
-
-    for(int i = 1; i < 32; i <<= 1)
-        X[2] ^= X[2] >> i;
-
-    t ^= X[2];
-
-    for(int i = 1; i >= 0; i--)
-        X[i] ^= t;
-
-	/* branch free reversed (!) bit interleave of transpose array X into key */
-
-	shortKey key = 0;
-
-	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
-
-	for (int i = 0; i < N_SHORT_TRIPLETS+1; i++) {
-
-		uint32_t col = ((X[0] & 0x4) | (X[1] & 0x2) | (X[2] & 0x1));
-
-		key <<= 3;
-
-		key |= col;
-
-		X[0] >>= 1;
-		X[1] >>= 1;
-		X[2] >>= 1;
-	}
-
-	key <<= 3; // include level 0
-
-	return key;
 }
-
 
 void Test_Peanokey()
 {

@@ -109,5 +109,6 @@ settings :
 	@echo 'EXEC =' $(EXEC)
 	@echo " "
 
-clean : settings
-	rm -f $(OBJFILES) $(EXEC) src/config.h src/print_settings.c
+clean : settings # remove all compiled files
+	rm -f $(OBJFILES) $(EXEC) src/config.h src/print_settings.c \
+		${shell find $(SRCDIR) -name \*.optrpt -print} tags

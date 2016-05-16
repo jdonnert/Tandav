@@ -3,7 +3,7 @@
 #include "domain.h"
 #include "peano.h"
 
-//#define DEBUG_DOMAIN
+#define DEBUG_DOMAIN
 
 #define MIN_LEVEL 2 // decompose at least 8^MIN_LEVEL domains downward
 
@@ -303,7 +303,7 @@ static void reset_bunchlist()
 	Tree = NULL;
 
 	} // omp single
-#endif
+#endif // GRAVITY_TREE
 
 	memset(&D[0], 0, sizeof(*D) * Max_NBunches);
 	
@@ -497,7 +497,6 @@ static int remove_empty_bunches()
 static void fill_new_bunches(const int first_bunch, const int nBunches,
 		 const int first_part, const int nPart)
 {
-	
 	const int last_part = first_part + nPart;
 	const int last_bunch = first_bunch + nBunches;
 	
@@ -525,8 +524,7 @@ static void fill_new_bunches(const int first_bunch, const int nBunches,
 	#pragma omp for nowait 
 	for (int ipart = first_part; ipart < last_part; ipart++) { // sort in
 
-		shortKey pkey = Short_Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart],
-				P.Pos[2][ipart]);
+		shortKey pkey = (P.Key[ipart] >> DELTA_PEANO_BITS);
 
 		while (buf[run].Key < pkey) // particles are ordered by key
 			run++;

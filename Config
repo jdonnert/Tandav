@@ -1,10 +1,10 @@
 #### BASIC CODE PARAMETERS ####
 
 #DEBUG                        // verbose (!) output
-#DOMAIN_DEBUG                 // print topnodes and distribution
+DOMAIN_DEBUG                 // print topnodes and distribution
 #TREE_DEBUG                   // print node distribution 
 
-PERIODIC                     // periodic boundary conditions
+#PERIODIC                     // periodic boundary conditions
 #PERIODIC_NO_CUBE			 // use a periodic box that is not a cube
 
 DOMAIN_UPDATE_PARAM 0.1      // [0.1] npart drifted before new domain decomp.
@@ -24,7 +24,7 @@ VELOCITY2CGS 1e5             // [km/s]
 
 #### COSMOLOGY & COMOVING ####
 
-COMOVING                     // comoving coordinates for cosmo sims
+#COMOVING                     // comoving coordinates for cosmo sims
 
 TIME_DISPL_CONSTRAINT 0.25   // [0.25] max displacement from rms vel @ z>>0
 GADGET_COMOVING_VEL_UNIT     // assume vel~sqrt(a) in ICs and convert to a^2
@@ -40,7 +40,7 @@ OMEGA_RAD 0
 GRAVITY                      // gravitational interaction master switch
 #GRAVITY_POTENTIAL            // compute gravitational potential
 
-GRAVITY_FORCETEST            // N^2 law, shows grav force errors 
+#GRAVITY_FORCETEST            // N^2 law, shows grav force errors 
 GRAVITY_TREE                 // B&H tree
 #GRAVITY_FMM                  // Fast Multipole Method + Dual Tree Traversal
 

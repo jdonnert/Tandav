@@ -1,7 +1,3 @@
-/* 
- * Memory management 
- */
-
 #include "globals.h"
 
 #define MAXMEMOBJECTS 1000L
@@ -286,7 +282,7 @@ void Print_Memory_Usage()
 	return;
 }
 
-void Get_Free_Memory(int *total, int *largest, int *smallest)
+void Get_Free_Memory(size_t *total, size_t *largest, size_t *smallest)
 {
 	*total = *largest = *smallest = 0;
 

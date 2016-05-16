@@ -29,10 +29,7 @@ int main(int argc, char *argv[])
 
 	Update(BEFORE_MAIN_LOOP);
 	
-	for (;;) { // run Forest run !
-
-		if (Time_Is_Up())
-			break;
+	while (! Time_Is_Up()) { // run Forest run !
 
 		Update(BEFORE_STEP);
 

@@ -13,7 +13,7 @@ extern struct Particle_Data {
 	int * restrict Time_Bin;
 	intime_t * restrict It_Drift_Pos;	// drift position on integer timeline
 	intime_t * restrict It_Kick_Pos;	// kick position on integer timeline
-	peanoKey * restrict Key;			// Unique 128 Bit peano key
+	peanoKey * restrict Key;			// Reversed peano key
 	ID_t * restrict ID; 					 
 	Float * restrict Cost;				// computational weight of particle
 	Float * restrict Pos[3];

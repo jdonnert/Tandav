@@ -124,6 +124,10 @@ void Domain_Decomposition()
 
 	transform_bunches_into_top_nodes();
 
+	#pragma omp for 					
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
+		P.Key[ipart] = Reverse_Peano_Key(P.Key[ipart]); // reverse peano keys
+
 	communicate_top_nodes();
 
 	rprintf("\nDomain: After %d iterations ...\n"

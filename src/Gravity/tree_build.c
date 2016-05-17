@@ -163,12 +163,14 @@ void Setup_Gravity_Tree()
  * a tree walk on the bit level ! VECTOR_LENGTH sets the max number of 
  * particles in a leaf. Hence we find the smallest level, at which a tree
  * node will contain this many particles.
- * This works by moving a bitmask at lvl across the particles and checking for
- * changes in the PH triplets.
+ * This works by moving a bitmask to select a triplet across the particles 
+ * and checking for changes in the PH triplets.
  * */
 
 static void find_leafs()
 {
+	Profile("Find Leafs");
+
 	int *first = Get_Thread_Safe_Buffer(Task.Npart_Total_Max);
 
 	#pragma omp single // for schedule(static,1) nowait
@@ -183,8 +185,6 @@ static void find_leafs()
 		int lvl = D[i].TNode.Level + 1;
 
 		while (ipart <= last_part) { // all particles in the top node
-
-//printf("\nL: part first=%d last=%d curr=%d lvl=%d nLeafs=%d\n", first_part, last_part, ipart, lvl, nLeafs);
 
 			first[nLeafs] = ipart;
 
@@ -203,7 +203,7 @@ static void find_leafs()
 
 				int jpart = 0;
 
-				for (jpart = ipart + 1; jpart <= jmax; jpart++) // burn baby
+				for (jpart = ipart + 1; jpart < jmax + 1; jpart++) // burn baby
 					if ((P.Key[jpart] & mask) != (P.Key[ipart] & mask))
 						break;
 					
@@ -258,9 +258,10 @@ exit(0);
 		Leafs.N[i] = Leafs.First[i+1] - Leafs.First[i];
 
 	#pragma omp for 
-	for (int i = 0; i < NLeafs; i++) {
+	for (int i = 0; i < NLeafs; i++) 
 		Leafs.Key[i] = P.Key[Leafs.First[i]];
-
+	
+	Profile("Find Leafs");
 
 	return ;
 }

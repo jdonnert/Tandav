@@ -92,7 +92,8 @@ static void find_total_kinetic_energy(double Ekin_out[1])
 	#pragma omp for reduction(+:Ekin)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 		
-		double v2 = p2(P.Vel[0][ipart])+p2(P.Vel[1][ipart])+p2(P.Vel[2][ipart]);
+		double v2 = p2(P.Vel[0][ipart]) + p2(P.Vel[1][ipart]) 
+				  + p2(P.Vel[2][ipart]);
 		
 		Ekin += 0.5 * P.Mass[ipart] * v2;
 	}
@@ -119,11 +120,13 @@ static void find_angular_momentum(double ang_p_out[3])
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
 		Ang_p_x += P.Mass[ipart] * (P.Pos[1][ipart]*P.Vel[2][ipart]
-				- P.Pos[2][ipart]*P.Vel[1][ipart]);
+								  - P.Pos[2][ipart]*P.Vel[1][ipart]);
+		
 		Ang_p_y += P.Mass[ipart] * (P.Pos[2][ipart]*P.Vel[0][ipart]
-				- P.Pos[0][ipart]*P.Vel[2][ipart]);
+								  - P.Pos[0][ipart]*P.Vel[2][ipart]);
+
 		Ang_p_z += P.Mass[ipart] * (P.Pos[0][ipart]*P.Vel[1][ipart]
-				- P.Pos[1][ipart]*P.Vel[0][ipart]);
+								  - P.Pos[1][ipart]*P.Vel[0][ipart]);
 	}
 
 	#pragma omp single
@@ -150,16 +153,16 @@ static void find_momentum(double mom_out[3])
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
 		mom_x += P.Mass[ipart] * P.Vel[0][ipart];
-		mom_y += P.Mass[ipart] * P.Vel[0][ipart];
-		mom_z += P.Mass[ipart] * P.Vel[0][ipart];
+		mom_y += P.Mass[ipart] * P.Vel[1][ipart];
+		mom_z += P.Mass[ipart] * P.Vel[2][ipart];
 	}
 
 	#pragma omp single
 	{
 
-	double global_mom[3] = { mom_x, mom_y, mom_z };
+	double mom[3] = { mom_x, mom_y, mom_z };
 
-	MPI_Allreduce(mom_out, global_mom, 3, MPI_DOUBLE, MPI_SUM,
+	MPI_Allreduce(mom_out, mom, 3, MPI_DOUBLE, MPI_SUM,
 			MPI_COMM_WORLD);
 
 	} // omp single

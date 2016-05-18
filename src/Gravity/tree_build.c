@@ -190,24 +190,28 @@ static void find_leafs()
 
 			nLeafs++;
 
-			if (ipart == last_part) // last particle is single leaf
+			if (ipart == last_part) // last particle -> single leaf
 				break;
 
-			int jmax = MIN(last_part, ipart + VECTOR_SIZE);
+			int jmax = MIN(last_part, ipart + VECTOR_SIZE) + 1;
 
-			int npart = 0; 
+			int npart = 1; 
 
 			peanoKey mask = ((peanoKey) 0x7) << (3*lvl);
 
 			for (;;) { // loop over lvl
 
-				int jpart = 0;
+				const peanoKey itriplet = (P.Key[ipart] & mask);
 
-				for (jpart = ipart + 1; jpart < jmax + 1; jpart++) // burn baby
-					if ((P.Key[jpart] & mask) != (P.Key[ipart] & mask))
+				for (int jpart = ipart+1; jpart < jmax; jpart++) {
+
+					peanoKey jtriplet = P.Key[jpart] & mask;
+
+					if (jtriplet == itriplet)
 						break;
-					
-				npart = jpart - ipart;
+
+					npart++;
+				}
 
 				if (npart <= VECTOR_SIZE) // leaf found
 					break;

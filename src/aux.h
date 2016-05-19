@@ -1,17 +1,6 @@
-#define Assert(...) Assert_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
-#define Warn(...) Warn_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
-
-#define Reallocate_P(...) \
-		Reallocate_P_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
-
 void Reallocate_P_Info(const char *, const char *, int, const int*, size_t*);
-
 void Assert_Info(const char *, const char *, int, int64_t, const char *, ...);
 void Warn_Info(const char *, const char *, int, int64_t, const char *, ...);
-
-/*
- * Helper monkeys
- */
 
 int32_t imin(const int32_t x, const int32_t y); // breaks naming convention :(
 int32_t imax(const int32_t x, const int32_t y);
@@ -34,3 +23,10 @@ int Fread(void *restrict data, const size_t size, const size_t nWanted,
 		FILE *stream);
 int Fwrite(void *restrict data, const size_t size, const size_t nWrite,
 		FILE *stream);
+
+void Reorder_Array_8(const size_t n, void * restrict p_in, 
+														size_t * restrict idx);
+void Reorder_Array_4(const size_t n, void * restrict p_in, 
+														size_t * restrict idx);
+void Reorder_Array_Char(const size_t nBytes, const size_t n, 
+								void * restrict p_in, size_t  * restrict idx);

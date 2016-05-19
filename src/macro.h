@@ -7,7 +7,13 @@
 #define p2(a) ((a)*(a))
 #define p3(a) ((a)*(a)*(a))
 
-#define rprintf(...) if (Task.Is_Master) printf(__VA_ARGS__) // printf on master only
+#define rprintf(...) if (Task.Is_Master) printf(__VA_ARGS__) // root printf
+
+#define Assert(...) Assert_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
+#define Warn(...) Warn_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
+
+#define Reallocate_P(...) \
+		Reallocate_P_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
 
 /*
  * Check for some compile time errors

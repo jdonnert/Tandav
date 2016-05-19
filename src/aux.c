@@ -42,7 +42,6 @@ void Print_Int_Bits128 (const __uint128_t val)
 	return Print_Int_Bits(val, 128, 2);
 }
 
-
 /* 
  * Error Handling, we use variable arguments to print informative messages 
  */
@@ -168,7 +167,7 @@ int Fread(void *restrict data, const size_t size, const size_t nWanted,
 }
 
 int Fwrite(void *restrict data, const size_t size, const size_t nWrite, 
-		FILE *stream)
+			FILE *stream)
 {
 	size_t nWritten = fwrite(data, size, nWrite, stream);
 
@@ -177,4 +176,125 @@ int Fwrite(void *restrict data, const size_t size, const size_t nWrite,
 	return nWritten;
 }
 
+/*
+ * Reorder array p[n] according to idx[n]. idx[] will be changed as well. 
+ * We have two versions for 4 and 8 Byte, to avoid using memcpy() and a general
+ * implementation using char pointers that takes the element size in bytes.
+ */
+
+void Reorder_Array_8(const size_t n, void * restrict p_in, 
+									   size_t * restrict idx)
+{
+	uint64_t * restrict p = (uint64_t * restrict) p_in;
+
+	for (size_t i = 0; i < n; i++) {
+
+   		if (idx[i] == i)
+   	    	continue;
+
+		size_t dest = i;
+
+		uint64_t buf = p[i];
+
+		size_t src = idx[i];
+
+ 	  	for (;;) {
+
+			p[dest] = p[src];
+
+			idx[dest] = dest;
+
+			dest = src;
+
+			src = idx[dest];
+
+	        if (src == i)
+   		        break;
+    	}
+
+		p[dest] = buf;
+
+		idx[dest] = dest;
+    } // for i
+
+	return ;
+}
+
+void Reorder_Array_4(const size_t n, void * restrict p_in, 
+					 size_t  * restrict idx)
+{
+	uint32_t * restrict p = (uint32_t * restrict) p_in;
+
+	for (size_t i = 0; i < n; i++) {
+
+   		if (idx[i] == i)
+   	    	continue;
+
+		size_t dest = i;
+
+		uint32_t buf = p[i];
+
+		size_t src = idx[i];
+
+ 	  	for (;;) {
+
+			p[dest] = p[src];
+
+			idx[dest] = dest;
+
+			dest = src;
+
+			src = idx[dest];
+
+	        if (src == i)
+   		        break;
+    	}
+
+		p[dest] = buf;
+
+		idx[dest] = dest;
+    } // for i
+
+	return ;
+}
+
+void Reorder_Array_Char(const size_t nBytes, const size_t n, 
+						void * p_in, size_t  * restrict idx)
+{
+	char * restrict p = (char * restrict) p_in;
+
+	char buf[nBytes];
+
+	for (size_t i = 0; i < n; i++) {
+
+   		if (idx[i] == i)
+   	    	continue;
+
+		size_t dest = i;
+
+		memcpy(buf, p + i*nBytes, nBytes);
+
+		size_t src = idx[i];
+
+ 	  	for (;;) {
+
+			memcpy(p + dest*nBytes, p + src*nBytes, nBytes);
+
+			idx[dest] = dest;
+
+			dest = src;
+
+			src = idx[dest];
+
+	        if (src == i)
+   		        break;
+    	}
+
+		memcpy(p + dest*nBytes, buf, nBytes);
+
+		idx[dest] = dest;
+    } // for i
+
+	return ;
+}
 

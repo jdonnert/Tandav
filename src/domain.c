@@ -3,7 +3,7 @@
 #include "domain.h"
 #include "peano.h"
 
-#define DEBUG_DOMAIN
+//#define DEBUG_DOMAIN
 
 #define MIN_LEVEL 2 // decompose at least 8^MIN_LEVEL domains downward
 

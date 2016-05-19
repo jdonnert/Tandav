@@ -4,12 +4,7 @@
 #include "domain.h"
 
 static void reorder_collisionless_particles(const size_t *idx_in);
-static void reorder_array_8(const size_t n, void * restrict p_in, 
-		size_t  * restrict idx);
-static void reorder_array_4(const size_t n, void * restrict p_in, 
-		size_t  * restrict idx);
-static void reorder_array_char(const size_t nBytes, const size_t n, 
-		void * restrict p_in, size_t  * restrict idx);
+
 
 int compare_peanoKeys(const void * a, const void *b)
 {
@@ -86,134 +81,14 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 			void * restrict p = Select_Particle(i, j, 0);
 	
 			if (P_Fields[i].Bytes == 8)
-				reorder_array_8(Task.Npart_Total, p, idx);
+				Reorder_Array_8(Task.Npart_Total, p, idx);
 			else if (P_Fields[i].Bytes == 4)
-				reorder_array_4(Task.Npart_Total, p, idx);
+				Reorder_Array_4(Task.Npart_Total, p, idx);
 			else  
-				reorder_array_char(P_Fields[i].Bytes, Task.Npart_Total, p, 
+				Reorder_Array_Char(P_Fields[i].Bytes, Task.Npart_Total, p, 
 						idx);
 		} // for j
 	} // for i
-
-	return ;
-}
-
-
-/*
- * Reorder *p according to *idx. *idx will be changed as well. We have two
- * versions for 4 and 8 Byte, to avoid using memcpy().
- */
-
-static void reorder_array_8(const size_t n, void * restrict p_in, 
-		size_t  * restrict idx)
-{
-	uint64_t * restrict p = (uint64_t *) p_in;
-
-	for (size_t i = 0; i < n; i++) {
-
-   		if (idx[i] == i)
-   	    	continue;
-
-		size_t dest = i;
-
-		uint64_t buf = p[i];
-
-		size_t src = idx[i];
-
- 	  	for (;;) {
-
-			p[dest] = p[src];
-
-			idx[dest] = dest;
-
-			dest = src;
-
-			src = idx[dest];
-
-	        if (src == i)
-   		        break;
-    	}
-
-		p[dest] = buf;
-
-		idx[dest] = dest;
-    } // for i
-
-	return ;
-}
-
-static void reorder_array_4(const size_t n, void * restrict p_in, 
-		size_t  * restrict idx)
-{
-	uint32_t * restrict p = (uint32_t *) p_in;
-
-	for (size_t i = 0; i < n; i++) {
-
-   		if (idx[i] == i)
-   	    	continue;
-
-		size_t dest = i;
-
-		uint32_t buf = p[i];
-
-		size_t src = idx[i];
-
- 	  	for (;;) {
-
-			p[dest] = p[src];
-
-			idx[dest] = dest;
-
-			dest = src;
-
-			src = idx[dest];
-
-	        if (src == i)
-   		        break;
-    	}
-
-		p[dest] = buf;
-
-		idx[dest] = dest;
-    } // for i
-
-	return ;
-}
-
-static void reorder_array_char(const size_t nBytes, const size_t n, 
-		void * restrict p, size_t  * restrict idx)
-{
-	char buf[nBytes];
-
-	for (size_t i = 0; i < n; i++) {
-
-   		if (idx[i] == i)
-   	    	continue;
-
-		size_t dest = i;
-
-		memcpy(buf, p + i*nBytes, nBytes);
-
-		size_t src = idx[i];
-
- 	  	for (;;) {
-
-			memcpy(p + dest*nBytes, p + src*nBytes, nBytes);
-
-			idx[dest] = dest;
-
-			dest = src;
-
-			src = idx[dest];
-
-	        if (src == i)
-   		        break;
-    	}
-
-		memcpy(p + dest*nBytes, buf, nBytes);
-
-		idx[dest] = dest;
-    } // for i
 
 	return ;
 }

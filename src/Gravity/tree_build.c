@@ -7,12 +7,11 @@
 
 #ifdef GRAVITY_TREE
 
-//#define DEBUG_TREE
+#define DEBUG_TREE
 
 #define NODES_PER_PARTICLE 0.6
 #define TREE_ENLARGEMENT_FACTOR 1.2
 
-static void find_leafs();
 static void prepare_tree();
 static bool tree_memory_is_full(const int );
 static int reserve_tree_memory(const int);
@@ -60,7 +59,7 @@ void Gravity_Tree_Build()
 	#pragma omp single
 	NNodes = 0;
 
-	find_leafs();
+	Find_Leafs();
 
 	for (;;) {
 
@@ -139,13 +138,6 @@ void Setup_Gravity_Tree()
 			
 	Tree = Malloc(Max_Nodes * sizeof(*Tree), "Tree");
 
-	Leafs.First = Malloc(Task.Npart_Total_Max*sizeof(*Leafs.First),
-			"Leafs.First");
-	Leafs.N = Malloc(Task.Npart_Total_Max*sizeof(*Leafs.N), 
-			"Leafs.N");
-	Leafs.Key = Malloc(Task.Npart_Total_Max*sizeof(*Leafs.Key), 
-			"Leafs.N");
-
 	buf_threshold = Task.Buffer_Size/sizeof(*Tree);
 
 	for (int i = 0; i < NPARTYPE; i++) { // Plummer eqiv. softening
@@ -155,117 +147,7 @@ void Setup_Gravity_Tree()
 		Epsilon3[i] = Epsilon[i] * Epsilon[i] * Epsilon[i];
 	}
 
-	return ;
-}
-
-/*
- * We find all leafs in local topnodes using the PH keys. This is basically
- * a tree walk on the bit level ! VECTOR_LENGTH sets the max number of 
- * particles in a leaf. Hence we find the smallest level, at which a tree
- * node will contain this many particles.
- * This works by moving a bitmask to select a triplet across the particles 
- * and checking for changes in the PH triplets.
- * */
-
-static void find_leafs()
-{
-	Profile("Find Leafs");
-
-	int *first = Get_Thread_Safe_Buffer(Task.Npart_Total_Max);
-
-	#pragma omp single // for schedule(static,1) nowait
-	for (int i = 1; i < NTop_Nodes; i++) {
-
-		int first_part = D[i].TNode.First_Part;
-		int last_part = first_part + D[i].TNode.Npart - 1;
-
-		int nLeafs = 0;
-		int ipart = first_part;
-
-		int lvl = D[i].TNode.Level + 1;
-
-		while (ipart <= last_part) { // all particles in the top node
-
-			first[nLeafs] = ipart;
-
-			nLeafs++;
-
-			if (ipart == last_part) // last particle -> single leaf
-				break;
-
-			int jmax = MIN(last_part, ipart + VECTOR_SIZE) + 1;
-
-			int npart = 1; 
-
-			peanoKey mask = ((peanoKey) 0x7) << (3*lvl);
-
-			for (;;) { // loop over lvl
-
-				const peanoKey itriplet = (P.Key[ipart] & mask);
-
-				for (int jpart = ipart+1; jpart < jmax; jpart++) {
-
-					peanoKey jtriplet = P.Key[jpart] & mask;
-
-					if (jtriplet == itriplet)
-						break;
-
-					npart++;
-				}
-
-				if (npart <= VECTOR_SIZE) // leaf found
-					break;
-
-				mask <<= 3;
-				
-				lvl++;
-
-				//Assert(lvl < 30, "lvl= %d",lvl);
-			}
-			
-			ipart += npart;
-
-			lvl = 0; // find next lvl 
-			mask = 0x7;
-
-			while ((P.Key[ipart] & mask) == (P.Key[ipart-1] & mask)) {
-
-				lvl++;
-				mask <<= 3;
-			}
-
-		} // while ipart
-
-	int start = 0; // now write the new leafs
-exit(0);
-	#pragma omp critical
-	{
-		start = NLeafs;
-		NLeafs += nLeafs;
-
-	} // omp critical
-	
-	for (int j = 0; j > nLeafs; j++) {
-	
-		int l = start + j;
-		
-		Leafs.First[l] = first[j];
-	}
-
-	} // for i
-
-	#pragma omp single
-	Leafs.N[NLeafs-1] = Task.Npart_Total - Leafs.First[NLeafs-1];
-
-	#pragma omp for nowait
-	for (int i = 0; i < NLeafs -1; i++)
-		Leafs.N[i] = Leafs.First[i+1] - Leafs.First[i];
-
-	#pragma omp for 
-	for (int i = 0; i < NLeafs; i++) 
-		Leafs.Key[i] = P.Key[Leafs.First[i]];
-	
-	Profile("Find Leafs");
+	Setup_Tree_Leafs();
 
 	return ;
 }

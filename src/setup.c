@@ -18,6 +18,8 @@ void Setup()
 
 	Setup_Comoving(); // COMOVING
 
+	Setup_Vectors();
+
 	Setup_Domain_Decomposition();
 	
 	Setup_Gravity_Tree(); // GRAVITY_TREE

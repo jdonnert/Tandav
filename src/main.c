@@ -46,6 +46,8 @@ int main(int argc, char *argv[])
 
 		Drift_To_Sync_Point();
 		
+		Find_Vectors();
+
 		Update(BEFORE_DOMAIN);
 
 		if (Time_For_Domain_Update())
@@ -95,7 +97,7 @@ static void preamble(int argc, char *argv[])
 		   "MPI thread multiple not supported, have %d :-(", provided);
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &Task.Rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &Sim.NRank);
+	MPI_Comm_size(MPI_COMM_WORLD, &NRank);
 
 	MPI_Is_thread_main(&Task.Is_Thread_Main);
 
@@ -105,8 +107,8 @@ static void preamble(int argc, char *argv[])
 	#pragma omp single
 	{
 	
-	Sim.NThreads = omp_get_num_threads();
-	Sim.NTask = Sim.NRank * Sim.NThreads;
+	NThreads = omp_get_num_threads();
+	NTask = NRank * NThreads;
 
 	}
 
@@ -137,7 +139,7 @@ static void preamble(int argc, char *argv[])
 #endif
 
 		printf("\nUsing %d MPI tasks, %d OpenMP threads \n\n",
-				Sim.NRank, Sim.NThreads);
+				NRank, NThreads);
 
 		Assert( (argc >= 2) && (argc < 5),
 			"Wrong number of arguments, let me help you: \n\n"

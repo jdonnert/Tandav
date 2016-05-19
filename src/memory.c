@@ -176,7 +176,7 @@ void Init_Memory_Management()
 	#pragma omp parallel
 	{
 
-	Task.Buffer_Size = Param.Buffer_Size * 1024L * 1024L / Sim.NThreads;
+	Task.Buffer_Size = Param.Buffer_Size * 1024L * 1024L / NThreads;
 
 	#pragma omp critical
 	buffer = malloc(Task.Buffer_Size); // let the system take a local chunk
@@ -226,7 +226,7 @@ void Print_Memory_Usage()
 	#pragma omp master
 	{
 
-	size_t nBytes_Left_Global[Sim.NRank];
+	size_t nBytes_Left_Global[NRank];
 
 	MPI_Allgather(&NBytes_Left, sizeof(NBytes_Left), MPI_BYTE,
 			nBytes_Left_Global, sizeof(*nBytes_Left_Global),
@@ -234,7 +234,7 @@ void Print_Memory_Usage()
 
 	int max_Idx = 0;
 
-	for (int i = 0; i < Sim.NRank; i++)
+	for (int i = 0; i < NRank; i++)
 		if (nBytes_Left_Global[i] > nBytes_Left_Global[max_Idx])
 			max_Idx = i;
 
@@ -265,9 +265,9 @@ void Print_Memory_Usage()
 
 	printf("\nExternal Thread-Safe Buffer: %d x %g = %g MB, "
 			"Minimum required: %g MB\n\n",
-			Sim.NThreads, Task.Buffer_Size/1024.0/1024,
+			NThreads, Task.Buffer_Size/1024.0/1024,
 			(float) Param.Buffer_Size, 
-			Task.Npart_Total_Max * Sim.NThreads * sizeof(uint64_t)/1024.0/1024);
+			Task.Npart_Total_Max * NThreads * sizeof(uint64_t)/1024.0/1024);
 
 	printf("\n");
 

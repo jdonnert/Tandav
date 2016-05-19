@@ -32,7 +32,6 @@ size_t buf_threshold = 0;
 uint32_t NNodes = 0;
 static int Max_Nodes = 0;
 struct Tree_Node  * restrict Tree = NULL; // global pointer to all nodes
-struct Leaf_Data Leafs = { NULL }; 
 static omp_lock_t Tree_Lock; // lock global *Tree, NNodes, Max_Nodes
 
 static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *Buffer
@@ -58,8 +57,6 @@ void Gravity_Tree_Build()
 
 	#pragma omp single
 	NNodes = 0;
-
-	Find_Leafs();
 
 	for (;;) {
 
@@ -146,8 +143,6 @@ void Setup_Gravity_Tree()
 		Epsilon2[i] = Epsilon[i] * Epsilon[i];
 		Epsilon3[i] = Epsilon[i] * Epsilon[i] * Epsilon[i];
 	}
-
-	Setup_Tree_Leafs();
 
 	return ;
 }

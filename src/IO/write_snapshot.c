@@ -23,7 +23,7 @@ void Write_Snapshot()
 	const int nFiles = Param.Num_Output_Files;
 	const int nIOTasks = Param.Num_IO_Tasks;
 
-	int groupSize = Sim.NRank/nFiles; // big last file possible 
+	int groupSize = NRank/nFiles; // big last file possible 
 	int groupMaster = MIN(nFiles-1, floor(Task.Rank/groupSize)) * groupSize;
 
 	int groupRank = Task.Rank - groupMaster;

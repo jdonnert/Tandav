@@ -29,28 +29,24 @@
 #define MEM_ALIGNMENT 64L	// byte memory alignment
 #define MASTER 0L			// Global master MPI task for printing
 
-#ifdef DOUBLE_PRECISION
+/*
+ * Types
+ */
 
+#ifdef DOUBLE_PRECISION
 typedef double Float;		// type of floating point variables in P
 #define MPI_MYFLOAT MPI_DOUBLE // corresponding MPI communication type macro
 #define SQRT sqrt			// type aware square root function for speed
-
-#else
-
+#else // ! DOUBLE_PRECISION
 typedef float Float;
 #define MPI_MYFLOAT MPI_FLOAT
 #define SQRT sqrtf
-
-#endif // ! DOUBLEPRECISION
+#endif // ! DOUBLE_PRECISION
 
 #ifdef LONG_IDS
-
 typedef uint64_t ID_t;		// type of particle ID
-
 #else
-
 typedef uint32_t ID_t;		
-
 #endif // ! LONG_IDS
 
 typedef uint32_t intime_t;		// type of integer time 
@@ -82,25 +78,25 @@ double erand48(unsigned short xsubi[3]);
  * Global module headers  
  */
 
-#include "particles.h"		// particle management    
-#include "macro.h"			// macro definitions
-#include "unit.h"			// unit functions
-#include "constants.h"		// physical constants
-#include "aux.h"			// auxiliary functions 
-#include "memory.h"			// memory management
-#include "profile.h"		// time measurement
-#include "log.h"			// run logging
-#include "signal.h"			// signal handlers
-#include "sort.h"			// sort functions
-#include "select.h"			// select n-th element and find median of an array
+#include "particles.h"			// particle management    
+#include "macro.h"				// macro definitions
+#include "unit.h"				// unit functions
+#include "constants.h"			// physical constants
+#include "aux.h"				// auxiliary functions 
+#include "memory.h"				// memory management
+#include "profile.h"			// time measurement
+#include "log.h"				// run logging
+#include "signal.h"				// signal handlers
+#include "sort.h"				// sorting
+#include "vector.h"				// tree leafs as vectors
+#include "select.h"				// select n-th element and find median
 
 /* 
  * Add here, #ifdefs go into the .h file 
  */
 
-#include "cosmology.h"		// cosmology functions 
-#include "comov.h"			// Comoving coordinates
-#include "periodic.h"		// periodic boundary conditions
-
+#include "cosmology.h"			// cosmology functions 
+#include "comov.h"				// Comoving coordinates
+#include "periodic.h"			// periodic boundary conditions
 
 #endif // PROTO_H

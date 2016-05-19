@@ -89,7 +89,7 @@ void Domain_Decomposition()
 		#pragma omp single
 		Max_Level = remove_empty_bunches();
 
-		Qsort(Sim.NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
+		Qsort(NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
 		communicate_bunches();
 
@@ -150,10 +150,10 @@ void Domain_Decomposition()
 
 void Setup_Domain_Decomposition()
 {
-	if (Sim.NTask < 65) // decompose on threads as welL
-		NTarget = Sim.NTask;
+	if (NTask < 65) // decompose on threads as welL
+		NTarget = NTask;
 	else
-		NTarget = Sim.NRank;
+		NTarget = NRank;
 
 	Cost = Malloc(NTarget * sizeof(Cost), "Domain Cost");
 	Npart = Malloc(NTarget * sizeof(Npart), "Domain Npart");
@@ -610,7 +610,7 @@ static void distribute()
 	
 	}
 		
-	Qsort(Sim.NThreads, &D[0], NBunches, sizeof(*D), &compare_bunches_by_cost);
+	Qsort(NThreads, &D[0], NBunches, sizeof(*D), &compare_bunches_by_cost);
 	
 	#pragma omp single
 	for (int i = 0; i < NBunches; i++) {
@@ -639,7 +639,7 @@ static void distribute()
 
 	} // for i
 
-	Qsort(Sim.NThreads, &D[0], NBunches, sizeof(*D), &compare_bunches_by_key);
+	Qsort(NThreads, &D[0], NBunches, sizeof(*D), &compare_bunches_by_key);
 
 	for (int i = 0; i < NTarget; i++) 
 			Split_Idx[i] = i;
@@ -814,15 +814,15 @@ static void find_domain_center(double Center_Out[3])
 	}
 
 	#pragma omp single
-	buffer = Realloc(buffer, Sim.NRank * sizeof(*buffer), "buffer");
+	buffer = Realloc(buffer, NRank * sizeof(*buffer), "buffer");
 
 	for (int i = 0; i < 3; i++) {
 
 		#pragma omp single
 		MPI_Gather(&center[i], 1, MPI_MYFLOAT, buffer, 1, MPI_MYFLOAT,
-				   Sim.Master, MPI_COMM_WORLD);
+				   Master, MPI_COMM_WORLD);
 
-		Center_Out[i] = Median(Sim.NRank, buffer);
+		Center_Out[i] = Median(NRank, buffer);
 		
 		#pragma omp barrier
 	}
@@ -830,7 +830,7 @@ static void find_domain_center(double Center_Out[3])
 	#pragma omp single
 	{
 
-	MPI_Bcast(&Center_Out[0], 3, MPI_DOUBLE, Sim.Master, MPI_COMM_WORLD);
+	MPI_Bcast(&Center_Out[0], 3, MPI_DOUBLE, Master, MPI_COMM_WORLD);
 	
 	Free(buffer);
 
@@ -880,7 +880,7 @@ static void print_domain_decomposition (const int max_level)
 {
 #ifdef DEBUG_DOMAIN
 
-	Qsort(Sim.NThreads, &D[0], NBunches, sizeof(*D), 
+	Qsort(NThreads, &D[0], NBunches, sizeof(*D), 
 			&compare_bunches_by_target);
 
 	#pragma omp master

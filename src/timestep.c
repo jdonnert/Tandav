@@ -1,5 +1,6 @@
 #include "globals.h"
 #include "timestep.h"
+#include "IO/io.h"
 
 /* 
  * The number of bins is given by the number of bits in an integer time 
@@ -424,7 +425,7 @@ static void print_timebins()
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
 		npart[P.Time_Bin[ipart]]++;
 
-	MPI_Reduce(MPI_IN_PLACE, npart, N_INT_BINS, MPI_INT, MPI_SUM, Sim.Master,
+	MPI_Reduce(MPI_IN_PLACE, npart, N_INT_BINS, MPI_INT, MPI_SUM, Master,
 			MPI_COMM_WORLD);
 
 	if (!Task.Is_MPI_Master)

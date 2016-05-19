@@ -27,13 +27,13 @@ void Allocate_Particle_Structures()
 	#pragma omp parallel // Task is threadprivate
 	{
 
-	const double npart_per_rank = (double) Sim.Npart_Total/(double) Sim.NRank;
+	const double npart_per_rank = (double) Sim.Npart_Total/(double) NRank;
 
 	Task.Npart_Total_Max = ceil(npart_per_rank * Param.Part_Alloc_Factor);
 
 	for (int i = 0; i < NPARTYPE; i++)
-		Task.Npart_Max[i] = (double)Sim.Npart[i]/Sim.NRank * 
-			Param.Part_Alloc_Factor;
+		Task.Npart_Max[i] = (double) Sim.Npart[i]/NRank 
+							* Param.Part_Alloc_Factor;
 
 	} // omp parallel
 

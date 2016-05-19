@@ -1,13 +1,8 @@
-#include "../globals.h"
-#include "../domain.h"
-#include "../timestep.h"
-#include "gravity.h"
-#include "tree.h"
-
-#ifdef GRAVITY_TREE
+#include "globals.h"
+#include "domain.h"
 
 static int compare_leafs_by_key(const void *a, const void *b);
-static void sort_leafs_by_peano_key();
+static void sort_vectors_by_peano_key();
 
 /*
  * We find all leafs in local topnodes using the PH keys. This is basically
@@ -18,9 +13,11 @@ static void sort_leafs_by_peano_key();
  * and checking for changes in the PH triplets.
  * */
 
-void Find_Leafs()
+extern struct Vector_Data Vec = { NULL }; 
+
+void Find_Vectors()
 {
-	Profile("Find Leafs");
+	Profile("Find Vec");
 
 	int *first = Get_Thread_Safe_Buffer(Task.Npart_Total_Max*sizeof(*first));
 
@@ -30,16 +27,16 @@ void Find_Leafs()
 		int first_part = D[i].TNode.First_Part;
 		int last_part = first_part + D[i].TNode.Npart - 1;
 
-		int nLeafs = 0;
+		int nVec = 0;
 		int ipart = first_part;
 
 		int lvl = D[i].TNode.Level + 1;
 
 		while (ipart <= last_part) { // all particles in the top node
 
-			first[nLeafs] = ipart;
+			first[nVec] = ipart;
 
-			nLeafs++;
+			nVec++;
 
 			if (ipart == last_part) // last particle -> single leaf
 				break;
@@ -91,77 +88,77 @@ void Find_Leafs()
 
 	int start = 0;
 
-	printf("%d %d %d %d \n ", i, NLeafs, nLeafs, first[0]);
+	printf("%d %d %d %d \n ", i, NVec, nVec, first[0]);
 	#pragma omp critical
 	{
-		start = NLeafs;
-		NLeafs += nLeafs;
+		start = NVec;
+		NVec += nVec;
 
 	} // omp critical
 	
-	printf("%d %d \n ", i, NLeafs);
-	for (int j = 0; j > nLeafs; j++) {
+	printf("%d %d \n ", i, NVec);
+	for (int j = 0; j > nVec; j++) {
 	
 		int idx = start + j;
 		
-		Leafs.First[idx] = first[j];
+		Vec.First[idx] = first[j];
 	}
 
 	} // for i
 
-	Leafs.First[NLeafs] = Task.Npart_Total; // add for next loop
+	Vec.First[NVec] = Task.Npart_Total; // add for next loop
 
 	#pragma omp for
-	for (int i = 0; i < NLeafs; i++) {
+	for (int i = 0; i < NVec; i++) {
 
-		Leafs.N[i] = Leafs.First[i+1] - Leafs.First[i];
-		Leafs.Key[i] = P.Key[Leafs.First[i]];
+		Vec.Last[i] = Vec.First[i+1] - 1;
+		Vec.Key[i] = P.Key[Vec.First[i]];
 	}
 	
-	sort_leafs_by_peano_key();
+	sort_vectors_by_peano_key();
 
 	int i = 0;
-	printf("%d %d ", Leafs.First[i], Leafs.N[i]);
-	Print_Int_Bits(Leafs.Key[i], 128,0);
+	printf("%d %d ", Vec.First[i], Vec.Last[i]);
+	Print_Int_Bits(Vec.Key[i], 128,0);
 	exit(0);
 
-	Profile("Find Leafs");
+	Profile("Find Vec");
 
 	return ;
 }
 
-void Setup_Tree_Leafs()
+void Setup_Vectors()
 {
-	size_t nBytes = Task.Npart_Total_Max*sizeof(*Leafs.First);
+	size_t nBytes = Task.Npart_Total_Max*sizeof(*Vec.First);
 	
-	Leafs.First = Malloc(nBytes, "Leafs.First");
-	Leafs.N = Malloc(nBytes, "Leafs.N");
+	Vec.First = Malloc(nBytes, "Vec.First");
+	Vec.Last = Malloc(nBytes, "Vec.Last");
 
-	nBytes = Task.Npart_Total_Max*sizeof(*Leafs.Key);
+	nBytes = Task.Npart_Total_Max*sizeof(*Vec.Key);
 
-	Leafs.Key = Malloc(nBytes, "Leafs.N");
+	Vec.Key = Malloc(nBytes, "Vec.Key");
 
 	return;
 }
 
 static int compare_leafs_by_key(const void *a, const void *b)
 {
-	const struct Leaf_Data *x = (const struct Leaf_Data *) a;
-	const struct Leaf_Data *y = (const struct Leaf_Data *) b;
+	const struct Vector_Data *x = (const struct Vector_Data *) a;
+	const struct Vector_Data *y = (const struct Vector_Data *) b;
 	
 	return (int) (x->Key < y->Key) - (x->Key > y->Key);
 }
 
 static size_t *Idx = NULL;
 
-static void sort_leafs_by_peano_key()
+static void sort_vectors_by_peano_key()
 {
-	size_t nBytes = NLeafs * sizeof(*Idx);
+	size_t nBytes = NVec * sizeof(*Idx);
 
 	#pragma omp single
 	Idx = Malloc(nBytes, "Leaf Sort Idx");
 
-	Qsort_Index(Sim.NThreads, Idx, Leafs.Key, NLeafs, sizeof(*Leafs.Key), 
+	Qsort_Index(NThreads, Idx, Vec.Key, NVec, sizeof(*Vec.Key), 
 				&compare_leafs_by_key);	
 
 	size_t *idx = Get_Thread_Safe_Buffer(nBytes);
@@ -174,7 +171,7 @@ static void sort_leafs_by_peano_key()
 	
 	memcpy(idx, Idx, nBytes);
 
-	Reorder_Array_Char(sizeof(Leafs.Key), NLeafs, Leafs.Key, idx);
+	Reorder_Array_Char(sizeof(Vec.Key), NVec, Vec.Key, idx);
 
 	} // omp section
 	
@@ -183,7 +180,7 @@ static void sort_leafs_by_peano_key()
 	
 	memcpy(idx, Idx, nBytes);
 
-	Reorder_Array_4(NLeafs, Leafs.First, idx);
+	Reorder_Array_4(NVec, Vec.First, idx);
 	
 	} // omp section
 	
@@ -192,7 +189,7 @@ static void sort_leafs_by_peano_key()
 	
 	memcpy(idx, Idx, nBytes);
 
-	Reorder_Array_4(NLeafs, Leafs.N, idx);
+	Reorder_Array_4(NVec, Vec.Last, idx);
 
 	} // omp section
 
@@ -202,6 +199,3 @@ static void sort_leafs_by_peano_key()
 
 	return ;
 }
-
-
-#endif

@@ -97,7 +97,7 @@ static Float *Results = NULL;
 
 Float Median(const int ndata, Float * restrict data)
 {
-	if (Sim.NThreads == 1 || ndata < PARALLEL_THRES || true) {
+	if (NThreads == 1 || ndata < PARALLEL_THRES || true) {
 	
 		Float median = 0;
 
@@ -176,7 +176,7 @@ void test_median()
 
 	printf("el2 = %g \n", el2);
 
-	Qsort(Sim.NThreads, arr2, N, sizeof(*arr2), &compare_floats);
+	Qsort(NThreads, arr2, N, sizeof(*arr2), &compare_floats);
 
 	printf("%d %g \n", kth, arr2[kth-1]);
 

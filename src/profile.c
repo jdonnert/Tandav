@@ -99,15 +99,15 @@ void Profile_Report(FILE *stream)
 	for (int i = 0; i < NProfObjs; i++) { 
 
 		MPI_Reduce(&Prof[i].Total, &Prof[i].Min, 1, MPI_DOUBLE, 
-			MPI_MIN, Sim.Master, MPI_COMM_WORLD);
+			MPI_MIN, Master, MPI_COMM_WORLD);
 
 		MPI_Reduce(&Prof[i].Total, &Prof[i].Max, 1, MPI_DOUBLE, 
-			MPI_MAX, Sim.Master, MPI_COMM_WORLD);
+			MPI_MAX, Master, MPI_COMM_WORLD);
 
 		MPI_Reduce(&Prof[i].Total, &Prof[i].Mean, 1, MPI_DOUBLE, 
-			MPI_SUM, Sim.Master, MPI_COMM_WORLD);
+			MPI_SUM, Master, MPI_COMM_WORLD);
 
-		Prof[i].Mean /= Sim.NRank;
+		Prof[i].Mean /= NRank;
 
 		Prof[i].Imbalance += Prof[i].Max - Prof[i].Min;
 	}
@@ -168,15 +168,15 @@ void Profile_Report_Last(FILE *stream)
 	for (int i = 1; i < NProfObjs; i++) {
 
 		MPI_Reduce(&Prof[i].ThisLast, &min[i], 1, MPI_DOUBLE,
-			MPI_MIN, Sim.Master, MPI_COMM_WORLD);
+			MPI_MIN, Master, MPI_COMM_WORLD);
 
 		MPI_Reduce(&Prof[i].ThisLast, &max[i], 1, MPI_DOUBLE,
-			MPI_MAX, Sim.Master, MPI_COMM_WORLD);
+			MPI_MAX, Master, MPI_COMM_WORLD);
 
 		MPI_Reduce(&Prof[i].ThisLast, &mean[i], 1, MPI_DOUBLE,
-			MPI_SUM, Sim.Master, MPI_COMM_WORLD);
+			MPI_SUM, Master, MPI_COMM_WORLD);
 
-		mean[i] /= Sim.NRank;
+		mean[i] /= NRank;
 
 		imbalance[i] = max[i] - min[i];
 	}

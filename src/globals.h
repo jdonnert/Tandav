@@ -1,16 +1,12 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-#include "proto.h"
+#include "includes.h" 
 
-int * restrict Active_Particle_List;
-
-extern struct Particle_Vector_Blocks{
-	int * restrict First;
-	int * restrict Last;
-} V; // contingouos particle blocks on the same timestep
-
-int NParticle_Vectors, NActive_Particles;
+int Master;					// Global Rank Master
+int NRank;					// Number of MPI tasks
+int NThreads;				// Number of OpenMP threads
+int NTask;					// NRank * NThreads
 
 extern struct Local_Task_Properties {
 	int ID;						// unique ID of thread
@@ -29,10 +25,6 @@ extern struct Local_Task_Properties {
 #pragma omp threadprivate(Task) // modifications only in parallel env. !!
 
 extern struct Global_Simulation_Properties {
-	int Master;					// Global Rank Master
-	int NRank;					// Number of MPI tasks
-	int NThreads;				// Number of OpenMP threads
-	int NTask;					// NRank * NThreads
 	uint64_t Npart_Total;		// total global number of particles
 	uint64_t Npart[NPARTYPE];	// global number of particles
 	double Mpart[NPARTYPE];		// Global Masses from header
@@ -62,11 +54,13 @@ extern struct Parameters_From_File {
 	double Grav_Softening[NPARTYPE]; // gravitiational softening
 } Param;
 
-extern struct Restart_Parameters {
-	double Time_Continue;		// hold time if we restart
-	double Snap_Counter;
-} Restart;
+int * restrict Active_Particle_List;
 
+extern struct Particle_Vector_Blocks{
+	int * restrict First;
+	int * restrict Last;
+} V; // contingouos particle blocks on the same timestep
 
+int NParticle_Vectors, NActive_Particles;
 
 #endif // GLOBALS_H

@@ -54,6 +54,8 @@ static void accel_gravity()
 	
 	//gravity_accel_fmm(); // GRAVITY_FMM
 	
+	//gravity_accel_mg();
+
 	Gravity_Simple_Accel(); // GRAVITY_SIMPLE, performs force test
 
 	return ;

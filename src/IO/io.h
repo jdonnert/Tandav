@@ -12,6 +12,13 @@ extern void Read_and_Init();
 extern void Write_Snapshot();
 extern void Write_Restart_File();
 
+/* Restart Files */
+
+extern struct Restart_Parameters {
+	double Time_Continue;		// hold time if we restart
+	double Snap_Counter;
+} Restart;
+
 /* Snapshot I/O */
 unsigned int Largest_Block_Member_Nbytes();
 unsigned int Npart_In_Block(const int, const int *);

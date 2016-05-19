@@ -20,8 +20,6 @@ static void set_particle_types();
 
 void Read_Snapshot(char *input_name)
 {
-	const int nRank = Sim.NRank;
-
 	int nIOTasks = Param.Num_IO_Tasks;
 
 	int nFiles = 0;
@@ -66,15 +64,15 @@ void Read_Snapshot(char *input_name)
 
 		nIOTasks = fmin(nIOTasks,rest_Files);
 		
-		int groupSize = ceil( (double)nRank / (double)nIOTasks );
+		int groupSize = ceil( (double)NRank / (double)nIOTasks );
 		int groupMaster = round(Task.Rank / groupSize) * groupSize;
 		int groupRank = Task.Rank - groupMaster;
 
 		strncpy(filename, input_name, CHARBUFSIZE);
 
-		if (rest_Files >= nRank) { // read in nIO blocks, no communication
+		if (rest_Files >= NRank) { // read in nIO blocks, no communication
 		
-			int fileNum = nFiles - 1 - (Task.Rank + (rest_Files - nRank)); 
+			int fileNum = nFiles - 1 - (Task.Rank + (rest_Files - NRank)); 
 			
 			if (nFiles > 1)
 				sprintf(filename, "%s.%i", filename, fileNum);
@@ -87,7 +85,7 @@ void Read_Snapshot(char *input_name)
 				MPI_Barrier(MPI_COMM_WORLD);
 			}
 
-			rest_Files -= nRank;
+			rest_Files -= NRank;
 
 		} else { // parallel read on groupMasters and distribute to group
 	

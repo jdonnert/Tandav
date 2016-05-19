@@ -161,7 +161,8 @@ int Fread(void *restrict data, const size_t size, const size_t nWanted,
 {
 	size_t nRead = fread(data, size, nWanted, stream);
 
-	Assert(nRead == nWanted, "Read %zu objects, but %zu wanted", nRead, nWanted);
+	Assert(nRead == nWanted, "Read %zu objects, but %zu wanted", 
+			nRead, nWanted);
 
 	return nRead;
 }
@@ -171,7 +172,8 @@ int Fwrite(void *restrict data, const size_t size, const size_t nWrite,
 {
 	size_t nWritten = fwrite(data, size, nWrite, stream);
 
-	Assert(nWritten == nWrite, "Wrote %zu bytes, but had %zu",nWrite, nWritten);
+	Assert(nWritten == nWrite, "Wrote %zu bytes, but had %zu",
+			nWrite, nWritten);
 
 	return nWritten;
 }

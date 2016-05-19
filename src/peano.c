@@ -67,7 +67,7 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 
 	#pragma omp single
 	Assert(Task.Buffer_Size > nBytes, "BufferSize >= %g MB for %d threads", 
-			Sim.NThreads * nBytes/1024.0/1024.0, Sim.NThreads);
+			NThreads * nBytes/1024.0/1024.0, NThreads);
 
 	idx = Get_Thread_Safe_Buffer(nBytes);
 

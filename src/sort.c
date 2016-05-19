@@ -483,7 +483,7 @@ void test_sort()
 
 		#pragma omp parallel
 		{
-  		Qsort_Index(Sim.NThreads, p, x, N, sizeof(*x), &test_compare);
+  		Qsort_Index(NThreads, p, x, N, sizeof(*x), &test_compare);
 		}
 
   		time2 = clock();
@@ -515,8 +515,8 @@ void test_sort()
 	  	printf("Array not sorted :-( \n");
   	
 	printf("Index: parallel %g sec; Single %g sec; Speedup: %g \n",
-		deltasum0/CLOCKS_PER_SEC/Sim.NThreads, 
-		deltasum1/CLOCKS_PER_SEC, 	deltasum1/deltasum0*Sim.NThreads );
+		deltasum0/CLOCKS_PER_SEC/NThreads, 
+		deltasum1/CLOCKS_PER_SEC, 	deltasum1/deltasum0*NThreads );
 	fflush(stdout);
 
 	/* in-place sort */
@@ -530,7 +530,7 @@ void test_sort()
 	
 		time = clock();
 
-  		Qsort(Sim.NThreads, x, N, sizeof(*x), &test_compare);
+  		Qsort(NThreads, x, N, sizeof(*x), &test_compare);
   		
 		time2 = clock();
 	
@@ -566,8 +566,8 @@ void test_sort()
 	  	printf("Array not sorted :-( \n");
 
   	printf("In-place: parallel  %g sec, Single:  %g sec, Speedup: %g \n",
-		deltasum0/CLOCKS_PER_SEC/Sim.NThreads, 
-		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*Sim.NThreads );
+		deltasum0/CLOCKS_PER_SEC/NThreads, 
+		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*NThreads );
 
 	return ;
 }

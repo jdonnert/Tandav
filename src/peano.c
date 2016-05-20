@@ -1,7 +1,4 @@
-#include "globals.h"
-#include "timestep.h"
 #include "peano.h"
-#include "domain.h"
 
 static void reorder_collisionless_particles(const size_t *idx_in);
 
@@ -274,7 +271,7 @@ peanoKey Reversed_Peano_Key(const Float px, const Float py, const Float pz)
 peanoKey Reverse_Peano_Key(peanoKey pkey)
 {
 	peanoKey key = 0;
-	peanoKey left = ((peanoKey) 0x7) << N_PEANO_BITS-3;
+	peanoKey left = ((peanoKey) 0x7) << (N_PEANO_BITS-3);
 	peanoKey right = ((peanoKey) 0x7) << 2;
 
 	for (int i = N_PEANO_BITS-3; i > 0; i-=6) { // swap triplets

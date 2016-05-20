@@ -1,12 +1,64 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-#include "includes.h" 
+/*
+ * Unexposed Code Parameters
+ */
 
-int Master;					// Global Rank Master
-int NRank;					// Number of MPI tasks
-int NThreads;				// Number of OpenMP threads
-int NTask;					// NRank * NThreads
+#define CHARBUFSIZE 512L	// Maximum No. of bytes in every char buffer
+#define NPARTYPE 6L			// No of particle types
+#define MEM_ALIGNMENT 64L	// byte memory alignment
+#define MASTER 0L			// Global master MPI task for printing
+
+/*
+ * Types
+ */
+
+#ifdef DOUBLE_PRECISION
+typedef double Float;		// type of floating point variables in P
+#define MPI_MYFLOAT MPI_DOUBLE // corresponding MPI communication type macro
+#define SQRT sqrt			// type aware square root function for speed
+#else // ! DOUBLE_PRECISION
+typedef float Float;
+#define MPI_MYFLOAT MPI_FLOAT
+#define SQRT sqrtf
+#endif // ! DOUBLE_PRECISION
+
+#ifdef LONG_IDS
+typedef uint64_t ID_t;		// type of particle ID
+#else
+typedef uint32_t ID_t;		
+#endif // ! LONG_IDS
+
+typedef uint32_t intime_t;		// type of integer time 
+
+typedef uint64_t shortKey;		// short peanokey, 64 bit = 21 triplets/levels
+typedef __uint128_t peanoKey; 	// long peanokey, 128 bit = 42 triplets/levels
+
+enum Start_Parameters {
+	READ_IC = 0,
+	READ_RESTART = 1,
+	READ_SNAP = 2,
+	DUMP_PARFILE = 10
+};
+
+extern void Finish();
+extern void Print_Compile_Time_Settings();
+
+/* 
+ * Workaround
+ */
+
+double erand48(unsigned short xsubi[3]);
+
+/*
+ * Global variables
+ */
+
+extern int Master;				// Global Rank Master
+extern int NRank;				// Number of MPI tasks
+extern int NThreads;			// Number of OpenMP threads
+extern int NTask;				// NRank * NThreads
 
 extern struct Local_Task_Properties {
 	int ID;						// unique ID of thread
@@ -29,11 +81,6 @@ extern struct Global_Simulation_Properties {
 	uint64_t Npart[NPARTYPE];	// global number of particles
 	double Mpart[NPARTYPE];		// Global Masses from header
 	double Boxsize[3];			// Now in 3D !
-	double Total_Mass;			// sum over P.Mass, updated every timestep
-	double Center_Of_Mass[3];	// sum of P.Mass*P.Pos
-	double Kinetic_Energy;		// sum of 0.5 *P.Mass*P.Vel^2
-	double Momentum[3];		    // sum of P.Mass*P.Vel
-	double Angular_Momentum[3];	// sum of P.Mass*P.Pos x P.Vel
 } Sim;
 
 extern struct Parameters_From_File {
@@ -54,7 +101,7 @@ extern struct Parameters_From_File {
 	double Grav_Softening[NPARTYPE]; // gravitiational softening
 } Param;
 
-int * restrict Active_Particle_List;
+extern int * restrict Active_Particle_List;
 
 extern struct Particle_Vector_Blocks{
 	int * restrict First;
@@ -62,5 +109,52 @@ extern struct Particle_Vector_Blocks{
 } V; // contingouos particle blocks on the same timestep
 
 int NParticle_Vectors, NActive_Particles;
+
+/*
+ * Here start the particle structures, which hold most of the data of the
+ * code. Because we are using structures containing arrays, not an array of 
+ * structures, automatic allocation needs a description of the structure. 
+ * These are in P_Fields, which we use to loop through the members of P and
+ * allocate, move etc ...
+ */
+
+extern struct Particle_Data {
+	int * restrict Type;				// keep first
+	int * restrict Time_Bin;
+	intime_t * restrict It_Drift_Pos;	// drift position on integer timeline
+	intime_t * restrict It_Kick_Pos;	// kick position on integer timeline
+	peanoKey * restrict Key;			// Reversed peano key
+	ID_t * restrict ID; 					 
+	Float * restrict Cost;				// computational weight of particle
+	Float * restrict Pos[3];
+	Float * restrict Vel[3];
+	Float * restrict Acc[3];
+	Float * restrict Mass;
+	Float * restrict Grav_Acc[3];
+	Float * restrict Last_Acc_Mag;		// Magnitude of Last Acc for tree force
+#ifdef GRAVITY_POTENTIAL
+	Float * restrict Grav_Pot;
+#endif
+#ifdef GRAVITY_TREE
+	int * restrict Tree_Parent;			// Tree node leave, negative-1 if
+#endif									// top node only
+
+} P;
+
+
+extern struct Gas_Particle_Data {
+	Float * restrict Entropy;
+	Float * restrict Volume;
+	Float * restrict Density;
+	Float * restrict Bfld[3];
+} G;
+
+extern struct Star_Particle_Data {
+	Float * restrict Star_Formation_Rate;
+} S;
+
+extern struct Black_Hole_Particle_Data {
+	Float * restrict Entropy;
+} B;
 
 #endif // GLOBALS_H

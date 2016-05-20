@@ -1,8 +1,4 @@
-#include "globals.h"
-#include "domain.h"
-#include "timestep.h"
-#include "properties.h"
-#include "Gravity/gravity.h"
+#include "setup.h"
 
 static void sanity_check_simulation_setup();
 
@@ -24,9 +20,11 @@ void Setup()
 	
 	Setup_Gravity_Tree(); // GRAVITY_TREE
 
+
+
 	/* Add yours above */
 	
-	Compute_Global_Simulation_Properties();
+	Compute_Current_Simulation_Properties();
 
 	sanity_check_simulation_setup();
 	

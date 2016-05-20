@@ -1,25 +1,24 @@
+#ifndef IO_H
+#define IO_H
+
+#include "../includes.h"
+#include "../cosmology.h"
 #include "../timestep.h"
 
+void Read_Parameter_File(const char *);
+void Write_Parameter_File(const char *);
+void Read_Snapshot();
+void Read_Restart_File();
+void Read_and_Init();
+void Write_Snapshot();
+void Write_Restart_File();
+
+
+
 /* 
- * Function Prototypes 
+ * Snapshot I/O 
  */
 
-extern void Read_Parameter_File(const char *);
-extern void Write_Parameter_File(const char *);
-extern void Read_Snapshot();
-extern void Read_Restart_File();
-extern void Read_and_Init();
-extern void Write_Snapshot();
-extern void Write_Restart_File();
-
-/* Restart Files */
-
-extern struct Restart_Parameters {
-	double Time_Continue;		// hold time if we restart
-	double Snap_Counter;
-} Restart;
-
-/* Snapshot I/O */
 unsigned int Largest_Block_Member_Nbytes();
 unsigned int Npart_In_Block(const int, const int *);
 
@@ -66,24 +65,22 @@ struct io_block_def {  // everything we need to define a Block in Format 2
 };
 
 #define P_OFFSET(member) offsetof(struct Particle_Data, member)
-#define P_SIZEOF(member) sizeof(((struct Particle_Data *)0)->member)
 
-static const struct io_block_def Block[] = {
-	{"POS ", VAR_P, P_OFFSET(Pos ), 3, sizeof(Float), true, "Positions"},
-	{"VEL ", VAR_P, P_OFFSET(Vel ), 3, sizeof(Float), true, "Velocities"},
-	{"ID  ", VAR_P, P_OFFSET(ID  ), 1, sizeof(ID_t), true, "Short IDs"},
-	{"MASS", VAR_P, P_OFFSET(Mass), 1, sizeof(Float), false, "Masses"}
+const static struct io_block_def Block[] = {
+
+	 {"POS ", VAR_P, P_OFFSET(Pos ), 3, sizeof(Float), true, "Positions"}
+	,{"VEL ", VAR_P, P_OFFSET(Vel ), 3, sizeof(Float), true, "Velocities"}
+	,{"ID  ", VAR_P, P_OFFSET(ID  ), 1, sizeof(ID_t), true, "Short IDs"}
+	,{"MASS", VAR_P, P_OFFSET(Mass), 1, sizeof(Float), false, "Masses"}
 
 #ifdef OUTPUT_TOTAL_ACCELERATION
-	,{"ACC", VAR_P, P_OFFSET(Acc), 1, sizeof(Float), false, "Acceleration"}
+	,{"ACC ", VAR_P, P_OFFSET(Acc ), 1, sizeof(Float), false, "Acceleration"}
 #endif
 #ifdef OUTPUT_PARTIAL_ACCELERATIONS
-	,{"GACC", VAR_P, P_OFFSET(Grav_Acc), 3, sizeof(Float), false, 
-		"Grav Acceleration"}
+	,{"GACC", VAR_P, P_OFFSET(Grav_Acc), 3, sizeof(Float), false, "Grav Accel"}
 #endif
 #ifdef OUTPUT_GRAV_POTENTIAL
-	,{"GPOT", VAR_P, P_OFFSET(Grav_Pot), 1, sizeof(Float), false, 
-		"Grav Potential"}
+	,{"GPOT", VAR_P, P_OFFSET(Grav_Pot), 1, sizeof(Float), false, "Grav Pot"}
 #endif
 #ifdef OUTPUT_PEANO_KEY
 	,{"PKEY", VAR_P, P_OFFSET(Peanokey), 1, sizeof(PeanoKey), false, "Pkeys"}
@@ -92,7 +89,6 @@ static const struct io_block_def Block[] = {
 	// Add yours below 
 };
 
-#undef P_OFFSET
-#undef P_SIZEOF
-
 static const int NBlocks = ARRAY_SIZE(Block);
+
+#endif // IO_H

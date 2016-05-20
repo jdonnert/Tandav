@@ -1,7 +1,4 @@
-#include "globals.h"
-#include "Gravity/gravity.h"
 #include "domain.h"
-#include "peano.h"
 
 //#define DEBUG_DOMAIN
 
@@ -33,7 +30,6 @@ static void communicate_particles();
 static void communicate_bunches();
 static void communicate_top_nodes();
 static void print_domain_decomposition(const int);
-
 
 union Domain_Node_List * restrict D = NULL;
 
@@ -182,8 +178,8 @@ void Setup_Domain_Decomposition()
 			"   CoM    at x = %4g, y = %4g, z = %4g. \n", Domain.Size, 
 			Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
 			Domain.Center[0], Domain.Center[1], Domain.Center[2],
-			Sim.Center_Of_Mass[0], Sim.Center_Of_Mass[1],
-			Sim.Center_Of_Mass[2]);
+			Prop.Center_Of_Mass[0], Prop.Center_Of_Mass[1],
+			Prop.Center_Of_Mass[2]);
 
 	return;
 }
@@ -298,16 +294,7 @@ static void reallocate_topnodes()
 
 static void reset_bunchlist()
 {
-#ifdef GRAVITY_TREE
-	#pragma omp single 
-	{
 
-	Free(Tree);
-	
-	Tree = NULL;
-
-	} // omp single
-#endif // GRAVITY_TREE
 
 	memset(&D[0], 0, sizeof(*D) * Max_NBunches);
 	
@@ -719,23 +706,6 @@ static int compare_bunches_by_cost(const void *a, const void *b)
 
 	return (int) (x->Cost < y->Cost) - (x->Cost > y->Cost);
 }
-
-static int compare_bunches_by_npart(const void *a, const void *b)
-{
-	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
-	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
-
-	return (int) (x->Npart < y->Npart) - (x->Npart > y->Npart);
-}
-
-static int compare_bunches_by_target(const void *a, const void *b)
-{
-	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
-	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
-
-	return (int) (x->Target < y->Target) - (x->Target > y->Target);
-}
-
 
 static void communicate_particles()
 {

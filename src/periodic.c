@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "periodic.h"
 
 #ifdef PERIODIC
 

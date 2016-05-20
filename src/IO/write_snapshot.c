@@ -1,6 +1,3 @@
-#include "../globals.h"
-#include "../proto.h"
-#include "../timestep.h"
 #include "io.h"
 
 #define WRITE_FORTRAN_RECORD(recSize) Fwrite(&recSize, 4, 1, fp);

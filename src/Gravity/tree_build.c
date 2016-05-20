@@ -1,8 +1,3 @@
-#include "../globals.h"
-#include "../domain.h"
-#include "../peano.h"
-#include "../timestep.h"
-#include "gravity.h"
 #include "tree.h"
 
 #ifdef GRAVITY_TREE
@@ -145,6 +140,20 @@ void Setup_Gravity_Tree()
 	}
 
 	return ;
+}
+
+void Gravity_Tree_Free()
+{
+	#pragma omp single 
+	{
+
+	Free(Tree);
+	
+	Tree = NULL;
+
+	} // omp single
+
+	return;
 }
 
 static void prepare_tree()

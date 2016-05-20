@@ -1,3 +1,6 @@
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
 /* 
  * This file defines global physical constants in cgsm units
  * Use unique descriptive names, all Capital letters 
@@ -5,6 +8,8 @@
 
 #include <gsl/gsl_const_cgsm.h>
 #include <gsl/gsl_const_num.h>
+
+#include "includes.h"
 
 #define PI 3.14159265358979323846
 #define SPEED_OF_LIGHT 29979245800.0 // CODATA 2014
@@ -52,3 +57,5 @@ struct Constants_In_Code_Units {
 } Const ;
 
 void Init_Constants();
+
+#endif // CONSTANTS_H

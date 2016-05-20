@@ -1,3 +1,7 @@
+#ifndef COSMOLOGY_H
+#define COSMOLOGY_H
+
+#include "includes.h"
 
 extern struct Current_Cosmology_In_Code_Units {
 	const double Hubble_Constant; // Constants
@@ -27,6 +31,8 @@ double Critical_Density(double);
 void Set_Current_Cosmology(const double a);
 void Init_Cosmology();
 #else // ! COMOVING
-inline void Set_Current_Cosmology(const double a) {};
-inline void Init_Cosmology() {};
+static inline void Set_Current_Cosmology(const double a) {};
+static inline void Init_Cosmology() {};
 #endif // ! COMOVING
+
+#endif // COSMOLOGY_H

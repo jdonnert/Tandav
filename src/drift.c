@@ -1,7 +1,4 @@
-#include "globals.h"
-#include "timestep.h"
 #include "drift.h"
-#include "Gravity/gravity.h"
 
 /* 
  * This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 

@@ -1,3 +1,8 @@
+#ifndef MEMORY_H
+#define MEMORY_H
+
+#include "includes.h"
+
 #ifdef MEMORY_MANAGER 
 #define Malloc(x,y) Malloc_info(__FILE__, __func__,  __LINE__, x, y)
 #define Realloc(x,y,z) Realloc_info(__FILE__, __func__,  __LINE__, x, y, z)
@@ -18,3 +23,5 @@ void Print_Memory_Usage();
 void Finish_Memory_Management();
 void Get_Free_Memory(size_t *total, size_t *largest, size_t *smallest);
 void *Get_Thread_Safe_Buffer (size_t nBytes);
+
+#endif // MEMORY_H

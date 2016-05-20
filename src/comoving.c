@@ -1,7 +1,4 @@
-#include "globals.h"
-#include "timestep.h"
-#include <gsl/gsl_integration.h>
-#include <gsl/gsl_spline.h>
+#include "comoving.h"
 
 #ifdef COMOVING
 
@@ -195,7 +192,7 @@ static void convert_velocities_to_comoving()
 static double vel2[NPARTYPE] = { 0 }, min_mpart[NPARTYPE] = { 0 };
 static long long npart[NPARTYPE] = { 0 };
 
-double Comoving_VelDisp_Timestep_Constraint(const double dt_max_ext)
+extern double Comoving_VelDisp_Timestep_Constraint(const double dt_max_ext)
 {
 	#pragma omp single
 	{

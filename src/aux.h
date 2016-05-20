@@ -1,3 +1,12 @@
+#ifndef AUX_H
+#define AUX_H
+
+/*
+ * Helper monkeys
+ */
+
+#include "includes.h"
+
 void Reallocate_P_Info(const char *, const char *, int, const int*, size_t*);
 void Assert_Info(const char *, const char *, int, int64_t, const char *, ...);
 void Warn_Info(const char *, const char *, int, int64_t, const char *, ...);
@@ -30,3 +39,5 @@ void Reorder_Array_4(const size_t n, void * restrict p_in,
 														size_t * restrict idx);
 void Reorder_Array_Char(const size_t nBytes, const size_t n, 
 								void * restrict p_in, size_t  * restrict idx);
+
+#endif // AUX_H

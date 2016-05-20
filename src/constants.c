@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "constants.h"
 
 struct Constants_In_Code_Units Const = {
 	ADIABATIC_INDEX_MONOATOMIC_GAS,

@@ -1,4 +1,8 @@
-#define Profile(x) Profile_Info(__func__, __FILE__, __LINE__, x)
+#ifndef PROFILE_H
+#define PROFILE_H
+
+#include  "includes.h"
+#include  "timestep.h"
 
 void Init_Profiler();
 void Finish_Profiler();
@@ -8,3 +12,5 @@ void Profile_Report(FILE *);
 void Profile_Report_Last(FILE *);
 void Write_Logs();
 double Runtime();
+
+#endif // PROFILE_H

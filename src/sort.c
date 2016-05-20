@@ -5,8 +5,7 @@
  * Vol. 23 (11), 1249-1265, 1993. 
  */
 
-#include "globals.h"
-#include <gsl/gsl_heapsort.h>
+#include "sort.h"
 
 #define PARALLEL_THRES_QSORT 15000 // use serial sort below this limit
 #define PARALLEL_THRES_HEAPSORT 15000

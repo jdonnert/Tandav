@@ -62,12 +62,7 @@ This is the Style Guide for Tandav:
   An exception for this rule are hot loops, because this approach does not
   vectorize !
 
-* The naming scheme of the modules should be consistent on the Makefile, file 
-  and function level:
 
-			#DEFINE GRAVITY_TREE
-			src/Gravity/tree_build.c
-			Gravity_Tree_Build();
 
 * C99: Variables are initialised when declared. Use the const keyword for
   input parameters of functions, to make clear what is returned.
@@ -96,6 +91,7 @@ This is the Style Guide for Tandav:
   using the const keyword.
 
   Globally:
+  			#define SPEED_OF_LIGHT = 3e10
             const double Speed_Of_Light = SPEED_OF_LIGHT / Unit.Velocity;
   Locally: 
             const double c = Speed_Of_Light;
@@ -167,7 +163,7 @@ This is the Style Guide for Tandav:
   so the endif might appear pages down. A negative example is Gadget-3's hydra.c
 
 * Minimize #ifdefs in C code. Write a function and an empty 
-  "inline void F(){};" prototype in the header file. Start the function 
+  "static inline void F(){};" prototype in the header file. Start the function 
   name with the macro name.  See the handling of 
   Periodic_Constrain_Particles_To_Box() in drift.[ch]
 
@@ -193,6 +189,13 @@ This is the Style Guide for Tandav:
 
 * Comments are // on the side, /* */ on the line. 
   Saves lines, increases readability.
+
+* The naming scheme of the modules should be consistent on the Makefile, file 
+  and function level:
+
+			#DEFINE GRAVITY_TREE
+			src/Gravity/tree_build.c
+			Gravity_Tree_Build();
 
 * Modules have a common structure: A module X can have Init_X(), Setup_X()
   and Finish_X() functions, defined in the module file and called in init.c 

@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "aux.h"
 
 /*
  * Show bits of an unsigned integer in triplets, 'delta' controls the dot 

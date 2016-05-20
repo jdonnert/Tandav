@@ -1,6 +1,4 @@
-#include "../globals.h"
-#include "../proto.h"
-#include "../timestep.h"
+#include "io.h"
 
 void Write_Restart_File()
 {

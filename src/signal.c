@@ -1,6 +1,4 @@
-#include "globals.h"
-#include "timestep.h"
-#include "drift.h"
+#include "signal.h"
 
 static bool test_for_stop_file();
 

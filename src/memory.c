@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "memory.h"
 
 #define MAXMEMOBJECTS 1000L
 
@@ -473,5 +473,3 @@ size_t get_system_memory_size()
 #endif // sysctl and sysconf variants
 #endif // unix
 }
-
-

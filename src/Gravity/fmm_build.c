@@ -1,6 +1,1 @@
-#include "../globals.h"
-#include "../domain.h"
-#include "../peano.h"
-#include "../timestep.h"
-#include "gravity.h"
 #include "fmm.h"

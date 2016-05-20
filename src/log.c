@@ -1,6 +1,4 @@
-#include "globals.h"
 #include "log.h"
-#include "timestep.h"
 
 static struct Log_File_Pointers {
 	FILE * Profile_Balance;
@@ -76,12 +74,12 @@ static void print_statistics(FILE * stream)
 		
 	if (Task.Is_MPI_Master)
 		fprintf(stream,"%g %g %g %g %g %g %g %g %g %g %g %g \n", Time.Current, 
-				Sim.Total_Mass, Sim.Kinetic_Energy, 
-				Sim.Momentum[0], Sim.Momentum[1], Sim.Momentum[2], 
-				Sim.Angular_Momentum[0], Sim.Angular_Momentum[1], 
-				Sim.Angular_Momentum[2],
-				Sim.Center_Of_Mass[0], Sim.Center_Of_Mass[1], 
-				Sim.Center_Of_Mass[2] );
+				Prop.Total_Mass, Prop.Kinetic_Energy, 
+				Prop.Momentum[0], Prop.Momentum[1], Prop.Momentum[2], 
+				Prop.Angular_Momentum[0], Prop.Angular_Momentum[1], 
+				Prop.Angular_Momentum[2],
+				Prop.Center_Of_Mass[0], Prop.Center_Of_Mass[1], 
+				Prop.Center_Of_Mass[2] );
 
 	} // omp single nowait
 

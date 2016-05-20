@@ -1,6 +1,4 @@
-#include "globals.h"
 #include "timestep.h"
-#include "IO/io.h"
 
 /* 
  * The number of bins is given by the number of bits in an integer time 
@@ -25,7 +23,7 @@ struct IntegerTimeLine Int_Time = { 0 };
 static float Dt_Max_Global = FLT_MAX;
 static int Time_Bin_Min = N_INT_BINS-1, Time_Bin_Max = 0;
 
-extern struct Particle_Vector_Blocks V = { NULL };
+struct Particle_Vector_Blocks V = { NULL };
 int * restrict First = NULL;
 int * restrict Last = NULL;
 
@@ -149,7 +147,7 @@ void Setup_Time_Integration()
 		
 		#pragma omp parallel for	
 		for (int ipart = 0; ipart < Task.Npart_Total; ipart++) 
-			P.It_Drift_Pos[ipart] = P.It_Drift_Pos[ipart] = Int_Time.Current;
+			P.It_Drift_Pos[ipart] = P.It_Kick_Pos[ipart] = Int_Time.Current;
 
 		rprintf("Continue simulation from snapshot %d at %g, next snap at %g \n", 
 				Time.Snap_Counter, Restart.Time_Continue, Time.Next_Snap);

@@ -1,3 +1,8 @@
+#ifndef UNIT_H
+#define UNIT_H
+
+#include "includes.h"
+
 /* Code unit conversion */
 
 const struct Code_Units {
@@ -28,3 +33,4 @@ double Thermal_Energy_Density_Cgs(const int ipart);
 /* Conversion from comoving to physical units */
 double Acceleration_Physical(const int ipart);
 
+#endif // UNIT_H

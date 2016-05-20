@@ -1,13 +1,15 @@
-#include "globals.h"
-#include "update.h"
+#include "includes.h"
+#include "init.h"
+#include "setup.h"
+#include "timestep.h"
 #include "kick.h"
 #include "drift.h"
-#include "timestep.h"
-#include "setup.h"
-#include "domain.h"
+#include "update.h"
+#include "peano.h"
 #include "accel.h"
+#include "domain.h"
 #include "IO/io.h"
-#include "Gravity/gravity.h"
+#include "IO/parameter_file.h"
 
 static void preamble(int argc, char *argv[]);
 

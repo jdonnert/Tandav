@@ -1,8 +1,4 @@
-#include "../globals.h"
-#include "../domain.h"
-#include "gravity.h"
 #include "tree.h"
-#include "gravity_periodic.h"
 
 #ifdef GRAVITY_TREE
 
@@ -223,7 +219,7 @@ static void gravity_tree_walk(const int tree_start)
 {
 	const Float fac = Send.Acc / Const.Gravity * TREE_OPEN_PARAM_REL;
 
-	const int tree_end = tree_start + Tree[tree_start].DNext;
+	//const int tree_end = tree_start + Tree[tree_start].DNext;
 
 	int node = tree_start;
 

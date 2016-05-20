@@ -1,8 +1,11 @@
 #ifndef TIMESTEP_H
-
 #define TIMESTEP_H
 
-struct TimeData {
+#include "includes.h"
+#include "comoving.h"
+#include "IO/restart_file.h"
+
+extern struct TimeData {
 	double Begin;			// if COMOVING is set, these are expansion fact a
 	double Current;
 	double Next;

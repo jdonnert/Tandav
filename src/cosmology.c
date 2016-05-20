@@ -1,5 +1,4 @@
-#include "globals.h"
-#include "timestep.h"
+#include "cosmology.h"
 
 #pragma omp threadprivate(Cosmo)
 struct Current_Cosmology_In_Code_Units Cosmo = {

@@ -1,7 +1,4 @@
-#include "../globals.h"
-#include "../domain.h"
-#include "gravity.h"
-#include "gravity_periodic.h"
+#include "periodic.h"
 
 #if defined(GRAVITY) && defined(PERIODIC)
 

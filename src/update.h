@@ -1,3 +1,18 @@
+#ifndef UPDATE_H
+#define UPDATE_H
+
+#include "includes.h"
+#include "cosmology.h"
+#include "domain.h"
+#include "accel.h"
+#include "IO/io.h"
+#include "properties.h"
+#include "periodic.h"
+#include "vector.h"
+#include "Gravity/tree.h" // <-- add your module .h here
+
+
+
 enum Update_Parameters {
 	BEFORE_PRESTEP,
 	BEFORE_MAIN_LOOP,
@@ -12,3 +27,5 @@ enum Update_Parameters {
 };
 
 void Update(enum Update_Parameters stage);
+
+#endif // UPDATE_H

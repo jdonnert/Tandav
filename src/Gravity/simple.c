@@ -1,9 +1,6 @@
-#include "../globals.h"
+#include "simple.h"
 
 #ifdef GRAVITY_FORCETEST
-
-#include "gravity.h"
-#include "gravity_periodic.h"
 
 #define NTEST 10
 

@@ -1,4 +1,4 @@
-#include "globals.h"
+#include "properties.h"
 
 static void find_center_of_mass(double CoM_out[3]);
 static void find_total_mass(double mass_out[1]);
@@ -6,19 +6,19 @@ static void find_total_kinetic_energy(double Ekin_out[1]);
 static void find_angular_momentum(double ang_p_out[3]);
 static void find_momentum(double mom_out[3]);
 
-void Compute_Global_Simulation_Properties()
+void Compute_Current_Simulation_Properties()
 {
 	Profile("Properties");
 
-	find_total_mass(&Sim.Total_Mass);
+	find_total_mass(&Prop.Total_Mass);
 
-	find_center_of_mass(&Sim.Center_Of_Mass[0]);
+	find_center_of_mass(&Prop.Center_Of_Mass[0]);
 
-	find_total_kinetic_energy(&Sim.Kinetic_Energy);
+	find_total_kinetic_energy(&Prop.Kinetic_Energy);
 
-	find_angular_momentum(&Sim.Angular_Momentum[0]);
+	find_angular_momentum(&Prop.Angular_Momentum[0]);
 	
-	find_momentum(&Sim.Momentum[0]);
+	find_momentum(&Prop.Momentum[0]);
 
 	Profile("Properties");
 
@@ -72,9 +72,9 @@ static void find_center_of_mass(double CoM_out[3])
 	MPI_Allreduce(MPI_IN_PLACE, global_com, 3, MPI_DOUBLE, MPI_SUM,
 			MPI_COMM_WORLD);
 
-	CoM_out[0] = global_com[0] / Sim.Total_Mass;
-	CoM_out[1] = global_com[1] / Sim.Total_Mass;
-	CoM_out[2] = global_com[2] / Sim.Total_Mass;
+	CoM_out[0] = global_com[0] / Prop.Total_Mass;
+	CoM_out[1] = global_com[1] / Prop.Total_Mass;
+	CoM_out[2] = global_com[2] / Prop.Total_Mass;
 
 	} // omp single
 

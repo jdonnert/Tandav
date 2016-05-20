@@ -1,11 +1,4 @@
-#include "globals.h"
 #include "update.h"
-#include "accel.h"
-#include "timestep.h"
-#include "IO/io.h"
-#include "Gravity/gravity.h"
-#include "domain.h"
-#include "properties.h"
 
 /* 
  * Provide a consistent way of updating/calling different parts 
@@ -42,7 +35,7 @@ void Update(enum Update_Parameters stage)
 
 	case BEFORE_STEP:
 		
-		Compute_Global_Simulation_Properties();
+		Compute_Current_Simulation_Properties();
 
 		Write_Logs();
 
@@ -62,9 +55,11 @@ void Update(enum Update_Parameters stage)
 
 	case BEFORE_DOMAIN:
 
-		Compute_Global_Simulation_Properties();
+		Compute_Current_Simulation_Properties();
 
 		Periodic_Constrain_Particles_To_Box(); // PERIODIC
+	
+		Gravity_Tree_Free(); // GRAVITY_TREE
 
 		break;
 

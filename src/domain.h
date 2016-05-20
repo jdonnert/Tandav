@@ -1,3 +1,5 @@
+#ifndef DOMAIN_H
+#define DOMAIN_H
 
 /*
  * The Domain decomposition creates bunches in *D that will later be 
@@ -11,6 +13,14 @@
  * positive and to a top node index "-1*P[ipart].Tree_Parent - 1" if 
  * negative to avoid the degeneracy of index "0".
  */
+
+
+#include "includes.h"
+#include "peano.h"
+#include "sort.h"
+#include "select.h"
+#include "timestep.h"
+#include "properties.h"
 
 union Domain_Node_List {
 
@@ -58,3 +68,4 @@ void Domain_Decomposition();
 void Setup_Domain_Decomposition();
 void Finish_Domain_Decomposition();
 
+#endif // DOMAIN_H

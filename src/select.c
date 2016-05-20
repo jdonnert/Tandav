@@ -1,8 +1,6 @@
-#include "globals.h"
-#include "proto.h"
+#include "select.h"
 
 #define PARALLEL_THRES 100000
-
 
 /*
  * Select the kth element out of an array *data with length ndata.

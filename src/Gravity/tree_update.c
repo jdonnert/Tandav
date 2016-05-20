@@ -1,6 +1,3 @@
-#include "../globals.h"
-#include "../domain.h"
-#include "gravity.h"
 #include "tree.h"
 
 #ifdef GRAVITY_TREE

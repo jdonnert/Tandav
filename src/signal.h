@@ -1,3 +1,8 @@
+#ifndef SIGNAL_H
+#define SIGNAL_H
+
+#include "includes.h"
+
 bool Time_Is_Up();
 bool Time_For_Snapshot();
 bool Time_For_Domain_Update();
@@ -14,3 +19,5 @@ extern struct Simulation_Signals { // communicate an event across the code
 	bool Use_BH_Criterion;		// Use different opening criterion
 } Sig;
 #pragma omp threadprivate(Sig)  // the compiler hates this to be public
+
+#endif // SIGNAL_H

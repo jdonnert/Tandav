@@ -4,10 +4,13 @@
  * we now have to loop over all its members and their components and change
  * all these arrays individually. The necessary information is in a const
  * struct array in particles_fields.h, which we may autogenerate from 
- * globals.h at some point
+ * includes.h at some point
  */
 
-#include "globals.h"
+#include "particles.h"
+
+struct Particle_Data P = { NULL };
+struct Gas_Particle_Data G = { NULL };
 
 size_t sizeof_P = 0; 
 const int NP_Fields = ARRAY_SIZE(P_Fields);

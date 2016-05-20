@@ -1,5 +1,4 @@
-#include "globals.h"
-#include "domain.h"
+#include "vector.h"
 
 static int compare_leafs_by_key(const void *a, const void *b);
 static void sort_vectors_by_peano_key();
@@ -13,7 +12,7 @@ static void sort_vectors_by_peano_key();
  * and checking for changes in the PH triplets.
  * */
 
-extern struct Vector_Data Vec = { NULL }; 
+struct Vector_Data Vec = { NULL }; 
 
 void Find_Vectors()
 {

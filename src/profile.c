@@ -1,5 +1,4 @@
-#include "globals.h"
-#include "timestep.h"
+#include "profile.h"
 
 #define MAXPROFILEITEMS 64		// Max number of profiling marks
 

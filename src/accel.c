@@ -1,7 +1,4 @@
-#include "globals.h"
 #include "accel.h"
-#include "timestep.h"
-#include "Gravity/gravity.h"
 
 #ifdef GRAVITY
 static void accel_gravity();

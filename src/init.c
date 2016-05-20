@@ -1,16 +1,12 @@
-#include "globals.h"
-#include "IO/io.h"
-#include "Gravity/gravity.h"
-#include "Gravity/gravity_periodic.h"
+#include "init.h"
 
-struct Parameters_From_File Param;
 struct Global_Simulation_Properties Sim;
+int * restrict Active_Particle_List;
 
 #pragma omp threadprivate(Task)
 struct Local_Task_Properties Task = { 0 };
 
-struct Particle_Data P = { NULL };
-struct Gas_Particle_Data G = { NULL };
+int Master = 0, NRank = 0, NThreads = 0, NTask = 0;
 
 void Read_and_Init(int argc, char *argv[])
 {

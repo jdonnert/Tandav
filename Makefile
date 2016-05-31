@@ -32,6 +32,7 @@
 # 	export TANDAV_CC="mpicc"
 #	export TANDAV_CFLAGS="-Wall -g -openmp -std=c99 -fstrict-aliasing \
 #		-ansi-alias-check -O3 -xhost -qopt-report"
+#	export TANDAV_CFLAGS_DEBUG="-Wall -g -openmp -std=c99"
 # 	export TANDAV_LDFLAGS="-lmpich"
 # 	export TANDAV_CPPFLAGS=""
 #
@@ -41,6 +42,7 @@
 #		-march=bdver1 -mtune=native -mprefer-avx128 -mieee-fp -flto \
 #		-minline-all-stringops -fprefetch-loop-arrays \
 #		--param prefetch-latency=300 -funroll-all-loops"
+#	export TANDAV_CFLAGS_DEBUG="-Wall -g -openmp -std=c99"
 # 	export TANDAV_LDFLAGS="-lmpich -L/home/donnert/Libs/lib"
 # 	export TANDAV_CPPFLAGS="-I/home/donnert/Libs/include"
 # 
@@ -48,6 +50,7 @@
 #
 # 	export TANDAV_CC="cc"
 # 	export TANDAV_CFLAGS="-O3 -h msglevel_2 -h msgs"
+#	export TANDAV_CFLAGS_DEBUG="-Wall -hmsgs -eF -O thread1"
 # 	export TANDAV_LDFLAGS="-L/home/users/n17421/Libs/lib"
 # 	export TANDAV_CPPFLAGS="-I/home/users/n17421/Libs/include"
 
@@ -56,8 +59,12 @@ SHELL = /bin/bash 	# This should always be present in a Makefile
 EXEC = Tandav
 
 CC 	 	= $(TANDAV_CC)
-CFLAGS 	= $(TANDAV_CFLAGS) $(TANDAV_CPPFLAGS)
 LIBS 	= -lm -lgsl -lgslcblas $(TANDAV_LDFLAGS)
+CFLAGS 	= $(TANDAV_CFLAGS) $(TANDAV_CPPFLAGS)
+
+ifeq ($(MAKECMDGOALS),debug)
+CFLAGS	= $(TANDAV_CFLAGS_DEBUG) $(TANDAV_CPPFLAGS)
+endif
 
 SRCDIR = src
 
@@ -78,7 +85,7 @@ OBJFILES = $(SRCFILES:.c=.o)
 	@echo [CC] $@
 	@$(CC) $(CFLAGS)  -o $@ -c $<
 
-$(EXEC)	: $(OBJFILES) | settings
+$(EXEC) debug: $(OBJFILES) | settings
 	$(CC) -g $(CFLAGS) $(OBJFILES) $(LIBS) -o $(EXEC)
 	@ctags -w $(SRCFILES) $(INCLFILES)
 

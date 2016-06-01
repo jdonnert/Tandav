@@ -6,7 +6,7 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 	msol = 1.989d33
 	
 	if not keyword_set(npart) then $
-		npart = 500000L
+		npart = 250000L
 
 	if not keyword_set(boxsize) then $
 		boxsize = 100000D
@@ -31,9 +31,11 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 	pos[1,*] = r * sin(theta) * sin(phi)
 	pos[2,*] = r * cos(theta) 
 
-	print, 'npart = '+strn(npart), minmax(r) 
-	print, 'bounds', minmax(pos[0,*]), minmax(pos[1,*]), minmax(pos[2,*])
-	print, 'box', boxsize
+	print, 'npart '+strn(npart)
+	print, 'x_min x_max', minmax(pos[0,*])
+	print, 'y_min y_max', minmax(pos[1,*])
+	print, 'z_min z_max', minmax(pos[2,*])
+	print, 'boxsize', boxsize
 
 	plot, pos[0,*], pos[1,*], /iso, psym=3
 
@@ -80,7 +82,7 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 
 	; output
 
-	head = tandav.MakeHead()
+	head = tandav.Make_Head()
 
 	head.npart[1] = LONG(npart)
 	head.parttotal = head.npart
@@ -97,11 +99,11 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 
 	print, 'IC File', fname
 
-	tandav.WriteHead, fname, head
+	tandav.Write_Head, fname, head
 	
-	tandav.AddBlock, fname, float(pos), 'POS'
-	tandav.AddBlock, fname, float(vel), 'VEL'
-	tandav.AddBlock, fname, ulong(lindgen(npart)+1), 'ID'
+	tandav.Add_Block, fname, float(pos), 'POS'
+	tandav.Add_Block, fname, float(vel), 'VEL'
+	tandav.Add_Block, fname, ulong(lindgen(npart)+1), 'ID'
 
 	return
 end

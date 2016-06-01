@@ -3,9 +3,9 @@
 
 #include "includes.h" 
 #include "Gravity/tree.h" 
-#include "Gravity/simple.h" 
+#include "Gravity/forcetest.h" 
 #include "Gravity/fmm.h" 
 
 void Compute_Acceleration();
 
-#endif
+#endif // ACCEL_H

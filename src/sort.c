@@ -10,22 +10,18 @@
 #define PARALLEL_THRES_QSORT 15000 // use serial sort below this limit
 #define PARALLEL_THRES_HEAPSORT 15000
 
-#define INSERT_THRES 8 // insertion8sort threshold
+#define INSERT_THRES 8 // insertion sort threshold
 
 static inline void swap(void * restrict a, void * restrict b, size_t nBytes)
 {	
 	char * restrict x = (char *) a;
 	char * restrict y = (char *) b;
 
-	while (nBytes > 0) {
+	char tmp[nBytes];
 
-		char tmp = *x;
-
-		*x = *y;
-		*y = tmp;
-
-		nBytes--;
-	}
+	memcpy(tmp, x, nBytes);
+	memcpy(x, y, nBytes);
+	memcpy(y, tmp, nBytes);
 
 	return ;
 }

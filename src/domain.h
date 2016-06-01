@@ -2,9 +2,11 @@
 #define DOMAIN_H
 
 /*
- * The Domain decomposition creates bunches in *D that will later be 
- * transformed into top nodes. The tree walk during acceleration then 
- * traverses the topnode list and kicks off particle export 
+ * The Domain decomposition creates bunches in *D that are tree nodes at which
+ * the domain will be decomposed. They will later be  transformed into "top 
+ * nodes", below which are subtree will be build. They are actually useful for 
+ * the tree walk, as they hold the particle CoM etc. The tree walk during 
+ * acceleration then traverses the topnode list and kicks off particle export 
  * or local tree walk.
  * The top nodes store a "Target" which is the node where the subtree starts in 
  * "*Tree", if it is positive. If "Target" is negative, it points to the MPI 
@@ -24,7 +26,7 @@
 
 union Domain_Node_List {
 
-	struct Bunch_Node {	// Data needed for Domain Decomposition
+	struct Bunch_Node {		// Data needed for Domain Decomposition
 		shortKey Key;		// Largest Peano key held by this bunch
 		int Target;			// MPI rank
 		int Level;

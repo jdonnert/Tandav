@@ -15,7 +15,6 @@ int compare_peanoKeys(const void * a, const void *b)
  * Here we compute peano Keys and reorder particles
  */
 
-static peanoKey *keys = NULL;
 static size_t *idx = NULL;
 
 void Sort_Particles_By_Peano_Key()
@@ -23,24 +22,15 @@ void Sort_Particles_By_Peano_Key()
 	Profile("Peano-Hilbert order");
 	
 	#pragma omp single
-	{
-	
-	keys = Malloc(Task.Npart_Total_Max * sizeof(*keys), "PeanoKeys");
-
 	idx = Malloc(Task.Npart_Total_Max * sizeof(*idx), "Sort Idx");
-
-	} // omp single
 
 	#pragma omp for
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) 
-		P.Key[ipart] = 
-			Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart], P.Pos[2][ipart]);
+		P.Key[ipart] = Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart], 
+								 P.Pos[2][ipart]);
 
-	Qsort_Index(Task.Thread_ID, idx, P.Key, Task.Npart_Total, sizeof(*keys),
+	Qsort_Index(Task.Thread_ID, idx, P.Key, Task.Npart_Total, sizeof(*P.Key),
 			&compare_peanoKeys);
-
-	#pragma omp single
-	Free(keys);
 
 	reorder_collisionless_particles(idx);
 
@@ -53,7 +43,7 @@ void Sort_Particles_By_Peano_Key()
 	Make_Active_Particle_Vectors();
 
 	Profile("Peano-Hilbert order");
-	
+
 	return ;
 }
 
@@ -76,7 +66,7 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 			memcpy(idx, idx_in, nBytes); // restore unsorted idx
 	
 			void * restrict p = Select_Particle(i, j, 0);
-	
+
 			if (P_Fields[i].Bytes == 8)
 				Reorder_Array_8(Task.Npart_Total, p, idx);
 			else if (P_Fields[i].Bytes == 4)
@@ -90,11 +80,27 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 	return ;
 }
 
+void Reverse_Peano_Keys()
+{
+	#pragma omp for
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
+
+		Float px = P.Pos[0][ipart];
+		Float py = P.Pos[1][ipart];
+		Float pz = P.Pos[2][ipart];
+		
+		P.Key[ipart] = Reversed_Peano_Key(px, py, pz); 
+	}
+
+	return;
+}
+
+
 /* 
  * Construct a 128 bit Peano-Hilbert distance in 3D, input coordinates 
  * have to be normalized as 0 <= x < 1. Unfortunately it's not clear if 
  * a 128bit type would be portable, though all modern CPUs have 128 bit 
- * registers. Bits 0 & 1 are unused, the most significant bit is 63. Input has
+ * registers. Bits 0 & 1 are unused, the most significant bit is 127. Input has
  * to be double for full precision.
  *
  * The normalisation of the position can run into floating point precision 

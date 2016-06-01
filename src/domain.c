@@ -1,7 +1,5 @@
 #include "domain.h"
 
-//#define DEBUG_DOMAIN
-
 #define MIN_LEVEL 2 // decompose at least 8^MIN_LEVEL domains downward
 
 static void set_computational_domain();
@@ -24,12 +22,16 @@ static unsigned int cost_metric(const int ipart);
 static void zero_particle_cost();
 static int compare_bunches_by_key(const void *a, const void *b);
 static int compare_bunches_by_cost(const void *a, const void *b);
-static int compare_bunches_by_npart(const void *a, const void *b);
-static int compare_bunches_by_target(const void *a, const void *b);
 static void communicate_particles();
 static void communicate_bunches();
 static void communicate_top_nodes();
+
+#ifdef DEBUG_DOMAIN
 static void print_domain_decomposition(const int);
+#else
+static inline void print_domain_decomposition(const int a) {};
+#endif // DEBUG_DOMAIN
+
 
 union Domain_Node_List * restrict D = NULL;
 
@@ -69,7 +71,7 @@ void Domain_Decomposition()
 	set_computational_domain();
 
 	Sort_Particles_By_Peano_Key();
-	
+
 	reset_bunchlist(); // also deallocates Tree
 
 	fill_new_bunches(0, NBunches, 0, Task.Npart_Total);
@@ -94,7 +96,7 @@ void Domain_Decomposition()
 		find_global_imbalances();
 		
 		if (Max_Cost_Imbal < DOMAIN_IMBAL_CEIL)
-			if (Max_Mem_Imbal < Param.Part_Alloc_Factor-1) // distribution OK ?
+			if (Max_Mem_Imbal < Param.Part_Alloc_Factor-1) // distrib OK ?
 				break;
 
 		if (cnt++ > N_SHORT_TRIPLETS - MIN_LEVEL) {
@@ -120,11 +122,9 @@ void Domain_Decomposition()
 
 	transform_bunches_into_top_nodes();
 
-	#pragma omp for 					
-	for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
-		P.Key[ipart] = Reverse_Peano_Key(P.Key[ipart]); // reverse peano keys
-
 	communicate_top_nodes();
+
+	Reverse_Peano_Keys();
 
 	rprintf("\nDomain: After %d iterations ...\n"
 			"        %d Top Nodes, %d Top Leaves, max level %d  merged %d\n"
@@ -205,25 +205,7 @@ static void communicate_top_nodes()
 	return ;
 }
 
-/*
- * Reduce the Bunch list over all MPI ranks 
- */
 
-static void communicate_bunches()
-{
-	#pragma omp for
-	for (int i = 0; i < NBunches; i++) {
-
-		//D[i].Bunch.Target = 0;
-
-		D[i].Bunch.Is_Local = true;
-	}
-
-	// MPI_Allreducev();
-	// MPI_Ibcast();
-
-	return ;
-}
 
 /*
  * Set the "TNode" part of the "D"omain unions. From here onwards the members 
@@ -294,8 +276,6 @@ static void reallocate_topnodes()
 
 static void reset_bunchlist()
 {
-
-
 	memset(&D[0], 0, sizeof(*D) * Max_NBunches);
 	
 	int level = find_min_level();
@@ -707,14 +687,34 @@ static int compare_bunches_by_cost(const void *a, const void *b)
 	return (int) (x->Cost < y->Cost) - (x->Cost > y->Cost);
 }
 
+
+
+/*
+ * Reduce the Bunch list over all MPI ranks 
+ */
+
+static void communicate_bunches()
+{
+	#pragma omp for
+	for (int i = 0; i < NBunches; i++) {
+
+		//D[i].Bunch.Target = 0;
+
+		D[i].Bunch.Is_Local = true;
+	}
+
+	// MPI_Allreducev();
+	// MPI_Ibcast();
+
+	return ;
+}
+
 static void communicate_particles()
 {
 	zero_particle_cost();
 
 	return ;
 }
-
-
 
 /*
  * Find the global domain origin and the maximum extent. We center the domain 
@@ -844,11 +844,18 @@ static void find_largest_particle_distance(double *size_out)
 
 #endif // ! PERIODIC
 
+#ifdef DEBUG_DOMAIN
 
+static int compare_bunches_by_target(const void *a, const void *b)
+{
+	const struct Bunch_Node *x = (const struct Bunch_Node *) a;
+	const struct Bunch_Node *y = (const struct Bunch_Node *) b;
+
+	return (int) (x->Target < y->Target) - (x->Target > y->Target);
+}
 
 static void print_domain_decomposition (const int max_level)
 {
-#ifdef DEBUG_DOMAIN
 
 	Qsort(NThreads, &D[0], NBunches, sizeof(*D), 
 			&compare_bunches_by_target);
@@ -899,6 +906,6 @@ static void print_domain_decomposition (const int max_level)
 
 	#pragma omp barrier
 
-#endif
 	return ;
 }
+#endif // DEBUG_DOMAIN

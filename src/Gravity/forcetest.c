@@ -1,4 +1,4 @@
-#include "simple.h"
+#include "forcetest.h"
 
 #ifdef GRAVITY_FORCETEST
 
@@ -21,7 +21,7 @@ static int idx[NTEST] = { 0 };
  * consequence. We check NTEST particles only.
  */
 
-void Gravity_Simple_Accel()
+void Gravity_Forcetest()
 {
 	Profile("Gravity_Simple");
 

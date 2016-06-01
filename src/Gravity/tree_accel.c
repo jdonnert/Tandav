@@ -41,24 +41,17 @@ void Gravity_Tree_Acceleration()
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
-
+		
 		memset(&Send, 0, sizeof(Send));
 		memset(&Recv, 0, sizeof(Recv));
 
-
-		P.Last_Acc_Mag[ipart] = sqrt( p2(P.Acc[0][ipart]) 
-									+ p2(P.Acc[1][ipart]) 
-									+ p2(P.Acc[2][ipart]));
-
 		Send = copy_send_from(ipart);
 
-		P.Acc[0][ipart] = P.Acc[1][ipart] = P.Acc[2][ipart] = 0;
-
 		for (int j = 0; j < NTop_Nodes; j++) {
-			
+
 			if (interact_with_topnode(j))
 				continue;
-
+			
 			//if (D[j].TNode.Target < 0) { // not local ?
 			//
 			//	export_particle_to_rank(ipart, -target-1);	
@@ -72,7 +65,7 @@ void Gravity_Tree_Acceleration()
 
 				continue;
 			}
-
+//
 			int tree_start = D[j].TNode.Target;
 
 			if (Sig.Use_BH_Criterion) 
@@ -223,7 +216,14 @@ static void gravity_tree_walk(const int tree_start)
 
 	int node = tree_start;
 
+if (Send.ID == 148477) {
+printf("ENTER : %d %d %d %d %d\n", Send.ID, node, NNodes, tree_start, Tree[node].DNext  ); fflush(stdout);
+}
+	
 	while (Tree[node].DNext != 0 || node == tree_start) {
+
+//if (Send.ID == 148477)
+//printf("WHILE : %d %d \n", Send.ID, node); fflush(stdout);
 
 		if (Tree[node].DNext < 0) { // encountered particle bundle
 
@@ -248,6 +248,9 @@ static void gravity_tree_walk(const int tree_start)
 
 			continue;
 		}
+
+//if (Send.ID == 148477)
+//printf("DNEXT : %d %d  \n", Send.ID, node); fflush(stdout);
 
 		Float dr[3] = {Tree[node].CoM[0] - Send.Pos[0],
 					   Tree[node].CoM[1] - Send.Pos[1],
@@ -289,10 +292,14 @@ static void gravity_tree_walk(const int tree_start)
 
 		interact(nMass, dr, r2); // use node
 
+//if (Send.ID == 148477)
+//printf("INTERACT : %d %d %d \n", Send.ID, node, node+Tree[node].DNext); fflush(stdout);
 		node += Tree[node].DNext; // skip branch
 
 	} // while
 
+if (Send.ID == 148477)
+printf("OUT : %d %d  \n", Send.ID, node); fflush(stdout);
 	return ;
 }
 

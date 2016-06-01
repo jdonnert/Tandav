@@ -14,7 +14,6 @@ void Write_Snapshot();
 void Write_Restart_File();
 
 
-
 /* 
  * Snapshot I/O 
  */

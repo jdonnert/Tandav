@@ -1,6 +1,7 @@
 #include "io.h"
 
 #define SKIP_FORTRAN_RECORD safe_fread(&Fortran_Record, 4, 1, fp, swap_Endian);
+
 static int32_t Fortran_Record; // holds the 4 byte Fortran data
 
 static int safe_fread(void * restrict, size_t, size_t, FILE *, bool);

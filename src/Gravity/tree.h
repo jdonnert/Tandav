@@ -21,7 +21,7 @@ void Gravity_Tree_Free();
 
 extern struct Tree_Node {
 	int DNext;			// Distance to the next node; or particle -DNext-1
-	uint32_t Bitfield;	// bit 0-5:level, 6-8:key, 9:local, 10:top, 11-31:free
+	uint32_t Bitfield; // bit 0-5:level, 6-8:key, 9:local, 10:top
 	int DUp;			// Number of nodes to the parent
 	int Npart;			// Number of particles in node
 	Float Pos[3];		// Node Center
@@ -30,7 +30,10 @@ extern struct Tree_Node {
 	Float Dp[3];		// Velocity of Center of Mass
 } * restrict Tree;
 
-double Epsilon[NPARTYPE], Epsilon2[NPARTYPE], Epsilon3[NPARTYPE];
+
+double Epsilon[NPARTYPE], // softening
+	   Epsilon2[NPARTYPE], 
+	   Epsilon3[NPARTYPE];
 
 uint32_t NNodes;
 
@@ -70,6 +73,11 @@ static inline void Gravity_Tree_Update_Drift(const double dt) {};
 static inline void Gravity_Tree_Free() {};
 
 #endif // GRAVITY && GRAVITY_TREE
+
+/* 
+ * Periodic Boundaries need to walk the tree but interact with the
+ * Ewald cube at the particle/node position.
+ */
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE) && defined(PERIODIC)
 void Gravity_Tree_Periodic();

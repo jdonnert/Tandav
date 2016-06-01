@@ -16,4 +16,11 @@ extern struct Vector_Data {
 
 int NVec;
 
+extern struct Particle_Vector_Blocks{
+	int * restrict First;
+	int * restrict Last;
+} V; // contingouos particle blocks on the same timestep
+
+int NParticle_Vectors;
+
 #endif // VECTOR_H

@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
 
 		Drift_To_Sync_Point();
 		
-		Find_Vectors();
+		//Find_Vectors();
 
 		Update(BEFORE_DOMAIN);
 

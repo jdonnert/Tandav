@@ -1,12 +1,12 @@
-#ifndef GRAVITY_SIMPLE_H
-#define GRAVITY_SIMPLE_H
+#ifndef FORCETEST_H
+#define FORCETEST_H
 
 #include "../includes.h"
 
 #if defined(GRAVITY) && defined(GRAVITY_FORCETEST)
-void Gravity_Simple_Accel();
+void Gravity_Forcetest();
 #else
-static inline void Gravity_Simple_Accel() {};
+static inline void Gravity_Forcetest() {};
 #endif // GRAVITY_FORCETEST
 
 #endif // GRAVITY_SIMPLE_H

@@ -4,7 +4,6 @@
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0])) // works only for non-allocatables
 #define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
 
-
 #define MIN(a,b) ((a)<(b)?(a):(b)) // this doesnt always work: c = MAX(a++, b)
 #define MAX(a,b) ((a)>(b)?(a):(b)) // better use functions imin, fmin in aux.c
 

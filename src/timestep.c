@@ -68,7 +68,7 @@ void Set_New_Timesteps()
 		Int_Time.Next_Sync_Point += 1ULL << Time_Bin_Max;
 	}
 
-	Make_Active_Particle_Vectors();
+	//Make_Active_Particle_Vectors();
 	Make_Active_Particle_List();
 
 	#pragma omp master

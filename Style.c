@@ -116,11 +116,7 @@ This is the Style Guide for Tandav:
 
 			my_routine(ipart, &return_var_1, &return_var_2);
 
-* Modulerize: Every .c file/module has a corresponding .h header file of the same 
-  name. The header file contains the Global functions and variables. 
-  These all start with a capital letter and are enclosed in an #ifdef if
-  the functionality is switchable. All additional header files are includes 
-  in proto.h , which itself is contained in globals.h.
+
 
 * Constants in CGSM are macros, have unique long descriptive capitalised names
   There is no elegant alternative to this in pure C. Don't forget to bracket
@@ -147,7 +143,7 @@ This is the Style Guide for Tandav:
 
 * The C idiom for infinite loops is for(;;).
 
-* strcpy() is deprecated, always use strncpy(), it's safer.
+* strcpy() is deprecated, always use strncpy().
 
 * All char buffers have size CHARBUFSIZE ! That also helps you to use strncpy.
 
@@ -167,7 +163,7 @@ This is the Style Guide for Tandav:
   name with the macro name.  See the handling of 
   Periodic_Constrain_Particles_To_Box() in drift.[ch]
 
-* Avoid stacking #ifdef, it becomes unreadable too quickly (hydra.c anybody?) 
+* Avoid stacking #ifdef, it becomes unreadable too quickly (hydra.c ...) 
   Check Gravity/gravity.h to see how to do it.
 
 * Default integers should be simply int. If you need more bits, unsigned etc, 
@@ -189,6 +185,12 @@ This is the Style Guide for Tandav:
 
 * Comments are // on the side, /* */ on the line. 
   Saves lines, increases readability.
+
+* Modulerize: Every .c file/module has a corresponding .h header file of the same 
+  name. The header file contains all #include directives and the Global functions and 
+  variables. 
+  These all start with a capital letter and are enclosed in an #ifdef if
+  the functionality is switchable. Only include what you really need.
 
 * The naming scheme of the modules should be consistent on the Makefile, file 
   and function level:

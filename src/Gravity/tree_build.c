@@ -2,8 +2,6 @@
 
 #ifdef GRAVITY_TREE
 
-#define DEBUG_TREE
-
 #define NODES_PER_PARTICLE 0.6
 #define TREE_ENLARGEMENT_FACTOR 1.2
 
@@ -29,7 +27,7 @@ static int Max_Nodes = 0;
 struct Tree_Node  * restrict Tree = NULL; // global pointer to all nodes
 static omp_lock_t Tree_Lock; // lock global *Tree, NNodes, Max_Nodes
 
-static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *Buffer
+static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *tree
 #pragma omp threadprivate(tree)
 
 /*
@@ -63,7 +61,7 @@ void Gravity_Tree_Build()
 
 	//		if (D[i].TNode.Target < 0)  // not local
 	//			continue;
-	
+			
 			bool build_in_buffer = D[i].TNode.Npart < buf_threshold;
 
 			int nReserved = ceil(D[i].TNode.Npart * NODES_PER_PARTICLE);
@@ -249,7 +247,8 @@ static void set_tree_parent_pointers (const int i)
  * particle will branch off as late as possible from the previous one. This 
  * means refining a node can be done via a split and reassignment of ipart and
  * ipart-1 until both are in seperate nodes. ipart+1 can then only fall
- * into the node of ipart, but not of ipart-1.
+ * into the node of ipart, but not of ipart-1. If the tree build fails, check
+ * that this assumption is met first.
  * In the tree, DNext is the difference to the next sibling in the walk, if the
  * node is not opened. Opening a node is then node++. If DNext is negative, it 
  * points to Npart particles starting at ipart=-DNext-1, and the next node in 
@@ -420,7 +419,7 @@ static void collapse_last_branch(const int node, const int last_parent,
 	*nNodes -= nZero;
 
 	size_t nBytes = nZero * sizeof(*tree);
-
+	
 	memset(&tree[*nNodes], 0, nBytes);
 
 	int first = -(tree[n].DNext + 1); // correct parent pointer

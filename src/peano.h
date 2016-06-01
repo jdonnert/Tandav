@@ -9,10 +9,10 @@
 #define N_SHORT_BITS (sizeof(shortKey)*CHAR_BIT)
 #define N_SHORT_TRIPLETS (N_SHORT_BITS/3)
 
-/* convert peanoKey to shortKey Key >>= DELTA_PEANO_BITS */
 #define DELTA_PEANO_BITS (N_PEANO_BITS - N_SHORT_BITS) 
 
 void Sort_Particles_By_Peano_Key();
+void Reverse_Peano_Keys();
 
 peanoKey Peano_Key(const Float px, const Float py,const Float pz);
 peanoKey Reversed_Peano_Key(const Float px, const Float py,const Float pz);

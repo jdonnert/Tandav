@@ -773,7 +773,7 @@ static void find_domain_center(double Center_Out[3])
 	buffer = Malloc(Task.Npart_Total * sizeof(*buffer), "buffer");
 	
 	for (int i = 0; i < 3; i++) {
-
+		
 		#pragma omp for simd
 		for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
 			buffer[ipart] = P.Pos[i][ipart];

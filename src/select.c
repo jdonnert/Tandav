@@ -19,7 +19,7 @@ static inline void swap(Float * restrict a, Float * restrict b)
 Float Select(const int k, const int ndata, Float * restrict data)
 {
 	int l = 1;
-	int ir = ndata;
+	int ir = ndata-1;
 
 	for (;;) {
 

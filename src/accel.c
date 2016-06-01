@@ -1,6 +1,6 @@
 #include "accel.h"
 
-static void zero_active_particle_accelerations();
+static void safe_last_accel();
 
 #ifdef GRAVITY
 static void accel_gravity();
@@ -14,7 +14,7 @@ static inline void gravity_accel() {};
 
 void Compute_Acceleration()
 {
-	zero_active_particle_accelerations(); // also sets P.Last_Acc_Mag
+	safe_last_accel(); // and zero P.Acc
 
 	accel_gravity(); // GRAVITY
 
@@ -25,7 +25,7 @@ void Compute_Acceleration()
 	return ;
 }
 
-static void zero_active_particle_accelerations()
+static void safe_last_accel()
 {
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
@@ -60,7 +60,10 @@ static void accel_gravity()
 		Gravity_Tree_Acceleration();
 	
 		Sig.Use_BH_Criterion = false;
+	
+		safe_last_accel();
 	}
+
 
 	Gravity_Tree_Acceleration();
 

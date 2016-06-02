@@ -108,8 +108,9 @@ void Gravity_Tree_Build()
 
 	} // forever
 
-	rprintf("Tree build: %d of %d Nodes used (%g MB)\n",
-			NNodes, Max_Nodes, Max_Nodes*sizeof(*Tree)/1024.0/1024);
+	rprintf("Tree build: %d of %d Nodes (%2.0f%%) used (%g MB)\n",
+			NNodes, Max_Nodes, NNodes*100.0/Max_Nodes, 
+			Max_Nodes*sizeof(*Tree)/1024.0/1024);
 
 	print_top_nodes(); // DEBUG_TREE only
 

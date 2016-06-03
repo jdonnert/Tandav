@@ -33,7 +33,7 @@ void Gravity_Tree_Acceleration()
 {
 	Profile("Grav Tree Accel");
 
-	rprintf("Tree acceleration ");
+	rprintf("Tree acceleration "); fflush(stdout);
 
 	check_total_momentum(false);
 

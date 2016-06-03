@@ -14,15 +14,14 @@ void Setup()
 
 	Setup_Comoving(); // COMOVING
 
-	Setup_Vectors();
+	Setup_Leaf_Vectors();
 
 	Setup_Domain_Decomposition();
 	
 	Setup_Gravity_Tree(); // GRAVITY_TREE
 
-	/* Add yours above */
 	
-	Compute_Current_Simulation_Properties();
+	Compute_Current_Simulation_Properties(); // <- Add your setups above
 
 	sanity_check_simulation_setup();
 	

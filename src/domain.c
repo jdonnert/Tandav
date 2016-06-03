@@ -72,7 +72,9 @@ void Domain_Decomposition()
 
 	Sort_Particles_By_Peano_Key();
 
-	reset_bunchlist(); // also deallocates Tree
+	Find_Leaf_Vectors();
+
+	reset_bunchlist();
 
 	fill_new_bunches(0, NBunches, 0, Task.Npart_Total);
 	
@@ -83,7 +85,7 @@ void Domain_Decomposition()
 	int cnt = 0;
 	
 	for (;;) {
-		
+
 		#pragma omp single
 		Max_Level = remove_empty_bunches();
 
@@ -304,7 +306,7 @@ static void reset_bunchlist()
 
 static int find_min_level()
 {
-	return fmax(MIN_LEVEL, log(NTarget)/log(8) + 1);
+	return 0; //fmax(MIN_LEVEL, log(NTarget)/log(8) + 1);
 
 }
 

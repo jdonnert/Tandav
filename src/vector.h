@@ -5,14 +5,10 @@
 #include "sort.h"
 #include "domain.h"
 
-void Find_Vectors();
-void Setup_Vectors();
+void Find_Leaf_Vectors();
+void Setup_Leaf_Vectors();
 
-extern struct Vector_Data {
-	int * restrict First;
-	int * restrict Last;
-	peanoKey * restrict Key;
-} Vec;
+int * restrict Vec;
 
 int NVec;
 

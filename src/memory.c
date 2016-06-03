@@ -167,7 +167,8 @@ void *Get_Thread_Safe_Buffer (size_t nBytes)
 /*
  * Grab a huge chunk of memory and reserve a small chunk for every thread so
  * we a space to define thread-safe variable larger than the stack. The total
- * size is controlled by BUFFER_SIZE. 
+ * size is controlled by BUFFER_SIZE. Because we use the buffer for the
+ * particle ordering it should at least hold Npart_Total_Max * sizeof(size_t).
  */
 
 void Init_Memory_Management()

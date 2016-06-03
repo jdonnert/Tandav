@@ -620,7 +620,7 @@ static void print_top_nodes()
 void test_gravity_tree(const int nNodes)
 {
 	const int first_node = 0;
-	const int last_node = nNodes;
+	const int last_node = 10;
 
 	for (int node = first_node; node < last_node; node++) {
 
@@ -661,7 +661,7 @@ void test_gravity_tree(const int nNodes)
 							if (dz > nSize * 0.5)
 								nout++;
 
-					printf("%d %d \n", jpart, P.ID[jpart]);
+					//printf("%d %d \n", jpart, P.ID[jpart]);
 				}
 			}
 

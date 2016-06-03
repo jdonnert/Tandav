@@ -57,7 +57,7 @@ static struct SharedStackDataChar { // work queue, holding partitions
 void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 		int (*cmp) (const void *, const void *))
 {
-	if (nData < PARALLEL_THRES_QSORT || nThreads == 1) {
+	if (nData < PARALLEL_THRES_QSORT || nThreads == 1 || 1) {
 
 		#pragma omp single
 		qsort(data_ptr, nData, size, cmp);

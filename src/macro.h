@@ -10,8 +10,8 @@
 #define p2(a) ((a)*(a))
 #define p3(a) ((a)*(a)*(a))
 
+#define rprintf(...) if (Task.Is_Master) printf(__VA_ARGS__); fflush(stdout)
 #define Profile(x) Profile_Info(__func__, __FILE__, __LINE__, x)
-#define rprintf(...) if (Task.Is_Master) printf(__VA_ARGS__) // root printf
 #define Assert(...) Assert_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
 #define Warn(...) Warn_Info(__func__, __FILE__, __LINE__, __VA_ARGS__)
 #define Reallocate_P(...) \

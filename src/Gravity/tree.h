@@ -21,7 +21,7 @@ void Gravity_Tree_Free();
 
 extern struct Tree_Node {
 	int DNext;			// Distance to the next node; or particle -DNext-1
-	uint32_t Bitfield; // bit 0-5:level, 6-8:key, 9:local, 10:top
+	uint32_t Bitfield; 	// bit 0-5:level, 6-8:key, 9:local, 10:top
 	int DUp;			// Number of nodes to the parent
 	int Npart;			// Number of particles in node
 	Float Pos[3];		// Node Center

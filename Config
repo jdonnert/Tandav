@@ -1,6 +1,6 @@
 #### BASIC CODE PARAMETERS ####
 
-#DEBUG                        // verbose (!) output
+DEBUG                        // verbose (!) output
 #DEBUG_DOMAIN                 // print topnodes and distribution
 #DEBUG_TREE                   // print node distribution 
 
@@ -53,7 +53,7 @@ TREE_OPEN_PARAM_REL 0.02     // [0.02] Relative opening criterion param
 
 VECTOR_SIZE 8                // max number of particles in tree leaf
 
-#MEMORY_MANAGER               // code allocates memory
+MEMORY_MANAGER               // code allocates memory
 
 #### Friends-of-Friends ####
 

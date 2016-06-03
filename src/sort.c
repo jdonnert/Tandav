@@ -168,16 +168,14 @@ void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 
 /* 
  * This is an OpenMP parallel external sort.
- * We use the same algorithm as above to divide and conquer.
- * In the first stage we sort 1 partition per thread.
- * The work is inserted in the shared stack with a delta that shrinks 
- * from N partitions / 2 to 1. Some partitions can be empty, when a 
- * previous partition is too small to split.
- * The second stage is a threaded qsort on the subpartitions down
- * to INSERT_THRES followed by insertion sort on the nearly 
- * ordered subpartition. 
- * Here we are swapping ONLY the permutation array *perm and
- * are comparing ONLY to the data array indexed by *perm 
+ * We use the same algorithm as above to divide and conquer. In the first stage
+ * we sort 1 partition per thread. The work is inserted in the shared stack
+ * with a delta that shrinks from N partitions / 2 to 1. Some partitions can be
+ * empty, when a previous partition is too small to split.
+ * The second stage is a threaded qsort on the subpartitions down to 
+ * INSERT_THRES followed by insertion sort on the nearly ordered subpartition. 
+ * Here we are swapping ONLY the permutation array *perm and  are comparing 
+ * ONLY to the data array indexed by *perm. I.e. data[] remains unchanged
  */
 
 static struct SharedStackDataSizeT {
@@ -185,14 +183,14 @@ static struct SharedStackDataSizeT {
     size_t *hi;
 } shared_stack_sizet[STACK_SIZE] = {{0,0}};
 
-void Qsort_Index(const int nThreads, size_t *perm, void *const data,
+void Qsort_Index(const int nThreads, size_t *perm, void * const data,
 		const int nData, const size_t datasize,
 		int (*cmp) (const void *, const void *))
 {
 	Assert(perm != NULL, "*perm is a NULL pointer, no space to sort");
 	Assert(data != NULL, "*data is a NULL pointer, no space to sort");
 
-	if (nData < PARALLEL_THRES_HEAPSORT || nThreads == 1 || 1) {
+	if (nData < PARALLEL_THRES_HEAPSORT || nThreads == 1 || true) {
 
 		#pragma omp single
 		gsl_heapsort_index(perm, data, nData, datasize, cmp);

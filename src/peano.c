@@ -40,7 +40,7 @@ void Sort_Particles_By_Peano_Key()
  	Free(idx);
 	
 	Make_Active_Particle_List();
-	Make_Active_Particle_Vectors();
+	//Make_Active_Particle_Vectors();
 
 	Profile("Peano-Hilbert order");
 
@@ -53,7 +53,8 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 	size_t nBytes = Task.Npart_Total * sizeof(*idx);
 
 	#pragma omp single
-	Assert(Task.Buffer_Size > nBytes, "BufferSize >= %g MB for %d threads", 
+	Assert(Task.Buffer_Size > nBytes, 
+			"BufferSize >= %g MB for %d ranks and %d threads", 
 			NThreads * nBytes/1024.0/1024.0, NThreads);
 
 	idx = Get_Thread_Safe_Buffer(nBytes);

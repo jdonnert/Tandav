@@ -53,14 +53,18 @@ void Update(enum Update_Parameters stage)
 
 		break;
 
-	case BEFORE_DOMAIN:
+	case AFTER_DRIFT:
 
 		Compute_Current_Simulation_Properties();
 
 		Periodic_Constrain_Particles_To_Box(); // PERIODIC
-	
-		Gravity_Tree_Free(); // GRAVITY_TREE
 
+		break;
+
+	case BEFORE_DOMAIN_UPDATE: 
+
+		Gravity_Tree_Free(); // GRAVITY_TREE
+	
 		break;
 
 	case BEFORE_FORCES:

@@ -9,7 +9,7 @@
 #include "properties.h"
 #include "periodic.h"
 #include "vector.h"
-#include "Gravity/tree.h" // <-- add your module .h here
+#include "Gravity/tree.h" // <-- add your module .h below
 
 
 
@@ -20,10 +20,12 @@ enum Update_Parameters {
 	BEFORE_FIRST_KICK,
 	BEFORE_SNAPSHOT,
 	BEFORE_DRIFT,
-	BEFORE_DOMAIN,
+	AFTER_DRIFT,
+	BEFORE_DOMAIN_UPDATE,
 	BEFORE_FORCES,
 	BEFORE_SECOND_KICK,
 	AFTER_STEP,
+	RESTART_CONTINUE
 };
 
 void Update(enum Update_Parameters stage);

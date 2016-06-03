@@ -18,7 +18,7 @@ bool Time_Is_Up()
 
 		rprintf("\nFound stop file t=%g\n\n", Time.Current);
 
-		Sig.Write_Restart_File = true;
+		Sig.Restart_Write_File = true;
 
 		Sig.Endrun = true;
 	}
@@ -30,12 +30,17 @@ bool Time_Is_Up()
 		Sig.Endrun = true;
 	}
 
+	return Sig.Endrun;
+}
+
+bool Runtime_Limit_Reached()
+{
 	if (Runtime() >= Param.Runtime_Limit) {
 
 		rprintf("\nRuntime limit reached: t=%g at %g min\n\n",
 				Time.Current, Param.Runtime_Limit/60);
 
-		Sig.Write_Restart_File = true;
+		Sig.Restart_Write_File = true;
 
 		Sig.Endrun = true;
 	}

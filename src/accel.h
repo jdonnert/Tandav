@@ -4,7 +4,7 @@
 #include "includes.h" 
 #include "Gravity/tree.h" 
 #include "Gravity/forcetest.h" 
-#include "Gravity/fmm.h" 
+#include "Gravity/fmm.h"  // <-- add your module .h below
 
 void Compute_Acceleration();
 

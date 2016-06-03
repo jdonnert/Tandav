@@ -3,10 +3,11 @@
 
 /*
  * This is the super include file that is present in all other .h files and
- * defines global variables and modules visible everywhere
+ * defines global variables and modules visible everywhere. Your module .h file
+ * is NOT included here.
  */
 
-#include <stdlib.h>			// system       
+#include <stdlib.h>				// system       
 #include <stdio.h>
 #include <stdint.h>
 #include <stdarg.h>
@@ -18,7 +19,7 @@
 #include <math.h>
 #include <limits.h>
 
-#include <mpi.h>			// parallelisation
+#include <mpi.h>				// parallelisation
 #include <omp.h>
 
 #include <gsl/gsl_math.h>		// GNU scientific library

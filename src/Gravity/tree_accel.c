@@ -216,14 +216,7 @@ static void gravity_tree_walk(const int tree_start)
 
 	int node = tree_start;
 
-if (Send.ID == 148477) {
-printf("ENTER : %d %d %d %d %d\n", Send.ID, node, NNodes, tree_start, Tree[node].DNext  ); fflush(stdout);
-}
-	
 	while (Tree[node].DNext != 0 || node == tree_start) {
-
-//if (Send.ID == 148477)
-//printf("WHILE : %d %d \n", Send.ID, node); fflush(stdout);
 
 		if (Tree[node].DNext < 0) { // encountered particle bundle
 
@@ -248,9 +241,6 @@ printf("ENTER : %d %d %d %d %d\n", Send.ID, node, NNodes, tree_start, Tree[node]
 
 			continue;
 		}
-
-//if (Send.ID == 148477)
-//printf("DNEXT : %d %d  \n", Send.ID, node); fflush(stdout);
 
 		Float dr[3] = {Tree[node].CoM[0] - Send.Pos[0],
 					   Tree[node].CoM[1] - Send.Pos[1],
@@ -292,14 +282,10 @@ printf("ENTER : %d %d %d %d %d\n", Send.ID, node, NNodes, tree_start, Tree[node]
 
 		interact(nMass, dr, r2); // use node
 
-//if (Send.ID == 148477)
-//printf("INTERACT : %d %d %d \n", Send.ID, node, node+Tree[node].DNext); fflush(stdout);
 		node += Tree[node].DNext; // skip branch
 
 	} // while
 
-if (Send.ID == 148477)
-printf("OUT : %d %d  \n", Send.ID, node); fflush(stdout);
 	return ;
 }
 

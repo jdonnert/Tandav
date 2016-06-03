@@ -5,7 +5,6 @@
 #include "kick.h"
 #include "drift.h"
 #include "update.h"
-#include "peano.h"
 #include "accel.h"
 #include "domain.h"
 #include "IO/io.h"
@@ -29,6 +28,13 @@ int main(int argc, char *argv[])
 	#pragma omp parallel default(shared)
 	{
 
+	if (Sig.Restart_Continue) {
+
+		Update(RESTART_CONTINUE);
+
+		goto Restart_Continue;
+	}
+
 	Update(BEFORE_MAIN_LOOP);
 	
 	while (! Time_Is_Up()) { // run Forest run !
@@ -48,12 +54,19 @@ int main(int argc, char *argv[])
 
 		Drift_To_Sync_Point();
 		
-		//Find_Vectors();
+		Update(AFTER_DRIFT);
 
-		Update(BEFORE_DOMAIN);
+		if (Runtime_Limit_Reached()) 
+			break;
 
-		if (Time_For_Domain_Update())
+		Restart_Continue:
+
+		if (Time_For_Domain_Update()) {
+
+			Update(BEFORE_DOMAIN_UPDATE);
+
 			Domain_Decomposition();
+		}
 
 		Compute_Acceleration();
 
@@ -62,12 +75,11 @@ int main(int argc, char *argv[])
 		Update(AFTER_STEP);
 	}
 
-	Kick_Second_Halfstep();
-
-	if (Sig.Write_Restart_File)
-		Write_Restart_File();
-	else
+	if (Time_For_Snapshot())
 		Write_Snapshot();
+
+	if (Sig.Restart_Write_File)
+		Write_Restart_File();
 
 	} // omp parallel 
 

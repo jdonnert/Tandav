@@ -39,6 +39,7 @@ static inline void swap_size_t(size_t * restrict a, size_t * restrict b)
 #define COMPARE_DATA(a,b,size) ((*cmp) ((char *)(data + *a * size), \
 	(char *)(data + *b * size))) // compare with non-permutated data
 
+
 #define STACK_SIZE (CHAR_BIT * sizeof(size_t))
 
 /* 
@@ -57,7 +58,7 @@ static struct SharedStackDataChar { // work queue, holding partitions
 void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
 		int (*cmp) (const void *, const void *))
 {
-	if (nData < PARALLEL_THRES_QSORT || nThreads == 1 || 1) {
+	if (nData < PARALLEL_THRES_QSORT || nThreads == 1 || true) {
 
 		#pragma omp single
 		qsort(data_ptr, nData, size, cmp);

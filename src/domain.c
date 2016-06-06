@@ -72,8 +72,6 @@ void Domain_Decomposition()
 
 	Sort_Particles_By_Peano_Key();
 
-	Find_Leaf_Vectors();
-
 	reset_bunchlist();
 
 	fill_new_bunches(0, NBunches, 0, Task.Npart_Total);
@@ -120,20 +118,24 @@ void Domain_Decomposition()
 
 	print_domain_decomposition(Max_Level); // DEBUG_DOMAIN
 
-	communicate_particles();
-
-	transform_bunches_into_top_nodes();
-
-	communicate_top_nodes();
-
-	Reverse_Peano_Keys();
-
 	rprintf("\nDomain: After %d iterations ...\n"
 			"        %d Top Nodes, %d Top Leaves, max level %d  merged %d\n"
 			"        Max Imbalance: Mem %g, Cost %g \n"
 			"        Mean Cost %g, Mean Npart %g \n\n", cnt, 
 			NBunches, NTop_Leaves, Max_Level, NMerged, Max_Mem_Imbal, 
 			Max_Cost_Imbal, Mean_Cost, Mean_Npart);
+
+	communicate_particles();
+
+	transform_bunches_into_top_nodes();
+
+	communicate_top_nodes();
+
+	Sort_Particles_By_Peano_Key();
+
+	Reverse_Peano_Keys();
+
+	Find_Leaf_Vectors();
 
 	Sig.Tree_Update = true;
 
@@ -306,7 +308,7 @@ static void reset_bunchlist()
 
 static int find_min_level()
 {
-	return 0; //fmax(MIN_LEVEL, log(NTarget)/log(8) + 1);
+	return fmax(MIN_LEVEL, log(NTarget)/log(8) + 1);
 
 }
 

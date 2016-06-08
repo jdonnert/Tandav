@@ -11,8 +11,11 @@
 #define PARALLEL_THRES_HEAPSORT 15000
 
 #define INSERT_THRES 8 // insertion sort threshold
-#define LIB_THRESHOLD (1ULL << 16)
+//#define LIB_THRESHOLD (1ULL << 16)
 #define PARALLEL_THRESHOLD (1ULL << 8)
+#define N_PARTITIONS_PER_CPU 4
+
+static size_t Lib_Threshold = 0;
 
 double *x, *y;
 size_t *p, *q;
@@ -162,7 +165,7 @@ static void omp_qsort(void *Data, size_t nData, size_t size,
 
 	if (nLeft > 1) { // kick off subpartitions
 	
-		if (nRight < LIB_THRESHOLD) {
+		if (nRight < Lib_Threshold) {
 
 			#pragma omp task 
 			qsort(lo, nLeft, size, cmp); // qsort is likely pretty good ...
@@ -177,12 +180,14 @@ static void omp_qsort(void *Data, size_t nData, size_t size,
 
 	if (nRight > 1) {
 	
-		if (nRight < LIB_THRESHOLD) {
+		if (nRight < Lib_Threshold) {
 
+			#pragma omp task 
 			qsort(left, nRight, size, cmp);
 
 		} else {
 
+			#pragma omp task 
 			omp_qsort(left, nRight, size, cmp);
 		}
 	}
@@ -203,6 +208,7 @@ void Qsort(void *Data, size_t nData, size_t size,
 
 		return ;
 	}
+
 	if (size == 4)
 		swap = &swap4;
 
@@ -211,6 +217,8 @@ void Qsort(void *Data, size_t nData, size_t size,
 
 	if (size == 16)
 		swap = &swap16;
+
+	Lib_Threshold = nData / NThreads / N_PARTITIONS_PER_CPU;
 
 	#pragma omp single
 	omp_qsort(Data, nData, size, cmp);

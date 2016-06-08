@@ -87,7 +87,7 @@ void Domain_Decomposition()
 		#pragma omp single
 		Max_Level = remove_empty_bunches();
 
-		Qsort(NThreads, D, NBunches, sizeof(*D), &compare_bunches_by_key);
+		Qsort(D, NBunches, sizeof(*D), &compare_bunches_by_key);
 
 		communicate_bunches();
 
@@ -581,7 +581,7 @@ static void distribute()
 	
 	}
 		
-	Qsort(NThreads, &D[0], NBunches, sizeof(*D), &compare_bunches_by_cost);
+	Qsort(&D[0], NBunches, sizeof(*D), &compare_bunches_by_cost);
 	
 	#pragma omp single
 	for (int i = 0; i < NBunches; i++) {
@@ -610,7 +610,7 @@ static void distribute()
 
 	} // for i
 
-	Qsort(NThreads, &D[0], NBunches, sizeof(*D), &compare_bunches_by_key);
+	Qsort(&D[0], NBunches, sizeof(*D), &compare_bunches_by_key);
 
 	for (int i = 0; i < NTarget; i++) 
 			Split_Idx[i] = i;
@@ -861,8 +861,7 @@ static int compare_bunches_by_target(const void *a, const void *b)
 static void print_domain_decomposition (const int max_level)
 {
 
-	Qsort(NThreads, &D[0], NBunches, sizeof(*D), 
-			&compare_bunches_by_target);
+	Qsort(&D[0], NBunches, sizeof(*D), &compare_bunches_by_target);
 
 	#pragma omp master
 	{

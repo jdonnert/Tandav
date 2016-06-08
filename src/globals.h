@@ -103,5 +103,5 @@ extern struct Parameters_From_File {
 
 extern int * restrict Active_Particle_List;
 int NActive_Particles;
-
+double arr[10];
 #endif // GLOBALS_H

@@ -109,7 +109,7 @@ void Find_Leaf_Vectors()
 
 	Vec[NVec] = Task.Npart_Total; // terminate for loops
 
-	Qsort(NThreads, Vec, NVec, sizeof(*Vec), &compare_vectors);	
+	Qsort(Vec, NVec, sizeof(*Vec), &compare_vectors);	
 
 	sum = 0;
 

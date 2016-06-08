@@ -17,10 +17,21 @@ static void preamble(int argc, char *argv[]);
  * We use the HOLD integrator from Pelupessy+ 2012. 
  */
 
+extern double arr[10];
+int comp(const void *a, const void *b )
+{
+	double *x = (double *)a;
+	double *y = (double *)b;
+	
+	return (int)(*x > *y) - (*x < *y) ;
+}
+
 int main(int argc, char *argv[])
 {
 	preamble(argc, argv);
 
+	test_sort();
+	
 	Read_and_Init(argc, argv);
 
 	Setup();

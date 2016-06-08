@@ -174,7 +174,7 @@ void test_median()
 
 	printf("el2 = %g \n", el2);
 
-	Qsort(NThreads, arr2, N, sizeof(*arr2), &compare_floats);
+	Qsort(arr2, N, sizeof(*arr2), &compare_floats);
 
 	printf("%d %g \n", kth, arr2[kth-1]);
 

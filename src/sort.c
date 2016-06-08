@@ -11,8 +11,11 @@
 #define PARALLEL_THRES_HEAPSORT 15000
 
 #define INSERT_THRES 8 // insertion sort threshold
+#define OMP_THRESHOLD 10
 
-static inline void swap(void * restrict a, void * restrict b, size_t nBytes)
+double *x, *y;
+size_t *p, *q;
+static inline void swapAll(void * restrict a, void * restrict b, size_t nBytes)
 {	
 	char * restrict x = (char *) a;
 	char * restrict y = (char *) b;
@@ -25,6 +28,60 @@ static inline void swap(void * restrict a, void * restrict b, size_t nBytes)
 
 	return ;
 }
+
+static void swap2(void * restrict a, void * restrict b)
+{
+	uint16_t * restrict x = (uint16_t *) a;
+	uint16_t * restrict y = (uint16_t *) b;
+
+	uint16_t tmp = *x;
+
+	*x = *y;
+	*y = tmp;
+
+	return ;
+}
+
+static void swap4(void * restrict a, void * restrict b)
+{
+	uint32_t * restrict x = (uint32_t *) a;
+	uint32_t * restrict y = (uint32_t *) b;
+
+	uint32_t tmp = *x;
+
+	*x = *y;
+	*y = tmp;
+
+	return ;
+}
+
+static void swap8(void * restrict a, void * restrict b)
+{
+	uint64_t * restrict x = (uint64_t *) a;
+	uint64_t * restrict y = (uint64_t *) b;
+
+	uint64_t tmp = *x;
+
+	*x = *y;
+	*y = tmp;
+
+	return ;
+}
+
+static void swap16(void * restrict a, void * restrict b)
+{
+	__uint128_t * restrict x = (__uint128_t *) a;
+	__uint128_t * restrict y = (__uint128_t *) b;
+
+	__uint128_t tmp = *x;
+
+	*x = *y;
+	*y = tmp;
+
+	return ;
+}
+
+static void (*swap) ();
 
 static inline void swap_size_t(size_t * restrict a, size_t * restrict b) 
 {
@@ -39,134 +96,182 @@ static inline void swap_size_t(size_t * restrict a, size_t * restrict b)
 #define COMPARE_DATA(a,b,size) ((*cmp) ((char *)(data + *a * size), \
 	(char *)(data + *b * size))) // compare with non-permutated data
 
-
-#define STACK_SIZE (CHAR_BIT * sizeof(size_t))
-
-/* 
- * A shared stack keeps the partition pointers. We assign one thread per 
- * partition until there is a partition for every thread. 
- * Then we continue serial on every partition. There is little
- * need for synchronisation, which is done intrinsically by the for(j) loop.
- * Once the array is presorted the standard qsort lib routine excels 
+/*
+ * This is a standard serial insertion sort using memcpy().
  */
 
-static struct SharedStackDataChar { // work queue, holding partitions
-    char *lo;
-    char *hi;
-} shared_stack_char[STACK_SIZE] = {{NULL,NULL}};
-
-void Qsort(const int nThreads, void *const data_ptr, int nData, size_t size,
-		int (*cmp) (const void *, const void *))
+void Insertion_Sort(void *Data, const size_t nData, const size_t size, 
+		int (*cmp) (const void*, const void *))
 {
-	if (nData < PARALLEL_THRES_QSORT || nThreads == 1 || true) {
+	char *beg = (char *) Data;
+	char *end = (char *) Data + size * nData;
 
-		#pragma omp single
-		qsort(data_ptr, nData, size, cmp);
+	char *trail = beg;
 
-		return ;
-	}
+	char *run = NULL;
 
-	/* partition number and size */
-	const int desNumPar = MAX(1, 2*MIN(nThreads/2, nData/INSERT_THRES/2));
+	for (run = beg + size; run < end; run += size) // smallest  first
+		if (cmp(run, trail) < 0)
+			trail = run;
+	
+	if (trail != beg)
+		(*swap)(trail, beg);
 
-	#pragma omp single  // initial stack node is just the whole array 
-	{
+	run = beg + size;
 
-	shared_stack_char[0].lo = (char *)data_ptr;
-	shared_stack_char[0].hi = &((char *)data_ptr)[size * (nData - 1)];
+	while (run < end) { // insertion sort left to right
 
-	} // omp single
+		trail = run - size;
 
-	int delta = desNumPar << 1;
+		while (cmp(run, trail) < 0) // find correct place
+			trail -= size;
 
-	while (delta > 2) {
+		trail += size;
+		
+		if (trail != run)  { // now move block one forward
 
-		delta >>= 1;
+			char save[size];
 
-		#pragma omp for schedule (static,1)
-		for (int j = 0; j < desNumPar; j += delta) {
+			memcpy(save, run, size);
 
-			char *lo = shared_stack_char[j].lo; // pop from stack
-			char *hi = shared_stack_char[j].hi;
+			char *hi = run;
+			char *lo = hi - size;
 
-			/* Find pivot element from median and sort the three. 
-			 * That helps to prevent the n^2 worst case */
-			char *mid = lo + size * ((hi - lo) / size >> 1); // pivot
+			while (lo >= trail) {
 
-			if ( (*cmp) ((void *) mid, (void *) lo) < 0)
-				swap(mid, lo, size);
+				memcpy(hi, lo, size);
+				
+				hi -= size;
+				lo -= size;
+			}
 
-			if ( (*cmp) ((void *) hi, (void *) mid) < 0)
-				swap (mid, hi, size);
-			else
-			goto jump_over;
+			memcpy(hi, save, size);
+		}
 
-			if ( (*cmp) ((void *) mid, (void *) lo) < 0)
-				swap (mid, lo, size);
-
-			jump_over:;
-
-			char *left_ptr  = lo + size;
-			char *right_ptr = hi - size;
-
-			/* now put all larger/smaller than the pivot on the right/left */
-			do {
-
-				while ((*cmp)((void *)left_ptr, (void *)mid) < 0)
-					left_ptr += size;
-
-				while ((*cmp)((void *)mid,(void *)right_ptr) < 0)
-					right_ptr -= size;
-
-				if (left_ptr < right_ptr) {
-
-					swap (left_ptr, right_ptr, size);
-
-					if (mid == left_ptr)
-						mid = right_ptr;
-					else if (mid == right_ptr)
-						mid = left_ptr;
-
-					left_ptr += size;
-					right_ptr -= size;
-
-				} else if (left_ptr == right_ptr) {
-
-					left_ptr += size;
-					right_ptr -= size;
-
-					break;
-				}
-
-			} while (left_ptr <= right_ptr);
-
-			/* Push next iterations / partitions to the shared stack */
-
-			shared_stack_char[j].lo = lo;
-			shared_stack_char[j].hi = right_ptr;
-
-			shared_stack_char[j + (delta>>1)].lo = left_ptr;
-			shared_stack_char[j + (delta>>1)].hi = hi;
-		} // j
-
-		#pragma omp barrier
-
-    } // while
-
-	#pragma omp for schedule(static,1)
-	for (int i = 0; i < desNumPar; i++) { // serial sort on subpartitions
-
-		const char *hi = shared_stack_char[i].hi;
-		const char *lo = shared_stack_char[i].lo;
-
-		size_t partition_size = (hi - lo + 1) / size;
-
-		qsort((void *) lo, partition_size, size, cmp); // hard to beat
-	} // i
+		run += size;
+	} // while
 
 	return ;
 }
 
+#define INSERT_THRESHOLD 2
+
+/*
+ * A standard OpenMP parallel quicksort using tasking, presorting of the pivot
+ * from the median and insertion sort on the last partitions.
+ */
+
+static void omp_qsort(void *Data, size_t nData, size_t size, 
+			int (*cmp) (const void*, const void *))
+{
+	printf("IN %d %d %d \n",((char*)Data-(char*)x) / size, nData, Task.Thread_ID); fflush(stdout);
+	if (nData < INSERT_THRESHOLD) { // small partitions are faster this way
+		
+		#pragma omp task
+		Insertion_Sort(Data, nData, size, cmp);
+		
+		return;
+	}
+
+	char *lo = Data;
+	char *hi = Data + (nData-1)*size;
+
+	char *mid = lo + size * ((hi - lo) / size >> 1); // pivot element
+	
+	if ((*cmp) ((void *) mid,(void *) lo) < 0)
+		(*swap) (mid, lo);
+
+	if ((*cmp) ((void *) hi, (void *) mid) < 0)
+		(*swap)(mid, hi);
+	else
+		goto jump_over;
+
+	if ((*cmp) ((void *) mid, (void *) lo) < 0)
+		(*swap)(mid, lo);
+
+	jump_over:;
+	
+	char *left  = lo + size;
+	char *right = hi - size;
+	 
+	do { // partition
+
+		while ((*cmp)((void *)left, (void *)mid) < 0)
+			left += size;
+
+		while ((*cmp)((void *)mid,(void *)right) < 0)
+			right -= size;
+		
+		if (left < right) {
+
+			(*swap)(left, right, size);
+
+			if (mid == left)
+				mid = right;
+			else if (mid == right)
+				mid = left;
+
+			left += size;
+			right -= size;
+
+		} else if (left == right) {
+
+			left += size;
+			right -= size;
+
+			break;
+		}
+
+	} while (left <= right);
+
+	size_t nLeft = (right - lo) / size + 1; // kick off new partitions
+	size_t nRight = (hi - left) / size + 1;
+
+
+	if (nLeft > 1) {
+	
+printf("NEW %d %d %d\n", nLeft, (lo-(char*)Data)/size, (right-(char *)Data)/size);fflush(stdout);
+		#pragma omp task // kick off subpartitions
+		omp_qsort(lo, nLeft, size, cmp);
+	}
+
+	if (nRight > 1) {
+
+printf("NEW %d %d %d\n", nRight, (left-(char *)Data)/size, (hi-(char*)Data)/size);fflush(stdout);
+		#pragma omp task
+		omp_qsort(left, nRight, size, cmp);
+	}
+	printf("OUT %d %d \n",((char*)Data-(char*)x) / size, nData);fflush(stdout);
+	return ;
+}
+
+void Qsort(void *Data, size_t nData, size_t size, 
+			int (*cmp) (const void*, const void *))
+{
+	if ( (nData < OMP_THRESHOLD) || (! omp_in_parallel()) ) {
+	
+		qsort(Data, nData, size, cmp);
+
+		return ;
+	}
+	if (size == 4)
+		swap = &swap4;
+
+	if (size == 8)
+		swap = &swap8;
+
+	if (size == 16)
+		swap = &swap16;
+
+	#pragma omp single
+	omp_qsort(Data, nData, size, cmp);
+	
+	#pragma omp taskwait
+
+	return ;
+}
+
+#define STACK_SIZE (CHAR_BIT * sizeof(size_t))
 /* 
  * This is an OpenMP parallel external sort.
  * We use the same algorithm as above to divide and conquer. In the first stage
@@ -452,25 +557,25 @@ int test_compare(const void * a, const void *b)
 
 void test_sort()
 {
-	const size_t N = 15001;
-	const size_t Nit = 1;
+	const size_t N = 10;
+	const size_t Nit = 5;
 	int good;
 
-	double *x = malloc( N * sizeof(*x) );
-	double *y = malloc( N * sizeof(*y) );
-	size_t *p = malloc( N * sizeof(*p) );
-	size_t *q = malloc( N * sizeof(*q) );
+	x = (double *) malloc( N * sizeof(*x) );
+	y = (double *) malloc( N * sizeof(*y) );
+	p = (size_t *) malloc( N * sizeof(*p) );
+	q = (size_t *) malloc( N * sizeof(*q) );
 
 	clock_t time = clock(), time2 = clock(), time3 = clock();
 	double deltasum0 = 0, deltasum1 = 0;
 
 	/* external / index sort */
 
-	rprintf("\nTesting Sort ... \n\n");
+	rprintf("\nTesting Sort, %d iterations of %d entries \n\n", Nit, N);
 
 	for (int j = 0; j < N; j++) 
     	x[j] = y[j] = erand48(Task.Seed);
-
+/*
 	for (int i = 0; i < Nit; i++) {
 	
 		time = clock();
@@ -512,24 +617,43 @@ void test_sort()
 		deltasum0/CLOCKS_PER_SEC/NThreads, 
 		deltasum1/CLOCKS_PER_SEC, 	deltasum1/deltasum0*NThreads );
 	fflush(stdout);
-
+*/
 	/* in-place sort */
 
 	for (int j = 0; j < N; j++) 
     	x[j] = y[j] = erand48(Task.Seed);
 
+#pragma omp parallel
+	{
+	for (int i = 0; i < Nit; i++) {
+		
+		printf("%d %d \n", i, Task.Thread_ID);
+
+		#pragma omp single
+		{
+		memcpy(x,y,N*sizeof(*x));
+		time = clock();
+		} // single
+		
+		#pragma omp single
+  		Qsort(x, N, sizeof(*x), &test_compare);
+
+		#pragma omp taskwait
+		
+		#pragma omp single
+		{
+		time2 = clock();
+		deltasum0 += time2-time;
+		} // single
+	}
+	} // omp parallel
+
+	printf("Done OpenMP\n" );
+
 	for (int i = 0; i < Nit; i++) {
 
-		memcpy(x,y,N*sizeof(*x));
-	
-		time = clock();
+		printf("%d %d \n", i, Task.Thread_ID);
 
-  		Qsort(NThreads, x, N, sizeof(*x), &test_compare);
-  		
-		time2 = clock();
-	
-		deltasum0 += time2-time;
-		
 		memcpy(x,y,N*sizeof(*x));
 
 		time2 = clock();
@@ -562,6 +686,8 @@ void test_sort()
   	printf("In-place: parallel  %g sec, Single:  %g sec, Speedup: %g \n",
 		deltasum0/CLOCKS_PER_SEC/NThreads, 
 		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*NThreads );
+	
+	exit(0);
 
 	return ;
 }

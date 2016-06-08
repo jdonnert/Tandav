@@ -4,9 +4,6 @@
 #include <gsl/gsl_heapsort.h>
 #include "includes.h"
 
-void Insertion_Sort(void *Data, const size_t nData, const size_t nBytes, 
-		int (*cmp) (const void*, const void *));
-
 /* 
  * OpenMP sorting functions 
  */

@@ -11,7 +11,8 @@
 #define PARALLEL_THRES_HEAPSORT 15000
 
 #define INSERT_THRES 8 // insertion sort threshold
-#define OMP_THRESHOLD 10
+#define LIB_THRESHOLD (1ULL << 16)
+#define PARALLEL_THRESHOLD (1ULL << 8)
 
 double *x, *y;
 size_t *p, *q;
@@ -97,66 +98,6 @@ static inline void swap_size_t(size_t * restrict a, size_t * restrict b)
 	(char *)(data + *b * size))) // compare with non-permutated data
 
 /*
- * This is a standard serial insertion sort using memcpy().
- */
-
-void Insertion_Sort(void *Data, const size_t nData, const size_t size, 
-		int (*cmp) (const void*, const void *))
-{
-	char *beg = (char *) Data;
-	char *end = (char *) Data + size * nData;
-
-	char *trail = beg;
-
-	char *run = NULL;
-
-	for (run = beg + size; run < end; run += size) // smallest  first
-		if (cmp(run, trail) < 0)
-			trail = run;
-	
-	if (trail != beg)
-		(*swap)(trail, beg);
-
-	run = beg + size;
-
-	while (run < end) { // insertion sort left to right
-
-		trail = run - size;
-
-		while (cmp(run, trail) < 0) // find correct place
-			trail -= size;
-
-		trail += size;
-		
-		if (trail != run)  { // now move block one forward
-
-			char save[size];
-
-			memcpy(save, run, size);
-
-			char *hi = run;
-			char *lo = hi - size;
-
-			while (lo >= trail) {
-
-				memcpy(hi, lo, size);
-				
-				hi -= size;
-				lo -= size;
-			}
-
-			memcpy(hi, save, size);
-		}
-
-		run += size;
-	} // while
-
-	return ;
-}
-
-#define INSERT_THRESHOLD 2
-
-/*
  * A standard OpenMP parallel quicksort using tasking, presorting of the pivot
  * from the median and insertion sort on the last partitions.
  */
@@ -164,15 +105,6 @@ void Insertion_Sort(void *Data, const size_t nData, const size_t size,
 static void omp_qsort(void *Data, size_t nData, size_t size, 
 			int (*cmp) (const void*, const void *))
 {
-	printf("IN %d %d %d \n",((char*)Data-(char*)x) / size, nData, Task.Thread_ID); fflush(stdout);
-	if (nData < INSERT_THRESHOLD) { // small partitions are faster this way
-		
-		#pragma omp task
-		Insertion_Sort(Data, nData, size, cmp);
-		
-		return;
-	}
-
 	char *lo = Data;
 	char *hi = Data + (nData-1)*size;
 
@@ -204,7 +136,7 @@ static void omp_qsort(void *Data, size_t nData, size_t size,
 		
 		if (left < right) {
 
-			(*swap)(left, right, size);
+			(*swap)(left, right);
 
 			if (mid == left)
 				mid = right;
@@ -228,27 +160,44 @@ static void omp_qsort(void *Data, size_t nData, size_t size,
 	size_t nRight = (hi - left) / size + 1;
 
 
-	if (nLeft > 1) {
+	if (nLeft > 1) { // kick off subpartitions
 	
-printf("NEW %d %d %d\n", nLeft, (lo-(char*)Data)/size, (right-(char *)Data)/size);fflush(stdout);
-		#pragma omp task // kick off subpartitions
-		omp_qsort(lo, nLeft, size, cmp);
+		if (nRight < LIB_THRESHOLD) {
+
+			#pragma omp task 
+			qsort(lo, nLeft, size, cmp); // qsort is likely pretty good ...
+
+		} else {
+		
+			#pragma omp task 
+			omp_qsort(lo, nLeft, size, cmp);
+		
+		}
 	}
 
 	if (nRight > 1) {
+	
+		if (nRight < LIB_THRESHOLD) {
 
-printf("NEW %d %d %d\n", nRight, (left-(char *)Data)/size, (hi-(char*)Data)/size);fflush(stdout);
-		#pragma omp task
-		omp_qsort(left, nRight, size, cmp);
+			qsort(left, nRight, size, cmp);
+
+		} else {
+
+			omp_qsort(left, nRight, size, cmp);
+		}
 	}
-	printf("OUT %d %d \n",((char*)Data-(char*)x) / size, nData);fflush(stdout);
+	
 	return ;
 }
+
+/*
+ * thread safe OpenMP quicksort
+ */
 
 void Qsort(void *Data, size_t nData, size_t size, 
 			int (*cmp) (const void*, const void *))
 {
-	if ( (nData < OMP_THRESHOLD) || (! omp_in_parallel()) ) {
+	if ( (nData < PARALLEL_THRESHOLD) || (! omp_in_parallel()) ) {
 	
 		qsort(Data, nData, size, cmp);
 
@@ -557,24 +506,24 @@ int test_compare(const void * a, const void *b)
 
 void test_sort()
 {
-	const size_t N = 10;
-	const size_t Nit = 5;
+	const size_t Nit = 16;
 	int good;
 
-	x = (double *) malloc( N * sizeof(*x) );
-	y = (double *) malloc( N * sizeof(*y) );
-	p = (size_t *) malloc( N * sizeof(*p) );
-	q = (size_t *) malloc( N * sizeof(*q) );
+	for (int N = 16; N < (1ULL << 31); N<<=1) {
 
-	clock_t time = clock(), time2 = clock(), time3 = clock();
-	double deltasum0 = 0, deltasum1 = 0;
+		x = (double *) malloc( N * sizeof(*x) );
+		p = (size_t *) malloc( N * sizeof(*p) );
+		q = (size_t *) malloc( N * sizeof(*q) );
 
-	/* external / index sort */
+		clock_t time = clock(), time2 = clock(), time3 = clock();
+		double deltasum0 = 0, deltasum1 = 0;
 
-	rprintf("\nTesting Sort, %d iterations of %d entries \n\n", Nit, N);
+		/* external / index sort */
 
-	for (int j = 0; j < N; j++) 
-    	x[j] = y[j] = erand48(Task.Seed);
+		rprintf("%d %g %d ", Nit, log2(N), N);
+
+		for (int j = 0; j < N; j++) 
+    		x[j] = erand48(Task.Seed);
 /*
 	for (int i = 0; i < Nit; i++) {
 	
@@ -620,53 +569,51 @@ void test_sort()
 */
 	/* in-place sort */
 
-	for (int j = 0; j < N; j++) 
-    	x[j] = y[j] = erand48(Task.Seed);
 
 #pragma omp parallel
 	{
 	for (int i = 0; i < Nit; i++) {
 		
-		printf("%d %d \n", i, Task.Thread_ID);
-
-		#pragma omp single
+		#pragma omp master
 		{
-		memcpy(x,y,N*sizeof(*x));
+
+		for (int j = 0; j < N; j++) 
+    		x[j] = erand48(Task.Seed);
 		time = clock();
-		} // single
-		
-		#pragma omp single
+
+		} // master
+			
+#pragma omp barrier
   		Qsort(x, N, sizeof(*x), &test_compare);
 
-		#pragma omp taskwait
-		
-		#pragma omp single
+		#pragma omp master
 		{
 		time2 = clock();
 		deltasum0 += time2-time;
-		} // single
+		} // master
+#pragma omp barrier
 	}
 	} // omp parallel
 
-	printf("Done OpenMP\n" );
+	deltasum0 /= Nit; 
+
+	//printf("Done OpenMP\n" );
 
 	for (int i = 0; i < Nit; i++) {
 
-		printf("%d %d \n", i, Task.Thread_ID);
+		for (int j = 0; j < N; j++) 
+    		x[j] = erand48(Task.Seed);
 
-		memcpy(x,y,N*sizeof(*x));
-
-		time2 = clock();
+		time = clock();
 	
  		qsort(x, N, sizeof(*x), &test_compare);
   	
-	 	time3 = clock();
+	 	time2 = clock();
 
-		deltasum1 += time3-time2;
+		deltasum1 += time2-time;
 	}
 
 	deltasum1 /= Nit;
-	deltasum0 /= Nit; 
 
   	good = 1;
   
@@ -678,15 +625,19 @@ void test_sort()
 			good = 0;
 	}
 
-  	if (good == 1)
-	  	printf("Array sorted  :-)\n");
-  	else 
-	  	printf("Array not sorted :-( \n");
+  //	if (good == 1)
+	//  	printf("Array sorted  :-)\n");
+//  	else 
+//	  	printf("Array not sorted :-( \n");
 
-  	printf("In-place: parallel  %g sec, Single:  %g sec, Speedup: %g \n",
+  	printf("%g %g %g \n",
 		deltasum0/CLOCKS_PER_SEC/NThreads, 
 		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*NThreads );
-	
+
+	free(x); free(p); free(q);
+
+	} // for N
+
 	exit(0);
 
 	return ;

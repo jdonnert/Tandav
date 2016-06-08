@@ -11,9 +11,9 @@
 #define PARALLEL_THRES_HEAPSORT 15000
 
 #define INSERT_THRES 8 // insertion sort threshold
-//#define LIB_THRESHOLD (1ULL << 16)
+#define LIB_THRESHOLD (1ULL << 16)
 #define PARALLEL_THRESHOLD (1ULL << 8)
-#define N_PARTITIONS_PER_CPU 4
+#define N_PARTITIONS_PER_CPU 1
 
 static size_t Lib_Threshold = 0;
 
@@ -219,6 +219,8 @@ void Qsort(void *Data, size_t nData, size_t size,
 		swap = &swap16;
 
 	Lib_Threshold = nData / NThreads / N_PARTITIONS_PER_CPU;
+	if ( Lib_Threshold <= LIB_THRESHOLD )
+		Lib_Threshold = LIB_THRESHOLD;
 
 	#pragma omp single
 	omp_qsort(Data, nData, size, cmp);

@@ -13,10 +13,10 @@
 
 
 
-#define PARALLEL_THRESHOLD (1 << 10) // minimum size to use OpenMP
-#define MIN_LIB_THRESHOLD (1 << 16) // partition size to switch to std qsort
-#define N_PARTITIONS_PER_CPU 16 // number of sub-partition per thread by qsort
-#define N_MEDIAN 32 // get pivot element from a median of this
+#define PARALLEL_THRESHOLD (1<<10)	// minimum size to use OpenMP
+#define MIN_LIB_THRESHOLD (1<<16) 	// partition size to switch to std qsort
+#define N_PARTITIONS_PER_CPU 32   	// # sub-partition per thread bef. qsort
+#define N_MEDIAN 9 					// get pivot element from a median of this
 
 static size_t Lib_Threshold = 0;
 
@@ -131,7 +131,7 @@ static char * median_of(const int N, char *lo, size_t nData, size_t size,
 
 	for (int i = 1; i < N; i++) // insertion sort
 		for (int j = i; j > 0 && cmp(addr[j-1],addr[j])>0; j--)
-			swap(addr[j], addr[j-1]);
+			(*swap)(addr[j], addr[j-1]);
 
 	return addr[N>>1];
 }
@@ -268,26 +268,28 @@ int test_compare(const void * a, const void *b)
 
 void test_sort()
 {
-	const int Nit = 2;
+	const int Nit = 8;
 	int good;
 
 	printf("Testing sort: 1 - 2^31, %d iterations\n"
-			"MIN_LIB_THRESHOLD %d \nPARALLEL_THRESHOLD %d\n"
-			" N_PARTITIONS_PER_CPU %d \n\n"
-			,Nit, MIN_LIB_THRESHOLD, PARALLEL_THRESHOLD, N_PARTITIONS_PER_CPU);
+			"MIN_LIB_THRESHOLD = %d \nPARALLEL_THRESHOLD = %d\n"
+			"N_PARTITIONS_PER_CPU = %d\nN_MEDIAN = %d \n\n"
+			,Nit, MIN_LIB_THRESHOLD, PARALLEL_THRESHOLD, N_PARTITIONS_PER_CPU,
+			N_MEDIAN);
 
-	for (int N = 1ULL << 10; N < (1ULL << 31); N<<=1) {
+	size_t Nmax = (size_t) 1 << 33;
 
-		x = (double *) malloc( N * sizeof(*x) );
-		y = (double *) malloc( N * sizeof(*y) );
+	x = (double *) malloc( Nmax * sizeof(*x) );
+	y = (double *) malloc( Nmax * sizeof(*y) );
 	//	p = (size_t *) malloc( N * sizeof(*p) );
 	//	q = (size_t *) malloc( N * sizeof(*q) );
+	
+	for (size_t N = 1ULL << 10; N < (1ULL << 36); N<<=1) {
 
 		clock_t time = clock(), time2 = clock(), time3 = clock();
 		double deltasum0 = 0, deltasum1 = 0;
 
-		rprintf("%3g %10d ", log2(N), N);
-
+		rprintf("%3g %10d %3e | ", log2(N), N, N*sizeof(*x)/p3(1024.0));
 
 	/* in-place sort */
 
@@ -356,9 +358,9 @@ void test_sort()
 		deltasum0/CLOCKS_PER_SEC/NThreads, 
 		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*NThreads );
 
-	free(x); free(p); free(q); free(y);
-
 	} // for N
+
+	free(x); free(p); free(q); free(y);
 
 	exit(0);
 

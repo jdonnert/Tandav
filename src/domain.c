@@ -778,7 +778,7 @@ static void find_domain_center(double Center_Out[3])
 	
 	for (int i = 0; i < 3; i++) {
 		
-		#pragma omp for simd
+		#pragma omp for
 		for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
 			buffer[ipart] = P.Pos[i][ipart];
 
@@ -820,7 +820,7 @@ static void find_largest_particle_distance(double *size_out)
 	#pragma omp single
 	Max_Distance = 0;
 
-	#pragma omp for  simd reduction(max:Max_Distance)
+	#pragma omp for reduction(max:Max_Distance)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 		
 		double dx = fabs(P.Pos[0][ipart] - Domain.Center[0]);

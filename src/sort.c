@@ -9,16 +9,20 @@
 
 #define PARALLEL_THRES_QSORT 15000 // use serial sort below this limit
 #define PARALLEL_THRES_HEAPSORT 15000
-
 #define INSERT_THRES 8 // insertion sort threshold
-#define LIB_THRESHOLD (1ULL << 16)
-#define PARALLEL_THRESHOLD (1ULL << 8)
-#define N_PARTITIONS_PER_CPU 1
+
+
+
+#define PARALLEL_THRESHOLD (1 << 10) // minimum size to use OpenMP
+#define MIN_LIB_THRESHOLD (1 << 16) // partition size to switch to std qsort
+#define N_PARTITIONS_PER_CPU 16 // number of sub-partition per thread by qsort
+#define N_MEDIAN 32 // get pivot element from a median of this
 
 static size_t Lib_Threshold = 0;
 
 double *x, *y;
 size_t *p, *q;
+
 static inline void swapAll(void * restrict a, void * restrict b, size_t nBytes)
 {	
 	char * restrict x = (char *) a;
@@ -29,6 +33,19 @@ static inline void swapAll(void * restrict a, void * restrict b, size_t nBytes)
 	memcpy(tmp, x, nBytes);
 	memcpy(x, y, nBytes);
 	memcpy(y, tmp, nBytes);
+
+	return ;
+}
+
+static void swap1(void * restrict a, void * restrict b)
+{
+	char * restrict x = (char *) a;
+	char * restrict y = (char *) b;
+
+	char tmp = *x;
+
+	*x = *y;
+	*y = tmp;
 
 	return ;
 }
@@ -100,10 +117,24 @@ static inline void swap_size_t(size_t * restrict a, size_t * restrict b)
 #define COMPARE_DATA(a,b,size) ((*cmp) ((char *)(data + *a * size), \
 	(char *)(data + *b * size))) // compare with non-permutated data
 
-/*
- * A standard OpenMP parallel quicksort using tasking, presorting of the pivot
- * from the median and insertion sort on the last partitions.
- */
+static char * median_of(const int N, char *lo, size_t nData, size_t size,
+						int (*cmp)  (const void*, const void *))
+{
+	char *hi = lo + (nData-1) * size;
+	size_t dp = (nData / N) * size;
+
+	char *addr[N];
+
+	for (int i = 0; i < N; i++)
+		addr[i] = lo + i*dp;
+	addr[N-1] = hi;
+
+	for (int i = 1; i < N; i++) // insertion sort
+		for (int j = i; j > 0 && cmp(addr[j-1],addr[j])>0; j--)
+			swap(addr[j], addr[j-1]);
+
+	return addr[N>>1];
+}
 
 static void omp_qsort(void *Data, size_t nData, size_t size, 
 			int (*cmp) (const void*, const void *))
@@ -111,21 +142,8 @@ static void omp_qsort(void *Data, size_t nData, size_t size,
 	char *lo = Data;
 	char *hi = Data + (nData-1)*size;
 
-	char *mid = lo + size * ((hi - lo) / size >> 1); // pivot element
-	
-	if ((*cmp) ((void *) mid,(void *) lo) < 0)
-		(*swap) (mid, lo);
+	char *mid = median_of(N_MEDIAN, lo, nData, size, cmp); 
 
-	if ((*cmp) ((void *) hi, (void *) mid) < 0)
-		(*swap)(mid, hi);
-	else
-		goto jump_over;
-
-	if ((*cmp) ((void *) mid, (void *) lo) < 0)
-		(*swap)(mid, lo);
-
-	jump_over:;
-	
 	char *left  = lo + size;
 	char *right = hi - size;
 	 
@@ -162,10 +180,9 @@ static void omp_qsort(void *Data, size_t nData, size_t size,
 	size_t nLeft = (right - lo) / size + 1; // kick off new partitions
 	size_t nRight = (hi - left) / size + 1;
 
-
-	if (nLeft > 1) { // kick off subpartitions
+	if (nLeft > 1) {
 	
-		if (nRight < Lib_Threshold) {
+		if (nLeft < Lib_Threshold) {
 
 			#pragma omp task 
 			qsort(lo, nLeft, size, cmp); // qsort is likely pretty good ...
@@ -191,41 +208,159 @@ static void omp_qsort(void *Data, size_t nData, size_t size,
 			omp_qsort(left, nRight, size, cmp);
 		}
 	}
-	
+
 	return ;
 }
 
 /*
- * thread safe OpenMP quicksort
+ * A thread safe OpenMP quicksort. We use a function pointer for the optimised
+ * swap routine. This is not as bad as it sounds with optimised compilers. We
+ * rely on the build-in qsort whereever we can, because it will be highly
+ * optimised. For large arrays we find the real median of a few values using
+ * a insertion sort and use it as a pivot. (Bentley & McIlroy 1993)
  */
 
 void Qsort(void *Data, size_t nData, size_t size, 
 			int (*cmp) (const void*, const void *))
 {
 	if ( (nData < PARALLEL_THRESHOLD) || (! omp_in_parallel()) ) {
-	
+		
+		#pragma omp single
 		qsort(Data, nData, size, cmp);
 
 		return ;
 	}
 
-	if (size == 4)
-		swap = &swap4;
-
-	if (size == 8)
-		swap = &swap8;
-
-	if (size == 16)
-		swap = &swap16;
-
-	Lib_Threshold = nData / NThreads / N_PARTITIONS_PER_CPU;
-	if ( Lib_Threshold <= LIB_THRESHOLD )
-		Lib_Threshold = LIB_THRESHOLD;
-
-	#pragma omp single
-	omp_qsort(Data, nData, size, cmp);
+	switch (size) { // set swap function pointer
 	
-	#pragma omp taskwait
+		case 1: swap = &swap1;
+				break;
+
+		case 2: swap = &swap2;
+				break;
+
+		case 4: swap = &swap4;
+				break;
+		
+		case 8: swap = &swap8;
+				break;
+		
+		case 16: swap = &swap16;
+				break;
+	}
+
+	Lib_Threshold = nData / NThreads / N_PARTITIONS_PER_CPU; // load balancing
+	Lib_Threshold = MAX(PARALLEL_THRESHOLD, Lib_Threshold);
+	
+	#pragma omp single
+	omp_qsort(Data, nData, size, cmp); // burn baby !
+	
+	return ;
+}
+/* testing */
+int test_compare(const void * a, const void *b)
+{
+	const double *x = (const double*)a;
+	const double *y = (const double*)b;
+
+	return (*x > *y) - (*x < *y);
+}
+
+void test_sort()
+{
+	const int Nit = 2;
+	int good;
+
+	printf("Testing sort: 1 - 2^31, %d iterations\n"
+			"MIN_LIB_THRESHOLD %d \nPARALLEL_THRESHOLD %d\n"
+			" N_PARTITIONS_PER_CPU %d \n\n"
+			,Nit, MIN_LIB_THRESHOLD, PARALLEL_THRESHOLD, N_PARTITIONS_PER_CPU);
+
+	for (int N = 1ULL << 10; N < (1ULL << 31); N<<=1) {
+
+		x = (double *) malloc( N * sizeof(*x) );
+		y = (double *) malloc( N * sizeof(*y) );
+	//	p = (size_t *) malloc( N * sizeof(*p) );
+	//	q = (size_t *) malloc( N * sizeof(*q) );
+
+		clock_t time = clock(), time2 = clock(), time3 = clock();
+		double deltasum0 = 0, deltasum1 = 0;
+
+		rprintf("%3g %10d ", log2(N), N);
+
+
+	/* in-place sort */
+
+	for (int i = 0; i < Nit; i++) {
+		
+		#pragma omp parallel
+		{
+		
+		#pragma omp for
+		for (int j = 0; j < N; j++) 
+    		y[j] = erand48(Task.Seed);
+
+		#pragma omp master
+		{
+
+		memcpy(x, y, N*sizeof(*x));
+		
+		time = clock();
+
+		} // master
+			
+		#pragma omp barrier
+  		
+		Qsort(x, N, sizeof(*x), &test_compare);
+
+		#pragma omp master
+		{
+
+  		good = 1;
+
+	  	for (int i = 1; i < N; i++)
+			if (x[i] < x[i-1])
+				good = 0;
+
+		if (good == 0) {
+		
+			printf("ERROR: Array not sorted :-( \n");
+
+			exit(0);
+		}
+
+		time2 = clock();
+		deltasum0 += time2-time;
+
+		} // master
+		
+		#pragma omp barrier
+
+		} // omp parallel
+
+		memcpy(x, y, N* sizeof(*x));
+
+		time = clock();
+	
+ 		qsort(x, N, sizeof(*x), &test_compare);
+  	
+	 	time2 = clock();
+
+		deltasum1 += time2-time;
+	}
+		
+	deltasum0 /= Nit; 
+	deltasum1 /= Nit;
+
+  	printf("%6e %6e %4g \n",
+		deltasum0/CLOCKS_PER_SEC/NThreads, 
+		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*NThreads );
+
+	free(x); free(p); free(q); free(y);
+
+	} // for N
+
+	exit(0);
 
 	return ;
 }
@@ -505,151 +640,4 @@ void Qsort_Index(const int nThreads, size_t *perm, void * const data,
 }
 
 
-/* testing */
-int test_compare(const void * a, const void *b)
-{
-	const double *x = (const double*)a;
-	const double *y = (const double*)b;
-
-	return (*x > *y) - (*x < *y);
-}
-
-void test_sort()
-{
-	const size_t Nit = 16;
-	int good;
-
-	for (int N = 16; N < (1ULL << 31); N<<=1) {
-
-		x = (double *) malloc( N * sizeof(*x) );
-		p = (size_t *) malloc( N * sizeof(*p) );
-		q = (size_t *) malloc( N * sizeof(*q) );
-
-		clock_t time = clock(), time2 = clock(), time3 = clock();
-		double deltasum0 = 0, deltasum1 = 0;
-
-		/* external / index sort */
-
-		rprintf("%d %g %d ", Nit, log2(N), N);
-
-		for (int j = 0; j < N; j++) 
-    		x[j] = erand48(Task.Seed);
-/*
-	for (int i = 0; i < Nit; i++) {
-	
-		time = clock();
-
-		#pragma omp parallel
-		{
-  		Qsort_Index(NThreads, p, x, N, sizeof(*x), &test_compare);
-		}
-
-  		time2 = clock();
-	
-		gsl_heapsort_index(q, y, N, sizeof(*y), &test_compare);
-  		
-		time3 = clock();
-
-		deltasum0 += time2-time;
-		deltasum1 += time3-time2;
-	}
-
-	deltasum0 /= Nit; 
-	deltasum1 /= Nit;
-
-  	good = 1;
-  
-  	for (int i = 1; i < N; i++) {
-
-		//printf("%d %g %g \n", i, x[i], x[p[i]]);
-
-	 	if (x[p[i]] < x[p[i-1]])
-			good = 0;
-	}
-
-  	if (good == 1)
-	  	printf("Array sorted  :-)\n");
-  	else 
-	  	printf("Array not sorted :-( \n");
-  	
-	printf("Index: parallel %g sec; Single %g sec; Speedup: %g \n",
-		deltasum0/CLOCKS_PER_SEC/NThreads, 
-		deltasum1/CLOCKS_PER_SEC, 	deltasum1/deltasum0*NThreads );
-	fflush(stdout);
-*/
-	/* in-place sort */
-
-
-#pragma omp parallel
-	{
-	for (int i = 0; i < Nit; i++) {
-		
-		#pragma omp master
-		{
-
-		for (int j = 0; j < N; j++) 
-    		x[j] = erand48(Task.Seed);
-		time = clock();
-
-		} // master
-			
-#pragma omp barrier
-  		Qsort(x, N, sizeof(*x), &test_compare);
-
-		#pragma omp master
-		{
-		time2 = clock();
-		deltasum0 += time2-time;
-		} // master
-#pragma omp barrier
-	}
-	} // omp parallel
-
-	deltasum0 /= Nit; 
-
-	//printf("Done OpenMP\n" );
-
-	for (int i = 0; i < Nit; i++) {
-
-		for (int j = 0; j < N; j++) 
-    		x[j] = erand48(Task.Seed);
-
-		time = clock();
-	
- 		qsort(x, N, sizeof(*x), &test_compare);
-  	
-	 	time2 = clock();
-
-		deltasum1 += time2-time;
-	}
-
-	deltasum1 /= Nit;
-
-  	good = 1;
-  
-  	for (int i = 1; i < N; i++) {
-	 
-		//printf("%d %g \n", i, x[i]);
-		
-		if (x[i] < x[i-1])
-			good = 0;
-	}
-
-  //	if (good == 1)
-	//  	printf("Array sorted  :-)\n");
-//  	else 
-//	  	printf("Array not sorted :-( \n");
-
-  	printf("%g %g %g \n",
-		deltasum0/CLOCKS_PER_SEC/NThreads, 
-		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*NThreads );
-
-	free(x); free(p); free(q);
-
-	} // for N
-
-	exit(0);
-
-	return ;
-}
 

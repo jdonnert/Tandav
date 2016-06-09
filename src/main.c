@@ -144,7 +144,7 @@ static void preamble(int argc, char *argv[])
 	if (Task.Rank == MASTER)
 		Task.Is_MPI_Master = true;
 
-	Task.Seed[2] = 14041981L * (Task.Thread_ID); // init thread safe rng
+	Task.Seed[2] = 14041981L * Task.Thread_ID; // init thread safe rng
 
 	erand48(Task.Seed); // remove first 0 in some implementations
 

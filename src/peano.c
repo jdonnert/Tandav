@@ -3,7 +3,7 @@
 static void reorder_collisionless_particles(const size_t *idx_in);
 
 
-int compare_peanoKeys(const void * a, const void *b)
+int cmp_peanoKeys(const void * a, const void *b)
 {
 	const peanoKey *x = (const peanoKey *) a;
 	const peanoKey *y = (const peanoKey *) b;
@@ -29,8 +29,8 @@ void Sort_Particles_By_Peano_Key()
 		P.Key[ipart] = Peano_Key(P.Pos[0][ipart], P.Pos[1][ipart], 
 								 P.Pos[2][ipart]);
 
-	Qsort_Index(Task.Thread_ID, idx, P.Key, Task.Npart_Total, sizeof(*P.Key),
-			&compare_peanoKeys);
+	Qsort_Index(idx, P.Key, Task.Npart_Total, sizeof(*P.Key),
+				&cmp_peanoKeys);
 
 	reorder_collisionless_particles(idx);
 
@@ -60,7 +60,7 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 	idx = Get_Thread_Safe_Buffer(nBytes);
 
 	#pragma omp for 
-	for (int i = 0; i < NP_Fields; i++) { // burn the bus
+	for (int i = 0; i < NP_Fields; i++) { // burn the memory bus
 	
 		for (int j = 0; j < P_Fields[i].N; j++) {
 
@@ -197,7 +197,7 @@ peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 /*
  * This constructs the peano key with reversed triplet order. The order in the 
  * triplets however is the same ! Also level zero is carried explicitely
- * to ease tree construction. The most significant bits are undefined.
+ * to ease tree construction. The most significant (left) bits are undefined.
  */
 
 peanoKey Reversed_Peano_Key(const Float px, const Float py, const Float pz)
@@ -275,7 +275,7 @@ peanoKey Reversed_Peano_Key(const Float px, const Float py, const Float pz)
 	return key;
 }
 
-peanoKey Reverse_Peano_Key(peanoKey pkey)
+peanoKey Reverse_Peano_Key(peanoKey pkey) // buggy
 {
 	peanoKey key = 0;
 	peanoKey left = ((peanoKey) 0x7) << (N_PEANO_BITS-3);

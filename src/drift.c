@@ -29,7 +29,7 @@ void Drift_To_Sync_Point()
 				ipart, it_curr, it_next, Int_Time.End, Int_Time.Current, 
 				Int_Time.Next);
 
-		double dt = Particle_Drift_Step(ipart, it_curr, it_next);
+		double dt = Particle_Drift_Step(it_curr, it_next);
 
 		P.Pos[0][ipart] += dt * P.Vel[0][ipart];
 		P.Pos[1][ipart] += dt * P.Vel[1][ipart];
@@ -80,7 +80,7 @@ void Drift_To_Snaptime()
 
 		intime_t it_curr = P.It_Drift_Pos[ipart];
 
-		double dt = Particle_Drift_Step(ipart, it_curr, it_snap);
+		double dt = Particle_Drift_Step(it_curr, it_snap);
 
 		P.Pos[0][ipart] +=	dt * P.Vel[0][ipart];
 		P.Pos[1][ipart] +=	dt * P.Vel[1][ipart];
@@ -112,8 +112,7 @@ void Drift_To_Snaptime()
 
 #ifndef COMOVING 
 
-double Particle_Drift_Step(const int ipart ,
-		const intime_t it_curr, const intime_t it_next)
+double Particle_Drift_Step(const intime_t it_curr, const intime_t it_next)
 {
 	double t_curr = Integer_Time2Integration_Time(it_curr);
 	double t_next = Integer_Time2Integration_Time(it_next);

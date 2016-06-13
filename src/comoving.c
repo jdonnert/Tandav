@@ -38,7 +38,7 @@ double Particle_Kick_Step(const intime_t it_curr, const intime_t it_next)
 	return kick_factor_end - kick_factor_beg;
 }
 
-double Particle_Drift_Step(const int ipart, const intime_t it_curr, const intime_t it_next)
+double Particle_Drift_Step(const intime_t it_curr, const intime_t it_next)
 {
 	double a_curr = Integer_Time2Integration_Time(it_curr);
 	double a_next = Integer_Time2Integration_Time(it_next);

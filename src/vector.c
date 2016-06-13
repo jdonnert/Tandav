@@ -15,7 +15,7 @@ static int compare_vectors(const void *a, const void *b);
 int * restrict Vec = { NULL }; 
 int NVec = 0;
 
-static int sum = 0;
+static double sum = 0;
 
 void Find_Leaf_Vectors()
 {
@@ -117,8 +117,8 @@ void Find_Leaf_Vectors()
 	for (int i = 0; i < NVec; i++) 
 		sum += Vec[i+1] - Vec[i];
 
-	rprintf("Found %d leaf vectors; Average length=%d, VECTOR_SIZE=%d\n\n", 
-			NVec, (int)(sum/NVec), VECTOR_SIZE);
+	rprintf("Found %d leaf vectors; Average length=%g, VECTOR_SIZE=%d\n\n", 
+			NVec, sum/NVec, VECTOR_SIZE);
 
 	Profile("Find Vec");
 

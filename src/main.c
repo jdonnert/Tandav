@@ -29,8 +29,6 @@ int comp(const void *a, const void *b )
 int main(int argc, char *argv[])
 {
 	preamble(argc, argv);
-
-	test_sort();
 	
 	Read_and_Init(argc, argv);
 

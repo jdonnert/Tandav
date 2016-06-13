@@ -2,6 +2,7 @@
 #define COMOV_H
 
 #include "includes.h"
+#include "cosmology.h"
 
 #ifdef COMOVING
 extern void Setup_Comoving();

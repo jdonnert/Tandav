@@ -236,12 +236,12 @@ static void compute_ewald_correction_table()
 {
 	rprintf("\n   Computing tables ");
 
-	int size = p3(N_EWALD + 1) / Sim.NRank; // generic size
+	int size = p3(N_EWALD + 1) / NRank; // generic size
 	int beg = Task.Rank * size;
 
 	int len = size; // specific size treating last one
 
-	if (Task.Rank == (Sim.NRank - 1))
+	if (Task.Rank == (NRank - 1))
 		len = p3(N_EWALD + 1) - beg;
 
 	int end = beg + len;
@@ -255,7 +255,7 @@ static void compute_ewald_correction_table()
 
 			for (int k = 0; k < N_EWALD+1; k++) {
 
-				if (((cnt++) % (size/10/Sim.NThreads)) == 0)
+				if (((cnt++) % (size/10/NThreads)) == 0)
 					rprintf(".");
 
 				int n = (i * (N_EWALD+1) + j) * (N_EWALD+1) + k;
@@ -280,13 +280,13 @@ static void compute_ewald_correction_table()
 		} // j
 	} // i
 
-	for (int rank = 0; rank < Sim.NRank; rank++) {  // merge
+	for (int rank = 0; rank < NRank; rank++) {  // merge
 
 		beg = rank * size;
 
 		len = size;
 
-		if (Task.Rank == (Sim.NRank - 1))
+		if (Task.Rank == (NRank - 1))
 			len =  - beg;
 
 		MPI_Bcast(&Fx[0][0][beg], len, MPI_MYFLOAT, rank, MPI_COMM_WORLD);

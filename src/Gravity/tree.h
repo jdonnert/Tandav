@@ -8,6 +8,7 @@
 #include "../includes.h"
 #include "../domain.h"
 #include "../periodic.h"
+#include "periodic.h"
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE)
 

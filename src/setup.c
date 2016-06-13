@@ -20,7 +20,6 @@ void Setup()
 	
 	Setup_Gravity_Tree(); // GRAVITY_TREE
 
-	
 	Compute_Current_Simulation_Properties(); // <- Add your setups above
 
 	sanity_check_simulation_setup();
@@ -39,7 +38,7 @@ static void sanity_check_simulation_setup()
 #ifdef COMOVING
 
 	double rho_crit = 3 * p2(Cosmo.Hubble_Constant)/(8 * PI * Const.Gravity);
-	double omega_matter = Sim.Total_Mass / p3(Sim.Boxsize[0]) / rho_crit;
+	double omega_matter = Prop.Total_Mass / p3(Sim.Boxsize[0]) / rho_crit;
 
 	Warn(fabs(omega_matter-Cosmo.Omega_Matter) > 1e-3, 
 			"Matter content of box is inconsistent with Omega_Matter in "

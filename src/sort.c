@@ -4,7 +4,7 @@
 #define INSERTION_THRESHOLD (1<<5)	// switch to insertion sort here
 #define MEDIAN_THRESHOLD (1<<6)		// switch to median of 9 here
 
-#define N_PARTITIONS_PER_CPU 32   	// # sub-partition per thread bef. qsort
+#define N_PARTITIONS_PER_CPU 32   	// # sub-partition per thread before qsort
 
 #define CMP_DATA(a,b,size) ((*cmp) ((char *)data + *(a) * size, \
 									(char *)data + *(b) * size)) 	
@@ -22,7 +22,7 @@ static void omp_qsort(void *data, size_t ndata, size_t size,
 static void omp_qsort_index(size_t *perm, void *data, size_t ndata, size_t size,
 			int (*cmp) (const void*, const void *));
 
-static size_t Lib_Threshold = 0;
+static size_t Spawn_Threshold = 0;
 static void (*swap) ();
 
 /*
@@ -67,8 +67,8 @@ void Qsort(void *data, size_t ndata, size_t size,
 				break;
 	}
 	
-	Lib_Threshold = ndata / NThreads / N_PARTITIONS_PER_CPU; // load balancing
-	Lib_Threshold = MAX(PARALLEL_THRESHOLD, Lib_Threshold);
+	Spawn_Threshold = ndata / NThreads / N_PARTITIONS_PER_CPU; // load balancing
+	Spawn_Threshold = MAX(PARALLEL_THRESHOLD, Spawn_Threshold);
 
 	#pragma omp single
 	omp_qsort(data, ndata, size, cmp); // burn baby !
@@ -77,21 +77,21 @@ void Qsort(void *data, size_t ndata, size_t size,
 }
 /*
  * Thread safe OpenMP quicksort, external variant. 
- * We sort the permuation array, but compare the data array at the permited
- *
- * */
+ * We sort the permutation array, but compare the data array at the permuted
+ * indices.
+ */
 void Qsort_Index(size_t *perm, void * data, size_t ndata, size_t size,
 				 int (*cmp) (const void *, const void *))
 {
 	Assert(data != NULL, "You gave me a NULL pointer to sort");
 	Assert(perm != NULL, "You gave me a NULL pointer for the permutations");
 
-	Lib_Threshold = ndata / NThreads / N_PARTITIONS_PER_CPU; // load balancing
-	Lib_Threshold = MAX(PARALLEL_THRESHOLD, Lib_Threshold);
-	
 	#pragma omp for
 	for (size_t i = 0; i < ndata; i++)
 		perm[i] = i;
+
+	Spawn_Threshold = ndata / NThreads / N_PARTITIONS_PER_CPU * 2; 
+	Spawn_Threshold = MAX(PARALLEL_THRESHOLD, Spawn_Threshold);
 
 	#pragma omp single
 	omp_qsort_index(perm, data, ndata, size, cmp);
@@ -120,7 +120,7 @@ static char * median_of_9(char *lo, size_t ndata, size_t size,
 }
 
 static void omp_qsort(void *data, size_t ndata, size_t size, 
-			int (*cmp) (const void*, const void *))
+					  int (*cmp) (const void*, const void *))
 {
 	char *lo = data;
 	char *hi = data + (ndata-1)*size;
@@ -165,7 +165,7 @@ static void omp_qsort(void *data, size_t ndata, size_t size,
 
 	if (nLeft > 1) {
 	
-		if (nLeft < Lib_Threshold) {
+		if (nLeft < Spawn_Threshold) { // stop creating more tasks
 
 			#pragma omp task 
 			qsort(lo, nLeft, size, cmp); // qsort is likely pretty good ...
@@ -180,7 +180,7 @@ static void omp_qsort(void *data, size_t ndata, size_t size,
 
 	if (nRight > 1) {
 	
-		if (nRight < Lib_Threshold) {
+		if (nRight < Spawn_Threshold) {
 
 			#pragma omp task 
 			qsort(left, nRight, size, cmp);
@@ -236,7 +236,7 @@ static size_t * median_of_3_index(size_t *lo, void *data, size_t ndata,
 
 
 static void omp_qsort_index(size_t *perm, void *data, size_t ndata, size_t size,
-			int (*cmp) (const void*, const void *))
+							int (*cmp) (const void*, const void *))
 {
 	if (ndata < INSERTION_THRESHOLD) {
 
@@ -296,13 +296,31 @@ static void omp_qsort_index(size_t *perm, void *data, size_t ndata, size_t size,
 	size_t nLeft = right - lo + 1; // kick off new partitions
 	size_t nRight = hi - left + 1;
 
-	if (nLeft > 1) // GSL heapsort is so slow, we use our own qsort_index ... 
-		#pragma omp task 
-		omp_qsort_index(lo, data, nLeft, size, cmp);
+	if (nLeft > 1) { // GSL heapsort is so slow, we use our own qsort_index ... 
 	
-	if (nRight > 1)
-		#pragma omp task
-		omp_qsort_index(left, data, nRight, size, cmp);
+		if (nLeft > Spawn_Threshold) {
+
+			#pragma omp task 
+			omp_qsort_index(lo, data, nLeft, size, cmp);
+
+		} else {
+		
+			omp_qsort_index(lo, data, nLeft, size, cmp);
+		}
+	}
+
+	if (nRight > 1) {
+
+		if (nRight > Spawn_Threshold) {
+
+			#pragma omp task
+			omp_qsort_index(left, data, nRight, size, cmp);
+ 		
+		} else {
+	
+			omp_qsort_index(left, data, nRight, size, cmp);
+		}
+	}
 
 	return ;
 }
@@ -407,12 +425,12 @@ void test_sort()
 	x = (double *) malloc( Nmax * sizeof(*x) );
 	y = (double *) malloc( Nmax * sizeof(*y) );
 
-/*	printf("Testing sort: 1 -> 2^%g, %d iterations\n"
+	printf("Testing sort: 1 -> 2^%g, %d iterations\n"
 			"PARALLEL_THRESHOLD = %d\n"
 			"N_PARTITIONS_PER_CPU = %d\n", log2(Nmax),
 			Nit, PARALLEL_THRESHOLD, N_PARTITIONS_PER_CPU);
 	
-	for (size_t N = 1ULL << 10; N < Nmax; N<<=1) {
+	for (size_t N = 1ULL << 9; N < Nmax; N<<=1) {
 
 		clock_t time = clock(), time2 = clock(), time3 = clock();
 		double deltasum0 = 0, deltasum1 = 0;
@@ -486,7 +504,7 @@ void test_sort()
 		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*NThreads );
 
 	} // for N
-*/	
+	
 	/* external sort */
 
 	printf("Testing external sort: 1 -> 1<<%g, %d iterations\n"
@@ -554,7 +572,7 @@ void test_sort()
 
 		time = clock();
 	
-	 	//gsl_heapsort_index(p, x, N, sizeof(*x), test_compare);
+	 	gsl_heapsort_index(p, x, N, sizeof(*x), test_compare);
   	
 	 	time2 = clock();
 

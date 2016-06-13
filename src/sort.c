@@ -435,7 +435,7 @@ void test_sort()
 		clock_t time = clock(), time2 = clock(), time3 = clock();
 		double deltasum0 = 0, deltasum1 = 0;
 
-		rprintf("%3g %10d %4.1f GB | ", log2(N), N, N*sizeof(*x)/p3(1024.0));
+		rprintf("%3g %10zu %4.1f GB | ", log2(N), N, N*sizeof(*x)/p3(1024.0));
 
 
 	for (int i = 0; i < Nit; i++) {  // in-place sort 
@@ -521,7 +521,7 @@ void test_sort()
 		clock_t time = clock(), time2 = clock(), time3 = clock();
 		double deltasum0 = 0, deltasum1 = 0;
 
-		rprintf("%3g %10d %4.1f GB | ", log2(N), N, N*sizeof(*x)/p3(1024.0));
+		rprintf("%3g %10zu %4.1f GB | ", log2(N), N, N*sizeof(*x)/p3(1024.0));
 	
 		#pragma omp parallel
 		{

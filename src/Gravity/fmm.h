@@ -17,7 +17,7 @@ void Gravity_FMM_Update_Kicks();
 void Gravity_FMM_Update_Topnode_Kicks();
 void Gravity_FMM_Update_Drift(const double dt);
 
-extern struct FMM_Nodes {
+extern struct FMM_Node {
 	int * restrict DNext;
 	uint32_t * restrict Bitfield;
 	int * restrict DUp;
@@ -26,17 +26,13 @@ extern struct FMM_Nodes {
 	Float * restrict Mass;
 	Float * restrict CoM[3];
 	Float * restrict Dp[3];
-} Nodes;
+} FMM;
 
 uint32_t NNodes;
 
-extern struct FMM_Leafs { // vectors of particles and a parent node
-	int * restrict First;
-	int * restrict N;
-	int * restrict Up;
-} Leafs;
-
-uint32_t NLeafs;
+double Epsilon[NPARTYPE], // softening
+	   Epsilon2[NPARTYPE], 
+	   Epsilon3[NPARTYPE];
 
 #else 
 

@@ -75,11 +75,13 @@ void Qsort(void *data, size_t ndata, size_t size,
 	
 	return ;
 }
+
 /*
  * Thread safe OpenMP quicksort, external variant. 
  * We sort the permutation array, but compare the data array at the permuted
  * indices.
  */
+
 void Qsort_Index(size_t *perm, void * data, size_t ndata, size_t size,
 				 int (*cmp) (const void *, const void *))
 {
@@ -100,7 +102,7 @@ void Qsort_Index(size_t *perm, void * data, size_t ndata, size_t size,
 }
 
 /*
- * Find median and presort
+ * Find median of 9 values and presort
  */
 
 static char * median_of_9(char *lo, size_t ndata, size_t size,
@@ -233,7 +235,6 @@ static size_t * median_of_3_index(size_t *lo, void *data, size_t ndata,
 
 	return mid;
 }
-
 
 static void omp_qsort_index(size_t *perm, void *data, size_t ndata, size_t size,
 							int (*cmp) (const void*, const void *))

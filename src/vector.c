@@ -24,9 +24,7 @@ void Find_Leaf_Vectors()
 	int *first = Get_Thread_Safe_Buffer(Task.Npart_Total_Max*sizeof(*first));
 
 	#pragma omp single
-	{
-	NVec = 0;
-	} // omp single
+	NVec = sum = 0;
 
 	#pragma omp for schedule(static,1) nowait
 	for (int i = 0; i < NTop_Nodes; i++) {
@@ -111,13 +109,11 @@ void Find_Leaf_Vectors()
 
 	Qsort(Vec, NVec, sizeof(*Vec), &compare_vectors);	
 
-	sum = 0;
-
 	#pragma omp for reduction(+:sum)
 	for (int i = 0; i < NVec; i++) 
 		sum += Vec[i+1] - Vec[i];
 
-	rprintf("Found %d leaf vectors; Average length=%g, VECTOR_SIZE=%d\n\n", 
+	rprintf("Found %d leaf vectors; Average length=%4f, VECTOR_SIZE=%d\n\n", 
 			NVec, sum/NVec, VECTOR_SIZE);
 
 	Profile("Find Vec");

@@ -39,6 +39,7 @@ static void (*swap) ();
 void Qsort(void *data, size_t ndata, size_t size, 
 		   int (*cmp) (const void*, const void *))
 {
+	#pragma omp single
 	Assert(data != NULL, "You gave me a NULL pointer to sort");
 
 	if ( (ndata < PARALLEL_THRESHOLD) || (! omp_in_parallel()) ) {
@@ -48,6 +49,9 @@ void Qsort(void *data, size_t ndata, size_t size,
 
 		return ;
 	}
+
+	#pragma omp single
+	{
 
 	switch (size) { // set swap function pointer
 	
@@ -70,9 +74,10 @@ void Qsort(void *data, size_t ndata, size_t size,
 	Spawn_Threshold = ndata / NThreads / N_PARTITIONS_PER_CPU; // load balancing
 	Spawn_Threshold = MAX(PARALLEL_THRESHOLD, Spawn_Threshold);
 
-	#pragma omp single
 	omp_qsort(data, ndata, size, cmp); // burn baby !
 	
+	} // omp single
+
 	return ;
 }
 
@@ -85,19 +90,28 @@ void Qsort(void *data, size_t ndata, size_t size,
 void Qsort_Index(size_t *perm, void * data, size_t ndata, size_t size,
 				 int (*cmp) (const void *, const void *))
 {
+	#pragma omp single
+	{
+
 	Assert(data != NULL, "You gave me a NULL pointer to sort");
 	Assert(perm != NULL, "You gave me a NULL pointer for the permutations");
+
+	} // omp single
 
 	#pragma omp for
 	for (size_t i = 0; i < ndata; i++)
 		perm[i] = i;
 
+	#pragma omp single
+	{
+
 	Spawn_Threshold = ndata / NThreads / N_PARTITIONS_PER_CPU * 2; 
 	Spawn_Threshold = MAX(PARALLEL_THRESHOLD, Spawn_Threshold);
 
-	#pragma omp single
 	omp_qsort_index(perm, data, ndata, size, cmp);
-	
+
+	} // omp single
+
 	return ;
 }
 
@@ -206,7 +220,7 @@ static size_t * median_of_9_index(size_t *lo, void *data, size_t ndata,
 	size_t *addr[9] = { lo, lo+dp, lo+2*dp, lo+3*dp, lo+4*dp, lo+5*dp, lo+6*dp,
 					  lo + 7*dp, hi};
 
-	for (int i = 1; i < 9; i++) // insertion sort on perm
+	for (int i = 1; i < 9; i++) // insertion sort on *lo
 		for (int j = i; j > 0 && CMP_DATA(addr[j-1],addr[j], size) > 0; j--)
 			swap_size_t(addr[j], addr[j-1]);
 

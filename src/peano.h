@@ -15,12 +15,12 @@ void Sort_Particles_By_Peano_Key();
 void Reverse_Peano_Keys();
 
 peanoKey Peano_Key(const Float px, const Float py,const Float pz);
-peanoKey Reversed_Peano_Key(const Float px, const Float py,const Float pz);
+peanoKey Reversed_Peano_Key(const Float px, const Float py, const Float pz);
 peanoKey Reverse_Peano_Key(const peanoKey pkey);
 
 shortKey Short_Peano_Key(const Float px, const Float py, const Float pz);
 shortKey Reversed_Short_Peano_Key(const Float px, const Float py, 
-		const Float pz);
+								  const Float pz);
 
 shortKey Peano2Short_Key(const peanoKey pkey);
 

@@ -15,13 +15,21 @@
  */
 
 #ifdef DOUBLE_PRECISION
-typedef double Float;		// type of floating point variables in P
-#define MPI_MYFLOAT MPI_DOUBLE // corresponding MPI communication type macro
-#define SQRT sqrt			// type aware square root function for speed
+
+typedef double Float;			// type of floating point variables in P
+typedef __uint128_t peanoKey; 	// long peanokey, 128 bit = 42 triplets/levels
+#define MPI_MYFLOAT MPI_DOUBLE 	// corresponding MPI communication type macro
+#define SQRT sqrt				// type aware square root function for speed
+#define EXP exp					// type aware exponential function for speed
+
 #else // ! DOUBLE_PRECISION
+
 typedef float Float;
+typedef __uint128_t peanoKey; 		// long peanokey, 64 bit = 21 triplets=levels
 #define MPI_MYFLOAT MPI_FLOAT
 #define SQRT sqrtf
+#define EXP expf				// type aware exp function for speed
+
 #endif // ! DOUBLE_PRECISION
 
 #ifdef LONG_IDS
@@ -33,7 +41,6 @@ typedef uint32_t ID_t;
 typedef uint32_t intime_t;		// type of integer time 
 
 typedef uint64_t shortKey;		// short peanokey, 64 bit = 21 triplets/levels
-typedef __uint128_t peanoKey; 	// long peanokey, 128 bit = 42 triplets/levels
 
 enum Start_Parameters {
 	READ_IC = 0,

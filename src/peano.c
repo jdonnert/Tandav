@@ -1,7 +1,9 @@
 #include "peano.h"
 
 static void reorder_collisionless_particles(const size_t *idx_in);
-
+//static void reorder_gas_particles(const size_t *idx_in);
+//static void reorder_bh_particles(const size_t *idx_in);
+//static void reorder_star_particles(const size_t *idx_in);
 
 int cmp_peanoKeys(const void * a, const void *b)
 {
@@ -35,12 +37,13 @@ void Sort_Particles_By_Peano_Key()
 	reorder_collisionless_particles(idx);
 
 	//reorder_gas_particles(idx);
+	//reorder_bh_particles(idx);
+	//reorder_star_particles(idx);
 
 	#pragma omp single
  	Free(idx);
 	
 	Make_Active_Particle_List();
-	//Make_Active_Particle_Vectors();
 
 	Profile("Peano-Hilbert order");
 
@@ -81,6 +84,11 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 	return ;
 }
 
+/*
+ * Construct a Reversed peano key from a std key. We are missing a fast
+ * implementation at the moment, we recompute ...
+ */
+
 void Reverse_Peano_Keys()
 {
 	#pragma omp for
@@ -98,19 +106,18 @@ void Reverse_Peano_Keys()
 
 
 /* 
- * Construct a 128 bit Peano-Hilbert distance in 3D, input coordinates 
- * have to be normalized as 0 <= x < 1. Unfortunately it's not clear if 
- * a 128bit type would be portable, though all modern CPUs have 128 bit 
- * registers. Bits 0 & 1 are unused, the most significant bit is 127. Input has
- * to be double for full precision.
+ * Construct a Peano-Hilbert distance in 3D, input coordinates 
+ * have to be normalized as 0 <= x < 1. Unfortunately a 128bit type is not
+ * portable beyond gcc & icc, though all modern CPUs have 128 bit registers.
+ * Bits 0 & 1 are unused, the most significant bit is N_PEANO_BITS-1. 
+ * Input has to be double for full 128 bit precision. This is only true if 
+ * DOUBLE_PRECISION is set.
  *
  * The normalisation of the position can run into floating point precision 
  * issue for very large domains. Hence we pull the conversion factor 'm' into
  * the conversion first.
  *
- * To be consistent without loss of accuracy all std keys start with the
- * first triplet at level 1, i.e. the last 1 or 2 bits are unused. However the
- * reversed keys carry the zero triplet explicitely, to ease tree traversal.
+ * All keys carry the zero triplet explicitely, to ease tree traversal.
  *
  * Yes it's totally arcane, run as fast as you can.
  *
@@ -123,7 +130,7 @@ peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 {
 	const uint64_t m = ((uint64_t) 1) << 63;
 
-	const double fac = m / Domain.Size; // don't run into precision issues ...
+	const double fac = m / Domain.Size; // don't run into precision issues
 
 	uint64_t X[3] = { (px - Domain.Origin[0]) * fac,
 					  (py - Domain.Origin[1]) * fac,
@@ -173,8 +180,8 @@ peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 
 	peanoKey key = 0;
 
-	X[1] >>= 1; X[2] >>= 2;	// lowest bits not important
-
+	X[1] >>= 1; X[2] >>= 2;	// pre-shift, no loss of precision
+	
 	for (int i = 0; i < N_PEANO_TRIPLETS+1; i++) {
 
 		uint64_t col = ((X[0] & 0x8000000000000000)
@@ -189,14 +196,14 @@ peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 		X[2] <<= 1;
 	}
 
-	key <<= 2;
+	key >>= 3 - N_PEANO_BITS + 3*N_PEANO_TRIPLETS;
 	
 	return key;
 }
 
 /*
- * This constructs the peano key with reversed triplet order. The order in the 
- * triplets however is the same ! Also level zero is carried explicitely
+ * This constructs the peano key with reversed triplet order. The order in 
+ * the triplets however is the same ! Also level zero is carried explicitely
  * to ease tree construction. The most significant (left) bits are undefined.
  */
 
@@ -255,7 +262,9 @@ peanoKey Reversed_Peano_Key(const Float px, const Float py, const Float pz)
 
 	peanoKey key = 0;
 
-	X[0] >>= 18; X[1] >>= 19; X[2] >>= 20;	// lowest bits not important
+	X[0] >>= 64 - N_PEANO_TRIPLETS - 4; 
+	X[1] >>= 64 - N_PEANO_TRIPLETS - 3; 
+	X[2] >>= 64 - N_PEANO_TRIPLETS - 2;	// lowest bits not important
 
 	for (int i = 0; i < N_PEANO_TRIPLETS+1; i++) {
 
@@ -307,8 +316,10 @@ shortKey Short_Peano_Key(const Float px, const Float py, const Float pz)
 
 shortKey Reversed_Short_Peano_Key(const Float px, const Float py, 
 		const Float pz)
-{													    
-	return (shortKey) (Reversed_Peano_Key(px, py, pz) & 0x00000000FFFFFFFF);
+{		
+	peanoKey bitmask = (~ ((peanoKey) 0x0)) >> (N_PEANO_BITS - N_SHORT_BITS);
+
+	return (shortKey) (Reversed_Peano_Key(px, py, pz) & bitmask);
 
 }
 

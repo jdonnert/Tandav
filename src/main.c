@@ -13,18 +13,10 @@
 static void preamble(int argc, char *argv[]);
 
 /* 
- * This exposes the time integration of the code. 
- * We use the HOLD integrator from Pelupessy+ 2012. 
+ * This exposes the time integration, as well as the snapshot and restart I/O
+ * of the code. We use the HOLD integrator from Pelupessy+ 2012. 
  */
 
-extern double arr[10];
-int comp(const void *a, const void *b )
-{
-	double *x = (double *)a;
-	double *y = (double *)b;
-	
-	return (int)(*x > *y) - (*x < *y) ;
-}
 
 int main(int argc, char *argv[])
 {
@@ -32,7 +24,7 @@ int main(int argc, char *argv[])
 	
 	Read_and_Init(argc, argv);
 
-	Setup();
+	Setup_Modules();
 
 	#pragma omp parallel default(shared)
 	{
@@ -98,13 +90,12 @@ int main(int argc, char *argv[])
 }
 
 /* 
- * Here we do OpenMP and MPI init and handle the command line args. 
+ * OpenMP and MPI init and handling of the command line args. 
  * We are using full thread parallelism, i.e. every thread is an MPI rank and
  * takes part in the MPI communication. Hence, every thread needs to have an 
  * unique ID: Task.ID, an MPI rank: Task.Rank, and a thread ID: Task.Thread_ID
- * There is a global MPI master with Task.Is_MPI_Master == true, used only for
- * printing messages. On every MPI rank there is a main thread on which 
- * Task.Is_Thread_Main == true. 
+ * There is a global MPI master with Task.Is_MPI_Master == true. On every MPI 
+ * rank there is a main thread on which Task.Is_Thread_Main == true. 
  * Always use Task.Rank inside an omp single region. In a parallel region
  * use Task.ID to uniquely identify a thread across the whole machine.
  */

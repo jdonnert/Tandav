@@ -56,11 +56,11 @@ void Kick_Second_Halfstep()
 		P.Vel[1][ipart] += dt * P.Acc[1][ipart];
 		P.Vel[2][ipart] += dt * P.Acc[2][ipart];
 		
-		if (!Sig.Domain_Update)
-			Gravity_Tree_Update_Kicks(ipart, dt);
 
 		P.It_Kick_Pos[ipart] += (it_step >> 1);
 	}
+
+	Gravity_Tree_Update_Kicks(); // GRAVITY_TREE
 
 	Profile("Second Kick");
 

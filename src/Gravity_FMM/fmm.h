@@ -34,6 +34,10 @@ double Epsilon[NPARTYPE], // softening
 	   Epsilon2[NPARTYPE], 
 	   Epsilon3[NPARTYPE];
 
+int NLeafs;
+int * restrict leaf2part;
+int * restrict leaf2node;
+
 #else 
 
 inline void Setup_Gravity_FMM() {};

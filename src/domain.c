@@ -135,8 +135,6 @@ void Domain_Decomposition()
 
 	Reverse_Peano_Keys();
 
-	Find_Leaf_Vectors();
-
 	Sig.Tree_Update = true;
 
 	Profile("Domain Decomposition");

@@ -104,48 +104,7 @@ void Gravity_FMM_Build()
 	return ;
 }
 
-
-void Gravity_FMM_Setup()
-{
-	omp_init_lock(Node_Lock);
-
-	Max_Nodes = 0.3 * Task.Npart_Total;
-
-	realloc_nodes(Max_Nodes, FMM);
-
-	Leaf_Nodes = Malloc(Task.Npart_Total * sizeof(*Leaf_Node), "Leaf Nodes");
-
-	for (int i = 0; i < NPARTYPE; i++) { // Plummer eqiv. softening
-	
-		Epsilon[i] = -41.0/32.0 * Param.Grav_Softening[i]; // for Dehnen K1
-		Epsilon2[i] = Epsilon[i] * Epsilon[i];
-		Epsilon3[i] = Epsilon[i] * Epsilon[i] * Epsilon[i];
-	}
-
-	return ;
-}
-
-void Free_Gravity_FMM(struct FMM_Node *f)
-{
-	Free(f->DNext);
-	Free(f->Bitfield);
-	Free(f->DUp);
-	Free(f->Npart);
-	Free(f->Pos[0]);
-	Free(f->Pos[1]);
-	Free(f->Pos[2]);
-	Free(f->Mass);
-	Free(f->CoM[0]);
-	Free(f->CoM[1]);
-	Free(f->CoM[2]);
-	Free(f->Dp[0]);
-	Free(f->Dp[1]);
-	Free(f->Dp[2]);
-
-	return ;
-}
-
-static void realloc_nodes(const int N, struct FMM_Node *f)
+static void alloc_nodes(const int N, struct FMM_Node *f)
 {
 	if (f.DNext != NULL) 
 		Free_Gravity_FMM(f);

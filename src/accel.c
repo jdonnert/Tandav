@@ -64,7 +64,6 @@ static void accel_gravity()
 		safe_last_accel();
 	}
 
-
 	Gravity_Tree_Acceleration();
 
 	return ;
@@ -74,9 +73,15 @@ static void accel_gravity()
 #if defined(GRAVITY) && defined(GRAVITY_FMM) // pure FMM
 static void accel_gravity() 
 {
-	//Gravity_FMM_Build(); 
+	Gravity_FMM_Build(); 
+
+	Gravity_FMM_P2L();
+
+	//Gravity_FMM_M2L();
 	
-	//Gravity_FMM_Accel();
+	//Gravity_FMM_L2L();
+	
+	//Gravity_FMM_P2P();
 
 	return ;
 }

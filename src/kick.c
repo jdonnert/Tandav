@@ -27,11 +27,9 @@ void Kick_First_Halfstep()
 		P.Vel[2][ipart] += dt * P.Acc[2][ipart];
 
 		P.It_Kick_Pos[ipart] += (it_step >> 1);
+	} // for i
 
-		if (!Sig.Domain_Update)
-			Gravity_Tree_Update_Kicks(ipart, dt); // GRAVITY_TREE
-
-	}
+	Gravity_Tree_Update_Kicks(); // GRAVITY_TREE
 
 	Profile("First Kick");
 

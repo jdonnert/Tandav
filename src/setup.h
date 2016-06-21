@@ -7,6 +7,6 @@
 #include "Gravity/tree.h"
 #include "properties.h"
 
-void Setup();
+void Setup_Modules();
 
 #endif // SETUP_H

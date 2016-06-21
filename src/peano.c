@@ -106,18 +106,19 @@ void Reverse_Peano_Keys()
 
 
 /* 
- * Construct a Peano-Hilbert distance in 3D, input coordinates 
- * have to be normalized as 0 <= x < 1. Unfortunately a 128bit type is not
- * portable beyond gcc & icc, though all modern CPUs have 128 bit registers.
+ * Construct a N_PEANO_BITS bit Peano-Hilbert distance in 3D. 
+ * Input coordinates have to be normalized as 0 <= x < 1. Unfortunately a 
+ * 128bit type is not portable beyond gcc & icc, though all modern CPUs have 
+ * 128 bit registers. Hence, DOUBLE_PRECISION might not work on your compiler.
+ *
  * Bits 0 & 1 are unused, the most significant bit is N_PEANO_BITS-1. 
- * Input has to be double for full 128 bit precision. This is only true if 
- * DOUBLE_PRECISION is set.
  *
  * The normalisation of the position can run into floating point precision 
  * issue for very large domains. Hence we pull the conversion factor 'm' into
  * the conversion first.
  *
- * All keys carry the zero triplet explicitely, to ease tree traversal.
+ * All keys carry the zero triplet at the root level 0 explicitely, to ease 
+ * tree traversal.
  *
  * Yes it's totally arcane, run as fast as you can.
  *
@@ -184,19 +185,19 @@ peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 	
 	for (int i = 0; i < N_PEANO_TRIPLETS+1; i++) {
 
-		uint64_t col = ((X[0] & 0x8000000000000000)
-					  | (X[1] & 0x4000000000000000)
-					  | (X[2] & 0x2000000000000000)) >> 61;
+		uint64_t triplet = ((X[0] & 0x8000000000000000)
+					 	  | (X[1] & 0x4000000000000000)
+					  	  | (X[2] & 0x2000000000000000)) >> 61;
 
 		key <<= 3;
-		key |= col;
+		key |= triplet;
 
 		X[0] <<= 1;
 		X[1] <<= 1;
 		X[2] <<= 1;
 	}
 
-	key >>= 3 - N_PEANO_BITS + 3*N_PEANO_TRIPLETS;
+	key >>= 3 - N_PEANO_BITS + 3*N_PEANO_TRIPLETS; // set root triplet
 	
 	return key;
 }
@@ -268,11 +269,11 @@ peanoKey Reversed_Peano_Key(const Float px, const Float py, const Float pz)
 
 	for (int i = 0; i < N_PEANO_TRIPLETS+1; i++) {
 
-		uint64_t col = ((X[0] & 0x4) | (X[1] & 0x2) | (X[2] & 0x1));
+		uint64_t triplet = ((X[0] & 0x4) | (X[1] & 0x2) | (X[2] & 0x1));
 
 		key <<= 3;
 
-		key |= col;
+		key |= triplet;
 
 		X[0] >>= 1;
 		X[1] >>= 1;

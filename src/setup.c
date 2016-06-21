@@ -6,7 +6,7 @@ static void sanity_check_simulation_setup();
  * Setup extra modules. In particular, allocate static memory blocks here !
  */
 
-void Setup()
+void Setup_Modules()
 {
 	Profile("Setup");
 		

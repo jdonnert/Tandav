@@ -8,6 +8,7 @@
 #include "../includes.h"
 #include "../domain.h"
 #include "../periodic.h"
+#include "../kick.h"
 #include "periodic.h"
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE)
@@ -15,7 +16,7 @@
 void Setup_Gravity_Tree();
 void Gravity_Tree_Build();
 void Gravity_Tree_Acceleration();
-void Gravity_Tree_Update_Kicks(const int ipart, const double dt);
+void Gravity_Tree_Update_Kicks();
 void Gravity_Tree_Update_Topnode_Kicks();
 void Gravity_Tree_Update_Drift(const double dt);
 void Gravity_Tree_Free();

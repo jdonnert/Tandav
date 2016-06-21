@@ -38,7 +38,7 @@ void Find_Leaf_Vectors()
 		int lvl = D[i].TNode.Level + 1;
 		
 		while (ipart <= last_part) { // all particles in the top node
-
+			
 			first[nVec] = ipart;
 
 			nVec++;

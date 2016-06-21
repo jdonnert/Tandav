@@ -330,7 +330,7 @@ static int build_subtree(const int first_part, const int tnode_idx,
 				if (tree[node].DNext == 0 || node == nNodes - 1)
 					break; // reached end of branch
 
-				node += fmax(1, tree[node].DNext);
+				node += imax(1, tree[node].DNext);
 			}
 		} // while (lvl < 42)
 
@@ -406,7 +406,7 @@ static void collapse_last_branch(const int node, const int last_parent,
 {
 	int n = -1;
 
-	if (tree[node].Npart <= VECTOR_SIZE)
+	if ((tree[node].Npart <= VECTOR_SIZE))
 		n = node;
 	else if (tree[last_parent].Npart <= VECTOR_SIZE)
 		n = last_parent;
@@ -420,7 +420,7 @@ static void collapse_last_branch(const int node, const int last_parent,
 	*nNodes -= nZero;
 
 	size_t nBytes = nZero * sizeof(*tree);
-	
+
 	memset(&tree[*nNodes], 0, nBytes);
 
 	int first = -(tree[n].DNext + 1); // correct parent pointer

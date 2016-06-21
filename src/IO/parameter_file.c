@@ -153,7 +153,7 @@ void Write_Parameter_File(const char *filename)
 		printf("\ndone, Good Bye.\n\n");
 	}
 
-	Finish(); // done here
+	MPI_Barrier(MPI_COMM_WORLD);
 
 	return ; // never reached
 }
@@ -177,11 +177,11 @@ void sanity_check_input_parameters()
 		"NRank (=%d) can't be smaller than No_IOTasks (=%d), resetting ...",
 		NRank,  Param.Num_Output_Files);
 
-	Param.Num_IO_Tasks = MIN(Param.Num_IO_Tasks, NRank);
-
 	Warn(Param.Num_IO_Tasks > Param.Num_Output_Files,
 		"Num_IO_Tasks (=%d) can't be larger than Num_Output_Files (=%d)",
 		Param.Num_IO_Tasks,  Param.Num_Output_Files);
+
+	Param.Num_IO_Tasks = MIN(Param.Num_IO_Tasks, NRank);
 
 	Param.Num_Output_Files = MIN(Param.Num_Output_Files, NRank);
 

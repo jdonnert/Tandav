@@ -36,7 +36,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 {
 	int sign[3] = { -1, -1, -1 };
 	
-	Float dx = dr[0];
+	Float dx = dr[0]; // make positive
 
 	if (dx < 0) {
 
@@ -60,7 +60,7 @@ void Ewald_Correction(const Float dr[3], Float f[3])
 		sign[2] = 1;
 	}
 
-	Float u = dx * Box2Ewald_Grid;
+	Float u = dx * Box2Ewald_Grid; // convert to grid units
 	Float v = dy * Box2Ewald_Grid;
 	Float w = dz * Box2Ewald_Grid;
 
@@ -179,7 +179,7 @@ void Ewald_Potential(const double dr[3], Float p[1])
 
 void Setup_Gravity_Periodic()
 {
-	rprintf("Init Ewald correction ");
+	rprintf("Setup Ewald correction ");
 
 	Boxsize = Sim.Boxsize[1] = Sim.Boxsize[2] = Sim.Boxsize[0];
 

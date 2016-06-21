@@ -86,7 +86,8 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node);
 
 void Gravity_Tree_Periodic(const bool);
 void Tree_Periodic_Nearest(Float dr[3]);
-
+#else
+static inline void Gravity_Tree_Periodic(const bool tmp) {};
 #endif // GRAVITY && GRAVITY_TREE && PERIODIC
 
 #endif // GRAVITY_TREE_H

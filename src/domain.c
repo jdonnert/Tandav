@@ -169,10 +169,11 @@ void Setup_Domain_Decomposition()
 	{
 
 	reset_bunchlist();
-	
+
 	set_computational_domain();
 
 	Sort_Particles_By_Peano_Key();
+	
 
 	} // omp parallel
 
@@ -280,6 +281,9 @@ static void reallocate_topnodes()
 
 static void reset_bunchlist()
 {
+	
+	#pragma omp barrier
+	
 	memset(&D[0], 0, sizeof(*D) * Max_NBunches);
 	
 	int level = find_min_level();
@@ -381,6 +385,8 @@ static void make_new_bunchlist()
 			continue;
 
 		int first_new_bunch = NBunches; // split this one into 8
+
+		#pragma omp barrier
 
 		#pragma omp single
 		if (NBunches + 8 >= Max_NBunches) // make more space !

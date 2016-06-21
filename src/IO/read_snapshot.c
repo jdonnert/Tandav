@@ -427,7 +427,7 @@ static void generate_masses_from_header()
 
 		int iMax = iMin + Task.Npart[type];
 		
-		#pragma  omp parallel for
+		#pragma  omp parallel for shared(iMin,iMax)
 		for (int ipart = iMin; ipart < iMax; ipart++)
 			P.Mass[ipart] = Sim.Mpart[type];
 
@@ -463,7 +463,7 @@ static void set_particle_types()
 		max_ID[type] = run - 1;
 	}
 
-	#pragma omp parallel for
+	#pragma omp parallel for shared(max_ID,min_ID)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 		
 		for (int type = 0; type < NPARTYPE; type++) {

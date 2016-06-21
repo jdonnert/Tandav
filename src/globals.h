@@ -26,7 +26,7 @@ typedef double Float;			// type of floating point variables in P
 typedef float Float;
 #define MPI_MYFLOAT MPI_FLOAT
 #define SQRT sqrtf
-#define EXP expf				// type aware exp function for speed
+#define EXP expf
 
 #endif // ! DOUBLE_PRECISION
 

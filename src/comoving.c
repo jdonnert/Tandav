@@ -215,9 +215,9 @@ extern double Comoving_VelDisp_Timestep_Constraint(const double dt_max_ext)
 		int type = P.Type[ipart];
 
 		vel2_thread[type] += p2(P.Vel[0][ipart]) + p2(P.Vel[1][ipart]) 
-							+ p2(P.Vel[2][ipart]);
+						   + p2(P.Vel[2][ipart]);
 
-		min_mpart_thread[type] = fmin(min_mpart[type], P.Mass[ipart]);
+		min_mpart_thread[type] = fmin(min_mpart_thread[type], P.Mass[ipart]);
 
 		npart_thread[type]++;
 	}

@@ -31,7 +31,7 @@ void Gravity_Tree_Walk(const bool Use_BH_Criterion)
 {
 	Profile("Grav Tree Walk");
 
-	rprintf("Tree acceleration "); fflush(stdout);
+	rprintf("Tree Walk "); fflush(stdout);
 
 	#pragma omp for schedule(dynamic)
 	for (int i = 0; i < NActive_Particles; i++) {

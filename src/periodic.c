@@ -4,7 +4,7 @@
 
 static Float Boxhalf[3] = { 0 };
 
-void Init_Periodic()
+void Setup_Periodic()
 {
 #ifndef PERIODIC_NO_CUBE
 	
@@ -23,6 +23,9 @@ void Init_Periodic()
 			Sim.Boxsize[1],Sim.Boxsize[2]);
 
 #endif // PERIODIC_NO_CUBE
+
+	#pragma omp parallel
+	Periodic_Constrain_Particles_To_Box(); // PERIODIC
 
 	return ;
 }

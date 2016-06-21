@@ -5,6 +5,7 @@
 #include "../cosmology.h"
 #include "../timestep.h"
 
+void Read_ICs();
 void Read_Parameter_File(const char *);
 void Write_Parameter_File(const char *);
 void Read_Snapshot();
@@ -12,7 +13,6 @@ void Read_Restart_File();
 void Read_and_Init();
 void Write_Snapshot();
 void Write_Restart_File();
-
 
 /* 
  * Snapshot I/O 

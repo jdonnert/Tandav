@@ -17,12 +17,13 @@ static void preamble(int argc, char *argv[]);
  * of the code. We use the HOLD integrator from Pelupessy+ 2012. 
  */
 
-
 int main(int argc, char *argv[])
 {
 	preamble(argc, argv);
 	
-	Read_and_Init(argc, argv);
+	Init(argc, argv);
+
+	Read_ICs(argc, argv);
 
 	Setup_Modules();
 
@@ -74,7 +75,7 @@ int main(int argc, char *argv[])
 		Kick_Second_Halfstep();
 
 		Update(AFTER_STEP);
-	}
+	} // while
 
 	if (Time_For_Snapshot())
 		Write_Snapshot();

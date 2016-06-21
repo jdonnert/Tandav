@@ -23,7 +23,7 @@ static int idx[NTEST] = { 0 };
 
 void Gravity_Forcetest()
 {
-	Profile("Gravity_Simple");
+	Profile("Gravity_Forcetest");
 
 	rprintf("Direct Gravity, N = %d \n"
 			"      ID          Errors                 Tree Accel.         "
@@ -168,7 +168,7 @@ void Gravity_Forcetest()
 			NActive_Particles, Max_Error, Worst_Part,
 			Mean_Error/NTEST);
 
-	Profile("Gravity_Simple");
+	Profile("Gravity_Forcetest");
 
 	return ;
 }

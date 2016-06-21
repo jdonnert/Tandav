@@ -177,7 +177,7 @@ void Ewald_Potential(const double dr[3], Float p[1])
  * code is shamelessly copied from Gadget-2 (Springel 2006).
  */
 
-void Gravity_Periodic_Init()
+void Setup_Gravity_Periodic()
 {
 	rprintf("Init Ewald correction ");
 

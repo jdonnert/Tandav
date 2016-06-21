@@ -11,4 +11,6 @@
 #include "IO/parameter_file.h"
 #include "Gravity/periodic.h"
 
+void Init(int argc, char *argv[]);
+
 #endif

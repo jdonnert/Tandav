@@ -9,7 +9,11 @@ static void sanity_check_simulation_setup();
 void Setup_Modules()
 {
 	Profile("Setup");
-		
+			
+	Setup_Periodic(); // PERIODIC
+
+	Setup_Gravity_Periodic();
+
 	Setup_Time_Integration();
 
 	Setup_Comoving(); // COMOVING

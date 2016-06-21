@@ -12,8 +12,6 @@ static void interact(const Float, const Float *, const Float);
 static void gravity_tree_walk(const int);
 static void gravity_tree_walk_BH(const int);
 
-static void check_total_momentum(const bool show_change);
-
 static struct Walk_Data_Particle Send = { 0 };
 static struct Walk_Data_Result Recv = { 0 };
 #pragma omp threadprivate(Send,Recv)
@@ -31,11 +29,9 @@ static struct Walk_Data_Result Recv = { 0 };
 
 void Gravity_Tree_Walk(const bool Use_BH_Criterion)
 {
-	Profile("Grav Tree Accel");
+	Profile("Grav Tree Walk");
 
 	rprintf("Tree acceleration "); fflush(stdout);
-
-	check_total_momentum(false);
 
 	#pragma omp for schedule(dynamic)
 	for (int i = 0; i < NActive_Particles; i++) {
@@ -79,13 +75,9 @@ void Gravity_Tree_Walk(const bool Use_BH_Criterion)
 
 	} // for i
 
-	Profile("Grav Tree Accel");
-
-	Gravity_Tree_Periodic(Use_BH_Criterion); // PERIODIC, add Ewald correction
-
 	rprintf(" done \n");
 
-	check_total_momentum(true);
+	Profile("Grav Tree Walk");
 
 	return ;
 }
@@ -424,42 +416,6 @@ void Node_Set(const enum Tree_Bitfield bit, const int node)
 void Node_Clear(const enum Tree_Bitfield bit, const int node)
 {
 	Tree[node].Bitfield &= ~(1UL << bit);
-
-	return ;
-}
-
-
-/*
- * Compute total momentum to check the gravity interaction. 
- */
-
-static double Px = 0, Py = 0, Pz = 0, Last = 0;
-
-static void check_total_momentum(const bool show_change)
-{
-	const int last_DM_part = Task.Npart[0]+Task.Npart[1];
-
-	#pragma omp for reduction(+: Px, Py, Pz)
-	for (int ipart = Task.Npart[0]; ipart < last_DM_part; ipart++) {
-	
-		Px += P.Mass[ipart] * P.Vel[0][ipart];
-		Py += P.Mass[ipart] * P.Vel[1][ipart];
-		Pz += P.Mass[ipart] * P.Vel[2][ipart];
-	}
-	
-	double ptotal = sqrt( Px*Px + Py*Py + Pz*Pz );
-
-	#pragma omp single
-	MPI_Reduce(MPI_IN_PLACE, &ptotal, 1, MPI_DOUBLE, MPI_SUM, MASTER, 
-			MPI_COMM_WORLD);
-
-	double rel_err = (ptotal - Last) / Last;
-
-	if (show_change)
-		rprintf("Total change in momentum due to gravity: %g \n", rel_err);
-
-	#pragma omp single
-	Last = ptotal;
 
 	return ;
 }

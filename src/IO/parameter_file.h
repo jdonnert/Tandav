@@ -34,7 +34,6 @@ static const parameter ParDef[] = {
 	{"BufferSize", "32", &Param.Buffer_Size, PAR_INT}, // in MB all threads
 	{"PartAllocFactor", "1.1", &Param.Part_Alloc_Factor, PAR_DOUBLE},
 	{"TimeLimitCPU", "20864", &Param.Runtime_Limit, PAR_DOUBLE},
-	{"GravSoftening", "10", &Param.Grav_Softening[1], PAR_DOUBLE}, // Plummer
 
 	{"\n%% Simulation Characteristics %%\n", "", NULL, PAR_COMMENT},
 #ifdef PERIODIC_NO_CUBE
@@ -51,7 +50,10 @@ static const parameter ParDef[] = {
 	{"TimeIntAccuracy", "0.2", &Param.Time_Int_Accuracy, PAR_DOUBLE},
 	{"MaxSizeTimestep", "0.05", &Param.Max_Timestep, PAR_DOUBLE},
 	{"MinSizeTimestep", "1e-7", &Param.Min_Timestep, PAR_DOUBLE},
-
+#ifdef GRAVITY
+	{"\n%% Gravity %%\n", "", NULL, PAR_COMMENT},
+	{"GravSoftening", "10", &Param.Grav_Softening[1], PAR_DOUBLE}, // Plummer
+#endif
 	/* Add yours below */
 };
 

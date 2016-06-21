@@ -7,7 +7,7 @@
 
 void Periodic_Constrain_Particles_To_Box();
 void Periodic_Nearest(Float dr[3]);
-void Init_Periodic();
+void Setup_Periodic();
 
 #else // PERIODIC
 

@@ -2,27 +2,34 @@
 
 #ifdef GRAVITY_FMM
 
+int NLeafs = 0;
+int * restrict Leaf2Part = { NULL }; // get first particle of Leaf
+int * restrict Leaf2Node = { NULL }; // get FMM node of leaf
+
 void Gravity_Acceleration() 
 {
-	
-
 	//if (Sig.Tree_Update) {
-	find_leaf_vectors();
-	Gravity_FMM_Build(); 
-	//} 
 	
-	Gravity_FMM_P2L();
+	find_leaf_vectors();
+
+	Gravity_FMM_Build(); 
+	
+	Gravity_FMM_P2M();
 
 	//Gravity_FMM_M2L();
 	
+	//} 
+	
 	//Gravity_FMM_L2L();
+	
+	//Gravity_FMM_L2P();
 	
 	//Gravity_FMM_P2P();
 
 	return ;
 }
 
-void Gravity_FMM_Setup()
+void Setup_Gravity_FMM()
 {
 	omp_init_lock(Node_Lock);
 
@@ -64,7 +71,7 @@ void Free_Gravity_FMM(struct FMM_Node *f)
 
 
 /*
- * We find all leafs in local topnodes using the PH keys. This is basically
+ * We find all leafs i local topnodes using the PH keys. This is basically
  * a tree walk on the bit level. VECTOR_SIZE sets the max number of 
  * particles in a leaf. Hence we find the smallest level, at which a tree
  * node will contain this many particles.
@@ -74,19 +81,16 @@ void Free_Gravity_FMM(struct FMM_Node *f)
 
 static int compare_vectors(const void *a, const void *b);
 
-int * restrict Vec = { NULL }; 
-int NVec = 0;
-
 static double sum = 0;
 
 void Find_Leaf_Vectors()
 {
 	Profile("Find Vec");
 
-	int *first = Get_Thread_Safe_Buffer(Task.Npart_Total_Max*sizeof(*first));
+	int *leafs = Get_Thread_Safe_Buffer(Task.Npart_Total_Max*sizeof(*leafs));
 
 	#pragma omp single
-	NVec = sum = 0;
+	NLeafs = sum = 0;
 
 	#pragma omp for schedule(static,1) nowait
 	for (int i = 0; i < NTop_Nodes; i++) {
@@ -94,16 +98,16 @@ void Find_Leaf_Vectors()
 		int first_part = D[i].TNode.First_Part;
 		int last_part = first_part + D[i].TNode.Npart - 1;
 
-		int nVec = 0;
+		int n = 0;
 		int ipart = first_part;
 
 		int lvl = D[i].TNode.Level + 1;
 		
 		while (ipart <= last_part) { // all particles in the top node
 			
-			first[nVec] = ipart;
+			leafs[n] = ipart;
 
-			nVec++;
+			n++;
 
 			if (ipart == last_part) // last particle -> single leaf
 				break;
@@ -158,27 +162,27 @@ void Find_Leaf_Vectors()
 		#pragma omp critical
 		{
 
-		dest = NVec;
-		NVec += nVec;
+		dest = NLeafs;
+		NLeafs += n;
 
 		} // omp critical
 	
-		memcpy(&Vec[dest], first, nVec*sizeof(*first));
+		memcpy(&Leaf2Part[dest], leafs, n*sizeof(*leafs));
 
 	} // for i
 
-	Vec[NVec] = Task.Npart_Total; // terminate for loops
+	Leaf2Part[NVec] = Task.Npart_Total; // terminate for loops
 
-	Qsort(Vec, NVec, sizeof(*Vec), &compare_vectors);	
+	Qsort(Leaf2Part, NLeafs, sizeof(*Leaf2Part), &compare_leafs);	
 
 	#pragma omp for reduction(+:sum)
 	for (int i = 0; i < NVec; i++) 
-		sum += Vec[i+1] - Vec[i];
+		sum += Leaf2Part[i+1] - Leaf2Part[i];
 
 	rprintf("Found %d leaf vectors; Average length=%4f, VECTOR_SIZE=%d\n\n", 
-			NVec, sum/NVec, VECTOR_SIZE);
+			NLeafs, sum/NLeafs, VECTOR_SIZE);
 
-	Profile("Find Vec");
+	Profile("Find FMM Leafs");
 
 	return ;
 }
@@ -192,7 +196,7 @@ void Setup_Leaf_Vectors()
 	return;
 }
 
-static int compare_vectors(const void *a, const void *b)
+static int compare_leafs(const void *a, const void *b)
 {
 	const int i = *((const int *) a);
 	const int j = *((const int *) b);

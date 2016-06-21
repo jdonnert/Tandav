@@ -35,8 +35,8 @@ double Epsilon[NPARTYPE], // softening
 	   Epsilon3[NPARTYPE];
 
 int NLeafs;
-int * restrict leaf2part;
-int * restrict leaf2node;
+int * restrict Leaf2Part;
+int * restrict Leaf2Node;
 
 #else 
 

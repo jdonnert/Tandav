@@ -4,7 +4,7 @@
 
 static struct Walk_Data_Particle copy_send_from(const int ipart);
 static void add_recv_to(const int ipart);
-static bool interact_with_topnode(const int);
+static bool interact_with_topnode(const int, const bool);
 static void interact_with_topnode_particles(const int j);
 static void gravity_tree_walk_ewald(const int tree_start);
 static void gravity_tree_walk_ewald_BH(const int tree_start);
@@ -20,7 +20,7 @@ static struct Walk_Data_Particle Send = { 0 };
 static struct Walk_Data_Result Recv = { 0 };
 #pragma omp threadprivate(Send,Recv)
 
-void Gravity_Tree_Periodic()
+void Gravity_Tree_Periodic(const bool Use_BH_Criterion)
 {
 	Profile("Grav Tree Periodic");
 
@@ -36,7 +36,7 @@ void Gravity_Tree_Periodic()
 
 		for (int j = 0; j < NTop_Nodes; j++) {
 
-				if (interact_with_topnode(j))
+				if (interact_with_topnode(j, Use_BH_Criterion))
 					continue;
 
 				//if (D[j].TNode.Target < 0) { // not local ?
@@ -55,7 +55,7 @@ void Gravity_Tree_Periodic()
 			
 			int tree_start = D[j].TNode.Target;
 
-			if (Sig.Use_BH_Criterion)  // use BH criterion
+			if (Use_BH_Criterion)  // use BH criterion
 				gravity_tree_walk_ewald_BH(tree_start);
 			else
 				gravity_tree_walk_ewald(tree_start);
@@ -109,7 +109,7 @@ static void add_recv_to(const int ipart)
 	return ;
 }
 
-static bool interact_with_topnode (const int j)
+static bool interact_with_topnode (const int j, const bool Use_BH_Criterion)
 {
 	const Float node_size = Domain.Size / (1UL << D[j].TNode.Level);
 
@@ -123,7 +123,7 @@ static bool interact_with_topnode (const int j)
 
 	Float r2 = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
 
-	if (Sig.Use_BH_Criterion) {
+	if (Use_BH_Criterion) {
 
 		if (node_size*node_size > r2 * TREE_OPEN_PARAM_BH)
 			want_open_node = true;

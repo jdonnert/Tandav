@@ -9,7 +9,8 @@
 #include "properties.h"
 #include "periodic.h"
 #include "vector.h"
-#include "Gravity/tree.h" // <-- add your module .h below
+#include "Gravity_FMM/fmm.h"
+#include "Gravity_Tree/tree.h" // <-- add your module .h below
 
 
 

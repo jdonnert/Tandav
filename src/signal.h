@@ -18,7 +18,6 @@ extern struct Simulation_Signals { // communicate an event across the code
 	bool First_Step;			// First step of the simulation
 	bool Domain_Update;			// do domain decomposition & tree build now
 	bool Tree_Update;			// use only with Domain_Update
-	bool Use_BH_Criterion;		// Use different opening criterion
 } Sig;
 #pragma omp threadprivate(Sig)  // the compiler hates this to be public
 

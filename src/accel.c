@@ -1,7 +1,5 @@
 #include "accel.h"
 
-static void safe_last_accel();
-
 #ifdef GRAVITY
 static void accel_gravity();
 #else
@@ -14,18 +12,18 @@ static inline void gravity_accel() {};
 
 void Compute_Acceleration()
 {
-	safe_last_accel(); // and zero P.Acc
+	Safe_Last_Accel(); // and zero P.Acc
 
-	accel_gravity(); // GRAVITY
+	Gravity_Acceleration(); // GRAVITY
 
 	Gravity_Forcetest(); // GRAVITY_FORCETEST
 
-	// accel_hydro();
+	// Hydro_Acceleration();
 
 	return ;
 }
 
-static void safe_last_accel()
+void Safe_Last_Accel()
 {
 	#pragma omp for
 	for (int i = 0; i < NActive_Particles; i++) {
@@ -42,49 +40,8 @@ static void safe_last_accel()
 	return ;
 }
 
-/*
- * Gravity driving routines. Depending on the algorithm, we execute different
- * gravity modules or combinations of them.
- */
 
-#if defined(GRAVITY) && defined(GRAVITY_TREE) // pure tree
-static void accel_gravity() 
-{
-	if (Sig.Tree_Update)
-		Gravity_Tree_Build();
 
-	if (Sig.Prepare_Step) {
 
-		Sig.Use_BH_Criterion = true;
-		
-		Gravity_Tree_Acceleration();
-	
-		Sig.Use_BH_Criterion = false;
-	
-		safe_last_accel();
-	}
-
-	Gravity_Tree_Acceleration();
-
-	return ;
-}
-#endif  // GRAVITY && GRAVITY_TREE
-
-#if defined(GRAVITY) && defined(GRAVITY_FMM) // pure FMM
-static void accel_gravity() 
-{
-	Gravity_FMM_Build(); 
-
-	Gravity_FMM_P2L();
-
-	//Gravity_FMM_M2L();
-	
-	//Gravity_FMM_L2L();
-	
-	//Gravity_FMM_P2P();
-
-	return ;
-}
-#endif  // GRAVITY && GRAVITY_FMM
 
 

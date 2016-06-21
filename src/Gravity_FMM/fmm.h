@@ -12,7 +12,7 @@
 void Setup_Gravity_FMM();
 void Free_Gravity_FMM();
 void Gravity_FMM_Build();
-void Gravity_FMM_Acceleration();
+void Gravity_FMM_P2L();
 void Gravity_FMM_Update_Kicks();
 void Gravity_FMM_Update_Topnode_Kicks();
 void Gravity_FMM_Update_Drift(const double dt);
@@ -39,7 +39,7 @@ double Epsilon[NPARTYPE], // softening
 inline void Setup_Gravity_FMM() {};
 inline void Free_Gravity_FMM() {};
 inline void Gravity_FMM_Build() {};
-inline void Gravity_FMM_Acceleration() {};
+inline void Gravity_FMM_P2L() {};
 inline void Gravity_FMM_Update_Kicks() {};
 inline void Gravity_FMM_Update_Topnode_Kicks() {};
 inline void Gravity_FMM_Update_Drift(const double dt) {};

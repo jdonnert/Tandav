@@ -32,15 +32,15 @@ void Gravity_FMM_Build()
 	int first_vec = D[0].TNode.First_Vec;
 	int top_level = D[0].TNode.Level;
 
-	peanoKey last_key = create_first_node(Vec[first_vec], 0, D[0].TNode.Level);
-		
+	peanoKey last_key = create_first_node(Vec[first_vec], 0, D[0].TNode.Level,
+									      first_vec);
 	NNodes = 1;
 
 	int last_parent = 0;
 
-	for (int i = first_vec+1; i < D[i].TNode.NVec; i++) {
+	for (int ivec = first_vec+1; ivec < D[0].TNode.NVec; ivec++) {
 	
-		int ipart = Vec[i];
+		int ipart = Vec[ivec];
 
 		peanoKey key = P.Key[ipart];
 
@@ -63,7 +63,7 @@ void Gravity_FMM_Build()
 					int new_node = nNodes; // is a son of "node"
 
 					create_node_from_particle(jpart, node, last_key, lvl+1,
-																new_node);
+											  new_node, ivec);
 					nNodes++;
 
 					last_key >>= 3;
@@ -89,7 +89,7 @@ void Gravity_FMM_Build()
 
 		int new_node = nNodes; // is a sibling of "node"
 
-		create_node_from_particle(ipart, parent, key, lvl, new_node);
+		create_node_from_particle(ipart, parent, key, lvl, new_node, ivec);
 
 		nNodes++;
 
@@ -193,13 +193,13 @@ static void prepare_fmm()
  */
 
 static peanoKey create_first_node(const int first_part,
-		const int tnode_idx, const int top_level)
+		const int tnode_idx, const int top_level, const int ivec)
 {
 	peanoKey key = P.Key[first_part];
 
 	key >>= 3 * top_level;
 
-	create_node_from_particle(first_part, 0, key, top_level, 0);
+	create_node_from_particle(first_part, 0, key, top_level, 0, ivec);
 
 	fmm[0].Pos[0] = D[tnode_idx].TNode.Pos[0]; // get top node position 
 	fmm[0].Pos[1] = D[tnode_idx].TNode.Pos[1]; // because parent node 
@@ -237,11 +237,11 @@ static inline bool particle_is_inside_node(const peanoKey key, const int lvl,
  * carry the triplet at level "lvl".
  */
 
-static inline void create_node_from_particle(const int ipart,const int parent,
+static inline void create_node_from_particle(const int ipart, const int parent,
 											 const peanoKey key, const int lvl,
-											 const int node)
+											 const int node, const int ivec)
 {
-	fmm[node].DNext = -ipart - 1;
+	fmm[node].DNext = -ivec - 1;
 
 	int keyfragment = (key & 0x7) << 6;
 

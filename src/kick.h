@@ -3,7 +3,7 @@
 
 #include "includes.h"
 #include "timestep.h"
-#include "Gravity/tree.h"
+#include "Gravity_Tree/tree.h"
 
 void Kick_First_Halfstep();
 void Kick_Second_Halfstep();

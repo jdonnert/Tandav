@@ -5,7 +5,7 @@
 static struct Walk_Data_Particle copy_send_from(const int ipart);
 static void add_recv_to(const int ipart);
 
-static bool interact_with_topnode(const int);
+static bool interact_with_topnode(const int, const bool);
 static void interact_with_topnode_particles(const int);
 static void interact(const Float, const Float *, const Float);
 
@@ -13,6 +13,10 @@ static void gravity_tree_walk(const int);
 static void gravity_tree_walk_BH(const int);
 
 static void check_total_momentum(const bool show_change);
+
+static struct Walk_Data_Particle Send = { 0 };
+static struct Walk_Data_Result Recv = { 0 };
+#pragma omp threadprivate(Send,Recv)
 
 /*
  * We do not walk referencing particles, but copy the required particle data
@@ -25,11 +29,7 @@ static void check_total_momentum(const bool show_change);
  * maximum errors. Barnes & Hut 1984, Springel 2006, Dehnen & Read 2012.
  */
 
-static struct Walk_Data_Particle Send = { 0 };
-static struct Walk_Data_Result Recv = { 0 };
-#pragma omp threadprivate(Send,Recv)
-
-void Gravity_Tree_Acceleration()
+void Gravity_Tree_Walk(const bool Use_BH_Criterion)
 {
 	Profile("Grav Tree Accel");
 
@@ -49,7 +49,7 @@ void Gravity_Tree_Acceleration()
 
 		for (int j = 0; j < NTop_Nodes; j++) {
 
-			if (interact_with_topnode(j))
+			if (interact_with_topnode(j, Use_BH_Criterion))
 				continue;
 			
 			//if (D[j].TNode.Target < 0) { // not local ?
@@ -65,10 +65,10 @@ void Gravity_Tree_Acceleration()
 
 				continue;
 			}
-//
+
 			int tree_start = D[j].TNode.Target;
 
-			if (Sig.Use_BH_Criterion) 
+			if (Use_BH_Criterion) 
 				gravity_tree_walk_BH(tree_start);
 			else
 				gravity_tree_walk(tree_start);
@@ -81,7 +81,7 @@ void Gravity_Tree_Acceleration()
 
 	Profile("Grav Tree Accel");
 
-	Gravity_Tree_Periodic(); // PERIODIC , add Ewald correction
+	Gravity_Tree_Periodic(Use_BH_Criterion); // PERIODIC, add Ewald correction
 
 	rprintf(" done \n");
 
@@ -134,7 +134,7 @@ static void add_recv_to(const int ipart)
  * contains the particle and then check the two criteria.
  */
 
-static bool interact_with_topnode(const int j)
+static bool interact_with_topnode(const int j, const bool Use_BH_Criterion)
 {
 	const Float nSize = Domain.Size / ((Float)(1UL << D[j].TNode.Level));
 
@@ -157,7 +157,7 @@ static bool interact_with_topnode(const int j)
 
 	Float node_mass = D[j].TNode.Mass;
 
-	if (Sig.Use_BH_Criterion) {
+	if (Use_BH_Criterion) {
 
 		if (nSize*nSize > r2 * TREE_OPEN_PARAM_BH)
 			return false;
@@ -427,10 +427,6 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node)
 
 	return ;
 }
-
-/*
- * Here start MPI communication variables and routines. 
- */
 
 
 /*

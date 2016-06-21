@@ -9,13 +9,24 @@
 #include "../domain.h"
 #include "../periodic.h"
 #include "../kick.h"
-#include "periodic.h"
+#include "../accel.h"
+#include "../Gravity/periodic.h"
 
-#if defined(GRAVITY) && defined(GRAVITY_TREE)
+#if !defined(GRAVITY) && !defined(GRAVITY_TREE)
+
+static inline void Setup_Gravity_Tree() {}; 
+static inline void Gravity_Tree_Update_Kicks(const int ipart, 
+											 const double dt){};
+static inline void Gravity_Tree_Update_Topnode_Kicks() {};
+static inline void Gravity_Tree_Update_Drift(const double dt) {};
+static inline void Gravity_Tree_Free() {};
+
+#else 
 
 void Setup_Gravity_Tree();
+void Gravity_Acceleration();
 void Gravity_Tree_Build();
-void Gravity_Tree_Acceleration();
+void Gravity_Tree_Walk(const bool);
 void Gravity_Tree_Update_Kicks();
 void Gravity_Tree_Update_Topnode_Kicks();
 void Gravity_Tree_Update_Drift(const double dt);
@@ -63,32 +74,19 @@ bool Node_Is(const enum Tree_Bitfield bit, const int node);
 void Node_Set(const enum Tree_Bitfield bit, const int node);
 void Node_Clear(const enum Tree_Bitfield bit, const int node);
 
-#else // ! (GRAVITY && GRAVITY_TREE)
-
-static inline void Setup_Gravity_Tree() {}; 
-static inline void Gravity_Tree_Build() {};
-static inline void Gravity_Tree_Acceleration() {};
-static inline void Gravity_Tree_Periodic() {};
-static inline void Gravity_Tree_Update_Kicks(const int ipart,const double dt){};
-static inline void Gravity_Tree_Update_Topnode_Kicks() {};
-static inline void Gravity_Tree_Update_Drift(const double dt) {};
-static inline void Gravity_Tree_Free() {};
-
 #endif // GRAVITY && GRAVITY_TREE
 
+
 /* 
- * Periodic Boundaries need to walk the tree but interact with the
+ * Periodic Boundaries : need to walk the tree but interact with the
  * Ewald cube at the particle/node position.
  */
 
 #if defined(GRAVITY) && defined(GRAVITY_TREE) && defined(PERIODIC)
-void Gravity_Tree_Periodic();
+
+void Gravity_Tree_Periodic(const bool);
 void Tree_Periodic_Nearest(Float dr[3]);
 
-#else
-
-static inline void Gravity_Tree_Periodic() {};
-static inline void Tree_Periodic_Nearest(Float dr[3]) {};
 #endif // GRAVITY && GRAVITY_TREE && PERIODIC
 
 #endif // GRAVITY_TREE_H

@@ -1,5 +1,4 @@
 #include "vector.h"
-#include "Gravity/tree.h"
 
 static int compare_vectors(const void *a, const void *b);
 

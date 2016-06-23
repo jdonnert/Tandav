@@ -71,8 +71,7 @@ void Qsort(void *data, size_t ndata, size_t size,
 				break;
 	}
 	
-	Spawn_Threshold = ndata / NThreads / N_PARTITIONS_PER_CPU; // load balancing
-	Spawn_Threshold = MAX(PARALLEL_THRESHOLD, Spawn_Threshold);
+	Spawn_Threshold = ndata/NThreads/N_PARTITIONS_PER_CPU; // load balancing
 
 	omp_qsort(data, ndata, size, cmp); // burn baby !
 	
@@ -148,7 +147,7 @@ static void omp_qsort(void *data, size_t ndata, size_t size,
 	 
 	do { // partition
 
-		while ((*cmp)((void *)left, (void *)mid) < 0)
+		while ((*cmp)((void *)left, (void *)mid) < 0) // collapse the walls
 			left += size;
 
 		while ((*cmp)((void *)mid, (void *)right) < 0)
@@ -183,12 +182,12 @@ static void omp_qsort(void *data, size_t ndata, size_t size,
 	
 		if (nLeft < Spawn_Threshold) { // stop creating more tasks
 
-			#pragma omp task 
+			#pragma omp task untied
 			qsort(lo, nLeft, size, cmp); // qsort is likely pretty good ...
 
 		} else {
 		
-			#pragma omp task 
+			#pragma omp task untied
 			omp_qsort(lo, nLeft, size, cmp);
 		
 		}
@@ -198,12 +197,12 @@ static void omp_qsort(void *data, size_t ndata, size_t size,
 	
 		if (nRight < Spawn_Threshold) {
 
-			#pragma omp task 
+			#pragma omp task untied
 			qsort(left, nRight, size, cmp);
 
 		} else {
 
-			#pragma omp task 
+			#pragma omp task untied
 			omp_qsort(left, nRight, size, cmp);
 		}
 	}
@@ -434,7 +433,7 @@ static size_t *p, *q;
 void test_sort()
 {
 	const int Nit = 8;
-	size_t Nmax = (size_t) 1 << 33;
+	size_t Nmax = (size_t) 1 << 29;
 	int good;
 
 	x = (double *) malloc( Nmax * sizeof(*x) );

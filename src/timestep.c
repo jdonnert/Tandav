@@ -23,7 +23,6 @@ struct IntegerTimeLine Int_Time = { 0 };
 static float Dt_Max_Global = FLT_MAX;
 static int Time_Bin_Min = N_INT_BINS-1, Time_Bin_Max = 0;
 
-struct Particle_Vector_Blocks V = { NULL };
 int * restrict First = NULL;
 int * restrict Last = NULL;
 
@@ -167,13 +166,6 @@ void Setup_Time_Integration()
 	for (int i = 0; i < Task.Npart_Total; i++) 
 		Active_Particle_List[i] = i;
 
-	nBytes = Task.Npart_Total_Max * sizeof(int);
-		
-	V.First = Malloc(nBytes, "V.First");
-	V.Last = Malloc(nBytes, "V.Last");
-
- 	Make_Active_Particle_Vectors();
-
 	return ;
 }
 
@@ -302,19 +294,12 @@ void Make_Active_Particle_List()
  * To be able to vectorize particle accesses, we find vectors of particles
  * that are adjacent in memory and on the same timestep. We end up with 
  * NParticle_Vectors vectors starting at First and ending before Last.
- */
+ 
 
 void Make_Active_Particle_Vectors(const int max_active_bin)
 {
 	#pragma omp single
 	{
-
-	size_t nBytes = Task.Npart_Total * sizeof(*V.First);
-
-	memset(V.First, 0, nBytes);
-	memset(V.Last, 0, nBytes);
-	
-	NParticle_Vectors = 0;
 
 	int i = -1;
 	int last_pos = -1; // last position on integer timeline
@@ -352,7 +337,7 @@ void Make_Active_Particle_Vectors(const int max_active_bin)
 			NParticle_Vectors);
 
 	return ;
-}
+}*/
 
 /* 
  * Give the integration timestep from timebin and convert from integer to 
@@ -473,11 +458,6 @@ static void print_timebins()
 	for (int i = MIN(Time.Max_Active_Bin, imax); i >= imin; i--)
 		printf("   %2d    %7d     %7d %s  %16.12f \n",
 			i, 0, npart[i], "X", Time.Step_Min*Timebin2It_Timestep(i));
-
-	double mean_vec_length = (double)NActive_Particles / NParticle_Vectors;
-
-	printf("   ---\n   NActive %d, NVectors %d, Avg. Length %g\n\n",
-			NActive_Particles, NParticle_Vectors, mean_vec_length);
 
 	if (Sig.Sync_Point)
 		rprintf("Next sync point at t = %g \n\n",

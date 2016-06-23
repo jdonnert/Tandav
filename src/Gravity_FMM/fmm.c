@@ -3,8 +3,8 @@
 #ifdef GRAVITY_FMM
 
 int NLeafs = 0;
-int * restrict Leaf2Part = { NULL }; // get first particle of Leaf
-int * restrict Leaf2Node = { NULL }; // get FMM node of leaf
+int * restrict Leaf2Part = { NULL }; // holds first particle of Leaf
+int * restrict Leaf2Node = { NULL }; // holds FMM node of Leaf
 
 void Gravity_Acceleration() 
 {
@@ -12,10 +12,8 @@ void Gravity_Acceleration()
 	
 	find_leaf_vectors();
 
-	Gravity_FMM_Build(); 
+	Gravity_FMM_Build_P2M(); 
 	
-	Gravity_FMM_P2M();
-
 	//Gravity_FMM_M2L();
 	
 	//} 
@@ -37,7 +35,8 @@ void Setup_Gravity_FMM()
 
 	realloc_nodes(Max_Nodes, FMM);
 
-	Leaf_Nodes = Malloc(Task.Npart_Total * sizeof(*Leaf_Node), "Leaf Nodes");
+	Leaf2Part = Malloc(Task.Npart_Total * sizeof(*Leaf_Node), "Leaf Nodes");
+	Leaf2Node = Malloc(Task.Npart_Total * sizeof(*Leaf_Node), "Leaf Nodes");
 
 	for (int i = 0; i < NPARTYPE; i++) { // Plummer eqiv. softening
 	
@@ -69,12 +68,34 @@ void Free_Gravity_FMM(struct FMM_Node *f)
 	return ;
 }
 
+void Alloc_Gravity_FMM(const int N, struct FMM_Node *f)
+{
+	if (f.DNext != NULL) 
+		Free_Gravity_FMM(f);
+
+	f->DNext = Malloc(N*sizeof(*f.DNext), "FMM.DNext");
+	f->Bitfield = Malloc(N*sizeof(*f.Bitfield), "FMM.Bitfield");
+	f->DUp = Malloc(N*sizeof(*f.DUp), "FMM.DUp");
+	f->Npart = Malloc(N*sizeof(*f.Npart), "FMM.Npart");
+	f->Pos[0] = Malloc(N*sizeof(*f.Pos[0]), "FMM.Pos[0]");
+	f->Pos[1] = Malloc(N*sizeof(*f.Pos[1]), "FMM.Pos[1]");
+	f->Pos[2] = Malloc(N*sizeof(*f.Pos[2]), "FMM.Pos[2]");
+	f->Mass = Malloc(N*sizeof(*f.Mass), "FMM.Mass");
+	f->CoM[0] = Malloc(N*sizeof(*f.CoM[0]), "FMM.CoM[0]");
+	f->CoM[1] = Malloc(N*sizeof(*f.CoM[1]), "FMM.CoM[1]");
+	f->CoM[2] = Malloc(N*sizeof(*f.CoM[2]), "FMM.CoM[2]");
+	f->Dp[0] = Malloc(N*sizeof(*f.Dp[0]), "FMM.Dp[0]");
+	f->Dp[1] = Malloc(N*sizeof(*f.Dp[1]), "FMM.Dp[1]");
+	f->Dp[2] = Malloc(N*sizeof(*f.Dp[2]), "FMM.Dp[2]");
+
+	return ;
+}
 
 /*
- * We find all leafs i local topnodes using the PH keys. This is basically
- * a tree walk on the bit level. VECTOR_SIZE sets the max number of 
+ * We find all leafs in the local topnodes using the PH keys. This is  a 
+ * tree walk on the bit level. VECTOR_SIZE sets the max number of 
  * particles in a leaf. Hence we find the smallest level, at which a tree
- * node will contain this many particles.
+ * node will contain up to this many particles.
  * We are using a bitmask to select a triplet across the particles and check
  * for changes in the PH triplets. Obviously particles have to be PH ordered.
  * */
@@ -109,51 +130,10 @@ void Find_Leaf_Vectors()
 
 			n++;
 
-			if (ipart == last_part) // last particle -> single leaf
-				break;
-
-			int jmax = MIN(last_part, ipart + VECTOR_SIZE) + 1;
-
-			int npart = 0; 
-
-			peanoKey mask = ((peanoKey) 0x7) << (3*lvl);
-
-			for (;;) { // loop over level
-	
-				npart = 1; // account for ipart
-
-				const peanoKey triplet_i = P.Key[ipart] & mask;
-
-				for (int jpart = ipart+1; jpart < jmax; jpart++) {
-
-					peanoKey triplet_j = P.Key[jpart] & mask;
-
-					if (triplet_j != triplet_i)
-						break;	
-
-					npart++;
-				}
-
-				if (npart <= VECTOR_SIZE) // leaf found
-					break;
-
-				mask <<= 3;
-				
-				lvl++;
-
-				//Assert(lvl < 30, "%d %d %d", lvl, ipart, i);
-			}
-			
+						
 			ipart += npart;
 
-			lvl = D[i].TNode.Level + 1; // find next lvl 
-			mask = ((peanoKey) 0x7) << (3*lvl);
-
-			while ((P.Key[ipart] & mask) == (P.Key[ipart-1] & mask)) {
-
-				lvl++;
-				mask <<= 3;
-			}
+			
 
 		} // while ipart
 

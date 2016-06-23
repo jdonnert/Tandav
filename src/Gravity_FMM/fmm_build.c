@@ -3,7 +3,10 @@
 #ifdef GRAVITY_FMM
 
 static void prepare_fmm();
-static void realloc_nodes(const int N);
+
+static int find_leaf_size(const int, const int, const int);
+static int find_next_level(const int, int);
+static void copy_leafs(const int, const int *, const int *)
 
 uint64_t NNodes = 0, Max_Nodes = 0;
 extern struct FMM_Node FMM = { NULL };
@@ -13,21 +16,169 @@ static omp_lock_t Node_Lock;
 static Leaf_Nodes[] = NULL;
 
 /*
- * This builds the FMM tree in parallel. We OpenMP decompose along top-nodes
- * and vectorize the leafs.
+ * Build the FMM tree in parallel. 
+ * This is an exercise in OpenMP tasking as it is MPI task local.
+ * At this point we have NTop_Nodes containing npart starting at First_Part.
+ * We find the leafs of the top node tree from the peano key and then 
+ * kick-off the tree build and the FMM P2M on the go.
+ *
  */
 
-void Gravity_FMM_Build()
+void Gravity_FMM_Build_P2M()
 {
-	Profile("Grav FMM Build");
+	Profile("Grav FMM Build & P2M");
 
 	#pragma omp single
 	NNodes = 0;
+	
+// for (;;)
+		#pragma omp single
+		prepare_fmm();
 
-	#pragma omp single
-	prepare_fmm();
+		//#pragma omp taskloop
+		//for (int i = 0; i < NTop_Nodes; i++) {
+		
+			#pragma omp taskyield
 
-	fmm = FMM;
+	//		if (D[i].TNode.Target < 0)  // not local
+	//			continue;
+	
+			struct FMM_Node fmm = reserve_memory();
+			int nNodes = 0;
+
+			/* Works because buffer has space of Npart_Total_Max size_t's */
+
+			size_t nBytes = Task.Npart_Total_Max*sizeof(int);
+
+			int *leaf2part = Get_Thread_Safe_Buffer(nBytes); 
+			int *leaf2node = leaf2part + 0.5 * nBytes; 
+	
+			const int first_part = D[i].TNode.First_Part;
+			const int last_part = first_part + D[i].TNode.Npart - 1;
+			const int tnode_lvl = D[i].TNode.Level + 1;
+
+			int ipart = find_leaf_size(first_part, last_part, tnode_lvl);;
+			int lvl = find_next_level(ipart, tnode_lvl);
+	
+			leaf2part[0] = first_part;
+			leaf2node[0] = build_tree(first_part, ipart, lvl, fmm, nNodes);
+
+			int nLeafs = 1;
+
+			while (ipart <= last_part) { // all particles in the top node
+	
+				int npart = find_leaf_size(ipart, last_part, lvl);
+
+				leaf2part[nLeafs] = ipart;
+				leaf2node[nLeafs] = build_tree(ipart, npart, lvl, fmm, nNodes);
+
+				nLeafs++;
+
+				if (nLeafs > 1) {
+
+					#pragma omp task untied
+					fmm_p2m(leaf2node[nLeafs-1], jpart, fmm);
+				}
+
+				ipart += npart;
+
+				lvl = find_next_level(ipart, D[i].TNode.Level + 1);
+
+			} // while
+
+			#pragma omp task untied
+			fmm_p2m(leaf2node[nLeafs], jpart, fmm);
+	
+			#pragma omp critical
+			D[i].TNode.First_Leaf = copy_leafs(i,nLeafs, leaf2part, leaf2node);
+
+		} // for i
+
+		#pragma omp barrier
+
+	} // forever
+
+	Profile("Grav FMM Build");
+
+	return ;
+}
+
+/*
+ * Find leaf vector of particle ipart at level lvl and return the number of
+ * particles in the leave.
+ */
+
+static int find_leaf_size(const int ipart, const int last, const int lvl)
+{
+	if (ipart == last) // last particle -> single leaf
+		return last + 1;
+
+	int jmax = MIN(last, ipart + VECTOR_SIZE) + 1;
+
+	int npart = 0; 
+
+	peanoKey mask = ((peanoKey) 0x7) << (3*lvl);
+
+	for (;;) { // loop over level
+	
+		npart = 1; // account for ipart
+
+		const peanoKey triplet_i = P.Key[ipart] & mask;
+
+		for (int jpart = ipart + 1; jpart < jmax; jpart++) {
+
+			peanoKey triplet_j = P.Key[jpart] & mask;
+
+			if (triplet_j != triplet_i)
+				break;	
+
+			npart++;
+		}
+
+		if (npart <= VECTOR_SIZE) // leaf found
+			break;
+
+		mask <<= 3;
+			
+		lvl++;
+
+		//Assert(lvl < 30, "%d %d %d", lvl, ipart, i);
+		
+	} // forever
+
+	return npart; // next leaf
+}
+
+static int find_next_level(const int ipart, int lvl)
+{
+	mask = ((peanoKey) 0x7) << (3*lvl);
+
+	while ((P.Key[ipart] & mask) == (P.Key[ipart-1] & mask)) {
+
+		lvl++;
+		mask <<= 3;
+	}
+
+	return lvl;
+}
+
+static void copy_leafs(const int n, const int *leafs, const int *nodes)
+{
+	int dest = 0;
+
+	dest = NLeafs;
+	NLeafs += n;
+
+	memcpy(&Leaf2Part[dest], leafs, n*sizeof(*leafs));
+	memcpy(&Leaf2Node[dest], nodes, n*sizeof(*nodes));
+
+	return dest;
+}
+
+static void fmm_tree_build()
+{
+
+fmm = FMM;
 
 	int first_vec = D[0].TNode.First_Vec;
 	int top_level = D[0].TNode.Level;
@@ -98,33 +249,8 @@ void Gravity_FMM_Build()
 		last_parent = parent;
 			
 	} // for i
-	
-	Profile("Grav FMM Build");
 
-	return ;
-}
 
-static void alloc_nodes(const int N, struct FMM_Node *f)
-{
-	if (f.DNext != NULL) 
-		Free_Gravity_FMM(f);
-
-	f->DNext = Malloc(N*sizeof(*FMM.DNext), "FMM.DNext");
-	f->Bitfield = Malloc(N*sizeof(*FMM.Bitfield), "FMM.Bitfield");
-	f->DUp = Malloc(N*sizeof(*FMM.DUp), "FMM.DUp");
-	f->Npart = Malloc(N*sizeof(*FMM.Npart), "FMM.Npart");
-	f->Pos[0] = Malloc(N*sizeof(*FMM.Pos[0]), "FMM.Pos[0]");
-	f->Pos[1] = Malloc(N*sizeof(*FMM.Pos[1]), "FMM.Pos[1]");
-	f->Pos[2] = Malloc(N*sizeof(*FMM.Pos[2]), "FMM.Pos[2]");
-	f->Mass = Malloc(N*sizeof(*FMM.Mass), "FMM.Mass");
-	f->CoM[0] = Malloc(N*sizeof(*FMM.CoM[0]), "FMM.CoM[0]");
-	f->CoM[1] = Malloc(N*sizeof(*FMM.CoM[1]), "FMM.CoM[1]");
-	f->CoM[2] = Malloc(N*sizeof(*FMM.CoM[2]), "FMM.CoM[2]");
-	f->Dp[0] = Malloc(N*sizeof(*FMM.Dp[0]), "FMM.Dp[0]");
-	f->Dp[1] = Malloc(N*sizeof(*FMM.Dp[1]), "FMM.Dp[1]");
-	f->Dp[2] = Malloc(N*sizeof(*FMM.Dp[2]), "FMM.Dp[2]");
-	
-	return ;
 }
 
 static void prepare_fmm()
@@ -139,7 +265,7 @@ static void prepare_fmm()
 			(double) Max_Nodes/Task.Npart_Total); 
 	}
 
-	realloc_nodes(Max_Nodes, FMM);
+	Alloc_Gravity_FMM(Max_Nodes, FMM);
 		
 	NNodes = 0;
 

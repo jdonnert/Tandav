@@ -30,13 +30,13 @@ extern struct FMM_Node {
 
 uint32_t NNodes;
 
+int NLeafs;
+int * restrict Leaf2Part; // First particle in leaf
+int * restrict Leaf2Node; // FMM node of the leaf
+
 double Epsilon[NPARTYPE], // softening
 	   Epsilon2[NPARTYPE], 
 	   Epsilon3[NPARTYPE];
-
-int NLeafs;
-int * restrict Leaf2Part;
-int * restrict Leaf2Node;
 
 #else 
 

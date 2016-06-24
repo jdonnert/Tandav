@@ -18,9 +18,9 @@ static void swap16(void * restrict a, void * restrict b);
 static void swap_size_t(size_t * restrict a, size_t * restrict b);
 
 static void omp_qsort(void *data, size_t ndata, size_t size, 
-			int (*cmp) (const void*, const void *));
-static void omp_qsort_index(size_t *perm, void *data, size_t ndata, size_t size,
-			int (*cmp) (const void*, const void *));
+		int (*cmp) (const void*, const void *));
+static void omp_qsort_index(size_t *perm, void *data, size_t ndata, 
+		size_t size, int (*cmp) (const void*, const void *));
 
 static size_t Spawn_Threshold = 0;
 static void (*swap) ();
@@ -314,7 +314,7 @@ static void omp_qsort_index(size_t *perm, void *data, size_t ndata, size_t size,
 	
 		if (nLeft > Spawn_Threshold) {
 
-			#pragma omp task 
+			#pragma omp task untied
 			omp_qsort_index(lo, data, nLeft, size, cmp);
 
 		} else {
@@ -327,7 +327,7 @@ static void omp_qsort_index(size_t *perm, void *data, size_t ndata, size_t size,
 
 		if (nRight > Spawn_Threshold) {
 
-			#pragma omp task
+			#pragma omp task untied
 			omp_qsort_index(left, data, nRight, size, cmp);
  		
 		} else {
@@ -432,7 +432,7 @@ static size_t *p, *q;
 
 void test_sort()
 {
-	const int Nit = 8;
+	const int Nit = 64;
 	size_t Nmax = (size_t) 1 << 29;
 	int good;
 
@@ -441,82 +441,87 @@ void test_sort()
 
 	printf("Testing sort: 1 -> 2^%g, %d iterations\n"
 			"PARALLEL_THRESHOLD = %d\n"
-			"N_PARTITIONS_PER_CPU = %d\n", log2(Nmax),
+			"N_PARTITIONS_PER_CPU = %d\n\n"
+			"log2(N)      N  Memory  | Time OpenMP  Time Serial  Speedup \n"
+			, log2(Nmax),
 			Nit, PARALLEL_THRESHOLD, N_PARTITIONS_PER_CPU);
-	
 	for (size_t N = 1ULL << 9; N < Nmax; N<<=1) {
 
 		clock_t time = clock(), time2 = clock(), time3 = clock();
 		double deltasum0 = 0, deltasum1 = 0;
 
-		rprintf("%3g %10zu %4.1f GB | ", log2(N), N, N*sizeof(*x)/p3(1024.0));
+		rprintf("%3g %10zu %4.3f GB | ", log2(N), N, N*sizeof(*x)/p3(1024.0));
 
 
-	for (int i = 0; i < Nit; i++) {  // in-place sort 
+		for (int i = 0; i < Nit; i++) {  // in-place sort 
 		
-		#pragma omp parallel
-		{
+			#pragma omp parallel
+			{
 		
-		#pragma omp for
-		for (int j = 0; j < N; j++) 
-    		y[j] = erand48(Task.Seed);
+			#pragma omp for
+			for (int j = 0; j < N; j++) 
+    			y[j] = erand48(Task.Seed);
 
-		#pragma omp master
-		{
-
-		memcpy(x, y, N*sizeof(*x));
-		
-		time = clock();
-
-		} // master
-			
-		#pragma omp barrier
-  		
-		Qsort(x, N, sizeof(*x), &test_compare);
-
-		#pragma omp master
-		{
-
-  		good = 1;
-
-	  	for (int i = 1; i < N; i++)
-			if (x[i] < x[i-1])
-				good = 0;
-
-		if (good == 0) {
-		
-			printf("ERROR: Array not sorted :-( \n");
-
-			exit(0);
-		}
-
-		time2 = clock();
-		deltasum0 += time2-time;
-
-		} // master
-		
-		#pragma omp barrier
-
-		} // omp parallel
-
-		memcpy(x, y, N* sizeof(*x));
-
-		time = clock();
+			#pragma omp master
+			{
 	
- 		qsort(x, N, sizeof(*x), &test_compare);
-  	
-	 	time2 = clock();
-
-		deltasum1 += time2-time;
-	}
+			memcpy(x, y, N*sizeof(*x));
 		
-	deltasum0 /= Nit; 
-	deltasum1 /= Nit;
+			time = clock();
 
-  	printf("%6e %6e %4g \n",
-		deltasum0/CLOCKS_PER_SEC/NThreads, 
-		deltasum1/CLOCKS_PER_SEC,deltasum1/deltasum0*NThreads );
+			} // master
+			
+			#pragma omp barrier
+  		
+			Qsort(x, N, sizeof(*x), &test_compare);
 
+			#pragma omp barrier
+
+			#pragma omp master
+			{
+	
+			time2 = clock();
+			deltasum0 += time2-time;
+
+  			good = 1;
+
+	  		for (int i = 1; i < N; i++)
+				if (x[i] < x[i-1])
+					good = 0;
+
+			if (good == 0) {
+		
+				printf("ERROR: Array not sorted :-( \n");
+
+				exit(0);
+			}
+
+
+			} // master
+		
+			#pragma omp barrier
+
+			} // omp parallel
+
+			memcpy(x, y, N* sizeof(*x));
+
+			time = clock();
+		
+ 			qsort(x, N, sizeof(*x), &test_compare);
+  	
+		 	time2 = clock();
+
+			deltasum1 += time2-time;
+		}
+			
+		deltasum0 /= Nit; 
+		deltasum1 /= Nit;
+
+		double time_omp = deltasum0/CLOCKS_PER_SEC/NThreads;
+		double time_serial = deltasum1/CLOCKS_PER_SEC;
+
+  		printf("%6e %6e %4g \n", time_omp, time_serial, time_serial/time_omp);
+	
 	} // for N
 	
 	/* external sort */
@@ -524,7 +529,8 @@ void test_sort()
 	printf("Testing external sort: 1 -> 1<<%g, %d iterations\n"
 			"INSERTION_THRESHOLD = %d \n"
 			"N_PARTITIONS_PER_CPU = %d\n"
-			"MEDIAN_THRESHOLD = %d \n", 
+			"MEDIAN_THRESHOLD = %d \n\n"
+			"log2(N)      N  Memory  | Time OpenMP  Time Serial  Speedup \n",
 			log2(Nmax),
 			Nit, INSERTION_THRESHOLD, N_PARTITIONS_PER_CPU, MEDIAN_THRESHOLD);
 	

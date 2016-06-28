@@ -2,6 +2,9 @@
 #define PARTICLES_H
 
 #include "includes.h"
+#include "timestep.h"
+#include "memory.h"
+#include "IO/parameter_file.h"
 
 void Allocate_Particle_Structures();
 char * Select_Particle(const size_t field, const int comp, const int ipart);
@@ -13,6 +16,12 @@ char * Select_Particle(const size_t field, const int comp, const int ipart);
  * These are in P_Fields, which we use to loop through the members of P and
  * allocate, move etc ...
  */
+
+struct Field_Def {			// define particle descriptor
+	char Name[CHARBUFSIZE]; // id
+	size_t Bytes; 			// sizeof member
+	int N; 					// dimension
+};
 
 extern struct Particle_Data {
 	int * restrict Type;				// keep first
@@ -32,34 +41,15 @@ extern struct Particle_Data {
 	Float * restrict Grav_Pot;
 #endif
 #ifdef GRAVITY_TREE
-	int * restrict Tree_Parent;			// Tree node leave, negative-1 if
-#endif									// top node only
+	int * restrict Tree_Parent;			// Tree node leaf, negative if tnode
+#endif
+#ifdef GRAVITY_FMM
+	int * restrict Leaf_Index;			// particle in Leaf2Nodes
+#endif
 } P;
 
-
-extern struct Gas_Particle_Data {
-	Float * restrict Entropy;
-	Float * restrict Volume;
-	Float * restrict Density;
-	Float * restrict Bfld[3];
-} G;
-
-extern struct Star_Particle_Data {
-	Float * restrict Star_Formation_Rate;
-} S;
-
-extern struct Black_Hole_Particle_Data {
-	Float * restrict Entropy;
-} B;
-
-struct Field_Def {	
-	char Name[CHARBUFSIZE]; // id
-	size_t Bytes; 			// sizeof member
-	int N; 					// dimension
-};
-
 const static struct Field_Def P_Fields[] = { 
-	{"Type", 			sizeof(int), 		1} // keep first
+	 {"Type", 			sizeof(int), 		1} // keep first
 	,{"Time_Bin", 		sizeof(int),		1}
 	,{"It_Drift_Pos",	sizeof(intime_t),	1}
 	,{"It_Kick_Pos",	sizeof(intime_t),	1}
@@ -71,15 +61,57 @@ const static struct Field_Def P_Fields[] = {
 	,{"Acc", 			sizeof(Float),		3}
 	,{"Mass", 			sizeof(Float),		1}
 	,{"Grav_Acc",		sizeof(Float),		3}
+	,{"Last_Acc_Mag",	sizeof(Float),		1}
 #ifdef GRAVITY_POTENTIAL
 	,{"Grav_Pot",		sizeof(Float),		1}
 #endif	
 #ifdef GRAVITY_TREE
-	,{"Tree_Parent",	sizeof(Float),		1}
-	,{"Last_Acc_Mag",	sizeof(Float),		1}
+	,{"Tree_Parent",	sizeof(int),		1}
+#endif
+#ifdef GRAVITY_FMM
+	,{"Leaf_Index",		sizeof(int),		1}
 #endif
 	// Add yours here !
 };
+
+
+extern struct Gas_Particle_Data {
+	Float * restrict Entropy;
+	Float * restrict Volume;
+	Float * restrict Density;
+	Float * restrict Bfld[3];
+	// Add yours here !
+} G;
+
+const static struct Field_Def G_Fields[] = {
+	 {"Entropy",			sizeof(Float), 		1}
+	,{"Volume",				sizeof(Float), 		1}
+	,{"Density",			sizeof(Float),		1}
+	,{"Bfld",				sizeof(Float),		3}
+	// Add yours here !
+};
+
+extern struct Star_Particle_Data {
+	Float * restrict Star_Formation_Rate;
+	// Add yours here !
+} S;
+
+const static struct Field_Def S_Fields[] = {
+	 {"Star_Formation_Rate",	sizeof(Float), 		1}
+	// Add yours here !
+};
+
+extern struct Black_Hole_Particle_Data {
+	Float * restrict Entropy;
+	// Add yours here !
+} BH;
+
+const static struct Field_Def BH_Fields[] = {
+	 {"Entropy",	sizeof(Float), 		1}
+	// Add yours here !
+};
+
+
 
 size_t sizeof_P; 
 const int NP_Fields;

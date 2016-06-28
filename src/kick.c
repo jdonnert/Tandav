@@ -1,7 +1,7 @@
 #include "kick.h"
 
-/* 
- * This is the Kick part of the KDK scheme. We update velocities from 
+/*
+ * This is the Kick part of the KDK scheme. We update velocities from
  * accelerations, but kick only for half a timebin. If we use the tree, the
  * nodes are kicked as well.
  */
@@ -44,7 +44,7 @@ void Kick_Second_Halfstep()
 	for (int i = 0; i < NActive_Particles; i++) {
 
 		int ipart = Active_Particle_List[i];
-		
+
 		intime_t it_step = Timebin2It_Timestep(P.Time_Bin[ipart]);
 
 		intime_t it_curr = P.It_Kick_Pos[ipart];
@@ -55,7 +55,6 @@ void Kick_Second_Halfstep()
 		P.Vel[0][ipart] += dt * P.Acc[0][ipart];
 		P.Vel[1][ipart] += dt * P.Acc[1][ipart];
 		P.Vel[2][ipart] += dt * P.Acc[2][ipart];
-		
 
 		P.It_Kick_Pos[ipart] += (it_step >> 1);
 	}
@@ -71,7 +70,7 @@ void Kick_Second_Halfstep()
  * Return the amount of real time between two points on the integer timeline.
  */
 
-#ifndef COMOVING 
+#ifndef COMOVING
 
 double Particle_Kick_Step(const intime_t it_curr, const intime_t it_next)
 {

@@ -12,19 +12,20 @@
 #include "../accel.h"
 #include "../Gravity/periodic.h"
 
-#if !defined(GRAVITY) && !defined(GRAVITY_TREE)
+#ifndef GRAVITY_TREE
 
 static inline void Setup_Gravity_Tree() {}; 
-static inline void Gravity_Tree_Update_Kicks(const int ipart, 
-											 const double dt){};
+static inline void Acceleration_Gravity_Tree() {}; 
+static inline void Gravity_Build() {}; 
+static inline void Gravity_Tree_Update_Kicks(){};
 static inline void Gravity_Tree_Update_Topnode_Kicks() {};
 static inline void Gravity_Tree_Update_Drift(const double dt) {};
 static inline void Gravity_Tree_Free() {};
 
-#else 
+#else // GRAVITY_TREE 
 
 void Setup_Gravity_Tree();
-void Gravity_Acceleration();
+void Gravity_Acceleration_Tree();
 void Gravity_Tree_Build();
 void Gravity_Tree_Walk(const bool);
 void Gravity_Tree_Update_Kicks();
@@ -74,7 +75,7 @@ bool Node_Is(const enum Tree_Bitfield bit, const int node);
 void Node_Set(const enum Tree_Bitfield bit, const int node);
 void Node_Clear(const enum Tree_Bitfield bit, const int node);
 
-#endif // GRAVITY && GRAVITY_TREE
+#endif // GRAVITY_TREE
 
 
 /* 
@@ -82,7 +83,7 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node);
  * Ewald cube at the particle/node position.
  */
 
-#if defined(GRAVITY) && defined(GRAVITY_TREE) && defined(PERIODIC)
+#if defined(GRAVITY_TREE) && defined(PERIODIC)
 
 void Gravity_Tree_Periodic(const bool);
 void Tree_Periodic_Nearest(Float dr[3]);

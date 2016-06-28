@@ -2,6 +2,8 @@
 #define IO_H
 
 #include "../includes.h"
+#include "../particles.h" 
+#include "../memory.h"
 #include "../cosmology.h"
 #include "../timestep.h"
 
@@ -13,6 +15,8 @@ void Read_Restart_File();
 void Read_and_Init();
 void Write_Snapshot();
 void Write_Restart_File();
+
+
 
 /* 
  * Snapshot I/O 

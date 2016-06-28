@@ -3,8 +3,10 @@
 
 #include "includes.h"
 #include "profile.h"
+#include "particles.h" 
 #include "cosmology.h"
 #include "comoving.h"
+#include "memory.h"
 #include "periodic.h"
 #include "log.h"
 #include "IO/io.h"

@@ -2,7 +2,6 @@
 #define PROFILE_H
 
 #include  "includes.h"
-#include  "timestep.h"
 
 void Init_Profiler();
 void Finish_Profiler();

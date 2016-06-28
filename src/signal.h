@@ -2,6 +2,7 @@
 #define SIGNAL_H
 
 #include "includes.h"
+#include "IO/parameter_file.h"
 
 bool Time_Is_Up();
 bool Time_For_Snapshot();

@@ -75,8 +75,8 @@ void Set_New_Timesteps()
 
 	print_timebins();
 
-	Warn(Time.Step < Param.Min_Timestep, "Time step %g has fallen below "
-			"Min_Timestep parameter %g", Time.Step, Param.Min_Timestep);
+	Warn(Time.Step < Param.Time_Min_Timestep, "Time step %g has fallen below "
+			"Min_Timestep parameter %g", Time.Step, Param.Time_Min_Timestep);
 
 	} // omp master
 
@@ -106,6 +106,11 @@ void Set_New_Timesteps()
 
 void Setup_Time_Integration()
 {
+	Time.Begin = Param.Time_Begin; // pull in parameters
+	Time.End = Param.Time_End;
+	Time.First_Snap = Param.Time_First_Snap;
+	Time.Bet_Snap = Param.Time_Bet_Snap;
+		
 	Time.Next_Snap = Time.First_Snap;
 
 	Time.NSnap = (Time.End - Time.Begin)/Time.Bet_Snap + 1;
@@ -512,7 +517,7 @@ static float cosmological_timestep(const int ipart, const Float acc_phys)
 
 static void set_global_timestep_constraint()
 {
-	double dt = Param.Max_Timestep;
+	double dt = Param.Time_Max_Timestep;
 
 	dt = Comoving_VelDisp_Timestep_Constraint(dt); // COMOVING
 

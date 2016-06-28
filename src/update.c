@@ -64,6 +64,7 @@ void Update(enum Update_Parameters stage)
 	case BEFORE_DOMAIN_UPDATE: 
 
 		Gravity_Tree_Free(); // GRAVITY_TREE
+		Gravity_FMM_Free(FMM); // GRAVITY_FMM
 	
 		break;
 

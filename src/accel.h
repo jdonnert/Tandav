@@ -2,6 +2,7 @@
 #define ACCEL_H
 
 #include "includes.h" 
+#include "particles.h" 
 #include "Gravity_Tree/tree.h" 
 #include "Gravity/forcetest.h" 
 #include "Gravity_FMM/fmm.h"  // <-- add your module .h below

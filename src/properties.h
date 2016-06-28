@@ -2,6 +2,7 @@
 #define PROPERTIES_H
 
 #include "includes.h"
+#include "particles.h"
 
 void Compute_Current_Simulation_Properties();
 

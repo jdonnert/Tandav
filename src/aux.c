@@ -52,8 +52,6 @@ void Assert_Info(const char *func, const char *file, int line,
 	if (expr != 0)
         return;
 
-	Print_Memory_Usage();
-
 	va_list varArgList;
 
 	va_start(varArgList, errmsg);

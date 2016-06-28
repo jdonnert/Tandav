@@ -4,6 +4,7 @@
 #include "includes.h"
 #include "timestep.h"
 #include "properties.h"
+#include "IO/parameter_file.h"
 
 /* 
  * This provides a logging infrastructure

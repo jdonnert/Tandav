@@ -18,6 +18,8 @@
 
 
 #include "includes.h"
+#include "particles.h" 
+#include "memory.h" 
 #include "peano.h"
 #include "sort.h"
 #include "select.h"
@@ -41,8 +43,14 @@ union Domain_Node_List {
 		shortKey Key;		// Number of nodes to the parent
 		int Target;			// Tree/part index (>=0) or MPI rank - 1 (<0)
 		int Level;			// Top node level
-		int First_Part;		// starts the tree build
-		int Npart;			// Number of particles in node
+		union {
+			int First_Part;	// starts the tree build
+			int First_Leaf; // save starting leave after tree build
+		};
+		union {
+			int Npart;		// Number of particles in node (before tree_build)
+			int Nleafs;		// Number of Leafs in node (after tree build)
+		};
 		float Pos[3];		// Node Center
 		float Mass;			// Total Mass of particles inside node
 #ifdef GRAVITY_TREE

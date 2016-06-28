@@ -22,6 +22,8 @@ void Setup_Modules()
 	
 	Setup_Gravity_Tree(); // GRAVITY_TREE
 
+	Setup_Gravity_FMM(); // GRAVITY_FMM
+
 	Compute_Current_Simulation_Properties(); // <- Add your setups above
 
 	sanity_check_simulation_setup();

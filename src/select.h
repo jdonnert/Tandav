@@ -2,6 +2,7 @@
 #define SELECT_H
 
 #include "includes.h"
+#include "memory.h"
 #include "sort.h"
 
 Float Median(const int NData, Float *Data);

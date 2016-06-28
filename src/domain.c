@@ -1,6 +1,6 @@
 #include "domain.h"
 
-#define MIN_LEVEL 2 // decompose at least 8^MIN_LEVEL domains downward
+#define MIN_LEVEL 0 // decompose at least 8^MIN_LEVEL domains downward
 
 static void set_computational_domain();
 static void find_domain_center(double Center_Out[3]);
@@ -47,17 +47,17 @@ static double Mean_Cost = 0, Mean_Npart = 0;
 
 static int NBunches = 0;
 
-/* 
+/*
  * Distribute particles in bunches, which are continuous on the Peano curve,
- * but at different level in the tree. The bunches correspond to nodes of 
- * the tree. Bunches also give the top nodes in the tree, with some info 
- * added. 
- * We keep a global list of all the bunches that also contains the 
- * workload and memory footprint of each bunch. An optimal way of 
+ * but at different level in the tree. The bunches correspond to nodes of
+ * the tree. Bunches also give the top nodes in the tree, with some info
+ * added.
+ * We keep a global list of all the bunches that also contains the
+ * workload and memory footprint of each bunch. An optimal way of
  * distributing bunches minimises memory and workload imbalance over all
- * Tasks. 
+ * Tasks.
  * To achieve this, we measure mem & cpu cost and refine bunches at the border
- * between tasks: "Split_Idx".  Then we "distribute" them top to bottom across 
+ * between tasks: "Split_Idx".  Then we "distribute" them top to bottom across
  * MPI ranks. This way particle communication is minimised and we avoid the
  * big particle shuffle.
  * Upon reentry we start off with one top node only, as this is a log(n)
@@ -75,13 +75,13 @@ void Domain_Decomposition()
 	reset_bunchlist();
 
 	fill_new_bunches(0, NBunches, 0, Task.Npart_Total);
-	
+
 	print_domain_decomposition(Max_Level); // DEBUG_DOMAIN
 
 	find_mean_cost();
 
 	int cnt = 0;
-	
+
 	for (;;) {
 
 		#pragma omp single
@@ -94,24 +94,24 @@ void Domain_Decomposition()
 		distribute();
 
 		find_global_imbalances();
-		
+
 		if (Max_Cost_Imbal < DOMAIN_IMBAL_CEIL)
 			if (Max_Mem_Imbal < Param.Part_Alloc_Factor-1) // distrib OK ?
 				break;
 
 		if (cnt++ > N_SHORT_TRIPLETS - MIN_LEVEL) {
-	
+
 			#pragma omp master
 			Warn(true, "Domain Decomposition not optimal !");
-			
+
 			break;
 		}
-		
+
 		#pragma omp single
 		mark_bunches_to_split();
 
 		make_new_bunchlist();
-		
+
 	} // forever
 
 	//remove_excess_bunches();
@@ -121,8 +121,8 @@ void Domain_Decomposition()
 	rprintf("\nDomain: After %d iterations ...\n"
 			"        %d Top Nodes, %d Top Leaves, max level %d  merged %d\n"
 			"        Max Imbalance: Mem %g, Cost %g \n"
-			"        Mean Cost %g, Mean Npart %g \n\n", cnt, 
-			NBunches, NTop_Leaves, Max_Level, NMerged, Max_Mem_Imbal, 
+			"        Mean Cost %g, Mean Npart %g \n\n", cnt,
+			NBunches, NTop_Leaves, Max_Level, NMerged, Max_Mem_Imbal,
 			Max_Cost_Imbal, Mean_Cost, Mean_Npart);
 
 	communicate_particles();
@@ -143,7 +143,7 @@ void Domain_Decomposition()
 }
 
 /*
- * Make room for some bunches 
+ * Make room for some bunches
  */
 
 void Setup_Domain_Decomposition()
@@ -171,18 +171,8 @@ void Setup_Domain_Decomposition()
 	set_computational_domain();
 
 	Sort_Particles_By_Peano_Key();
-	
 
 	} // omp parallel
-
-	rprintf("\nDomain size is %g, \n"
-			"   Origin at x = %4g, y = %4g, z = %4g, \n"
-			"   Center at x = %4g, y = %4g, z = %4g. \n"
-			"   CoM    at x = %4g, y = %4g, z = %4g. \n", Domain.Size, 
-			Domain.Origin[0], Domain.Origin[1], Domain.Origin[2],
-			Domain.Center[0], Domain.Center[1], Domain.Center[2],
-			Prop.Center_Of_Mass[0], Prop.Center_Of_Mass[1],
-			Prop.Center_Of_Mass[2]);
 
 	return;
 }
@@ -199,7 +189,7 @@ void Finish_Domain_Decomposition()
 static void communicate_top_nodes()
 {
 /*	MPI_Request *request = NULL;
-		
+
 		float *target = &D[i].TNode.Pos[0];
 		int nBytes = (&D[i].TNode.Dp[2] - target) + sizeof(float);
 
@@ -228,7 +218,7 @@ static void transform_bunches_into_top_nodes()
 
 		Assert(npart < INT_MAX, "Npart %zu in Bunch %d > INT_MAX %d",
 		   npart, i, INT_MAX);
-		
+
 		D[i].TNode.Npart = npart;
 
 		int ipart = D[i].TNode.First_Part;
@@ -310,7 +300,7 @@ static void reset_bunchlist()
 
 static int find_min_level()
 {
-	return fmax(MIN_LEVEL, log(NTarget)/log(8) + 1);
+	return 0; //fmax(MIN_LEVEL, log(NTarget)/log(8) + 1);
 
 }
 
@@ -737,10 +727,10 @@ static void set_computational_domain()
 {
 	#pragma omp single
 	{
-	
+
 	Domain.Size = Sim.Boxsize[0];
 
-	Domain.Center[0] = Domain.Center[1] = Domain.Center[2] = 0.5 * Domain.Size;
+	Domain.Center[0] = Domain.Center[1] = Domain.Center[2] = 0.5*Domain.Size;
 
 	Domain.Origin[0] = Domain.Origin[1] = Domain.Origin[2] = 0;
 
@@ -755,7 +745,7 @@ static void set_computational_domain()
 static void set_computational_domain()
 {
 	find_domain_center(&Domain.Center[0]);
-	
+
 	find_largest_particle_distance(&Domain.Size);
 
 	#pragma omp for
@@ -779,15 +769,15 @@ static void find_domain_center(double Center_Out[3])
 
 	#pragma omp single
 	buffer = Malloc(Task.Npart_Total * sizeof(*buffer), "buffer");
-	
+
 	for (int i = 0; i < 3; i++) {
-		
+
 		#pragma omp for
 		for (int ipart = 0; ipart < Task.Npart_Total; ipart++)
 			buffer[ipart] = P.Pos[i][ipart];
 
 		center[i] = Median(Task.Npart_Total, buffer);
-		
+
 		#pragma omp barrier
 	}
 
@@ -801,7 +791,7 @@ static void find_domain_center(double Center_Out[3])
 				   Master, MPI_COMM_WORLD);
 
 		Center_Out[i] = Median(NRank, buffer);
-		
+
 		#pragma omp barrier
 	}
 
@@ -809,7 +799,7 @@ static void find_domain_center(double Center_Out[3])
 	{
 
 	MPI_Bcast(&Center_Out[0], 3, MPI_DOUBLE, Master, MPI_COMM_WORLD);
-	
+
 	Free(buffer);
 
 	} // omp single
@@ -826,7 +816,7 @@ static void find_largest_particle_distance(double *size_out)
 
 	#pragma omp for reduction(max:Max_Distance)
 	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
-		
+
 		double dx = fabs(P.Pos[0][ipart] - Domain.Center[0]);
 		double dy = fabs(P.Pos[1][ipart] - Domain.Center[1]);
 		double dz = fabs(P.Pos[2][ipart] - Domain.Center[2]);
@@ -839,15 +829,15 @@ static void find_largest_particle_distance(double *size_out)
 
 	#pragma omp single
 	{
-	
+
 	MPI_Allreduce(MPI_IN_PLACE, &Max_Distance, 1, MPI_DOUBLE, MPI_MAX,
 		MPI_COMM_WORLD);
 
-	*size_out = 2.001 * Max_Distance; // 2.001 helps with cancellation
+	*size_out = 2.001 * Max_Distance; // 2.001 helps with cancellation ?
 
 	}
 
-	return ; 
+	return ;
 }
 
 #endif // ! PERIODIC

@@ -1,9 +1,7 @@
 #include "peano.h"
 
+static void check_peano_keys();
 static void reorder_collisionless_particles(const size_t *idx_in);
-//static void reorder_gas_particles(const size_t *idx_in);
-//static void reorder_bh_particles(const size_t *idx_in);
-//static void reorder_star_particles(const size_t *idx_in);
 
 int cmp_peanoKeys(const void * a, const void *b)
 {
@@ -34,11 +32,9 @@ void Sort_Particles_By_Peano_Key()
 	Qsort_Index(idx, P.Key, Task.Npart_Total, sizeof(*P.Key),
 				&cmp_peanoKeys);
 
-	reorder_collisionless_particles(idx);
+	check_peano_keys(); // DEBUG
 
-	//reorder_gas_particles(idx);
-	//reorder_bh_particles(idx);
-	//reorder_star_particles(idx);
+	reorder_collisionless_particles(idx);
 
 	#pragma omp single
  	Free(idx);
@@ -47,6 +43,27 @@ void Sort_Particles_By_Peano_Key()
 
 	Profile("Peano-Hilbert order");
 
+	return ;
+}
+
+static bool fail;
+
+static void check_peano_keys()
+{
+#ifdef DEBUG
+
+	#pragma omp single 
+	fail = 0;
+
+	#pragma omp for reduction(min:fail)
+	for (int ipart = 1; ipart < Task.Npart_Total; ipart++) 
+		if (P.Key[ipart-1] == P.Key[ipart])
+			fail = 1;
+
+	Assert(fail == 0, "Found two particles with the same peano key." 
+					  "Tree build _will_ fail ...");
+
+#endif
 	return ;
 }
 

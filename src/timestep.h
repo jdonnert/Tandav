@@ -5,7 +5,7 @@
 #include "comoving.h"
 #include "IO/restart_file.h"
 
-extern struct TimeData {
+struct TimeData {
 	double Begin;			// if COMOVING is set, these are expansion fact a
 	double Current;
 	double Next;

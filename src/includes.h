@@ -35,8 +35,6 @@
  */
 
 #include "macro.h"				// macro definitions
-#include "particles.h"			// particle management    
-#include "memory.h"				// memory management
 #include "unit.h"				// unit functions
 #include "constants.h"			// physical constants
 #include "aux.h"				// auxiliary functions 

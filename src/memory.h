@@ -2,6 +2,8 @@
 #define MEMORY_H
 
 #include "includes.h"
+#include "timestep.h"
+#include "IO/parameter_file.h"
 
 #ifdef MEMORY_MANAGER 
 #define Malloc(x,y) Malloc_info(__FILE__, __func__,  __LINE__, x, y)

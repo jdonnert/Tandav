@@ -12,6 +12,7 @@
 
 static void preamble(int argc, char *argv[]);
 
+
 /* 
  * This exposes the time integration, as well as the snapshot and restart I/O
  * of the code. We use the HOLD integrator from Pelupessy+ 2012. 
@@ -113,7 +114,7 @@ static void preamble(int argc, char *argv[])
 	MPI_Comm_rank(MPI_COMM_WORLD, &Task.Rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &NRank);
 
-	MPI_Is_thread_main(&Task.Is_Thread_Main);
+	MPI_Is_thread_main((int *) &Task.Is_Thread_Main);
 
 	#pragma omp parallel
 	{

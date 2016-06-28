@@ -116,9 +116,7 @@ struct FMM_Node Alloc_FMM_Nodes(const int N)
 
 bool Is_Top_Node(const struct FMM_Node fmm, const int node)
 {
-	const uint32_t bitmask = 1UL << 9;
-
-	return (bool) (fmm.Bitfield[node] & bitmask) >> 9;
+	return (bool) ((fmm.Bitfield[node] & (1 << 9)) >> 9);
 }
 
 #endif // GRAVITY_FMM

@@ -14,8 +14,8 @@ static int copy_leafs(const int, const int *, const int *);
 static void set_node_position(const int, const int, const int, const int,
 							  const int, struct FMM_Node fmm);
 static int fmm_build_branch(const int, const int, const int, const int,
-							const int, struct FMM_Node, int);
-static void fmm_p2m(const int, const int, const int, struct FMM_Node);
+							struct FMM_Node, int);
+static void fmm_p2m(const int, int, const int, struct FMM_Node);
 static bool particle_is_inside_node(const peanoKey, const int);
 
 static struct FMM_Node fmm = { NULL }; // we build the tree in here
@@ -23,10 +23,10 @@ static struct FMM_Node fmm = { NULL }; // we build the tree in here
 
 /*
  * Build the FMM tree. This is an exercise in OpenMP tasking as it is MPI task
- * local.
+ * local. We safe to leaf2X arrays in the thread safe buffer and copy it back.
  * At this point we have NTop_Nodes containing npart starting at First_Part.
  * We find the leafs of the top node tree from the peano key and then
- * kick-off the build of a branch of the tree and the FMM P2M on the go.
+ * kick-off the build of a branch of the tree and the FMM P2M.
  *
  */
 
@@ -54,14 +54,12 @@ void Gravity_FMM_Build()
 
 			struct FMM_Node fmm = reserve_fmm_memory(i, &offset);
 
-			/* Works because buffer has space of Npart_Total_Max size_t's */
-
-			size_t nBytes = Task.Npart_Total_Max*sizeof(int);
+			size_t nBytes = Task.Npart_Total_Max*sizeof(int); // build in buf
 
 			int *leaf2part = Get_Thread_Safe_Buffer(nBytes);
 			int *leaf2node = leaf2part + (nBytes >> 1);
 
-			const int last_part = D[i].TNode.First_Part+D[i].TNode.Npart-1;
+			const int last_part = D[i].TNode.First_Part + D[i].TNode.Npart-1;
 			const int min_lvl = D[i].TNode.Level + 1;
 
 printf("first=%d last=%d start_lvl%d \n",
@@ -83,21 +81,24 @@ for (int k = 0; k < 20; k++) {
 
 printf("start=%d n=%d lvl=%d npart=%d\n", ipart, npart, level, npart);
 
-				nNodes = fmm_build_branch(nLeafs, ipart, i, npart, level,
+				nNodes = fmm_build_branch(ipart, i, npart, level,
 										  fmm, nNodes); // leaf now at end
 
-				leaf2node[nLeafs] = nNodes + offset - 1; // correct tnodes
+				int node = nNodes - 1;
+
+				fmm.Leaf_Ptr[node] = -nLeafs - 1; // insert leaf
+
+				leaf2node[nLeafs] = node + offset; // correct offset
 				leaf2part[nLeafs] = ipart;
 
 //				#pragma omp task untied
-//				fmm_p2m(nNodes+offset-1, ipart, npart, fmm);
-
+				fmm_p2m(ipart, nNodes+offset-1, npart, fmm);
 
 				nLeafs++;
 
 for (int k =0;  k < nNodes; k++) {
 printf("%0d DNext=%d DUp=%d npart=%d lvl=%d key=%d%d%d ",
-k,fmm.DNext[k],fmm.DUp[k],fmm.Npart[k],
+k, fmm.DNext[k],fmm.DUp[k],fmm.Npart[k],
 (fmm.Bitfield[k] & 63 << 3) >> 3,
 (fmm.Bitfield[k] & (0x4)) >>2,
 (fmm.Bitfield[k] & (0x2)) >>1,
@@ -115,8 +116,7 @@ exit(0);
 
 			} // while ipart
 
-			fmm.Bitfield[0] |= 1 << 9; // mark node 0 as topnode
-			fmm.DUp[0] = i;
+			fmm.DUp[0] = i; // points to topnode
 
 			/* from here on D.TNode.First_Leaf union points to leafs */
 
@@ -298,9 +298,8 @@ static int copy_leafs(const int n, const int *leafs, const int *nodes)
  * significant 3 bits carry the triplet at level "lvl".
  */
 
-static int fmm_build_branch(const int leaf_idx, const int ipart,
-		const int tnode, const int npart, const int leaf_lvl,
-		struct FMM_Node fmm, int nNodes)
+static int fmm_build_branch(const int ipart, const int tnode,
+		const int npart, const int leaf_lvl, struct FMM_Node fmm, int nNodes)
 {
 	int top_level = D[tnode].TNode.Level;
 	peanoKey key = P.Key[ipart] >> (3*top_level);
@@ -316,6 +315,7 @@ static int fmm_build_branch(const int leaf_idx, const int ipart,
 
 			fmm.DUp[node] = node - parent;
 			fmm.Bitfield[node] = (lvl << 3) | ((key & 0x7)) ; // lvl < 2^6
+			fmm.Bitfield[node] |= (int)(node == 0) << 9; // mark topnode
 
 			nNodes++;
 
@@ -339,7 +339,6 @@ static int fmm_build_branch(const int leaf_idx, const int ipart,
 		node += imax(1, fmm.DNext[node]); // walk downward or forward
 	}
 
-	fmm.Leaf_Ptr[node-1] = -leaf_idx - 1; // point to leaf
 
 	return nNodes;
 }
@@ -401,12 +400,10 @@ static void set_node_position(const int ipart, const int node,
  * (Dehnen 2002, sect 3.1, Yokota 2012).
  */
 
-static void fmm_p2m(const int leaf, const int beg, const int leaf_npart,
+static void fmm_p2m(const int beg, int node, const int npart,
 					struct FMM_Node fmm)
 {
-	const int end = beg + leaf_npart;
-
-	fmm.Leaf_Ptr[leaf] = leaf; // point from node to leaf
+	const int end = beg + npart;
 
 	Float leaf_mass = 0,
 		  leaf_CoM[3] = { 0 },
@@ -430,13 +427,12 @@ static void fmm_p2m(const int leaf, const int beg, const int leaf_npart,
 	leaf_CoM[1] /= leaf_mass;
 	leaf_CoM[2] /= leaf_mass;
 
-	int node = leaf;
+	int lvl = fmm.Bitfield[node] >> 3;
 
-	#pragma omp task untied
-	do { // propagate leaf values upward
+	for (int i = 0; i <= lvl; i++) {
 
 		#pragma omp atomic update
-		fmm.Npart += leaf_npart;
+		fmm.Npart[node] += npart;
 
 		#pragma omp atomic update
 		fmm.Mass[node] += leaf_mass;
@@ -456,8 +452,7 @@ static void fmm_p2m(const int leaf, const int beg, const int leaf_npart,
 		fmm.Dp[2][node] += leaf_Dp[2];
 
 		node -= fmm.DUp[node];
-
-	} while (! Is_Top_Node(fmm, node));
+	} // for lvl
 
 	return ;
 }

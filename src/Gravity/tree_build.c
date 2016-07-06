@@ -123,10 +123,12 @@ void Gravity_Tree_Build()
 
 void Setup_Gravity_Tree()
 {
+	printf("sizeof(*Tree) = %zu byte\n", sizeof(*Tree)*CHAR_BIT/8);
+
 	omp_init_lock(&Tree_Lock); // we don't destroy this one ...
 
 	Max_Nodes = 0.3 * Task.Npart_Total;
-			
+
 	Tree = Malloc(Max_Nodes * sizeof(*Tree), "Tree");
 
 	buf_threshold = Task.Buffer_Size/sizeof(*Tree);

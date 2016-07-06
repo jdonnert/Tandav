@@ -10,8 +10,8 @@
 
 #ifdef GRAVITY_FMM
 
-void Acceleration_Gravity_FMM();
-void Setup_Gravity_FMM();
+void Gravity_FMM_Acceleration();
+void Gravity_FMM_Setup();
 void Gravity_FMM_Free();
 void Gravity_FMM_Build();
 void Gravity_FMM_P2M();

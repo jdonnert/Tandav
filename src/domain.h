@@ -34,7 +34,7 @@ union Domain_Node_List {
 		int Level;
 		int First_Part;		// starts the tree build
 		uint64_t Npart;
-		float Cost;			// cpu times
+		Float Cost;			// cpu times
 		bool Is_Local;		// on this rank
 		int Modify;			// split  this bunch
 	} Bunch;
@@ -49,14 +49,14 @@ union Domain_Node_List {
 		};
 		union {
 			int Npart;		// Number of particles in node (before tree_build)
-			int Nleafs;		// Number of Leafs in node (after tree build)
+			int NLeafs;		// Number of Leafs in node (after tree build)
 		};
-		float Pos[3];		// Node Center
-		float Mass;			// Total Mass of particles inside node
-#ifdef GRAVITY_TREE
-		float CoM[3];		// Center of Mass
-		float Dp[3];		// Velocity of Center of Mass, add above ! 
-#endif //GRAVITY_TREE
+		Float Pos[3];		// Node Center
+		Float Mass;			// Total Mass of particles inside node
+#if defined(GRAVITY_TREE) || defined(GRAVITY_FMM)
+		Float CoM[3];		// Center of Mass
+		Float Dp[3];		// Velocity of Center of Mass, add above ! 
+#endif //GRAVITY_TREE || GRAVITY_FMM
 	} TNode;
 
 } * restrict D;
@@ -75,7 +75,7 @@ struct Domain_Properties Region[HIGHRES_REGION];
 #endif
 
 void Domain_Decomposition();
-void Setup_Domain_Decomposition();
+void Domain_Decomposition_Setup();
 void Finish_Domain_Decomposition();
 
 #endif // DOMAIN_H

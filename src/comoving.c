@@ -68,7 +68,7 @@ static double comoving_symplectic_kick_integrant(double a, void *param)
 	return 1.0 / (Hubble_Parameter(a) * a*a);
 }
 
-void Setup_Comoving()
+void Comoving_Setup()
 {
 	#pragma omp parallel
 	{

@@ -5,11 +5,11 @@
 #include "cosmology.h"
 
 #ifdef COMOVING
-extern void Setup_Comoving();
+extern void Comoving_Setup();
 extern void Finish_Comoving();
 extern double Comoving_VelDisp_Timestep_Constraint();
 #else
-inline void Setup_Comoving() {};
+inline void Comoving_Setup() {};
 inline void Finish_Comoving() {};
 inline double Comoving_VelDisp_Timestep_Constraint(double dt) {return dt;};
 #endif // COMOVING

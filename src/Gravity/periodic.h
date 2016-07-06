@@ -5,10 +5,10 @@
 
 #if defined(GRAVITY) && defined(PERIODIC)
 void Ewald_Correction(const Float dr[3], Float f[3]);
-void Setup_Gravity_Periodic();
+void Gravity_Periodic_Setup();
 #else
 static inline void Ewald_Correction(const Float dr[3], Float f[3]) {};
-static inline void Setup_Gravity_Periodic() {};
+static inline void Gravity_Periodic_Setup() {};
 #endif // PERIODIC && GRAVITY
 
 #if defined(GRAVITY) && defined(PERIODIC) && defined(GRAVITY_POTENTIAL)

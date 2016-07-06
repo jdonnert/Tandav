@@ -25,7 +25,7 @@ void Update(enum Update_Parameters stage)
 		Print_Memory_Usage();
 
 		if (Time_For_Snapshot())
-			Write_Snapshot();
+			IO_Write_Snapshot();
 
 		Sig.Prepare_Step = false;
 
@@ -64,6 +64,7 @@ void Update(enum Update_Parameters stage)
 	case BEFORE_DOMAIN_UPDATE: 
 
 		Gravity_Tree_Free(); // GRAVITY_TREE
+		
 		Gravity_FMM_Free(FMM); // GRAVITY_FMM
 	
 		break;

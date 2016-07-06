@@ -5,6 +5,8 @@
 #define NODES_PER_PARTICLE 0.6
 #define TREE_ENLARGEMENT_FACTOR 1.2
 
+#define DEBUG_FMM
+
 static void prepare_fmm();
 static struct FMM_Node reserve_fmm_memory(const int, int *);
 
@@ -17,6 +19,9 @@ static int fmm_build_branch(const int, const int, const int, const int,
 							struct FMM_Node, int);
 static void fmm_p2m(const int, int, const int, struct FMM_Node);
 static bool particle_is_inside_node(const peanoKey, const int);
+
+void test_tree (struct FMM_Node f, int *leaf2part, int *leaf2node,
+				const int nLeafs, const int nNodes);
 
 static struct FMM_Node fmm = { NULL }; // we build the tree in here
 #pragma omp threadprivate(fmm)
@@ -37,49 +42,45 @@ void Gravity_FMM_Build()
 	#pragma omp single
 	NNodes = 0;
 
-// for (;;) {
+	size_t nBytes = Task.Npart_Total_Max*sizeof(int);
+	int *leaf2part = Get_Thread_Safe_Buffer(nBytes);
+	int *leaf2node = leaf2part + (nBytes >> 1);
+
+ 	do {
+
+		#pragma omp barrier
+		
 		#pragma omp single
 		prepare_fmm();
 
-		//#pragma omp for nowait
-		//for (int i = 0; i < NTop_Nodes; i++) {
-		int i = 0;
-			#pragma omp taskyield
-
-	//		if (D[i].TNode.Target < 0)  // not local
-	//			continue;
+		#pragma omp for
+		for (int i = 0; i < NTop_Nodes; i++) {
+			
+			if ((D[i].TNode.Target != -Task.Rank-1) &&  // on other MPI rank
+				(D[i].TNode.Target < 0)) 				// not build before
+				continue;
 
 			int nNodes = 0;
 			int offset = 0;
 
-			struct FMM_Node fmm = reserve_fmm_memory(i, &offset);
+			struct FMM_Node fmm = reserve_fmm_memory(i, &offset); // FMM[offset]
 
-			size_t nBytes = Task.Npart_Total_Max*sizeof(int); // build in buf
+			if (NNodes >= Max_Nodes) // no more memory, force rebuild
+				continue;
 
-			int *leaf2part = Get_Thread_Safe_Buffer(nBytes);
-			int *leaf2node = leaf2part + (nBytes >> 1);
+			int nLeafs = 0;
 
 			const int last_part = D[i].TNode.First_Part + D[i].TNode.Npart-1;
 			const int min_lvl = D[i].TNode.Level + 1;
 
-printf("first=%d last=%d start_lvl%d \n",
-D[i].TNode.First_Part, last_part, min_lvl );
-
 			int ipart = D[i].TNode.First_Part;
-			int nLeafs = 0;
 			int level = min_lvl;
 
-for (int k = 0; k < 20; k++) {
-	printf("ipart %d ", k);
-	Print_Int_Bits(P.Key[k],64,0);
-}
 			while (ipart <= last_part) { // all particles in the top node
 
 				int npart = find_leaf_size(ipart, last_part, level);
 
 				level = find_next_level(ipart+npart, min_lvl); // npart>0
-
-printf("start=%d n=%d lvl=%d npart=%d\n", ipart, npart, level, npart);
 
 				nNodes = fmm_build_branch(ipart, i, npart, level,
 										  fmm, nNodes); // leaf now at end
@@ -92,26 +93,10 @@ printf("start=%d n=%d lvl=%d npart=%d\n", ipart, npart, level, npart);
 				leaf2part[nLeafs] = ipart;
 
 //				#pragma omp task untied
-				fmm_p2m(ipart, nNodes+offset-1, npart, fmm);
+				fmm_p2m(ipart, nNodes+offset, npart, fmm);
 
 				nLeafs++;
 
-for (int k =0;  k < nNodes; k++) {
-printf("%0d DNext=%d DUp=%d npart=%d lvl=%d key=%d%d%d ",
-k, fmm.DNext[k],fmm.DUp[k],fmm.Npart[k],
-(fmm.Bitfield[k] & 63 << 3) >> 3,
-(fmm.Bitfield[k] & (0x4)) >>2,
-(fmm.Bitfield[k] & (0x2)) >>1,
- fmm.Bitfield[k] & 0x1
-);
-if (fmm.DNext[k] < 0) {
-	int ll = -fmm.Leaf_Ptr[k] - 1;
-	printf("leaf=%d node=%d start_part=%d \n",
-ll,  leaf2node[ll], leaf2part[ll]);
-} else printf("\n");
-}
-if (ipart > 3)
-exit(0);
 				ipart += npart;
 
 			} // while ipart
@@ -120,11 +105,22 @@ exit(0);
 
 			/* from here on D.TNode.First_Leaf union points to leafs */
 
+			D[i].TNode.Target = offset;
 			D[i].TNode.First_Leaf = copy_leafs(nLeafs, leaf2part, leaf2node);
-			D[i].TNode.Nleafs = nLeafs;
+			D[i].TNode.NLeafs = nLeafs;
+			D[i].TNode.Mass = fmm.Mass[0];
+			D[i].TNode.CoM[0] = fmm.CoM[0][0];
+			D[i].TNode.CoM[1] = fmm.CoM[1][0];
+			D[i].TNode.CoM[2] = fmm.CoM[2][0];
+			D[i].TNode.Dp[0] = fmm.Dp[0][0];
+			D[i].TNode.Dp[1] = fmm.Dp[1][0];
+			D[i].TNode.Dp[2] = fmm.Dp[2][0];
 
-		//} // for i
-	//} // forever
+			test_tree(fmm, leaf2part, leaf2node, nLeafs, nNodes); // DEBUG_FMM
+		} // for i
+
+	} while (NNodes >= Max_Nodes); // while tree mem too small
+exit(0);
 
 	Profile("Grav FMM Build");
 
@@ -133,15 +129,17 @@ exit(0);
 
 static void prepare_fmm()
 {
-	if (NNodes != 0) { // tree build aborted, increase mem
+	if (NNodes > 0) { // tree build aborted, increase memory
 
-		Max_Nodes = TREE_ENLARGEMENT_FACTOR * Max_Nodes;
+		Max_Nodes *= TREE_ENLARGEMENT_FACTOR;
 
 		printf("(%d:%d) Increased FMM tree memory to %6.1f MB, "
 			"max %10d nodes, ratio %4g \n", Task.Rank, Task.Thread_ID,
 			Max_Nodes * sizeof_FMM/1024.0/1024.0, Max_Nodes,
 			(double) Max_Nodes/Task.Npart_Total);
 	}
+
+	Gravity_FMM_Free(FMM);
 
 	FMM = Alloc_FMM_Nodes(Max_Nodes);
 
@@ -153,14 +151,13 @@ static void prepare_fmm()
 }
 
 /*
- * this returns a collection of pointers to the global node structure FMM,
- * starting at the first node for this subtree.
+ * This returns a collection of pointers to the global node structure FMM,
+ * starting at the first node for this subtree. The offset of the pointers
+ * to the global FMM structure are written into *offset
  */
 
 static struct FMM_Node reserve_fmm_memory(const int tnode, int *offset)
 {
-	struct FMM_Node f = { NULL };
-
 	int nReserved = ceil(D[tnode].TNode.Npart * NODES_PER_PARTICLE);
 
 	omp_set_lock(&NNodes_Lock);
@@ -171,6 +168,11 @@ static struct FMM_Node reserve_fmm_memory(const int tnode, int *offset)
 
 	omp_unset_lock(&NNodes_Lock);
 
+	struct FMM_Node f = { NULL };
+
+	if (NNodes > Max_Nodes) // abort tree build and alloc more memory
+		return f;
+	
 	f.DNext = &FMM.DNext[i];
 	f.Bitfield = &FMM.Bitfield[i];
 	f.DUp = &FMM.DUp[i];
@@ -194,24 +196,28 @@ static struct FMM_Node reserve_fmm_memory(const int tnode, int *offset)
 
 /*
  * Find leaf vector of particle ipart at level lvl and return the number of
- * particles in the leave. At a leaf, not more than VECTOR_SIZE particles have
+ * particles in the leaf. At a leaf, not more than VECTOR_SIZE particles have
  * the same key at all levels above the level of the leaf.
  * If bunch of particles are closer than the PH key precision, we increase
- * the size of the leaf until its level is shallow enough to be indexed by the
- * PH key.
+ * the size of the leaf until the level is fits into the leaf.
  */
 
 static int find_leaf_size(const int ipart, const int last_part,
 						  const int min_lvl)
 {
-	if (ipart == last_part) // ipart = last_part -> single leaf
-		return last_part + 1;
+	if (ipart > last_part - VECTOR_SIZE) // manage end
+		return last_part - ipart + 1;
 
-	int size = VECTOR_SIZE;
-	int lvl = min_lvl;
+	const int max_lvl = N_PEANO_TRIPLETS-1;
+
 	int npart = 0;
+	int lvl = 0;
+	int size = VECTOR_SIZE;
 
 	do {
+
+		npart = 0;
+		lvl = min_lvl;
 
 		int jmax = MIN(last_part, ipart + size) + 1;
 
@@ -235,7 +241,7 @@ static int find_leaf_size(const int ipart, const int last_part,
 				npart++;
 			}
 
-			if (npart <= size || lvl == (N_PEANO_TRIPLETS-1))
+			if (npart <= size || lvl == max_lvl)
 				break; // leaf found: npart with same key at lvl
 
 			mask <<= 3;
@@ -244,10 +250,16 @@ static int find_leaf_size(const int ipart, const int last_part,
 
 		} // forever
 
-		size++; // create leaf larger than VECTOR_SIZE if particles are closer
-				// than PH key precision.
+		size++; // create leaf larger than VECTOR_SIZE
 
-	} while (lvl == N_PEANO_TRIPLETS-1);
+	} while (lvl == max_lvl); // repeat until we fit
+
+	Assert(npart < 1024, "I found a very large leaf (npart=%d) at ipart=%d. "
+				"That means your simulation has a very large spatial "
+				"dynamic range. Many particle distances are only a factor "
+				"of 8 away from the single precision limit and the "
+				"algorithm becomes inaccurate ! Use DOUBLE_PRECISION to "
+				"speed up the computation and fix the issue", npart, ipart);
 
 	return npart; // until first particle of next leaf
 }
@@ -409,7 +421,6 @@ static void fmm_p2m(const int beg, int node, const int npart,
 		  leaf_CoM[3] = { 0 },
 		  leaf_Dp[3] = { 0 };
 
-	#pragma IVDEP
 	for (int ipart = beg; ipart < end; ipart++) { // vectorizes
 
 		leaf_mass += P.Mass[ipart];
@@ -429,7 +440,7 @@ static void fmm_p2m(const int beg, int node, const int npart,
 
 	int lvl = fmm.Bitfield[node] >> 3;
 
-	for (int i = 0; i <= lvl; i++) {
+	for (int i = lvl; i >= 0; i--) {
 
 		#pragma omp atomic update
 		fmm.Npart[node] += npart;
@@ -458,6 +469,95 @@ static void fmm_p2m(const int beg, int node, const int npart,
 }
 
 
+void test_tree (struct FMM_Node f, int *leaf2part, int *leaf2node,
+				const int nLeafs, const int nNodes)
+{
+#ifdef DEBUG_FMM
+	printf("testing tree for consistency ... ");
 
+	/*for (int k =0;  k < nNodes; k++) {
+
+		printf("%0d DNext=%d DUp=%d npart=%d lvl=%d key=%d%d%d ",
+			k, f.DNext[k], f.DUp[k],f.Npart[k],
+			(f.Bitfield[k] & 63 << 3) >> 3, (f.Bitfield[k] & (0x4)) >>2,
+			(f.Bitfield[k] & (0x2)) >>1, f.Bitfield[k] & 0x1 );
+
+		if (f.DNext[k] < 0) {
+
+			int ll = -f.Leaf_Ptr[k] - 1;
+
+			printf("leaf=%d node=%d start_part=%d \n", ll,
+					leaf2node[ll], leaf2part[ll]);
+		} else
+			printf("\n");
+	}*/
+
+	int is_topnode = ((f.Bitfield[0] >> 9) & (1));
+
+	Assert(is_topnode == 1, "Node 0 isn't marked as topnode");
+
+	int tnode = f.DUp[0];
+
+	Assert(D[tnode].TNode.NLeafs == nLeafs, "nLeafs in tnode wrong %d - %d"
+			, D[tnode].TNode.NLeafs, nLeafs);
+
+	Assert(D[tnode].TNode.Mass == f.Mass[0], "Topnode mass wrong node=%d",0);
+	Assert(D[tnode].TNode.First_Leaf == f.Leaf_Ptr[0],
+			"Topnode leaf wrong node=%d", 0);
+	Assert(D[tnode].TNode.CoM[0] == f.CoM[0][0], "CoM0 wrong %d", 0);
+	Assert(D[tnode].TNode.CoM[1] == f.CoM[1][0], "CoM1 wrong %d", 0);
+	Assert(D[tnode].TNode.CoM[2] == f.CoM[2][0], "CoM2 wrong %d", 0);
+
+	for (int node = 1; node < nNodes; node++) {
+
+		int lvl = (f.Bitfield[node] >> 3) & 63;
+		int keyfrag = f.Bitfield[node] & 0x7;
+
+		if (f.DNext[node] >= 0) { // internal node
+
+			int dad = node - f.DUp[node];
+			int dad_lvl = (f.Bitfield[dad] >> 3) & 63;
+
+			Assert(dad_lvl+1 == lvl, "dad lvl wrong, node=%d, dad=%d"
+					" dad_lvl = %d lvl=%d", node, dad,dad_lvl, lvl);
+
+			int sister = node + f.DNext[node];
+
+			if (sister != node) {
+
+				int sister_lvl = (f.Bitfield[sister] >> 3) & 63;
+				Assert(lvl == sister_lvl, "sister_lvl wrong, node=%d", node);
+
+
+				int sister_keyfrag = f.Bitfield[sister] & 0x7;
+				Assert(keyfrag < sister_keyfrag,"Sisters Keyfrag wrong %d",
+						node);
+			}
+
+		} else if (f.DNext < 0) { // particle bundle
+
+			int leaf = -f.DNext[node] - 1;
+
+			Assert(node == leaf2node[leaf], "leaf2node or leaf ptr wrong, %d",
+					node);
+
+			int ipart = leaf2part[leaf];
+
+			peanoKey keyfragment = f.Bitfield[node] & 0x7;
+			peanoKey p_key = (P.Key[ipart] >> (3*lvl)) & 0x7;
+
+			Assert(keyfragment == p_key, "key triplets wrong, %d", node);
+
+			int jpart = leaf2part[leaf+1];
+			int npart = jpart-ipart;
+
+			Assert(f.Npart[node] == npart, "npart wrong, %d", node);
+		}
+	}
+
+	printf("done \n");
+#endif
+	return ;
+}
 
 #endif // GRAVITY_FMM

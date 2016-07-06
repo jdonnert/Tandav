@@ -16,7 +16,7 @@ static void empty_comm_buffer(char * restrict, const int, const int,
 static void generate_masses_from_header();
 static void set_particle_types();
 
-void Read_Snapshot(char *input_name)
+void IO_Read_Snapshot(char *input_name)
 {
 	int nIOTasks = Param.Num_IO_Tasks;
 

@@ -4,7 +4,7 @@
 
 static Float Boxhalf[3] = { 0 };
 
-void Setup_Periodic()
+void Periodic_Setup()
 {
 #ifndef PERIODIC_NO_CUBE
 	
@@ -41,6 +41,7 @@ void Periodic_Constrain_Particles_To_Box()
 		while (P.Pos[0][ipart] >= Sim.Boxsize[0])
 			P.Pos[0][ipart] -= Sim.Boxsize[0];
 
+#ifdef PERIODIC_NO_CUBE
 		while (P.Pos[1][ipart] < 0)
 			P.Pos[1][ipart] += Sim.Boxsize[1];
 
@@ -52,6 +53,7 @@ void Periodic_Constrain_Particles_To_Box()
 
 		while (P.Pos[2][ipart] >= Sim.Boxsize[2])
 			P.Pos[2][ipart] -= Sim.Boxsize[2];
+#endif
 	} // for i
 
 	return ;

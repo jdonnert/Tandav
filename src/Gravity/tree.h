@@ -14,9 +14,9 @@
 
 #ifndef GRAVITY_TREE
 
-static inline void Setup_Gravity_Tree() {}; 
-static inline void Acceleration_Gravity_Tree() {}; 
-static inline void Gravity_Build() {}; 
+static inline void Gravity_Tree_Setup() {}; 
+static inline void Gravity_Tree_Acceleration() {}; 
+static inline void Gravity_Tree_Build() {}; 
 static inline void Gravity_Tree_Update_Kicks(){};
 static inline void Gravity_Tree_Update_Topnode_Kicks() {};
 static inline void Gravity_Tree_Update_Drift(const double dt) {};

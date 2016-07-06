@@ -1,6 +1,6 @@
 #include "io.h"
 
-void Write_Restart_File()
+void IO_Write_Restart_File()
 {
 	Profile("Restart File");
 

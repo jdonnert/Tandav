@@ -6,7 +6,7 @@ struct Parameters_From_File Param = { 0 };
 
 void sanity_check_input_parameters();
 
-void Read_Parameter_File(const char *filename)
+void IO_Read_Parameter_File(const char *filename)
 {
 	char buf[CHARBUFSIZE] = { "" },
 		 buf1[CHARBUFSIZE]= { "" },
@@ -128,7 +128,7 @@ void Read_Parameter_File(const char *filename)
 	return ;
 }
 
-void Write_Parameter_File(const char *filename)
+void IO_Write_Parameter_File(const char *filename)
 {
 	if (Task.Is_Master) {
 
@@ -194,7 +194,7 @@ void sanity_check_input_parameters()
 	Warn(Time.Begin > 1, "Simulation starts in the future !");
 #endif
 
-	/* Add your own ! */
+	/* Add here ! */
 
 	return ;
 }

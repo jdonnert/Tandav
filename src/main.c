@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 	
 	Init(argc, argv);
 
-	Read_ICs(argc, argv);
+	IO_Read_ICs(argc, argv);
 
 	Setup_Modules();
 
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
 
 			Drift_To_Snaptime();
 
-			Write_Snapshot();
+			IO_Write_Snapshot();
 		}
 
 		Drift_To_Sync_Point();
@@ -79,10 +79,10 @@ int main(int argc, char *argv[])
 	} // while
 
 	if (Time_For_Snapshot())
-		Write_Snapshot();
+		IO_Write_Snapshot();
 
 	if (Sig.Restart_Write_File)
-		Write_Restart_File();
+		IO_Write_Restart_File();
 
 	} // omp parallel 
 
@@ -143,20 +143,12 @@ static void preamble(int argc, char *argv[])
 
 	if (Task.Is_Master) {
 
-		printf("#### Tandav ####\n\n");
+		printf("#### Tandav ####\n\n"
+				"%d MPI tasks, %d OpenMP threads \n\n", NRank, NThreads);
 
 		Print_Compile_Time_Settings();
 
-		printf("\nsizeof(*D) = %zu byte\n", sizeof(*D)*CHAR_BIT/8);
-
-#ifdef GRAVITY_TREE
-		printf("sizeof(*Tree) = %zu byte\n", sizeof(*Tree)*CHAR_BIT/8);
-#endif
-
-		printf("\nUsing %d MPI tasks, %d OpenMP threads \n\n",
-				NRank, NThreads);
-
-		Assert( (argc >= 2) && (argc < 5),
+		Assert( (argc >= 2),
 			"Wrong number of arguments, let me help you: \n\n"
 			"	USAGE: ./Tandav ParameterFile <StartFlag> <SnapNum>\n\n"
 			"	  0  : Read IC file and start simulation (default) \n"
@@ -172,7 +164,7 @@ static void preamble(int argc, char *argv[])
 
 	if (Param.Start_Flag == DUMP_PARFILE) {
 
-		Write_Parameter_File(Param.File); // dead end
+		IO_Write_Parameter_File(Param.File); // dead end
 
 		Finish();
 	}

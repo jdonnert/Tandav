@@ -4,12 +4,12 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 
 	seed = 14041981L
 	msol = 1.989d33
-	
+
 	if not keyword_set(npart) then $
 		npart = 250000L
 
 	if not keyword_set(boxsize) then $
-		boxsize = 100000D
+		boxsize = 150000D
 
 	mass = 1d15 * Msol / tandav.mass ; code units 
 	a_hernq = 924D 		
@@ -19,10 +19,16 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 	; positions
 
 	pos = make_array(3, npart, /double, val=0)
-	
-	sqrt_q = sqrt(randomu(seed, npart)) 
+
+	qmax = boxsize^2/(boxsize+a_hernq)^2
+
+	sqrt_q = sqrt(randomu(seed, npart)) * qmax
 
 	r = a_hernq  * sqrt_q / (1-sqrt_q) 
+
+	over = where(r gt boxsize/2D, cnt)
+	if cnt gt 0 then $
+		r[over] = boxsize/2D 
 
 	theta = acos(2 * randomu(seed, npart) - 1)
 	phi = 2*!pi * randomu(seed, npart) 

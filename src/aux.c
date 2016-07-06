@@ -42,8 +42,8 @@ void Print_Int_Bits128 (const __uint128_t val)
 	return Print_Int_Bits(val, 128, 2);
 }
 
-/* 
- * Error Handling, we use variable arguments to print informative messages 
+/*
+ * Error Handling, we use variable arguments to print informative messages
  */
 
 void Assert_Info(const char *func, const char *file, int line,

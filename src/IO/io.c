@@ -1,6 +1,6 @@
 #include "io.h"
 
-void Read_ICs(int argc, char *argv[])
+void IO_Read_ICs(int argc, char *argv[])
 {
 	Profile("Read");
 
@@ -8,13 +8,13 @@ void Read_ICs(int argc, char *argv[])
 
 	case READ_IC:
 
-		Read_Snapshot(Param.Input_File); // also init particle structures
+		IO_Read_Snapshot(Param.Input_File); // also init particle structures
 
 		break;
 
 	case READ_RESTART:
 
-		Read_Restart_File();
+		IO_Read_Restart_File();
 
 		break;
 
@@ -28,7 +28,7 @@ void Read_ICs(int argc, char *argv[])
 
 		sprintf(snap_file, "%s_%03d", Param.Output_File_Base, atoi(argv[3]));
 
-		Read_Snapshot(snap_file);
+		IO_Read_Snapshot(snap_file);
 
 		break;
 

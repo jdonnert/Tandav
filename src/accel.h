@@ -3,9 +3,9 @@
 
 #include "includes.h" 
 #include "particles.h" 
-#include "Gravity_Tree/tree.h" 
+#include "Gravity/tree.h" 
 #include "Gravity/forcetest.h" 
-#include "Gravity_FMM/fmm.h"  // <-- add your module .h below
+#include "Gravity/fmm.h"  // <-- add your module .h below
 
 void Compute_Acceleration();
 void Safe_Last_Accel();

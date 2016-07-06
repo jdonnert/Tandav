@@ -18,7 +18,7 @@ void Init(int argc, char *argv[])
 
 	Profile("Init");
 
-	Read_Parameter_File(Param.File);
+	IO_Read_Parameter_File(Param.File);
 
 	Init_Memory_Management();
 

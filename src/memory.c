@@ -64,6 +64,9 @@ void *Malloc_info(const char* file, const char* func, const int line,
 
 	memset(Mem_Block[i].Start, 0, Mem_Block[i].Size);
 
+	Assert((size_t)Mem_Block[i].Start % MEM_ALIGNMENT == 0, 
+			"Memory Block %i not %zu byte aligned", i, MEM_ALIGNMENT);
+
 	return Mem_Block[i].Start;
 }
 
@@ -220,7 +223,7 @@ void Init_Memory_Management()
 	return;
 }
 
-void Print_Memory_Usage()
+void Print_Memory_Usage_Info(const char* file, const char* func, const int line)
 {
 #ifdef MEMORY_MANAGER
 
@@ -242,13 +245,14 @@ void Print_Memory_Usage()
 	if (Task.Rank != max_Idx) // no returns inside an omp region
 		goto skip;
 
-	printf("\nMemory Manager: Reporting Blocks of (%d:%d) with %g / %d MB "
-			"available memory\n   No  Used      Address      Size (MB)    "
+	printf("\nMemory Manager @ %s, %s:%d \n"
+			"Reporting Blocks of (%d:%d) with %g / %d MB available memory\n"
+			"   No  Used      Address      Size (MB)    "
 			"Cumulative          Variable       File:Line\n"
 			"-----------------------------------------------"
 			"-------------------------------------------------------\n",
-			Task.Rank, Task.Thread_ID, (double) NBytes_Left/1024/1024,
-			Param.Max_Mem_Size);
+			file, func, line, Task.Rank, Task.Thread_ID, 
+			(double) NBytes_Left/1024/1024,	Param.Max_Mem_Size);
 
 	size_t mem_Cumulative = 0;
 

@@ -8,7 +8,7 @@ static void check_total_momentum(const bool show_change);
  * Barnes & Hutt gravity tree driver routine
  */
 
-void Acceleration_Gravity_Tree()
+void Gravity_Tree_Acceleration()
 {
 	if (Sig.Tree_Update)
 		Gravity_Tree_Build();

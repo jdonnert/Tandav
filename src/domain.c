@@ -49,7 +49,7 @@ static int NBunches = 0;
 
 /*
  * Distribute particles in bunches, which are continuous on the Peano curve,
- * but at different level in the tree. The bunches correspond to nodes of
+ * but at different levels in the tree. The bunches correspond to nodes of
  * the tree. Bunches also give the top nodes in the tree, with some info
  * added.
  * We keep a global list of all the bunches that also contains the
@@ -146,8 +146,10 @@ void Domain_Decomposition()
  * Make room for some bunches
  */
 
-void Setup_Domain_Decomposition()
+void Domain_Decomposition_Setup()
 {
+	printf("\nsizeof(*D) = %zu byte\n", sizeof(*D)*CHAR_BIT/8);
+
 	if (NTask < 65) // decompose on threads as welL
 		NTarget = NTask;
 	else
@@ -213,7 +215,7 @@ static void transform_bunches_into_top_nodes()
 
 	#pragma omp for
 	for (int i = 0; i < NBunches; i++) {
-
+		
 		uint64_t npart = D[i].Bunch.Npart;
 
 		Assert(npart < INT_MAX, "Npart %zu in Bunch %d > INT_MAX %d",

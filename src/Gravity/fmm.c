@@ -13,7 +13,7 @@ int * restrict Leaf2Node = { NULL }; // holds FMM node of Leaf
 
 omp_lock_t NNodes_Lock, NLeafs_Lock;
 
-void Acceleration_Gravity_FMM()
+void Gravity_FMM_Acceleration()
 {
 	//if (Sig.Tree_Update) {
 
@@ -32,12 +32,12 @@ void Acceleration_Gravity_FMM()
 	return ;
 }
 
-void Setup_Gravity_FMM()
+void Gravity_FMM_Setup()
 {
 	omp_init_lock(&NNodes_Lock);
 	omp_init_lock(&NLeafs_Lock);
 
-	Max_Nodes = 0.3 * Task.Npart_Total;
+	Max_Nodes = 0.4 * Task.Npart_Total;
 
 	Leaf2Part = Malloc(Task.Npart_Total * sizeof(*Leaf2Part), "Leaf2Part");
 	Leaf2Node = Malloc(Task.Npart_Total * sizeof(*Leaf2Node), "Leaf2Node");

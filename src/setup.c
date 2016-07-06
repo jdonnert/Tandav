@@ -10,21 +10,23 @@ void Setup_Modules()
 {
 	Profile("Setup");
 			
-	Setup_Periodic(); // PERIODIC
+	Periodic_Setup(); // PERIODIC
 
-	Setup_Gravity_Periodic();
+	Time_Integration_Setup();
 
-	Setup_Time_Integration();
+	Comoving_Setup(); // COMOVING
 
-	Setup_Comoving(); // COMOVING
+	Domain_Decomposition_Setup();
 
-	Setup_Domain_Decomposition();
-	
-	Setup_Gravity_Tree(); // GRAVITY_TREE
+	Gravity_Periodic_Setup(); // GRAVITY & PERIODIC
 
-	Setup_Gravity_FMM(); // GRAVITY_FMM
+	Gravity_Tree_Setup(); // GRAVITY_TREE
 
-	Compute_Current_Simulation_Properties(); // <- Add your setups above
+	Gravity_FMM_Setup(); // GRAVITY_FMM
+
+
+
+	Compute_Current_Simulation_Properties(); // <- Add setups above
 
 	sanity_check_simulation_setup();
 	

@@ -53,7 +53,7 @@ TREE_OPEN_PARAM_REL 0.02     // [0.02] Relative opening criterion param
 
 #### ALWAYS RECOMMENDED ####
 
-VECTOR_SIZE 8               // max number of particles in tree leaf
+VECTOR_SIZE 32               // max number of particles in tree leaf
 
 MEMORY_MANAGER               // code allocates memory
 

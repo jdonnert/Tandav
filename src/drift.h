@@ -8,8 +8,8 @@
 #include "cosmology.h"
 #include "domain.h"
 #include "log.h"
-#include "Gravity_Tree/tree.h"
-#include "Gravity_FMM/fmm.h"
+#include "Gravity/tree.h"
+#include "Gravity/fmm.h"
 
 void Drift_To_Sync_Point();
 void Drift_To_Snaptime();

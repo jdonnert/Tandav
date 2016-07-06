@@ -73,9 +73,9 @@ void Allocate_Particle_Structures()
 	
 	//G = Malloc(Task.Npart_Max[0] * sizeof(*G), "G");
 
-	Print_Memory_Usage();
-
 	omp_unset_lock(&Particle_Lock);
+
+	Print_Memory_Usage();
 
 	return ;
 }

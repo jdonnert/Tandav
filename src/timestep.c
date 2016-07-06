@@ -104,7 +104,7 @@ void Set_New_Timesteps()
  * Time integration is in da.
  */
 
-void Setup_Time_Integration()
+void Time_Integration_Setup()
 {
 	Time.Begin = Param.Time_Begin; // pull in parameters
 	Time.End = Param.Time_End;

@@ -14,9 +14,9 @@ void Compute_Acceleration()
 {
 	Safe_Last_Accel(); // and zero P.Acc
 
-	Acceleration_Gravity_Tree(); // GRAVITY_TREE
+	Gravity_Tree_Acceleration(); // GRAVITY_TREE
 
-	Acceleration_Gravity_FMM(); // GRAVITY_FMM
+	Gravity_FMM_Acceleration(); // GRAVITY_FMM
 
 	Gravity_Forcetest(); // GRAVITY_FORCETEST
 

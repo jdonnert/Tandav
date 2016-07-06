@@ -1,7 +1,7 @@
 #ifndef MACRO_H
 #define MACRO_H
 
-#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0])) // works only for non-allocatables
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0])) // only for arr on stack
 #define FIELD_SIZEOF(t, f) (sizeof(((t*)0)->f))
 
 #define MIN(a,b) ((a)<(b)?(a):(b)) // this doesnt always work: c = MAX(a++, b)
@@ -36,12 +36,14 @@
 #ifdef __INTEL_COMPILER
 
 #define IVDEP ivdep // IGNORE_VECTOR_DEPENDENCE
+#define ALIGN __attribute__((aligned(MEM_ALIGNMENT)))
 
 #endif // __INTEL_COMPILER
 
 #ifdef _CRAYC
 
 #define IVDEP _CRI ivdep
+#define ALIGN
 
 #endif // _CRAYC
 

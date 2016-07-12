@@ -93,4 +93,5 @@ const static struct io_block_def Block[] = {
 static const int NBlocks = ARRAY_SIZE(Block);
 
 #endif // IO_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

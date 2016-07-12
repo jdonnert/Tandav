@@ -120,4 +120,4 @@ bool Is_Top_Node(const struct FMM_Node fmm, const int node)
 }
 
 #endif // GRAVITY_FMM
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

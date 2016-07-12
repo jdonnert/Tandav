@@ -82,4 +82,5 @@ static const parameter_def ParDef[] = {
 static const int NTags = ARRAY_SIZE(ParDef);
 
 #endif // PARAMETER_FILE_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

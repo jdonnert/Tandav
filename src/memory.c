@@ -478,4 +478,5 @@ size_t get_system_memory_size()
 #endif // sysctl and sysconf variants
 #endif // unix
 }
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

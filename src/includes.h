@@ -43,4 +43,5 @@
 #include "vector.h"				// tree leafs as vectors
 
 #endif // INCLUDE_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

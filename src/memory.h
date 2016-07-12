@@ -29,4 +29,5 @@ void Get_Free_Memory(size_t *total, size_t *largest, size_t *smallest);
 void *Get_Thread_Safe_Buffer (size_t nBytes);
 
 #endif // MEMORY_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

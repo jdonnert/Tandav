@@ -908,4 +908,5 @@ static void print_domain_decomposition (const int max_level)
 	return ;
 }
 #endif // DEBUG_DOMAIN
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

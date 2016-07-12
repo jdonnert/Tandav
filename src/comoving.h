@@ -15,4 +15,5 @@ inline double Comoving_VelDisp_Timestep_Constraint(double dt) {return dt;};
 #endif // COMOVING
 
 #endif // COMOV_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

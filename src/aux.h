@@ -41,4 +41,5 @@ void Reorder_Array_Char(const size_t nBytes, const size_t n,
 								void * restrict p_in, size_t  * restrict idx);
 
 #endif // AUX_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

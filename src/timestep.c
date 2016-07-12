@@ -530,4 +530,5 @@ static void set_global_timestep_constraint()
 
 	return ;
 }
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

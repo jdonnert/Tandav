@@ -79,4 +79,5 @@ void Domain_Decomposition_Setup();
 void Finish_Domain_Decomposition();
 
 #endif // DOMAIN_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

@@ -688,4 +688,5 @@ void test_gravity_tree(const int nNodes)
 
 
 #endif // GRAVITY_TREE
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

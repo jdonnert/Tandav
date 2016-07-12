@@ -42,4 +42,5 @@ double Integer_Time2Integration_Time(const intime_t);
 intime_t Integration_Time2Integer_Time(const double);
 
 #endif // TIMESTEP_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

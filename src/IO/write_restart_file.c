@@ -12,4 +12,5 @@ void IO_Write_Restart_File()
 
 	return ;
 }
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

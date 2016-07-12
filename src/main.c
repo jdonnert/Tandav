@@ -196,4 +196,4 @@ static void preamble(int argc, char *argv[])
 }
 
 
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

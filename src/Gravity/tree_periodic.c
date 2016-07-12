@@ -453,4 +453,5 @@ static void interact_with_ewald_cube (const Float * dr, const Float mass)
 #undef N_EWALD
 
 #endif
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

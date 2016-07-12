@@ -580,4 +580,5 @@ void test_tree (struct FMM_Node f, int *leaf2part, int *leaf2node,
 }
 
 #endif // GRAVITY_FMM
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

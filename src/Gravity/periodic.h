@@ -18,4 +18,6 @@ static inline void Ewald_Potential(const Float dr[3], Float p[1]) {};
 #endif // PERIODIC && GRAVITY && GRAVITY_POTENTIAL
 
 #endif // GRAVITY_PERIODIC_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

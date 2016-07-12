@@ -143,4 +143,4 @@ static bool test_for_stop_file()
 	return endrun;
 }
 
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

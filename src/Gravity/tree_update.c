@@ -127,4 +127,5 @@ void Gravity_Tree_Update_Drift(const double dt)
 #endif // GRAVITY_TREE
 
 
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

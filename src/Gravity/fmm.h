@@ -69,4 +69,5 @@ static inline void Gravity_FMM_Update_Drift(const double dt) {};
 #endif // GRAVITY && GRAVITY_FMM
 
 #endif // FMM_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

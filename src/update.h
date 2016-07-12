@@ -32,4 +32,5 @@ enum Update_Parameters {
 void Update(enum Update_Parameters stage);
 
 #endif // UPDATE_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

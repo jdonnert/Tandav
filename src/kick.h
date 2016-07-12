@@ -11,4 +11,5 @@ void Kick_Second_Halfstep();
 extern double Particle_Kick_Step(const intime_t, const intime_t);
 
 #endif // KICK_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

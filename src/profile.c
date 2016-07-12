@@ -238,4 +238,5 @@ static double measure_time()
 {
 	return MPI_Wtime(); // [s]
 }
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

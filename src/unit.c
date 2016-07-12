@@ -108,4 +108,5 @@ double Thermal_Energy_Density_Cgs(const int ipart)
 {
 	return 1;
 }
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

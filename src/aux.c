@@ -298,4 +298,4 @@ void Reorder_Array_Char(const size_t nBytes, const size_t n,
 	return ;
 }
 
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

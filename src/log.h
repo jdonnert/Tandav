@@ -15,4 +15,5 @@ void Init_Logs();
 void Finish_Logs();
 
 #endif // LOG_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

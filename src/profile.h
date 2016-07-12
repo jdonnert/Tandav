@@ -13,4 +13,5 @@ void Write_Logs();
 double Runtime();
 
 #endif // PROFILE_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

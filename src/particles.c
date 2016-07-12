@@ -240,4 +240,4 @@ char * Select_Particle(const size_t field, const int comp, const int ipart)
 	return *result + ipart*P_Fields[field].Bytes;
 }
 
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

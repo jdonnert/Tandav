@@ -92,4 +92,5 @@ static inline void Gravity_Tree_Periodic(const bool tmp) {};
 #endif // GRAVITY && GRAVITY_TREE && PERIODIC
 
 #endif // GRAVITY_TREE_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

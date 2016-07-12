@@ -27,4 +27,5 @@ shortKey Peano2Short_Key(const peanoKey pkey);
 void Test_Peanokey();
 
 #endif // PEANO_H
-Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
+
+// Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

@@ -83,6 +83,10 @@ void Update(enum Update_Parameters stage)
 
 		break;
 
+	case RESTART_CONTINUE:
+
+		break;
+
 	default:
 		Assert(false, "Update stage %d not handled", stage);
 	}

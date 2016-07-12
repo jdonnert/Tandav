@@ -55,11 +55,11 @@ int main(int argc, char *argv[])
 
 		Update(RESTART_CONTINUE);
 
-		goto Restart_Continue; // hop !
+		goto Restart_Continue; // hop into main loop !
 	}
 
 	Update(BEFORE_MAIN_LOOP);
-	
+
 	while (! Time_Is_Up()) { // run Forest run !
 
 		Update(BEFORE_STEP);
@@ -129,16 +129,17 @@ static void preamble(int argc, char *argv[])
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
 	Assert(provided == MPI_THREAD_MULTIPLE,
-		   "MPI thread multiple not supported, have %d :-(", provided);
+		   "MPI thread multiple not supported by this MPI implementation. "
+		   "Use a different one (e.g. MVAPICH)");
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &Task.Rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &NRank);
 
-	MPI_Is_thread_main((int *) &Task.Is_Thread_Main);
-
 	#pragma omp parallel
 	{
 	
+	MPI_Is_thread_main((int *) &Task.Is_Thread_Main);
+
 	#pragma omp single
 	{
 	

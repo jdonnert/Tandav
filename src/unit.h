@@ -34,3 +34,4 @@ double Thermal_Energy_Density_Cgs(const int ipart);
 double Acceleration_Physical(const int ipart);
 
 #endif // UNIT_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

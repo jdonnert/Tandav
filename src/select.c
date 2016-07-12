@@ -182,3 +182,4 @@ void test_median()
 
 	return ;
 }
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

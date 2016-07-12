@@ -67,3 +67,4 @@ static void check_total_momentum(const bool show_change)
 	return ;
 }
 #endif
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

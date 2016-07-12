@@ -616,3 +616,4 @@ static int safe_fread(void * restrict data, size_t size, size_t nWanted,
 }
 
 #undef SKIP_FORTRAN_RECORD
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

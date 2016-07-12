@@ -85,3 +85,4 @@ static void print_statistics(FILE * stream)
 
 	return ;
 }
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

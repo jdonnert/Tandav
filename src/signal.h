@@ -23,3 +23,4 @@ extern struct Simulation_Signals { // communicate an event across the code
 #pragma omp threadprivate(Sig)  // the compiler hates this to be public
 
 #endif // SIGNAL_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

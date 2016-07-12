@@ -17,3 +17,4 @@ void Qsort_Index(size_t *perm, void * data, size_t ndata, size_t size,
 void test_sort();
 
 #endif // SORT_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

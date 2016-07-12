@@ -79,3 +79,4 @@ double Critical_Density(double a) // Mo+ eq. 3.63
 }
 
 #endif // COMOVING
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

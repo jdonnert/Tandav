@@ -169,3 +169,4 @@ static void find_momentum(double mom_out[3])
 
 	return ;
 }
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

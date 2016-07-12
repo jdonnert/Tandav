@@ -59,3 +59,4 @@ struct Constants_In_Code_Units {
 void Init_Constants();
 
 #endif // CONSTANTS_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

@@ -286,3 +286,4 @@ extern double Comoving_VelDisp_Timestep_Constraint(const double dt_max_ext)
 }
 
 #endif // COMOVING
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

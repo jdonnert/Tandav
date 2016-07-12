@@ -461,3 +461,4 @@ static double compute_ewald_potential(const double r[3])
 }
 
 #endif // GRAVITY && PERIODIC
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

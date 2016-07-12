@@ -81,3 +81,4 @@ double Particle_Kick_Step(const intime_t it_curr, const intime_t it_next)
 }
 
 #endif // ! COMOVING
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

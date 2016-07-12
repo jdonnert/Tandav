@@ -11,3 +11,4 @@
 void Setup_Modules();
 
 #endif // SETUP_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

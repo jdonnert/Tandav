@@ -36,3 +36,4 @@ static inline void Init_Cosmology() {};
 #endif // ! COMOVING
 
 #endif // COSMOLOGY_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

@@ -9,7 +9,7 @@
 #define N_SHORT_BITS (sizeof(shortKey)*CHAR_BIT)
 #define N_SHORT_TRIPLETS (N_SHORT_BITS/3)
 
-#define DELTA_PEANO_BITS (N_PEANO_BITS - N_SHORT_BITS) 
+#define DELTA_PEANO_BITS (N_PEANO_BITS - N_SHORT_BITS - 3) 
 
 void Sort_Particles_By_Peano_Key();
 void Reverse_Peano_Keys();
@@ -27,3 +27,4 @@ shortKey Peano2Short_Key(const peanoKey pkey);
 void Test_Peanokey();
 
 #endif // PEANO_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

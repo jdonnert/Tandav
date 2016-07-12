@@ -43,7 +43,6 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 	print, 'z_min z_max', minmax(pos[2,*])
 	print, 'boxsize', boxsize
 
-	plot, pos[0,*], pos[1,*], /iso, psym=3
 
 	; velocities
 
@@ -61,7 +60,7 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
  			* hernquist_distribution_function(Emax, a_hernq, mass)
 
  		while 1 do begin ; rejection sampling
-	
+
  			lower_bound = qmax * randomu(seed)
 
  			v = vmax * randomu(seed)
@@ -74,7 +73,7 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
  			if q ge lower_bound then $
  				break
  		end
- 
+
  		theta = acos(2 * randomu(seed) - 1)
  		phi =  2 * !pi * randomu(seed)
 
@@ -82,9 +81,12 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
  		vel[1,i] = v * sin(theta) * sin(phi)
  		vel[2,i] = v * cos(theta)
  	end
-	
+
+
 	if keyword_set(periodic) then $
 		pos[*,*] += boxsize / 2
+
+	plot, pos[0,*], pos[1,*], /iso, psym=3
 
 	; output
 

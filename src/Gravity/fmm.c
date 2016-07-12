@@ -37,7 +37,7 @@ void Gravity_FMM_Setup()
 	omp_init_lock(&NNodes_Lock);
 	omp_init_lock(&NLeafs_Lock);
 
-	Max_Nodes = 0.4 * Task.Npart_Total;
+	Max_Nodes = 0.8 * Task.Npart_Total;
 
 	Leaf2Part = Malloc(Task.Npart_Total * sizeof(*Leaf2Part), "Leaf2Part");
 	Leaf2Node = Malloc(Task.Npart_Total * sizeof(*Leaf2Node), "Leaf2Node");
@@ -120,3 +120,4 @@ bool Is_Top_Node(const struct FMM_Node fmm, const int node)
 }
 
 #endif // GRAVITY_FMM
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

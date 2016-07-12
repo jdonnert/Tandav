@@ -7,3 +7,4 @@ struct Restart_Parameters {
 } Restart;
 
 #endif // RESTART_FILE_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

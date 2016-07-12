@@ -1,7 +1,7 @@
 #include "domain.h"
 
 #define MIN_LEVEL 0 // decompose at least 8^MIN_LEVEL domains downward
-
+#define DEBUG_DOMAIN
 static void set_computational_domain();
 static void find_domain_center(double Center_Out[3]);
 static void find_largest_particle_distance(double *);
@@ -886,7 +886,7 @@ static void print_domain_decomposition (const int max_level)
 				D[i].Bunch.First_Part, D[i].Bunch.Target, D[i].Bunch.Level,
 				D[i].Bunch.Cost, csum);
 
-		Print_Int_Bits64(D[i].Bunch.Key);
+		Print_Int_Bits(D[i].Bunch.Key, 32, 2);
 	}
 
 	Assert(sum == Sim.Npart_Total, "More or less particles in D than in Sim");
@@ -908,3 +908,4 @@ static void print_domain_decomposition (const int max_level)
 	return ;
 }
 #endif // DEBUG_DOMAIN
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

@@ -91,3 +91,4 @@ void Update(enum Update_Parameters stage)
 }
 
 
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

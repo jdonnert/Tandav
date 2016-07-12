@@ -82,3 +82,4 @@ unsigned int Npart_In_Block(const int i, const int *nPart)
 
 	return list[j];
 }
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

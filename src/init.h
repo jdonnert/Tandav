@@ -16,3 +16,4 @@
 void Init(int argc, char *argv[]);
 
 #endif
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

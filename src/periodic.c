@@ -84,3 +84,4 @@ void Periodic_Nearest(Float dr[3])
 	return ;
 }
 #endif // PERIODIC
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

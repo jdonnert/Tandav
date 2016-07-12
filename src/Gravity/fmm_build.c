@@ -21,7 +21,7 @@ static void fmm_p2m(const int, int, const int, struct FMM_Node);
 static bool particle_is_inside_node(const peanoKey, const int);
 
 void test_tree (struct FMM_Node f, int *leaf2part, int *leaf2node,
-				const int nLeafs, const int nNodes);
+				const int nLeafs, const int nNodes, const int tnode);
 
 static struct FMM_Node fmm = { NULL }; // we build the tree in here
 #pragma omp threadprivate(fmm)
@@ -42,7 +42,7 @@ void Gravity_FMM_Build()
 	#pragma omp single
 	NNodes = 0;
 
-	size_t nBytes = Task.Npart_Total_Max*sizeof(int);
+	size_t nBytes = 2 * Task.Npart_Total_Max*sizeof(int);
 	int *leaf2part = Get_Thread_Safe_Buffer(nBytes);
 	int *leaf2node = leaf2part + (nBytes >> 1);
 
@@ -53,12 +53,13 @@ void Gravity_FMM_Build()
 		#pragma omp single
 		prepare_fmm();
 
-		#pragma omp for
+		#pragma omp single // for
 		for (int i = 0; i < NTop_Nodes; i++) {
 			
-			if ((D[i].TNode.Target != -Task.Rank-1) &&  // on other MPI rank
-				(D[i].TNode.Target < 0)) 				// not build before
-				continue;
+printf("Tnode level = %d first_part =%d %d\n", D[i].TNode.Level, D[i].TNode.First_Part, NTop_Nodes);
+
+		//	if (D[i].TNode.Target != -Task.Rank-1) // on other task
+		//		continue;
 
 			int nNodes = 0;
 			int offset = 0;
@@ -105,6 +106,7 @@ void Gravity_FMM_Build()
 
 			/* from here on D.TNode.First_Leaf union points to leafs */
 
+printf("Tnode level = %d first_part =%d \n", D[i].TNode.Level, D[i].TNode.First_Part);
 			D[i].TNode.Target = offset;
 			D[i].TNode.First_Leaf = copy_leafs(nLeafs, leaf2part, leaf2node);
 			D[i].TNode.NLeafs = nLeafs;
@@ -115,8 +117,8 @@ void Gravity_FMM_Build()
 			D[i].TNode.Dp[0] = fmm.Dp[0][0];
 			D[i].TNode.Dp[1] = fmm.Dp[1][0];
 			D[i].TNode.Dp[2] = fmm.Dp[2][0];
-
-			test_tree(fmm, leaf2part, leaf2node, nLeafs, nNodes); // DEBUG_FMM
+			
+			test_tree(fmm, leaf2part, leaf2node, nLeafs, nNodes,i); //DEBUG_FMM
 		} // for i
 
 	} while (NNodes >= Max_Nodes); // while tree mem too small
@@ -137,11 +139,26 @@ static void prepare_fmm()
 			"max %10d nodes, ratio %4g \n", Task.Rank, Task.Thread_ID,
 			Max_Nodes * sizeof_FMM/1024.0/1024.0, Max_Nodes,
 			(double) Max_Nodes/Task.Npart_Total);
+
+		for (int i = 0; i < NTop_Nodes; i++) { // restore top nodes
+			
+			if (D[i].TNode.Target < 0) // untouched or other rank
+				continue;
+			
+			D[i].TNode.Target = -Task.Rank - 1;
+
+			int first_leaf = D[i].TNode.First_Leaf;
+			D[i].TNode.First_Part = Leaf2Part[first_leaf];
+
+		}
+			memset(Leaf2Part, 0, Task.Npart_Total * sizeof(*Leaf2Part));
+			memset(Leaf2Node, 0, Task.Npart_Total * sizeof(*Leaf2Node));
 	}
 
 	Gravity_FMM_Free(FMM);
 
 	FMM = Alloc_FMM_Nodes(Max_Nodes);
+
 
 	Print_Memory_Usage();
 
@@ -470,12 +487,17 @@ static void fmm_p2m(const int beg, int node, const int npart,
 
 
 void test_tree (struct FMM_Node f, int *leaf2part, int *leaf2node,
-				const int nLeafs, const int nNodes)
+				const int nLeafs, const int nNodes, const int tnode)
 {
 #ifdef DEBUG_FMM
-	printf("testing tree for consistency ... ");
+	printf("testing tree for consistency ... \n");
 
-	/*for (int k =0;  k < nNodes; k++) {
+	int first_part = leaf2part[0];
+	
+	/*for (int i = first_part; i < first_part+20; i++)
+		Print_Int_Bits(P.Key[i], 64, 0);
+
+	for (int k =0;  k < nNodes; k++) {
 
 		printf("%0d DNext=%d DUp=%d npart=%d lvl=%d key=%d%d%d ",
 			k, f.DNext[k], f.DUp[k],f.Npart[k],
@@ -495,21 +517,18 @@ void test_tree (struct FMM_Node f, int *leaf2part, int *leaf2node,
 	int is_topnode = ((f.Bitfield[0] >> 9) & (1));
 
 	Assert(is_topnode == 1, "Node 0 isn't marked as topnode");
-
-	int tnode = f.DUp[0];
+	Assert(tnode == f.DUp[0], "TNode idx seems wrong");
 
 	Assert(D[tnode].TNode.NLeafs == nLeafs, "nLeafs in tnode wrong %d - %d"
 			, D[tnode].TNode.NLeafs, nLeafs);
 
 	Assert(D[tnode].TNode.Mass == f.Mass[0], "Topnode mass wrong node=%d",0);
-	Assert(D[tnode].TNode.First_Leaf == f.Leaf_Ptr[0],
-			"Topnode leaf wrong node=%d", 0);
 	Assert(D[tnode].TNode.CoM[0] == f.CoM[0][0], "CoM0 wrong %d", 0);
 	Assert(D[tnode].TNode.CoM[1] == f.CoM[1][0], "CoM1 wrong %d", 0);
 	Assert(D[tnode].TNode.CoM[2] == f.CoM[2][0], "CoM2 wrong %d", 0);
 
 	for (int node = 1; node < nNodes; node++) {
-
+		
 		int lvl = (f.Bitfield[node] >> 3) & 63;
 		int keyfrag = f.Bitfield[node] & 0x7;
 
@@ -561,3 +580,4 @@ void test_tree (struct FMM_Node f, int *leaf2part, int *leaf2node,
 }
 
 #endif // GRAVITY_FMM
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

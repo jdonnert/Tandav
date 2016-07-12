@@ -421,3 +421,4 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node)
 }
 
 #endif // GRAVITY_TREE
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

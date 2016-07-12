@@ -24,3 +24,4 @@ void Init_Constants()
 
 	return ;
 }
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

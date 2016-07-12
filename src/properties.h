@@ -15,3 +15,4 @@ struct Simulation_Properties {
 } Prop;
 
 #endif // PROPERTIES_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

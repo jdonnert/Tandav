@@ -18,3 +18,4 @@ static inline void Periodic_Setup() {};
 #endif //PERIODIC
 
 #endif // PERIODIC_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

@@ -10,3 +10,4 @@ Float Select(const int kth, const int NData, Float *Data);
 void test_median();
 
 #endif // SELECT_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

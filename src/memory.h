@@ -14,7 +14,7 @@
 #define Malloc(x,y) malloc(x)
 #define Realloc(x,y,z) realloc(x,y)
 #define Free(x) free(x)
-#define Print_Memory_Usage Print_Memory_Usage_Info(__FILE__, __func__,  __LINE__)
+#define Print_Memory_Usage() 
 #endif // MEMORY_MANAGER
 
 void *Malloc_info(const char*,const char*,const int, size_t, const char*);
@@ -29,3 +29,4 @@ void Get_Free_Memory(size_t *total, size_t *largest, size_t *smallest);
 void *Get_Thread_Safe_Buffer (size_t nBytes);
 
 #endif // MEMORY_H
+Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

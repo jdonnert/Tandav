@@ -12,7 +12,7 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 		boxsize = 150000D
 
 	mass = 1d15 * Msol / tandav.mass ; code units 
-	a_hernq = 924D 		
+	a_hernq = 925D 		
 
 	mpart = mass / npart
 
@@ -58,7 +58,7 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
  		Emax = -pot
  		qmax = 4*!pi*vmax^2/mass $
  			* hernquist_distribution_function(Emax, a_hernq, mass)
-
+print, Emax, qmax, hernquist_distribution_function(Emax, a_hernq, mass)
  		while 1 do begin ; rejection sampling
 
  			lower_bound = qmax * randomu(seed)

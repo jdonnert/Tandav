@@ -6,9 +6,7 @@ static void accel_gravity();
 static inline void gravity_accel() {};
 #endif // GRAVITY
 
-/* 
- * Collect all accelerations on particles.
- */
+/* Collect all accelerations on particles. */
 
 void Compute_Acceleration()
 {

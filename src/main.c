@@ -33,10 +33,8 @@
 
 static void preamble(int argc, char *argv[]);
 
-/* 
- * This exposes the time integration, as well as the snapshot and restart I/O
- * of the code. We use the HOLD integrator from Pelupessy+ 2012. 
- */
+/* This exposes the time integration, as well as the snapshot and restart I/O
+ * of the code. We use the HOLD integrator from Pelupessy+ 2012. */
 
 int main(int argc, char *argv[])
 {
@@ -55,7 +53,7 @@ int main(int argc, char *argv[])
 
 		Update(RESTART_CONTINUE);
 
-		goto Restart_Continue; // hop into main loop !
+		goto Restart_Continue; // hop into main loop
 	}
 
 	Update(BEFORE_MAIN_LOOP);

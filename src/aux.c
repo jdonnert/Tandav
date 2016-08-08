@@ -1,9 +1,7 @@
 #include "aux.h"
 
-/*
- * Show bits of an unsigned integer in triplets, 'delta' controls the dot 
- * offset. Has some wrappers associated to print 128, 64, 32 bit peano keys.
- */
+/* Show bits of an unsigned integer in triplets, 'delta' controls the dot 
+ * offset. Has some wrappers associated to print 128, 64, 32 bit peano keys. */
 
 void Print_Int_Bits(const __uint128_t val, const int length, const int delta)
 {
@@ -42,9 +40,7 @@ void Print_Int_Bits128 (const __uint128_t val)
 	return Print_Int_Bits(val, 128, 2);
 }
 
-/*
- * Error Handling, we use variable arguments to print informative messages
- */
+/* Error Handling */
 
 void Assert_Info(const char *func, const char *file, int line,
 		int64_t expr, const char *errmsg, ...)
@@ -98,9 +94,7 @@ void Warn_Info(const char *func, const char *file, int line,
     return;
 }
 
-/* 
- * Branch free Min/Max functions for signed/unsigned 64/32 bit integers 
- */
+/* Branch free Min/Max functions for signed/unsigned 64/32 bit integers */
 
 int32_t imin(const int32_t x, const int32_t y)
 {

@@ -2,6 +2,7 @@
 
 #define MIN_LEVEL 0 // decompose at least 8^MIN_LEVEL domains downward
 #define DEBUG_DOMAIN
+
 static void set_computational_domain();
 static void find_domain_center(double Center_Out[3]);
 static void find_largest_particle_distance(double *);
@@ -83,7 +84,7 @@ void Domain_Decomposition()
 	int cnt = 0;
 
 	for (;;) {
-
+break;
 		#pragma omp single
 		Max_Level = remove_empty_bunches();
 
@@ -115,7 +116,7 @@ void Domain_Decomposition()
 	} // forever
 
 	//remove_excess_bunches();
-
+	
 	print_domain_decomposition(Max_Level); // DEBUG_DOMAIN
 
 	rprintf("\nDomain: After %d iterations ...\n"

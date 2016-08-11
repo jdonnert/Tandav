@@ -98,32 +98,44 @@ struct FMM_Node Alloc_FMM_Nodes(const int N)
 {
 	struct FMM_Node f = { NULL }; // a collection of pointers
 
-	f.DNext = Malloc(N*sizeof(f.DNext), "FMM.DNext");
-	f.Bitfield = Malloc(N*sizeof(f.Bitfield), "FMM.Bitfield");
-	f.DUp = Malloc(N*sizeof(f.DUp), "FMM.DUp");
-	f.Npart = Malloc(N*sizeof(f.Npart), "FMM.Npart");
-	f.Rcrit = Malloc(N*sizeof(f.Rcrit), "FMM.Rcrit");
+	f.DNext = Malloc(N*sizeof(*f.DNext), "FMM.DNext");
+	f.Bitfield = Malloc(N*sizeof(*f.Bitfield), "FMM.Bitfield");
+	f.DUp = Malloc(N*sizeof(*f.DUp), "FMM.DUp");
+	f.Npart = Malloc(N*sizeof(*f.Npart), "FMM.Npart");
+	f.Rcrit = Malloc(N*sizeof(*f.Rcrit), "FMM.Rcrit");
 	
 	for (int i = 0; i < NM; i++) 
-		f.M[i] = Malloc(N*sizeof(f.Mass), "FMM Multipoles");
+		f.M[i] = Malloc(N*sizeof(*f.Mass), "FMM Multipoles");
 
 	for (int i = 0; i < NFN; i++) 
-		f.Fn[i] = Malloc(N*sizeof(f.Fn), "FMM Field Tensors");
+		f.Fn[i] = Malloc(N*sizeof(*f.Fn), "FMM Field Tensors");
 
-	f.CoM[0] = Malloc(N*sizeof(f.CoM[0]), "FMM.CoM[0]");
-	f.CoM[1] = Malloc(N*sizeof(f.CoM[1]), "FMM.CoM[1]");
-	f.CoM[2] = Malloc(N*sizeof(f.CoM[2]), "FMM.CoM[2]");
+	f.CoM[0] = Malloc(N*sizeof(*f.CoM[0]), "FMM.CoM[0]");
+	f.CoM[1] = Malloc(N*sizeof(*f.CoM[1]), "FMM.CoM[1]");
+	f.CoM[2] = Malloc(N*sizeof(*f.CoM[2]), "FMM.CoM[2]");
 
-	f.Dp[0] = Malloc(N*sizeof(f.Dp[0]), "FMM.Dp[0]");
-	f.Dp[1] = Malloc(N*sizeof(f.Dp[1]), "FMM.Dp[1]");
-	f.Dp[2] = Malloc(N*sizeof(f.Dp[2]), "FMM.Dp[2]");
+	f.Dp[0] = Malloc(N*sizeof(*f.Dp[0]), "FMM.Dp[0]");
+	f.Dp[1] = Malloc(N*sizeof(*f.Dp[1]), "FMM.Dp[1]");
+	f.Dp[2] = Malloc(N*sizeof(*f.Dp[2]), "FMM.Dp[2]");
 
 #ifdef FMM_SAVE_NODE_POS
-	f.Pos[0] = Malloc(N*sizeof(f.Pos[0]), "FMM.Pos[0]");
-	f.Pos[1] = Malloc(N*sizeof(f.Pos[1]), "FMM.Pos[1]");
-	f.Pos[2] = Malloc(N*sizeof(f.Pos[2]), "FMM.Pos[2]");
+	f.Pos[0] = Malloc(N*sizeof(*f.Pos[0]), "FMM.Pos[0]");
+	f.Pos[1] = Malloc(N*sizeof(*f.Pos[1]), "FMM.Pos[1]");
+	f.Pos[2] = Malloc(N*sizeof(*f.Pos[2]), "FMM.Pos[2]");
 #endif
 
+#ifndef MEMORY_MANAGER
+	memset(f.DNext, 0, N*sizeof(*f.DNext));
+	memset(f.Npart, 0, N*sizeof(*f.Npart));
+
+	memset(f.CoM[0], 0, N*sizeof(*f.CoM[0]));
+	memset(f.CoM[1], 0, N*sizeof(*f.CoM[1]));
+	memset(f.CoM[2], 0, N*sizeof(*f.CoM[2]));
+
+	memset(f.Dp[0], 0, N*sizeof(*f.Dp[0]));
+	memset(f.Dp[1], 0, N*sizeof(*f.Dp[1]));
+	memset(f.Dp[2], 0, N*sizeof(*f.Dp[2]));
+#endif
 	return f;
 }
 
@@ -163,12 +175,17 @@ struct FMM_Node Point_FMM_Nodes(const int i)
 
 bool Is_Top_Node(const struct FMM_Node fmm, const int node)
 {
-	return (bool) ((fmm.Bitfield[node] & (1 << 9)) >> 9);
+	return (bool) ((fmm.Bitfield[node] >> 9) & 0x1);
 }
 
 int Level(const struct FMM_Node fmm, const int node)
 {
-	return (fmm.Bitfield[node] >> 3) & 0x7F;
+	return (fmm.Bitfield[node] >> 3) & 0x3F;
+}
+
+int Triplet(const struct FMM_Node fmm, const int node)
+{
+	return fmm.Bitfield[node] & 0x7;
 }
 
 #endif // GRAVITY_FMM

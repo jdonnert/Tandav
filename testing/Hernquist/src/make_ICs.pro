@@ -1,4 +1,7 @@
-pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
+pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize, fname=fname
+
+	print, "Generate DM only "
+	print, "make_ICs, periodic=periodic, npart=npart, boxsize=boxsize, fname=fname"
 
 	tandav = obj_new('TANDAVCODEOBJECT')
 
@@ -21,6 +24,7 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
 	pos = make_array(3, npart, /double, val=0)
 
 	qmax = boxsize^2/(boxsize+a_hernq)^2
+	print, "qmax = ", qmax
 
 	sqrt_q = sqrt(randomu(seed, npart)) * qmax
 
@@ -58,8 +62,8 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize
  		Emax = -pot
  		qmax = 4*!pi*vmax^2/mass $
  			* hernquist_distribution_function(Emax, a_hernq, mass)
-print, Emax, qmax, hernquist_distribution_function(Emax, a_hernq, mass)
- 		while 1 do begin ; rejection sampling
+
+		while 1 do begin ; rejection sampling
 
  			lower_bound = qmax * randomu(seed)
 
@@ -108,7 +112,7 @@ print, Emax, qmax, hernquist_distribution_function(Emax, a_hernq, mass)
 	print, 'IC File', fname
 
 	tandav.Write_Head, fname, head
-	
+
 	tandav.Add_Block, fname, float(pos), 'POS'
 	tandav.Add_Block, fname, float(vel), 'VEL'
 	tandav.Add_Block, fname, ulong(lindgen(npart)+1), 'ID'

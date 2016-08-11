@@ -49,7 +49,7 @@ GRAVITY_FMM                  // Fast Multipole Method + Dual Tree Traversal
 TREE_OPEN_PARAM_BH 0.1       // [0.1] Barnes & Hut opening criterion param
 TREE_OPEN_PARAM_REL 0.02     // [0.02] Relative opening criterion param
 
-FMM_OPEN_PARAM 0.5			// FMM mass dependent criterion !=1 (Dehnen 2000, eq.)
+FMM_OPEN_PARAM 0.5			// FMM mass dependent criterion <! 1 (Dehnen 2000, eq.)
 
 #OUTPUT_GRAV_POTENTIAL        // gravitational potential GPOT
 

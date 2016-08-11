@@ -64,8 +64,10 @@ void *Malloc_info(const char* file, const char* func, const int line,
 
 	memset(Mem_Block[i].Start, 0, Mem_Block[i].Size);
 
+#ifdef DEBUG
 	Assert((size_t)Mem_Block[i].Start % MEM_ALIGNMENT == 0, 
 			"Memory Block %i not %zu byte aligned", i, MEM_ALIGNMENT);
+#endif
 
 	return Mem_Block[i].Start;
 }

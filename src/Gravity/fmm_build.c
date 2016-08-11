@@ -19,6 +19,7 @@ static int fmm_build_branch(const int, const int, const int, const int,
 							struct FMM_Node, int);
 static void fmm_p2m(const int, int, const int, struct FMM_Node);
 static bool particle_is_inside_node(const peanoKey, const int);
+static Float find_leaf_rmax(const int, const int, const int, struct FMM_Node);
 static void set_critical_radius();
 
 static void test_tree (struct FMM_Node f, int *leaf2part, int *leaf2node,
@@ -49,7 +50,7 @@ void Gravity_FMM_Build_P2M()
 	int *leaf2part = Get_Thread_Safe_Buffer(nBytes);
 	int *leaf2node = leaf2part + (nBytes >> 1);
 
- 	do {
+ 	for (;;) {
 
 		#pragma omp barrier
 		
@@ -59,8 +60,8 @@ void Gravity_FMM_Build_P2M()
 		#pragma omp single // task for
 		for (int i = 0; i < NTop_Nodes; i++) {
 			
-printf("Tnode level = %d first_part =%d %d\n", 
-D[i].TNode.Level, D[i].TNode.First_Part, NTop_Nodes);
+printf("Tnode level = %d first_part =%d ntop=%d npart=%d \n", 
+D[i].TNode.Level, D[i].TNode.First_Part, NTop_Nodes, D[i].TNode.Npart);
 
 		//	if (D[i].TNode.Target != -Task.Rank-1) // on other task
 		//		continue;
@@ -76,29 +77,37 @@ D[i].TNode.Level, D[i].TNode.First_Part, NTop_Nodes);
 			int nLeafs = 0;
 
 			const int last_part = D[i].TNode.First_Part + D[i].TNode.Npart-1;
-			const int min_lvl = D[i].TNode.Level + 1;
+			const int min_level = D[i].TNode.Level + 1;
 
 			int ipart = D[i].TNode.First_Part;
-			int level = min_lvl;
+			int level = min_level;
 
 			while (ipart <= last_part) { // all particles in the top node
+printf("%d \n", ipart);
+//printf("\nipart=%d leaf=%d \n",  ipart, nLeafs);
 
-				int npart = find_leaf_size(ipart, last_part, level);
+				int npart = find_leaf_size(ipart, last_part, level); // !> 0
 
-				level = find_next_level(ipart+npart, min_lvl); // npart > 0
+				int level = find_next_level(ipart+npart, min_level);
 
-				nNodes = fmm_build_branch(ipart, i, npart, level,
-										  fmm, nNodes); // leaf now at end
+				nNodes = fmm_build_branch(ipart, i, npart, level, fmm, nNodes); 
 
-				int node = nNodes - 1;
+				int node = nNodes - 1; // position of new leaf
 
 				fmm.Leaf_Ptr[node] = -nLeafs - 1; // insert leaf
 
-				leaf2node[nLeafs] = node + offset; // correct offset
+				leaf2node[nLeafs] = node + offset; // correct fmm = FMM[offset]
 				leaf2part[nLeafs] = ipart;
 
-//				#pragma omp task untied
-				fmm_p2m(ipart, nNodes+offset, npart, fmm);
+			//	#pragma omp task untied
+			//	fmm_p2m(ipart, node, npart, fmm);
+
+//printf("npart=%d lvl=%d node=%d nnodes=%d \n", 
+//		npart, level,  node, nNodes);
+
+
+//if (ipart >= 180)
+//exit(0);
 
 				nLeafs++;
 
@@ -106,13 +115,17 @@ D[i].TNode.Level, D[i].TNode.First_Part, NTop_Nodes);
 
 			} // while ipart
 
+			leaf2part[nLeafs] = D[i].TNode.Npart;
+			leaf2node[nLeafs++] = nNodes;
+
 			fmm.DUp[0] = i; // points to topnode
 
 			/* from here on D.TNode.First_Leaf union points to leafs only */
-
-printf("Tnode level = %d first_part =%d \n", 
-D[i].TNode.Level, D[i].TNode.First_Part);
-
+//for (int j = 0; j < nNodes; j++) {
+//printf("j=%d nxt=%d np=%d Dup=%d trip=%d lvl=%d  ", j, fmm.DNext[j], fmm.Npart[j], fmm.DUp[j], Triplet(fmm, j), Level(fmm, j)); Print_Int_Bits(fmm.Bitfield[j], 32, 0);}
+//printf("Tnode level = %d first_part =%d \n", 
+//		D[i].TNode.Level, D[i].TNode.First_Part);
+			
 			D[i].TNode.Target = offset;
 			D[i].TNode.First_Leaf = copy_leafs(nLeafs, leaf2part, leaf2node);
 			D[i].TNode.NLeafs = nLeafs;
@@ -127,10 +140,12 @@ D[i].TNode.Level, D[i].TNode.First_Part);
 			test_tree(fmm, leaf2part, leaf2node, nLeafs, nNodes,i);//DEBUG_FMM
 		} // for i
 
-	} while (NNodes >= Max_Nodes);
+		if (NNodes < Max_Nodes) // build complete
+			break;
+	}
 
-	set_critical_radius();
 exit(0);
+	set_critical_radius();
 
 	Profile("Grav FMM Build");
 
@@ -225,7 +240,7 @@ static int find_leaf_size(const int ipart, const int last_part,
 	int lvl = 0;
 	int size = VECTOR_SIZE;
 
-	do {
+	do { // increase size until we fit (rare)
 
 		npart = 0;
 
@@ -262,8 +277,9 @@ static int find_leaf_size(const int ipart, const int last_part,
 
 		size++; // create leaf larger than VECTOR_SIZE
 
-	} while (lvl == max_lvl); // repeat until we fit
+	} while (lvl == max_lvl);
 
+#ifdef DEBUG
 	Assert(npart < 1024, 
 			"I found a very large leaf (npart=%d) at ipart=%d. "
 			"That means your simulation has a very large spatial "
@@ -271,6 +287,7 @@ static int find_leaf_size(const int ipart, const int last_part,
 			"of 8 away from the single precision limit and the "
 			"simulation becomes inaccurate ! Use DOUBLE_PRECISION to "
 			"speed up the computation and fix the issue", npart, ipart);
+#endif
 
 	return npart; // until first particle of next leaf
 }
@@ -329,10 +346,10 @@ static int fmm_build_branch(const int ipart, const int tnode,
 	int node = 0; // running node
 	int parent = 0;
 
-	while (lvl < leaf_lvl+1) { // build the complete branch
-
+	while (lvl <= leaf_lvl) { // build the complete branch
+		
 		if (node == nNodes) { // end of branch, create node & decline
-
+			
 			fmm.DUp[node] = node - parent;
 			fmm.Bitfield[node] = (lvl << 3) | ((key & 0x7)) ; // lvl < 2^6
 			fmm.Bitfield[node] |= (int)(node == 0) << 9; // mark topnode ?
@@ -346,13 +363,13 @@ static int fmm_build_branch(const int ipart, const int tnode,
 			parent = node;
 
 		} else if (particle_is_inside_node(key, fmm.Bitfield[node])) {
-
+			
 			lvl++; // decline
 			key >>= 3;
 			parent = node;
 
 		} else if (fmm.DNext[node] == 0) { // open new branch
-
+			
 			fmm.DNext[node] = nNodes - node;
 		}
 
@@ -412,7 +429,7 @@ static void set_node_position(const int ipart, const int node,
  * the leaf are constructed.  This is an O(n) operation
  * that vectorizes and can use fused multiply-add operations. Then the fmm 
  * branch is walked upwards from the leaf, adding the leaf values to the 
- * parent nodes. (Dehnen 2002, sect 3.1, Yokota 2012). */
+ * parent nodes. (Dehnen 2002, sect 3.1, 2.3, Yokota 2012). */
 
 static void fmm_p2m(const int beg, const int node, const int npart,
 					struct FMM_Node fmm)
@@ -440,39 +457,12 @@ static void fmm_p2m(const int beg, const int node, const int npart,
 	leaf_CoM[1] /= leaf_mass;
 	leaf_CoM[2] /= leaf_mass;
 
-	Float leaf_rmax2 = 0; // Rmax
 
-	for (int ipart = beg; ipart < end; ipart++) { 
-
-		Float dr[3] = { P.Pos[0][ipart] - leaf_CoM[0],
-						P.Pos[1][ipart] - leaf_CoM[1],
-						P.Pos[2][ipart] - leaf_CoM[2] };
-
-		Float r2 = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
-
-		leaf_rmax2 = fmax(r2, leaf_rmax2);
-	}
-	
-	
-	Float cellsize = Sim.Boxsize[0]/(1UL << Level(node));
-
-	int n[3] = { floor(P.Pos[0][beg] / cellsize),
-				 floor(P.Pos[1][beg] / cellsize),
-				 floor(P.Pos[2][beg] / cellsize) };
-
-	Float leaf_pos[3] = { (n[0]+0.5)*cellsize, 
-						  (n[1]+0.5)*cellsize, 
-						  (n[2]+0.5)*cellsize };
-
-	Float dr[3] = { leaf_node[0]-leaf_CoM[0], 
-					leaf_node[1]-leaf_CoM[1],
-					leaf_node[2]-leaf_CoM[2]};
-
-	Float fmm[node].Rcrit = fmin(SQRT(leaf_rmax2), cellsize/2);
+	int nstep = Level(fmm, node) + 1;
 
 	int i = node;
 
-	while (i > 0) { // upward pass, M2M
+	for (int step = 0; step < nstep; step++) { // upward pass, M2M
 
 		#pragma omp critical
 		{
@@ -502,7 +492,49 @@ static void fmm_p2m(const int beg, const int node, const int npart,
 		i -= fmm.DUp[i]; // walk up
 	}
 
+	fmm.Rcrit[node] = find_leaf_rmax(node, beg, end, fmm); // Rcrit later
+
 	return ;
+}
+
+/* Rmax for the MAC in M2L computation: Dehnen 2001, section 2.3.
+ * We save it in fmm.Rcrit and reconstruct theta later */
+
+static Float find_leaf_rmax(const int leaf, const int beg, const int end, 
+		struct FMM_Node fmm)
+{
+	Float leaf_rmax2 = 0;
+
+	for (int ipart = beg; ipart < end; ipart++) { 
+
+		Float dr[3] = { P.Pos[0][ipart] - fmm.CoM[0][leaf],
+						P.Pos[1][ipart] - fmm.CoM[1][leaf],
+						P.Pos[2][ipart] - fmm.CoM[2][leaf] };
+
+		Float r2 = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
+
+		leaf_rmax2 = fmax(r2, leaf_rmax2);
+	}
+	
+	Float cellsize = Sim.Boxsize[0]/(1ULL << Level(fmm, leaf));
+	
+	Float n[3] = { floor(P.Pos[0][beg] / cellsize),
+			       floor(P.Pos[1][beg] / cellsize),
+				   floor(P.Pos[2][beg] / cellsize) };
+
+	Float leaf_pos[3] = { (n[0]+0.5) * cellsize, 
+						  (n[1]+0.5) * cellsize, 
+						  (n[2]+0.5) * cellsize };
+
+	Float dr[3] = { leaf_pos[0] - fmm.CoM[0][leaf], 
+					leaf_pos[1] - fmm.CoM[1][leaf],
+					leaf_pos[2] - fmm.CoM[2][leaf] };
+
+	Float r2_corner = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
+
+	r2_corner *= cellsize/2;
+
+	return SQRT(fmin(leaf_rmax2, r2_corner));
 }
 
 /* find the critical radius (Dehnen 2002 eq. 10) for the mass dependent MAC */
@@ -510,7 +542,7 @@ static void fmm_p2m(const int beg, const int node, const int npart,
 static void set_critical_radius()
 {
 	#pragma omp for
-	for (int i = 0; i < NLeafs; i++) { // set rmax
+	for (int i = 0; i < NLeafs; i++) { // set rmax in internal nodes
 	
 		int run = Leaf2Node[i];
 
@@ -523,9 +555,9 @@ static void set_critical_radius()
 							FMM.CoM[1][child] - FMM.CoM[1][run], 
 							FMM.CoM[2][child] - FMM.CoM[2][run] };
 
-			Float r2 = SQRT(dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2]);
+			Float r2 = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
 
-			Float rmax = FMM[child].Rcrit + sqrt(r2);
+			Float rmax = FMM.Rcrit[child] + SQRT(r2);
 
 			#pragma omp critical
 			FMM.Rcrit[run] = fmax(FMM.Rcrit[run], rmax); // eq. 9
@@ -533,22 +565,26 @@ static void set_critical_radius()
 		} // while run
 	} // for i
 	
+	Assert(FMM_OPEN_PARAM < 1, "FMM_OPEN_PARAM <= 0.5 recommended (Dehnen 02)");
+
 	const Float theta_min = FMM_OPEN_PARAM;
 
 	const Float fac = pow(theta_min, FMM_EXP_ORDER+2)/p2(1-theta_min);
 
 	const Float mtot = Prop.Total_Mass;
+	const Float p = FMM_EXP_ORDER;
 
 	#pragma omp for
 	for (int n = 0; n < NNodes; n++) { // find theta & Rcrit, eq. 13
 	
 		Float theta = theta_min;
-		Float coeff = fac * pow(FMM[n].Mass/mtot, 1.0/3.0)
+		Float coeff = fac * pow(FMM.Mass[n]/mtot, -1.0/3.0);
 		
 		for (int i = 0; i < 5; i++) { // Newton-Raphson
 	
-			Float f = 1;
-			Float df = 1;
+			Float theta_p = pow(theta,p);
+			Float f = theta_p*p2(theta) - coeff*(1-2*theta+p2(theta));
+			Float df = (p+2)*theta_p*theta + 2*coeff * (1+theta);
 			
 			theta -= f/df;
 		}
@@ -556,7 +592,6 @@ static void set_critical_radius()
 		FMM.Rcrit[n] /= theta;
 	}
 	
-
 	return ;
 }
 
@@ -648,7 +683,8 @@ static void test_tree(struct FMM_Node f, int *leaf2part, int *leaf2node,
 		}
 	}
 
-	printf("done \n");
+	printf("%d Nodes %d leafs %d particles,  done \n", 
+			leaf2node[nLeafs-1],  D[tnode].TNode.NLeafs, leaf2part[nLeafs-1]);
 #endif
 	return ;
 }

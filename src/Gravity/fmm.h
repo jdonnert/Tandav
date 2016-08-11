@@ -69,7 +69,8 @@ double Epsilon[NPARTYPE], // softening
 	   Epsilon3[NPARTYPE];
 
 bool Is_Top_Node(const struct FMM_Node fmm, const int node);
-bool Level(const struct FMM_Node fmm, const int node);
+int Level(const struct FMM_Node fmm, const int node);
+int Triplet(const struct FMM_Node fmm, const int node);
 void Free_Gravity_FMM(struct FMM_Node);
 struct FMM_Node Alloc_FMM_Nodes(const int N);
 struct FMM_Node Point_FMM_Nodes(const int i);

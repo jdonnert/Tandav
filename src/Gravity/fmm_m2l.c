@@ -42,15 +42,15 @@ void Gravity_FMM_M2L()
 		if (Level(FMM, src) > Level(FMM, dst))
 			parent = src;
 
-		int node = parent + 1;
-		int sibling = parent + imax(1, FMM.DNext[dst]);
+		int run = parent + 1; // leaf is never pushed
+		int sibling = parent + FMM.DNext[dst];
 			
-		while (node < sibling) { // loop over children
+		while (run < sibling) { // loop over children
 	
 			#pragma omp task
-			interact_FMM(src, node);
+			interact_FMM(src, run);
 
-			node += imax(1, FMM.DNext[node]);
+			run += imax(1, FMM.DNext[run]);
 		}
 	
 	} // while N > 0

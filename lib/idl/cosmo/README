@@ -1,0 +1,17 @@
+This class provides a simple cosmological calculator for various quantities
+By setting the cosmological parameters in the object: 
+
+IDL> cosmo.set,1
+Concordance Cosmology :
+    H0      = 70.0 km/s/Mpc
+    Omega_L = 0.70
+    Omega_M = 0.30
+    Omega_b = 0.04
+    Omega_r = 0.00
+    sigma_8 = 0.80
+    Horizon = 4282.7 Mpc
+
+all quantities are calculated consistently with these parameters :
+
+IDL> print, cosmo.rho_crit(0.188)
+   7.6533735e-30

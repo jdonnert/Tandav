@@ -8,6 +8,7 @@ pro CosmologyObject__define
                 Omega_b     : double(0), $  ; Baryon density
                 Omega_c     : double(0), $  ; Dark matter density
                 Omega_L     : double(0), $  ; Dark energy density
+                Omega_r     : double(0), $  ; Photon energy density (CMB)
                 sigma_8     : double(0), $  ; Fluctuation amplitude at 8/h Mpc
                 Delta_r2    : double(0), $  ; Curvature fluctuation amplitude
                 n_s         : double(0), $  ; scalar spectral index
@@ -24,7 +25,6 @@ pro CosmologyObject__define
                 H100        : double(0), $  ; hubble 100 constant
                 d_hubble    : double(0), $  ; hubble distance
                 t_hubble    : double(0), $  ; hubble time 
-                rho_crit    : double(0), $  ; critical density of the universe
                 inherits IDL_Object $       ; for public variables
             }
     return
@@ -42,8 +42,7 @@ pro CosmologyObject::GetProperty, t0=t0, H0=H0, Omega_b=Omega_b, $
     Omega_c=Omega_c, Omega_L=Omega_L, sigma_8=sigma_8, Delta_r2=Delta_r2, $
     n_s=n_s, tau=tau, w=w, z_star=z_star, t_star=t_star, z_reion=z_reion, $
     Omega_M=Omega_M , Omega_k=Omega_k, Omega_tot=Omega_tot, hbpar=hbpar, $
-    H100=H100, d_hubble=d_hubble, t_hubble=t_hubble, name=name, $
-    rho_crit=rho_crit
+    H100=H100, d_hubble=d_hubble, t_hubble=t_hubble, name=name
 
     if arg_present(name)        then name = name
     if arg_present(t0)          then t0 = self.t0
@@ -51,8 +50,9 @@ pro CosmologyObject::GetProperty, t0=t0, H0=H0, Omega_b=Omega_b, $
     if arg_present(Omega_b)     then Omega_b = self.Omega_b
     if arg_present(Omega_c)     then Omega_c = self.Omega_c
     if arg_present(Omega_L)     then Omega_L = self.Omega_L
+    if arg_present(Omega_r)     then Omega_r = self.Omega_r
     if arg_present(sigma_8)     then sigma_8 = self.sigma_8
-    if arg_present(Delta_r2)    then Delta_r2 = self.Delta_r2
+    if arg_present(Delta_r)    then Delta_r = self.Delta_r
     if arg_present(n_s)         then n_s = self.n_s
     if arg_present(tau)         then tau = self.tau
     if arg_present(w)           then w = self.w
@@ -67,7 +67,6 @@ pro CosmologyObject::GetProperty, t0=t0, H0=H0, Omega_b=Omega_b, $
     if arg_present(H100)        then H100 = self.H100
     if arg_present(d_hubble)    then d_hubble = self.d_hubble
     if arg_present(t_hubble)    then t_hubble = self.t_hubble
-    if arg_present(rho_crit)    then rho_crit = self.rho_crit
 
     return
 end
@@ -81,6 +80,7 @@ pro CosmologyObject::Show
     print, '    Omega_L = '+strn(self.Omega_L, len=4)
     print, '    Omega_M = '+strn(self.Omega_M, len=4)
     print, '    Omega_b = '+strn(self.Omega_b, len=4)
+    print, '    Omega_r = '+strn(self.Omega_r, len=4)
     print, '    sigma_8 = '+strn(self.sigma_8, len=4)
     print, '    Horizon = '+strn(self.d_hubble/(1000*kpc2cm), len=6)+' Mpc'
 
@@ -89,6 +89,7 @@ end
 
 ;set different literature values
 pro CosmologyObject::Set, val, silent=silent
+
     @set_cgs
 
     if n_params() lt 1 then begin
@@ -106,6 +107,7 @@ pro CosmologyObject::Set, val, silent=silent
                 self.Omega_b    = 1                       
                 self.sigma_8    = 1                       
                 self.Omega_M    = 1
+                self.Omega_r    = 1
             end
         1 : begin
                 self.name       = 'Concordance'
@@ -114,6 +116,7 @@ pro CosmologyObject::Set, val, silent=silent
                 self.Omega_b    = 0.04D                       
                 self.sigma_8    = 0.8D                       
                 self.Omega_M    = 0.3D 
+                self.Omega_r    = 0
             end
         2 : begin   
                 self.name       = "Other Concordance"
@@ -121,18 +124,20 @@ pro CosmologyObject::Set, val, silent=silent
                 self.Omega_M    = 0.27D
                 self.sigma_8    = 0.8D                       
                 self.Omega_L    = 0.73D
+                self.Omega_r    = 0
             end
     endcase
 
+	RESOLVE_ALL, class='CosmologyObject'
+
     self.name += " Cosmology"
 
-    self.H100 = 100D*3.2407765e-20
+    self.H100 = 100D*3.2407765e-20 ; in cgs
     self.hbpar = self.H0/self.H100
     self.d_hubble = hubble_distance(self.H0)
     self.t_hubble = hubble_time(self.H0)
-    self.Omega_tot = self.Omega_M+self.Omega_L
+    self.Omega_tot = self.Omega_M+self.Omega_L+self.Omega_r
     self.Omega_k = curvature_density(self.Omega_M, self.Omega_L)
-    self.rho_crit = self.Omega_tot * 3 * (self.H100 * self.hbpar)^2 / (8*!DPI*G)
     
     if not keyword_set(silent) then $
         self.show
@@ -140,13 +145,16 @@ pro CosmologyObject::Set, val, silent=silent
     return
 end
 
-; Provide short name bindings to more complicated functions
+; Provide short name bindings to more complicated functions as methods
+; each function has its only file in the class directory and takes all
+; variables it needs as seperate inputs
+
 function CosmologyObject::a, t
     return, scale_factor(t, self)
 end
 
-function CosmologyObject::Hubble, z
-    return, hubble_param(z, self)
+function CosmologyObject::H, z
+    return, hubble_parameter(z, self.H0, self.Omega_M, self.Omega_r, self.Omega_L)
 end
 
 function CosmologyObject::d_comov, z
@@ -179,4 +187,13 @@ end
 
 function CosmologyObject::kpc2arcmin, kpc, z 
     return, arcmin2kpc(kpc, z, self.H0, self.Omega_M, self.Omega_L, inv=1)
+end
+
+function CosmologyObject::rho_crit, z 
+    return, critical_density(z, self.Omega_tot, self.H100, self.hbpar, $
+							    self.Omega_M, self.Omega_r, self.Omega_L)
+end
+
+function CosmologyObject::Delta, z
+	return, overdensity_parameter(z, self.Omega_L, self.Omega_M)
 end

@@ -38,7 +38,7 @@ void Finish_Profiler()
 
 /*
  * The profiler works using the unique name given at the first call. Upon the 
- * second call with the same name the measurement unit is then stopped again.
+ * second call with the same name the measurement unit is then stopped again. 
  */
 
 void Profile_Info(const char* file, const char* func, const int line, 

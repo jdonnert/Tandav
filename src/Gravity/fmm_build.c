@@ -83,7 +83,7 @@ D[i].TNode.Level, D[i].TNode.First_Part, NTop_Nodes, D[i].TNode.Npart);
 			int level = min_level;
 
 			while (ipart <= last_part) { // all particles in the top node
-printf("%d \n", ipart);
+
 //printf("\nipart=%d leaf=%d \n",  ipart, nLeafs);
 
 				int npart = find_leaf_size(ipart, last_part, level); // !> 0
@@ -99,8 +99,8 @@ printf("%d \n", ipart);
 				leaf2node[nLeafs] = node + offset; // correct fmm = FMM[offset]
 				leaf2part[nLeafs] = ipart;
 
-			//	#pragma omp task untied
-			//	fmm_p2m(ipart, node, npart, fmm);
+				#pragma omp task untied
+				fmm_p2m(ipart, node, npart, fmm);
 
 //printf("npart=%d lvl=%d node=%d nnodes=%d \n", 
 //		npart, level,  node, nNodes);
@@ -144,11 +144,12 @@ printf("%d \n", ipart);
 			break;
 	}
 
-exit(0);
-	set_critical_radius();
+
+	//set_critical_radius();
 
 	Profile("Grav FMM Build");
-
+Profile_Report_Last(stdout);
+exit(0);
 	return ;
 }
 

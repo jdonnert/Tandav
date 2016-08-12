@@ -12,10 +12,12 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize, fname=fname
 		npart = 250000L
 
 	if not keyword_set(boxsize) then $
-		boxsize = 150000D
+		boxsize = 150000D $
+	else $
+		boxsize = double(boxsize)
 
-	mass = 1d15 * Msol / tandav.mass ; code units 
-	a_hernq = 925D 		
+	mass = 1d15 * Msol / tandav.mass ; code units
+	a_hernq = 925D
 
 	mpart = mass / npart
 
@@ -28,18 +30,18 @@ pro make_ICs, periodic=periodic, npart=npart, boxsize=boxsize, fname=fname
 
 	sqrt_q = sqrt(randomu(seed, npart)) * qmax
 
-	r = a_hernq  * sqrt_q / (1-sqrt_q) 
+	r = a_hernq  * sqrt_q / (1-sqrt_q)
 
 	over = where(r gt boxsize/2D, cnt)
 	if cnt gt 0 then $
-		r[over] = boxsize/2D 
+		r[over] = boxsize/2D
 
 	theta = acos(2 * randomu(seed, npart) - 1)
-	phi = 2*!pi * randomu(seed, npart) 
+	phi = 2*!pi * randomu(seed, npart)
 
 	pos[0,*] = r * sin(theta) * cos(phi)
 	pos[1,*] = r * sin(theta) * sin(phi)
-	pos[2,*] = r * cos(theta) 
+	pos[2,*] = r * cos(theta)
 
 	print, 'npart '+strn(npart)
 	print, 'x_min x_max', minmax(pos[0,*])
@@ -130,7 +132,7 @@ end
 function hernquist_distribution_function, E, a, mass
 
 	common  globals, tandav, cosmo
-	
+
 	prefac = 1D / (sqrt(2) * (2*!pi)^3 * (tandav.Grav*mass*a)^(1.5) )
 
 	q2 = a * E / (tandav.Grav * mass)

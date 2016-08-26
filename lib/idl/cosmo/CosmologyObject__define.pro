@@ -1,4 +1,5 @@
 ; Cosmological distances & data (Hogg 1999)
+
 pro CosmologyObject__define
 
     void = {CosmologyObject, $; Cosmological Model
@@ -17,7 +18,7 @@ pro CosmologyObject__define
                 z_star      : double(0), $  ; redshift of decoupling
                 t_star      : double(0), $  ; Age of decoupling
                 z_reion     : double(0), $  ; Redshift of reionisation
-                $; DERIVED QUANTITIES 
+                						 $  ; DERIVED QUANTITIES 
                 Omega_M     : double(0), $  ; Matter density
                 Omega_k     : double(0), $  ; curvature density
                 Omega_tot   : double(0), $  ; total density
@@ -32,17 +33,18 @@ end
 
 function CosmologyObject::INIT  
         
-    self.set, 0
+    self.set, 0, /show_methods
 
     return, 1
 end
 
 ; expose object variables
 pro CosmologyObject::GetProperty, t0=t0, H0=H0, Omega_b=Omega_b, $
-    Omega_c=Omega_c, Omega_L=Omega_L, sigma_8=sigma_8, Delta_r2=Delta_r2, $
-    n_s=n_s, tau=tau, w=w, z_star=z_star, t_star=t_star, z_reion=z_reion, $
-    Omega_M=Omega_M , Omega_k=Omega_k, Omega_tot=Omega_tot, hbpar=hbpar, $
-    H100=H100, d_hubble=d_hubble, t_hubble=t_hubble, name=name
+    Omega_c=Omega_c, Omega_L=Omega_L, Omega_r=Omega_r, sigma_8=sigma_8, $ 
+	Delta_r2=Delta_r2, n_s=n_s, tau=tau, w=w, z_star=z_star, $
+	t_star=t_star, z_reion=z_reion, Omega_M=Omega_M , Omega_k=Omega_k, $
+	Omega_tot=Omega_tot, hbpar=hbpar, H100=H100, d_hubble=d_hubble, $
+	t_hubble=t_hubble, name=name
 
     if arg_present(name)        then name = name
     if arg_present(t0)          then t0 = self.t0
@@ -72,10 +74,11 @@ pro CosmologyObject::GetProperty, t0=t0, H0=H0, Omega_b=Omega_b, $
 end
 
 ; show current values
-pro CosmologyObject::Show
+pro CosmologyObject::Show, show_methods=show_methods
+
     @set_cgs
 
-    print, self.name+' :'
+    print, 'Cosmology : '+self.name
     print, '    H0      = '+strn(self.H0/3.2407765d-20, len=4)+' km/s/Mpc'
     print, '    Omega_L = '+strn(self.Omega_L, len=4)
     print, '    Omega_M = '+strn(self.Omega_M, len=4)
@@ -83,12 +86,36 @@ pro CosmologyObject::Show
     print, '    Omega_r = '+strn(self.Omega_r, len=4)
     print, '    sigma_8 = '+strn(self.sigma_8, len=4)
     print, '    Horizon = '+strn(self.d_hubble/(1000*kpc2cm), len=6)+' Mpc'
+	
+	if keyword_set(show_methods) then begin
+		print, ' ' 
+		print, "Methods (all cgs) :"
+		print, '  scale factor at age t :           Cosmo.a(t)'
+		print, '  Hubble paramter:                  H(z)'
+		print, '  Comoving Distance:                d_comov(z)'
+		print, '  Transverse Comoving Distance :    d_transcomov(z)'
+		print, '  Angular Diameter Distance :       d_ang(z)'
+		print, '  Luminosity Distance :             d_lum(z)'
+		print, '  Critical Density :                rho_crit(z)'
+		print, '  Overdensity Parameter :           Delta(z)'
+		print, '  Redshift to time :                z2t(z)'
+		print, '                                    t2z(t)'
+		print, '  On the Sky :                      arcmin2kpc(arcmin, z)'
+		print, '                                    kpc2arcmin(kpc, z)'
+		print, '  Luminosity to flux :              lum2flux(Lum, z)'
+		print, '                                    flux2lum(flux, z)'
+	end else begin
+		print, ' ' 
+		print, '(see methods with cosmo.show, /show_methods'
+	end
+
+	print, ' ' 
 
     return
 end
 
 ;set different literature values
-pro CosmologyObject::Set, val, silent=silent
+pro CosmologyObject::Set, val, silent=silent, show_methods=show_methods
 
     @set_cgs
 
@@ -128,9 +155,7 @@ pro CosmologyObject::Set, val, silent=silent
             end
     endcase
 
-	RESOLVE_ALL, class='CosmologyObject'
-
-    self.name += " Cosmology"
+	RESOLVE_ALL, class='CosmologyObject', /continue_on_error
 
     self.H100 = 100D*3.2407765e-20 ; in cgs
     self.hbpar = self.H0/self.H100
@@ -140,14 +165,14 @@ pro CosmologyObject::Set, val, silent=silent
     self.Omega_k = curvature_density(self.Omega_M, self.Omega_L)
     
     if not keyword_set(silent) then $
-        self.show
+        self.show, show_methods=show_methods
     
     return
 end
 
 ; Provide short name bindings to more complicated functions as methods
-; each function has its only file in the class directory and takes all
-; variables it needs as seperate inputs
+; Each function has its own file in the class directory and takes all
+; variables it needs as seperate inputs. Feel free to extend !
 
 function CosmologyObject::a, t
     return, scale_factor(t, self)
@@ -196,4 +221,12 @@ end
 
 function CosmologyObject::Delta, z
 	return, overdensity_parameter(z, self.Omega_L, self.Omega_M)
+end
+
+function  CosmologyObject::lum2flux, L, z
+	return, luminosity2flux(L, z, self.H0, self.Omega_M, self.Omega_L)
+end
+
+function  CosmologyObject::flux2lum, f, z
+	return, flux2luminosity(f, z, self.H0, self.Omega_M, self.Omega_L)
 end

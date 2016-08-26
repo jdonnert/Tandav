@@ -2,7 +2,7 @@
 
 
 %% Files %%
-InputFile		IC_Hernquist_Halo_5e6
+InputFile		IC_Hernquist_Halo
 OutputFileBase	snap
 NumIOTasks		1
 NumOutputFiles	1
@@ -11,7 +11,7 @@ LogFileDir		./log/
 %% Code Parameters %%
 MaxMemSize		4096
 TimeLimitCPU	20864
-BufferSize		512
+BufferSize		1400
 
 %% Simulation Characteristics %%
 Boxsize			-1

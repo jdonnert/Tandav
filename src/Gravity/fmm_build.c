@@ -137,7 +137,7 @@ D[i].TNode.Level, D[i].TNode.First_Part, NTop_Nodes, D[i].TNode.Npart);
 			D[i].TNode.Dp[1] = fmm.Dp[1][0];
 			D[i].TNode.Dp[2] = fmm.Dp[2][0];
 			
-			test_tree(fmm, leaf2part, leaf2node, nLeafs, nNodes,i);//DEBUG_FMM
+			//test_tree(fmm, leaf2part, leaf2node, nLeafs, nNodes,i);//DEBUG_FMM
 		} // for i
 
 		if (NNodes < Max_Nodes) // build complete

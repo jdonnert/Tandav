@@ -7,18 +7,18 @@ function overdensity_parameter, z, Omega_L, Omega_M
 			[-4384.8, 1748.7,  -5362.1, 11257.,  -6218.2], 	$
 			[1842.3, -765.53, 2507.7, -5210.7, 2867.5] ]; Pierpaoli+ 01 Table 1
 
-	x = Omega_M - 0.2
+	x = Omega_M*(1+z)^3 - 0.2
 	y = Omega_L
 
 	Delta = 0;
 
-	for i = 0, 5 do begin
-		for j = 0, 5 do begin
+	for i = 0, 4 do begin
+		for j = 0, 4 do begin
 
-			Delta += cij[i][j] * x^i * y^j
+			Delta += cij[j,i] * x^i * y^j
 		
 		end
 	end
 
-	return, Omega_M * Delta
+	return, Omega_M*(1+z)^3 * Delta
 end

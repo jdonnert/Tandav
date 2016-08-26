@@ -25,21 +25,19 @@ static void omp_qsort_index(size_t *perm, void *data, size_t ndata,
 static size_t Spawn_Threshold = 0;
 static void (*swap) ();
 
-/*
- * A thread safe OpenMP quicksort, in-place variant. 
+/* A thread safe OpenMP quicksort, in-place variant. 
  * We use a function pointer for the optimised swap routine. This is not as 
  * bad as it sounds with modern compilers. We rely on the build-in qsort 
  * whereever we can, because it is likely very optimised. For large arrays 
  * we use the real median of 9 values as pivot and presort using an insertion 
  * sort. 
  * Jon Bentley and M. Douglas McIlroy; Software - Practice and Experience; 
- * Vol. 23 (11), 1249-1265, 1993.
- */
+ * Vol. 23 (11), 1249-1265, 1993. */
 
 void Qsort(void *data, size_t ndata, size_t size, 
 		   int (*cmp) (const void*, const void *))
 {
-	#pragma omp single
+	#pragma omp single nowait
 	Assert(data != NULL, "You gave me a NULL pointer to sort");
 
 	if ( (ndata < PARALLEL_THRESHOLD) || (! omp_in_parallel()) ) {
@@ -80,11 +78,10 @@ void Qsort(void *data, size_t ndata, size_t size,
 	return ;
 }
 
-/*
- * Thread safe OpenMP quicksort, external variant. 
+/* Thread safe OpenMP quicksort, external variant. 
  * We sort the permutation array, but compare the data array at the permuted
- * indices.
- */
+ * indices. We use it down to small arrays, so we include the median of 3
+ * pivot finding as well. */
 
 void Qsort_Index(size_t *perm, void * data, size_t ndata, size_t size,
 				 int (*cmp) (const void *, const void *))
@@ -107,16 +104,14 @@ void Qsort_Index(size_t *perm, void * data, size_t ndata, size_t size,
 	Spawn_Threshold = ndata / NThreads / N_PARTITIONS_PER_CPU * 2; 
 	Spawn_Threshold = MAX(PARALLEL_THRESHOLD, Spawn_Threshold);
 
-	omp_qsort_index(perm, data, ndata, size, cmp);
+	omp_qsort_index(perm, data, ndata, size, cmp); // run forest, run !
 
 	} // omp single
 
 	return ;
 }
 
-/*
- * Find median of 9 values and presort
- */
+/* Find median of 9 values and presort */
 
 static char * median_of_9(char *lo, size_t ndata, size_t size,
 						int (*cmp)  (const void*, const void *))
@@ -125,7 +120,7 @@ static char * median_of_9(char *lo, size_t ndata, size_t size,
 	size_t dp = (ndata / 9) * size;
 
 	char *addr[9] = { lo, lo+dp, lo+2*dp, lo+3*dp, lo+4*dp, lo+5*dp, lo+6*dp,
-					  lo + 7*dp, hi};
+					  lo+7*dp, hi};
 
 	for (int i = 1; i < 9; i++) // insertion sort
 		for (int j = i; j > 0 && cmp(addr[j-1],addr[j]) > 0; j--)
@@ -210,6 +205,8 @@ static void omp_qsort(void *data, size_t ndata, size_t size,
 	return ;
 }
 
+/* median of 9 & 3 for the external sort */
+
 static size_t * median_of_9_index(size_t *lo, void *data, size_t ndata, 
 		size_t size, int (*cmp)  (const void*, const void *))
 {
@@ -249,8 +246,8 @@ static size_t * median_of_3_index(size_t *lo, void *data, size_t ndata,
 	return mid;
 }
 
-static void omp_qsort_index(size_t *perm, void *data, size_t ndata, size_t size,
-							int (*cmp) (const void*, const void *))
+static void omp_qsort_index(size_t *perm, void *data, size_t ndata, 
+		size_t size, int (*cmp) (const void*, const void *))
 {
 	if (ndata < INSERTION_THRESHOLD) {
 
@@ -311,7 +308,6 @@ static void omp_qsort_index(size_t *perm, void *data, size_t ndata, size_t size,
 	size_t nRight = hi - left + 1;
 
 	if (nLeft > 1) { // GSL heapsort is so slow, we use our own qsort_index ... 
-	
 		if (nLeft > Spawn_Threshold) {
 
 			#pragma omp task untied
@@ -443,8 +439,8 @@ void test_sort()
 			"PARALLEL_THRESHOLD = %d\n"
 			"N_PARTITIONS_PER_CPU = %d\n\n"
 			"log2(N)      N  Memory  | Time OpenMP  Time Serial  Speedup \n"
-			, log2(Nmax),
-			Nit, PARALLEL_THRESHOLD, N_PARTITIONS_PER_CPU);
+			, log2(Nmax), Nit, PARALLEL_THRESHOLD, N_PARTITIONS_PER_CPU);
+
 	for (size_t N = 1ULL << 9; N < Nmax; N<<=1) {
 
 		clock_t time = clock(), time2 = clock(), time3 = clock();

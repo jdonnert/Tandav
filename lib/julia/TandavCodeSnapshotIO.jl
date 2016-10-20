@@ -64,6 +64,7 @@ function ReadSnap(fname::AbstractString, label::String; pType=0x7, debug=false)
 
 	nFiles = GetNFiles(fname)
 
+	@assert(nFiles > 0, "File not found $fname, $(fname).0")
 	@assert(nFiles==1, "Multiple file reading not implemented yet !")
 
 	fd = open(fname, "r")
@@ -181,13 +182,11 @@ function ReadBlock(fd::IO, label::String, blocksize)
 
 	npart = UInt64(blocksize / rank / sizeof(elType))
 
-	println(npart, blocksize , elType, rank)
-	
 	data = zeros(elType, npart, rank)
 
-	data = transpose(data)
-
 	read!(fd, data)
+
+	data = transpose(data)
 
 	f77Record = read(fd, UInt32)
 

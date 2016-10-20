@@ -5,13 +5,13 @@
 module Tandav
 
 importall CGSUnits
-
 importall TandavCodeUnits
 importall TandavCodeParameters
 importall TandavCodeSnapshotIO
 
 export TandavCodeObject
-export Density, NumberDensity, U2T, T2U, ThermalEnergyDensity, SoundSpeed 
+export Density, NumberDensity, U2T, T2U, ThermalEnergyDensity, SoundSpeed
+export ReadHead, ReadSnap
 
 type TandavCodeObject # super type, glues all submodules
 	
@@ -21,18 +21,19 @@ type TandavCodeObject # super type, glues all submodules
 	Unit	:: CodeUnits
 	Const	:: CodeConstants
 
-	function TandavCodeObject(z=0; 	
+	# inner constructor
+	function TandavCodeObject(z=0 ; 	
 					gamma=5/3, xH=0.76, boxsize=0, h=1, omega0=1,
-					omegaL=0.7, fRad=false, fDouble=false, fSfr=false,
+					omegaL=0.7, fDouble=false, fSfr=false,
 					fCool=false, fFeedB=false, fComov=false, fPeriod=false,
 					unitName="kpc, 1e10 Msol, km/s", length=kpc2cm,
 					mass=1e10*Msol, vel=1e5) 
 	
 		println("\nSetting CodeObject with \n"*
-		  		"    z=$z\n")
+		  		  "    z=$z\n")
 
 		Par = CodeParameters(;gamma=gamma, xH=xH, boxsize=boxsize, h=h, 
-					   		omega0=omega0, omegaL=omegaL, fRad=fRad, 
+					   		omega0=omega0, omegaL=omegaL,  
 					   		fDouble=fDouble, fSfr=fSfr, fCool=fCool, 
 							fFeedB=fFeedB, fComov=fComov, fPeriod=fPeriod)
 
@@ -45,12 +46,13 @@ type TandavCodeObject # super type, glues all submodules
 
 end
 
-# here start the function wrappers for all subtyp methods
+# here start the function wrappers for all subtype methods
 
 function Density(t::TandavCodeObject, rho)
 
 	return Density(t.Unit, rho; h=t.Par.h, z=t.z)
 end
+
 
 function NumberDensity(t::TandavCodeObject, rho)
 
@@ -81,6 +83,41 @@ end
 function SoundSpeed(t::TandavCodeObject, u)
 
 	return SoundSpeed(t.Unit, u; gam=t.Par.gamma)
+end
+
+
+function ReadSnap(t::TandavCodeObject, fname::AbstractString, label::String; debug=false)
+	
+	data = ReadSnap(fname, label; debug=debug)
+	
+	head = ReadHead(fname; debug=debug)
+
+	Update!(t.z, head.redshift, "z") # update TandavCodeObject from snapshot
+	Update!(t.Par.boxsize, head.boxsize, "boxsize")
+	Update!(t.Par.omega0, head.omega0, "omega0")
+	Update!(t.Par.omegaL, head.omegaL, "omegaL")
+	Update!(t.Par.h, head.hbpar, "h")
+
+	Update!(t.Par.fDouble, head.flag_double, "fDouble")
+	Update!(t.Par.fSfr, head.flag_sfr, "fSfr")
+	Update!(t.Par.fCool, head.flag_cooling, "fCool")
+	Update!(t.Par.fFeedB, head.flag_feedback, "fFeedB")
+	Update!(t.Par.fComov, head.flag_comoving, "fComov")
+	Update!(t.Par.fPeriod, head.flag_periodic, "fPeriod")
+	
+	println()
+
+	return data
+end
+
+function Update!(a, b, name::AbstractString)
+	
+	if a != b
+		
+		a = b
+
+		println("HEAD -> $name = $a")
+	end
 end
 
 end # module

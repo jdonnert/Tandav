@@ -6,7 +6,7 @@
 module TandavCodeSnapshotIO
 
 export Header 
-export ReadSnap, WriteHead, AddBlock
+export ReadHead, ReadSnap
 
 type IOBlock
 	label::String		# 4 Chars exactly !
@@ -64,8 +64,8 @@ function ReadSnap(fname::AbstractString, label::String; pType=0x7, debug=false)
 
 	nFiles = GetNFiles(fname)
 
-	@assert(nFiles > 0, "File not found $fname, $(fname).0")
-	@assert(nFiles==1, "Multiple file reading not implemented yet !")
+	@assert(nFiles > 0, "\n\n    File not found $fname, $(fname).0\n")
+	@assert(nFiles==1, "\n\n    Multiple file reading not implemented yet !\n")
 
 	fd = open(fname, "r")
 	
@@ -77,15 +77,17 @@ function ReadSnap(fname::AbstractString, label::String; pType=0x7, debug=false)
 
 	blocksize = FindBlock(fd, label; debug=debug) # seek fd to block
 
+	@assert(blocksize > 0, "\n\n    Block <$label> not found in file '$fname' \n")
+
 	data = ReadBlock(fd, label, blocksize)
 
 	return data
 end
 
-function ReadHead(fname; debug=false)
+function ReadHead(fname::AbstractString; debug=false)
+
 	return ReadSnap(fname, "HEAD"; debug=debug)
 end
-
 
 
 function ReadHeader(fd)
@@ -131,7 +133,7 @@ function FindBlock(fd, label::String; debug=false)
 
 	seekstart(fd)
 
-	blocksize = Int64(0)
+	blocksize = UInt64(0)
 
 	while !eof(fd)
 
@@ -151,8 +153,6 @@ function FindBlock(fd, label::String; debug=false)
 		skip(fd, skipsize)
 	end
 	
-	@assert(!eof(fd), "Block $label not found in file $fname")
-
 	return blocksize
 end
 
@@ -182,11 +182,13 @@ function ReadBlock(fd::IO, label::String, blocksize)
 
 	npart = UInt64(blocksize / rank / sizeof(elType))
 
-	data = zeros(elType, npart, rank)
+	if rank == 1
+		data = zeros(elType, npart)
+	else 
+		data = zeros(elType, rank, npart)
+	end
 
 	read!(fd, data)
-
-	data = transpose(data)
 
 	f77Record = read(fd, UInt32)
 

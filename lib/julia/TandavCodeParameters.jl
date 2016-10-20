@@ -11,7 +11,6 @@ type CodeParameters
 	h		:: Float64	# hubble parameter
 	omega0	:: Float64
 	omegaL	:: Float64
-	fRad	:: Bool		# Flag Radiative run
 	fDouble	:: Bool		# Flag DOUBLEPRECISION
 	fSfr	:: Bool		# Flag Star Formation
 	fCool	:: Bool		# Flag Cooling
@@ -20,7 +19,7 @@ type CodeParameters
 	fPeriod	:: Bool		# Flag PERIODIC
 	
 	function CodeParameters(;gamma=5/3, xH=0.76, boxsize=0, h=1, omega0=1,
-						 	omegaL=0.7, fRad=false, fDouble=false, fSfr=false,
+						 	omegaL=0.7,  fDouble=false, fSfr=false,
 						 	fCool=false, fFeedB=false, fComov=false, fPeriod=false)
 	
 		println("Setting Code Parameters:\n"*
@@ -29,7 +28,6 @@ type CodeParameters
 				"    boxsize   = $boxsize\n"*
 				"    omega0    = $omega0\n"*
 				"    omegaL    = $omegaL\n"*
-				"    fRad      = $fRad\n"* 
 				"    fDouble   = $fDouble\n"*
 				"    fSfr      = $fSfr\n"*   
 				"    fCool     = $fCool\n"*  
@@ -37,7 +35,7 @@ type CodeParameters
 				"    fComov    = $fComov\n"* 
 				"    fPeriod   = $fPeriod\n")
 
-		new(gamma, xH, boxsize, h, omega0, omegaL, fRad, fDouble, fSfr,
+		new(gamma, xH, boxsize, h, omega0, omegaL, fDouble, fSfr,
 	  		fCool, fFeedB, fComov, fPeriod)
 	end
 end

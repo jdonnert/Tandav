@@ -5,8 +5,7 @@ module TandavCodeUnits
 importall CGSUnits
 
 export CodeUnits, CodeConstants
-export Density, NumberDensity, Pressure, U2T, T2U, ThermalEnergyDensity,
-		SoundSpeed
+export Density, NumberDensity, Pressure, U2T, T2U, ThermalEnergyDensity, SoundSpeed
 
 type CodeUnits
 

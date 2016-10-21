@@ -86,9 +86,9 @@ function SoundSpeed(t::TandavCodeObject, u)
 end
 
 
-function ReadSnap(t::TandavCodeObject, fname::AbstractString, label::String; debug=false)
+function ReadSnap(t::TandavCodeObject, fname::AbstractString, label::String; pType=0x07, debug=false)
 	
-	data = ReadSnap(fname, label; debug=debug)
+	data = ReadSnap(fname, label; pType=pType, debug=debug)
 	
 	head = ReadHead(fname; debug=debug)
 

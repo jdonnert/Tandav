@@ -58,7 +58,7 @@ end
 
 function Density(unit::CodeUnits, rho; h=1, z=0)
 
-	return Float64(rho) * (1+z)^3 * unit.mass/unit.length^3 * h^2
+	return float(rho) * (1+z)^3 * unit.mass/unit.length^3 * h^2
 end
 
 function NumberDensity(unit::CodeUnits, rho; h=1, z=0, xH=0.76)

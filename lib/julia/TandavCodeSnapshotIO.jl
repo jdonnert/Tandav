@@ -77,11 +77,35 @@ function ReadSnap(fname::AbstractString, label::String; pType=0x7, debug=false)
 
 	blocksize = FindBlock(fd, label; debug=debug) # seek fd to block
 
-	@assert(blocksize > 0, "\n\n    Block <$label> not found in file '$fname' \n")
+	@assert(blocksize > 0, 
+		 "\n\n    Block <$label> not found in file '$fname' \n")
 
 	data = ReadBlock(fd, label, blocksize)
 
+	data = constrain!(data, head.npart, pType)
+
 	return data
+end
+
+function constrain!(data, npart, pType=0x07)
+	
+	if pType == 0x07
+		return data
+	end
+
+	cum = cumsum(npart)
+  
+	last = cum[pType+1]
+	first = (1.+[0;cum])[pType+1]
+
+	println("Constraining $first $last $npart $(ndims(data))")
+
+	if ndims(data) == 1
+		data[first:last]
+	else
+		data[:, first:last]
+	end
+
 end
 
 function ReadHead(fname::AbstractString; debug=false)
@@ -162,30 +186,14 @@ function ReadBlock(fd::IO, label::String, blocksize)
 
 	@assert(f77Record == blocksize, "Fmt2 head size does not match F77 record")
 
-	elType = Float32
-	rank = 1
+	block = FindIOBlockFromLabel(label)
 
-	for blk in IOBlocks
-
-		if label == blk.label
-
-			elType = blk.elType
-			rank = blk.rank
-
-			break
-		end
-
-		if blk.label == "LAST"
-			println("Block $label not known. Assuming 1D SPH only.")
-		end 
-	end
-
-	npart = UInt64(blocksize / rank / sizeof(elType))
+	npart = UInt64(blocksize / block.rank / sizeof(block.elType))
 
 	if rank == 1
-		data = zeros(elType, npart)
+		data = zeros(block.elType, npart)
 	else 
-		data = zeros(elType, rank, npart)
+		data = zeros(block.elType, block.rank, npart)
 	end
 
 	read!(fd, data)
@@ -193,6 +201,26 @@ function ReadBlock(fd::IO, label::String, blocksize)
 	f77Record = read(fd, UInt32)
 
 	return data
+end
+
+function FindIOBlockFromLabel(label::String)
+	
+	block = IOBlocks[1]
+
+	for block in IOBlocks
+
+		if label == block.label
+
+			break
+		end
+
+	end
+
+	if block.label == "LAST"
+		println("Block $label not known. Assuming 1D SPH only.")
+	end 
+
+	return block
 end
 
 

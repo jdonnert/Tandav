@@ -23,6 +23,7 @@ type CodeParameters
 						 	fCool=false, fFeedB=false, fComov=false, fPeriod=false)
 	
 		println("Setting Code Parameters:\n"*
+				"    h         = $h\n"*
 		  		"    gamma     = $gamma\n"*
 				"    xH        = $xH\n"*
 				"    boxsize   = $boxsize\n"*

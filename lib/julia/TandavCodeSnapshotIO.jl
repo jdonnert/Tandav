@@ -82,12 +82,12 @@ function ReadSnap(fname::AbstractString, label::String; pType=0x7, debug=false)
 
 	data = ReadBlock(fd, label, blocksize)
 
-	data = constrain!(data, head.npart, pType)
+	data = constrain!(data, head.npart, pType; debug=debug)
 
 	return data
 end
 
-function constrain!(data, npart, pType=0x07)
+function constrain!(data, npart, pType=0x07; debug=false)
 	
 	if pType == 0x07
 		return data
@@ -98,7 +98,9 @@ function constrain!(data, npart, pType=0x07)
 	last = cum[pType+1]
 	first = (1.+[0;cum])[pType+1]
 
-	println("Constraining $first $last $npart $(ndims(data))")
+	if debug == true
+		println("Constraining block to $first : $last ")
+	end
 
 	if ndims(data) == 1
 		data[first:last]

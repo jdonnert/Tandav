@@ -1,9 +1,7 @@
 #ifndef GRAVITY_TREE_H
 #define GRAVITY_TREE_H
 
-/*
- * Gravity using a conventional Barnes & Hutt tree algorithm
- */
+/* Gravity using a conventional Barnes & Hutt tree algorithm */
 
 #include "../includes.h"
 #include "../domain.h"
@@ -78,10 +76,8 @@ void Node_Clear(const enum Tree_Bitfield bit, const int node);
 #endif // GRAVITY_TREE
 
 
-/* 
- * Periodic Boundaries : need to walk the tree but interact with the
- * Ewald cube at the particle/node position.
- */
+/* Periodic Boundaries : need to walk the tree but interact with the
+ * Ewald cube at the particle/node position. */
 
 #if defined(GRAVITY_TREE) && defined(PERIODIC)
 

@@ -14,12 +14,10 @@ static int Worst_Part = -1;
 static double xacc_i = 0, yacc_i = 0, zacc_i = 0, pot_i = 0;
 static int idx[NTEST] = { 0 };
 
-/*
- * This computes the gravitational interaction via direct summation and shows
+/* This computes the gravitational interaction via direct summation and shows
  * the relative error resp. the old force. Note that the total relative error 
  * can become large if one component of the force is close to 0 without 
- * consequence. We check NTEST particles only.
- */
+ * consequence. We check NTEST particles only. */
 
 void Gravity_Forcetest()
 {
@@ -109,7 +107,7 @@ void Gravity_Forcetest()
 #endif // PERIODIC
 
 #ifdef GRAVITY_POTENTIAL
-				if (r < H) { // WC2 kernel softening
+				if (r < H) { // kernel softening
 
 					double u = r/H;
 					double u2 = u*u;

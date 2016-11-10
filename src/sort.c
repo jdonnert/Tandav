@@ -226,7 +226,6 @@ static size_t * median_of_9_index(size_t *lo, void *data, size_t ndata,
 static size_t * median_of_3_index(size_t *lo, void *data, size_t ndata, 
 		size_t size, int (*cmp)  (const void*, const void *))
 {
-	
 	size_t *hi = lo + ndata - 1;
 	size_t *mid = lo + (ndata >> 1);
 

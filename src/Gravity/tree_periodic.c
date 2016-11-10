@@ -10,11 +10,9 @@ static void gravity_tree_walk_ewald(const int tree_start);
 static void gravity_tree_walk_ewald_BH(const int tree_start);
 static void interact_with_ewald_cube(const Float *, const Float);
 
-/*
- * Compute the correction to the gravitational force due the periodic
+/* Compute the correction to the gravitational force due the periodic
  * infinite box using the tree and the Ewald method (Hernquist+ 1992).
- * This is widely identical to tree_accel, except for the opening criteria.
- */
+ * This is widely identical to tree_accel, except for the opening criteria. */
 
 static struct Walk_Data_Particle Send = { 0 };
 static struct Walk_Data_Result Recv = { 0 };
@@ -177,11 +175,9 @@ static bool interact_with_topnode (const int j, const bool Use_BH_Criterion)
 }
 
 
-/*
- * Top nodes with less than 8 particles point not to the tree but to P as 
+/* Top nodes with less than 8 particles point not to the tree but to P as 
  * targets. As we have to open this one and it is local, we directly interact
- * with the particles.
- */
+ * with the particles. */
 
 static void interact_with_topnode_particles(const int j)
 {
@@ -206,12 +202,10 @@ static void interact_with_topnode_particles(const int j)
 }
 
 
-/*
- * This walks a subtree starting at "tree_start" to estimate the Ewald 
+/* This walks a subtree starting at "tree_start" to estimate the Ewald 
  * correction to the gravitational force. Because the force is proportional to
  * the distance a different opening criterion can be used, similar to 
- * Gadget-2. However, this cannot happen across a periodic boundary. 
- */
+ * Gadget-2. However, this cannot happen across a periodic boundary. */
 
 static void gravity_tree_walk_ewald(const int tree_start)
 {

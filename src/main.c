@@ -109,16 +109,14 @@ int main(int argc, char *argv[])
 	return EXIT_SUCCESS;
 }
 
-/* 
- * OpenMP and MPI init and handling of the command line args. 
+/* OpenMP and MPI init and handling of the command line args. 
  * We are using full thread parallelism, i.e. every thread is an MPI rank and
- * takes part in the MPI communication. Hence, every thread needs to have an 
+ * takes part in the MPI communication. Hence, every thread needs to have a 
  * unique ID: Task.ID, an MPI rank: Task.Rank, and a thread ID: Task.Thread_ID
  * There is a global MPI master with Task.Is_MPI_Master == true. On every MPI 
  * rank there is a main thread on which Task.Is_Thread_Main == true. 
  * Always use Task.Rank inside an omp single region. In a parallel region
- * use Task.ID to uniquely identify a thread across the whole machine.
- */
+ * use Task.ID to uniquely identify a thread across the whole machine. */
 
 static void preamble(int argc, char *argv[])
 {

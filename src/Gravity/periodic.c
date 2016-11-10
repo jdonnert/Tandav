@@ -25,12 +25,10 @@ static Float Fy[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
 static Float Fz[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
 static Float Fp[N_EWALD+1][N_EWALD+1][N_EWALD+1] = { { { 0 } } };
 
-/*
- * Get Ewald correction from the grid using a modified CIC binning 
+/* Get Ewald correction from the grid using a modified CIC binning 
  * (Hockney & Eastwood) to exploit the symmetry of the Ewald correction in 
  * the octants of the grid. This way the grid of size N_EWALD is effectively
- * doubled in resolution.
- */
+ * doubled in resolution. */
 
 void Ewald_Correction(const Float dr[3], Float f[3])
 {
@@ -171,11 +169,9 @@ void Ewald_Potential(const double dr[3], Float p[1])
 
 #endif // GRAVITY_POTENTIAL
 
-/*
- * This initialises the cubes holding the Ewald correction force and
+/* This initialises the cubes holding the Ewald correction force and
  * potential following Hernquist, Bouchet & Suto 1991. Most of the 
- * code is shamelessly copied from Gadget-2 (Springel 2006).
- */
+ * code is shamelessly copied from Gadget-2 (Springel 2006). */
 
 void Gravity_Periodic_Setup()
 {
@@ -343,11 +339,9 @@ static void write_ewald_correction_table()
 
 
 
-/*
- * Compute force correction term from Hernquist+ 1991 (2.14b, 2.16), this
+/* Compute force correction term from Hernquist+ 1991 (2.14b, 2.16), this
  * is the difference between the force from the infinite lattice and the
- * nearest image. "x" and "force" are in boxsize units.
- */
+ * nearest image. "x" and "force" are in boxsize units. */
 
 static void compute_ewald_force(const int i, const int j, const int k,
 								const double x[3], double force[3])

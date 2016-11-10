@@ -4,10 +4,8 @@
 #include "../includes.h"
 #include "../domain.h"
 
-/*
- * Gravity using the Fast Multipole Method with dual tree traversal.
- * We use the notation from Dehnen & Read 2011
- */
+/* Gravity using the Fast Multipole Method with dual tree traversal.
+ * We use the notation from Dehnen & Read 2011 */
 
 #ifdef GRAVITY_FMM
 

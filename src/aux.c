@@ -135,18 +135,14 @@ uint64_t Umax(const uint64_t x, const uint64_t y)
   return x ^ ((x ^ y) & -(x < y));
 }
 
-/*
- * Branch free sign function for "Float" type
- */
+/* Branch free sign function for "Float" type */
 
 Float Sign(const Float x)
 {
 	return ((Float)0 < x) - (x < (Float)0);
 }
 
-/*
- * Generic file I/O functions that check for bad reads/writes
- */
+/* Generic file I/O functions that check for bad reads/writes */
 
 int Fread(void *restrict data, const size_t size, const size_t nWanted, 
 		FILE *stream)
@@ -170,11 +166,9 @@ int Fwrite(void *restrict data, const size_t size, const size_t nWrite,
 	return nWritten;
 }
 
-/*
- * Reorder array p[n] according to idx[n]. idx[] will be changed as well. 
+/* Reorder array p[n] according to idx[n]. idx[] will be changed as well. 
  * We have two versions for 4 and 8 Byte, to avoid using memcpy() and a general
- * implementation using char pointers that takes the element size in bytes.
- */
+ * implementation using char pointers that takes the element size in bytes. */
 
 void Reorder_Array_8(const size_t n, void * restrict p_in, 
 									   size_t * restrict idx)

@@ -2,12 +2,10 @@
 
 #ifdef GRAVITY_TREE
 
-/*
- * Dynamically update the tree with the kicks of this timestep. We
+/* Dynamically update the tree with the kicks of this timestep. We
  * start at the parent of the current particle and walk the tree backwards
  * until we reach the top node. Then we kick the top node itself, and mark it
- * as kicked by multiplying the level with -1
- */
+ * as kicked by multiplying the level with -1 */
 
 void Gravity_Tree_Update_Kicks()
 {
@@ -75,10 +73,8 @@ void Gravity_Tree_Update_Kicks()
 	return ;
 }
 
-/*  
- * Advance updated/kicked Treenodes by the system timestep. Then do the same
- * with the top nodes.
- */
+/* Advance updated/kicked Treenodes by the system timestep. Then do the same
+ * with the top nodes. */
 
 static int nUpdate = 0;
 

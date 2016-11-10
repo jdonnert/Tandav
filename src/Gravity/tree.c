@@ -4,9 +4,7 @@
 
 static void check_total_momentum(const bool show_change);
 
-/*
- * Barnes & Hutt gravity tree driver routine
- */
+/* Barnes & Hutt gravity tree driver routine */
 
 void Gravity_Tree_Acceleration()
 {
@@ -32,9 +30,8 @@ void Gravity_Tree_Acceleration()
 
 	return ;
 }
-/*
- * Compute total momentum to check the gravity interaction. 
- */
+
+/* Compute total momentum to check the gravity interaction. */
 
 static double Px = 0, Py = 0, Pz = 0, Last = 0;
 

@@ -1,8 +1,6 @@
 #include "timestep.h"
 
-/* 
- * The number of bins is given by the number of bits in an integer time 
- */
+/* The number of bins is given by the number of bits in an integer time */
 
 #define N_INT_BINS (sizeof(intime_t) * CHAR_BIT)
 #define COUNT_TRAILING_ZEROS(x) __builtin_ctzll(x)
@@ -26,10 +24,8 @@ static int Time_Bin_Min = N_INT_BINS-1, Time_Bin_Max = 0;
 int * restrict First = NULL;
 int * restrict Last = NULL;
 
-/* 
- * All active particles get a new step that is smaller than or equal to 
- * the largest active bin. We also set the fullstep signal. 
- */
+/* All active particles get a new step that is smaller than or equal to 
+ * the largest active bin. We also set the fullstep signal. */
 
 void Set_New_Timesteps()
 {
@@ -68,6 +64,7 @@ void Set_New_Timesteps()
 	}
 
 	//Make_Active_Particle_Vectors();
+	
 	Make_Active_Particle_List();
 
 	#pragma omp master
@@ -87,8 +84,7 @@ void Set_New_Timesteps()
 	return ;
 }
 
-/* 
- * The timeline is represented by an integer, where an increment of one 
+/* The timeline is represented by an integer, where an increment of one 
  * corresponds to the whole integration time divided by 2^(N_INT_BINS-1).
  * In comoving coordinates the timesteps are divided in log space, which
  * means, we are effectively stepping in redshift. 
@@ -101,8 +97,7 @@ void Set_New_Timesteps()
  * the kick operation and the drift operation (It_Drift_Pos & It_Kick_Pos).
  * We also setup the particle loop vectors, where V describes blocks of 
  * particles that are adjacent in memory and on the same time step. 
- * Time integration is in da.
- */
+ * Time integration is in da. */
 
 void Time_Integration_Setup()
 {
@@ -153,8 +148,9 @@ void Time_Integration_Setup()
 		for (int ipart = 0; ipart < Task.Npart_Total; ipart++) 
 			P.It_Drift_Pos[ipart] = P.It_Kick_Pos[ipart] = Int_Time.Current;
 
-		rprintf("Continue simulation from snapshot %d at %g, next snap at %g \n", 
-				Time.Snap_Counter, Restart.Time_Continue, Time.Next_Snap);
+		rprintf("Continue simulation from snapshot %d at %g,"
+				" next snap at %g \n", Time.Snap_Counter, 
+				Restart.Time_Continue, Time.Next_Snap);
 	}
 
 	Time.Current = Integer_Time2Integration_Time(Int_Time.Current);
@@ -174,10 +170,8 @@ void Time_Integration_Setup()
 	return ;
 }
 
-/*
- * Convert time to log(a). This is exact only in a de Sitter cosmology,
- * where a = exp(H*t).
- */
+/* Convert time to log(a). This is exact only in a de Sitter cosmology,
+ * where a = exp(H*t). */
 
 static inline Float convert_dt_to_dlna(const Float dt)
 {
@@ -188,11 +182,8 @@ static inline Float convert_dt_to_dlna(const Float dt)
 #endif
 }
 
-/* 
- * Find smallest allowed timestep for rank local particles given the time step 
- * criteria. Find local max & min to these bins. 
- */
-
+/* Find smallest allowed timestep for rank local particles given the time step 
+ * criteria. Find local max & min to these bins. */
 
 static void set_new_particle_timebins()
 {
@@ -232,18 +223,16 @@ static void set_new_particle_timebins()
 	return ;
 }
 
-/*
- * Set global system timestep. We also have to consider
+/* Set global system timestep. We also have to consider
  * the first and last step separately and stay in sync with the timeline,
  * i.e. we can choose a longer timestep only if it the next time is a 
- * multiple of it.
- */
+ * multiple of it. */
 
 static void set_system_timestep()
 {
 	intime_t step_bin = (intime_t) 1 << Time_Bin_Min; // step down ?
 
-	intime_t step_sync = 1ULL << COUNT_TRAILING_ZEROS(Int_Time.Current);
+	intime_t step_sync = 1ULL << max_active_time_bin(Int_Time.Current);
 
 	if (Int_Time.Current == Int_Time.Beg) // treat beginning t0
 		step_sync = step_bin;
@@ -264,10 +253,8 @@ static void set_system_timestep()
 	return ;
 }
 
-/*
- * The highest active time bin is the last set bit in the current
- * integer time.  
- */
+/* The highest active time bin is the last set bit in the current
+ * integer time. */
 
 static int max_active_time_bin()
 {
@@ -295,11 +282,9 @@ void Make_Active_Particle_List()
 	return ;
 }
 
-/*
- * To be able to vectorize particle accesses, we find vectors of particles
+/* To be able to vectorize particle accesses, we find vectors of particles
  * that are adjacent in memory and on the same timestep. We end up with 
  * NParticle_Vectors vectors starting at First and ending before Last.
- 
 
 void Make_Active_Particle_Vectors(const int max_active_bin)
 {
@@ -344,12 +329,10 @@ void Make_Active_Particle_Vectors(const int max_active_bin)
 	return ;
 }*/
 
-/* 
- * Give the integration timestep from timebin and convert from integer to 
+/* Give the integration timestep from timebin and convert from integer to 
  * integration time. In comoving coordinates/cosmological simulations we 
  * multi-step in "dlog(a) = 1+z. We return here dln(a) from the timebin. 
- * Note that dt = da / H(a).
- */
+ * Note that dt = da / H(a). */
 
 intime_t Timebin2It_Timestep(const int TimeBin)
 {
@@ -370,7 +353,7 @@ intime_t Integration_Time2Integer_Time(const double Integration_Time)
 
 double Integer2Physical_Time(const intime_t Integer_Time)
 {
-	return Integer_Time2Integration_Time(Integer_Time) / Cosmo.Hubble_Parameter;
+	return Integer_Time2Integration_Time(Integer_Time)/Cosmo.Hubble_Parameter;
 }
 
 #else // ! COMOVING
@@ -393,9 +376,7 @@ double Integer_Time2Integration_Time(const intime_t Integer_Time)
 #endif // ! COMOVING
 
 
-/* 
- * Convert a timestep to a power 2 based timebin via ceil(log2(StepMax/dt)) 
- */
+/* Convert a timestep to a power 2 based timebin via ceil(log2(StepMax/dt)) */
 
 static int timestep2timebin(const double dt)
 {
@@ -474,9 +455,7 @@ static void print_timebins()
 #undef N_INT_BINS
 #undef COUNT_TRAILING_ZEROS
 
-/*
- * Collect minimum of all timesteps 
- */
+/* Collect minimum of all timesteps */
 
 static float get_physical_timestep(const int ipart)
 {
@@ -495,9 +474,7 @@ static float get_physical_timestep(const int ipart)
 	return dt;
 }
 
-/* 
- * Cosmological N-body step, Dehnen & Read 2011, eq 21
- */
+/* Cosmological N-body step, Dehnen & Read 2011, eq 21 */
 
 static float cosmological_timestep(const int ipart, const Float acc_phys)
 {
@@ -511,9 +488,7 @@ static float cosmological_timestep(const int ipart, const Float acc_phys)
 #endif // ! COMOVING
 }
 
-/*
- * Collect timestep upper bounds from various models
- */
+/* Collect timestep upper bounds from various models */
 
 static void set_global_timestep_constraint()
 {

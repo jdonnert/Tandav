@@ -1,10 +1,8 @@
 #include "update.h"
 
-/* 
- * Provide a consistent way of updating/calling different parts 
+/* Provide a consistent way of updating/calling different parts 
  * of the code from the main loop. We are already in an OMP parallel
- * environment !
- */
+ * environment ! */
 
 void Update(enum Update_Parameters stage)
 {

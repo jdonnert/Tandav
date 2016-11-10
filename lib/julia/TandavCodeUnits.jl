@@ -5,7 +5,8 @@ module TandavCodeUnits
 importall CGSUnits
 
 export CodeUnits, CodeConstants
-export Density, NumberDensity, Pressure, U2T, T2U, ThermalEnergyDensity, SoundSpeed
+export Density, NumberDensity, Pressure, U2T, T2U, ThermalEnergyDensity, 
+	   SoundSpeed
 
 type CodeUnits
 
@@ -66,7 +67,7 @@ function NumberDensity(unit::CodeUnits, rho; h=1, z=0, xH=0.76)
 	n2ne = (xH+0.5*(1-xH))/(2*xH+0.75*(1-xH))
 	umu = 4./(5.*xH+3.)
 
-	return Density(unit, rho, h, z) * n2ne/(umu*mp)
+	return Density(unit, rho; h=h, z=z) * n2ne/(umu*mp)
 end
 
 function Pressure(unit::CodeUnits, rho, U; h=1, z=0, xH=0.76, gam=5/3)

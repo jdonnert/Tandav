@@ -66,18 +66,18 @@ end
 
 function U2T(t::TandavCodeObject, u)
 
-	return U2T(t.Unit, u; xH=t.Par.xH, gam=t.Par.gamma, rad=t.Par.fRad )
+	return U2T(t.Unit, u; xH=t.Par.xH, gam=t.Par.gamma, rad=t.Par.fCool )
 end
 
 function T2U(t::TandavCodeObject, temp)
   
-	return U2T(t.Unit, temp; xH=t.Par.xH, gam=t.Par.gamma, rad=t.Par.fRad)
+	return T2U(t.Unit, temp; xH=t.Par.xH, gam=t.Par.gamma, rad=t.Par.fCool)
 end
 
 function ThermalEnergyDensity(t::TandavCodeObject, rho, u)
 
 	return ThermalEnergyDensity(t.Unit, rho, u; h=t.Par.h, z=t.h, xH=t.Par.xH,
-							 	gam=t.Par.gamma, radiative=t.Par.fRad)
+							 	gam=t.Par.gamma, radiative=t.Par.fCool)
 end
 
 function SoundSpeed(t::TandavCodeObject, u)
@@ -86,28 +86,41 @@ function SoundSpeed(t::TandavCodeObject, u)
 end
 
 
-function ReadSnap(t::TandavCodeObject, fname::AbstractString, label::String; pType=0x07, debug=false)
+function ReadSnap(t::TandavCodeObject, fname::AbstractString, label::String; 
+				  pType=0x07, debug=false)
 	
+	head = ReadHead(t, fname; debug=debug)
+
 	data = ReadSnap(fname, label; pType=pType, debug=debug)
-	
-	head = ReadHead(fname; debug=debug)
-
-	Update!(t.z, head.redshift, "z") # update TandavCodeObject from snapshot
-	Update!(t.Par.boxsize, head.boxsize, "boxsize")
-	Update!(t.Par.omega0, head.omega0, "omega0")
-	Update!(t.Par.omegaL, head.omegaL, "omegaL")
-	Update!(t.Par.h, head.hbpar, "h")
-
-	Update!(t.Par.fDouble, head.flag_double, "fDouble")
-	Update!(t.Par.fSfr, head.flag_sfr, "fSfr")
-	Update!(t.Par.fCool, head.flag_cooling, "fCool")
-	Update!(t.Par.fFeedB, head.flag_feedback, "fFeedB")
-	Update!(t.Par.fComov, head.flag_comoving, "fComov")
-	Update!(t.Par.fPeriod, head.flag_periodic, "fPeriod")
-	
-	println()
 
 	return data
+end
+
+function ReadHead(t::TandavCodeObject, fname::AbstractString; debug=false)
+
+	head = ReadHead(fname; debug=debug)
+
+	if debug == true
+
+		println("Updating TandavCodeObject from HEAD of Snapshot ")
+
+		Update!(t.z, head.redshift, "z")	
+		Update!(t.Par.boxsize, head.boxsize, "boxsize")
+		Update!(t.Par.omega0, head.omega0, "omega0")
+		Update!(t.Par.omegaL, head.omegaL, "omegaL")
+		Update!(t.Par.h, head.hbpar, "h")
+
+		Update!(t.Par.fDouble, head.flag_double, "fDouble")
+		Update!(t.Par.fSfr, head.flag_sfr, "fSfr")
+		Update!(t.Par.fCool, head.flag_cooling, "fCool")
+		Update!(t.Par.fFeedB, head.flag_feedback, "fFeedB")
+		Update!(t.Par.fComov, head.flag_comoving, "fComov")
+		Update!(t.Par.fPeriod, head.flag_periodic, "fPeriod")
+	
+		println()
+	end
+
+	return head
 end
 
 function Update!(a, b, name::AbstractString)
@@ -116,7 +129,7 @@ function Update!(a, b, name::AbstractString)
 		
 		a = b
 
-		println("HEAD -> $name = $a")
+		println("   HEAD -> $name = $a")
 	end
 end
 

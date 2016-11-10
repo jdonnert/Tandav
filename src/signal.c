@@ -5,9 +5,7 @@ static bool test_for_stop_file();
 #pragma omp threadprivate(Sig)
 struct Simulation_Signals Sig;
 
-/*
- * These functions handle simulation signals (->signal.h).
- */
+/* These functions handle simulation signals (->signal.h). */
 
 bool Time_Is_Up()
 {
@@ -74,10 +72,8 @@ bool Time_For_Snapshot()
 	return false;
 }
 
-/*
- * Test if we have to do a domain decomposition & tree build, depending on
- * the number of interactions / drifted particles.
- */
+/* Test if we have to do a domain decomposition & tree build, depending on
+ * the number of interactions / drifted particles. */
 
 static int Global_NPart_Updates = 0;
 static int Local_NPart_Updates = 0;

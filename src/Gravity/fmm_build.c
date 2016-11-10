@@ -7,23 +7,22 @@
 
 #define DEBUG_FMM
 
-static void prepare_fmm();
 static struct FMM_Node reserve_fmm_memory(const int, int *);
-
+static Float find_leaf_rmax(const int, const int, const int, struct FMM_Node);
 static int find_leaf_size(const int, const int, const int);
 static int find_next_level(const int, int);
 static int copy_leafs(const int, const int *, const int *);
-static void set_node_position(const int, const int, const int, const int,
-							  const int, struct FMM_Node fmm);
 static int fmm_build_branch(const int, const int, const int, const int,
 							struct FMM_Node, int);
-static void fmm_p2m(const int, int, const int, struct FMM_Node);
-static bool particle_is_inside_node(const peanoKey, const int);
-static Float find_leaf_rmax(const int, const int, const int, struct FMM_Node);
+static void prepare_fmm();
 static void set_critical_radius();
+static void fmm_p2m(const int, int, const int, struct FMM_Node);
+static void set_node_position(const int, const int, const int, const int,
+							  const int, struct FMM_Node fmm);
+static bool particle_is_inside_node(const peanoKey, const int);
 
 static void test_tree (struct FMM_Node f, int *leaf2part, int *leaf2node,
-				const int nLeafs, const int nNodes, const int tnode);
+						const int nLeafs, const int nNodes, const int tnode);
 
 static struct FMM_Node fmm = { NULL }; // we build the tree in here
 #pragma omp threadprivate(fmm)
@@ -229,8 +228,7 @@ static struct FMM_Node reserve_fmm_memory(const int tnode, int *offset)
  * these cases you should use DOUBLE_PRECISION so particle distances are not 
  * controlled by numeric noise in their positions. */
 
-static int find_leaf_size(const int ipart, const int last_part,
-						  const int min_lvl)
+static int find_leaf_size(const int ipart, const int last_part, const int min_lvl)
 {
 	if (ipart > last_part - VECTOR_SIZE) // manage end
 		return last_part - ipart + 1;
@@ -267,8 +265,8 @@ static int find_leaf_size(const int ipart, const int last_part,
 				npart++;
 			}
 
-			if (npart <= size || lvl == max_lvl)
-				break; // leaf found: npart with same key at lvl
+			if (npart <= size || lvl == max_lvl) // leaf found !
+				break; 
 
 			mask <<= 3;
 
@@ -281,7 +279,7 @@ static int find_leaf_size(const int ipart, const int last_part,
 	} while (lvl == max_lvl);
 
 #ifdef DEBUG
-	Assert(npart < 1024, 
+	Warn(npart < 1024, 
 			"I found a very large leaf (npart=%d) at ipart=%d. "
 			"That means your simulation has a very large spatial "
 			"dynamic range. Many particle distances are only a factor "
@@ -328,15 +326,16 @@ static int copy_leafs(const int n, const int *leafs, const int *nodes)
 /* Build a branch of the FMM tree in *fmm.
  * As we know the level of the tree leaf, we refine and create nodes until we
  * reach that level.
- * We always add nodes at the end of the subtree. In a leaf, the
- * DNext/Leaf_Ptr union holds the index to leaf2particle. In an internal
- * node it holds the number of nodes to the next node.
+ * We always add nodes at the end of the subtree. In a leaf Leaf_Ptr holds the 
+ * index to leaf2particle. In an internal node, DNext it holds the number of 
+ * nodes to the next node.
  * The leaf index is stored negative and offset by one to leave 0 indicating
  * unset. We assume the peano key has reversed triplet order and the least
  * significant 3 bits carry the triplet at level "lvl". */
 
 static int fmm_build_branch(const int ipart, const int tnode,
-		const int npart, const int leaf_lvl, struct FMM_Node fmm, int nNodes)
+							const int npart, const int leaf_lvl, 
+							struct FMM_Node fmm, int nNodes)
 {
 	int top_level = D[tnode].TNode.Level;
 
@@ -432,7 +431,7 @@ static void set_node_position(const int ipart, const int node,
  * branch is walked upwards from the leaf, adding the leaf values to the 
  * parent nodes. (Dehnen 2002, sect 3.1, 2.3, Yokota 2012). */
 
-static void fmm_p2m(const int beg, const int node, const int npart,
+static void fmm_p2m (const int beg, const int node, const int npart, 
 					struct FMM_Node fmm)
 {
 	const int end = beg + npart;
@@ -502,7 +501,7 @@ static void fmm_p2m(const int beg, const int node, const int npart,
  * We save it in fmm.Rcrit and reconstruct theta later */
 
 static Float find_leaf_rmax(const int leaf, const int beg, const int end, 
-		struct FMM_Node fmm)
+															struct FMM_Node fmm)
 {
 	Float leaf_rmax2 = 0;
 
@@ -583,8 +582,10 @@ static void set_critical_radius()
 		
 		for (int i = 0; i < 5; i++) { // Newton-Raphson
 	
-			Float theta_p = pow(theta,p);
+			Float theta_p = pow(theta, p);
+
 			Float f = theta_p*p2(theta) - coeff*(1-2*theta+p2(theta));
+			
 			Float df = (p+2)*theta_p*theta + 2*coeff * (1+theta);
 			
 			theta -= f/df;
@@ -597,7 +598,7 @@ static void set_critical_radius()
 }
 
 static void test_tree(struct FMM_Node f, int *leaf2part, int *leaf2node,
-				const int nLeafs, const int nNodes, const int tnode)
+						const int nLeafs, const int nNodes, const int tnode)
 {
 #ifdef DEBUG_FMM
 	printf("testing tree for consistency ... \n");
@@ -632,7 +633,7 @@ static void test_tree(struct FMM_Node f, int *leaf2part, int *leaf2node,
 	Assert(D[tnode].TNode.NLeafs == nLeafs, "nLeafs in tnode wrong %d - %d"
 			, D[tnode].TNode.NLeafs, nLeafs);
 
-	Assert(D[tnode].TNode.Mass == f.Mass[0], "Topnode mass wrong node=%d",0);
+	Assert(D[tnode].TNode.Mass == f.Mass[0], "Topnode mass wrong, node=%d",0);
 	Assert(D[tnode].TNode.CoM[0] == f.CoM[0][0], "CoM0 wrong %d", 0);
 	Assert(D[tnode].TNode.CoM[1] == f.CoM[1][0], "CoM1 wrong %d", 0);
 	Assert(D[tnode].TNode.CoM[2] == f.CoM[2][0], "CoM2 wrong %d", 0);

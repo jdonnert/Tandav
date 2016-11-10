@@ -1,18 +1,14 @@
 #ifndef GLOBALS_H
 #define GLOBALS_H
 
-/*
- * Unexposed Code Parameters
- */
+/* Unexposed Code Parameters */
 
 #define CHARBUFSIZE 512L	// Maximum No. of bytes in every char buffer
 #define NPARTYPE 6L			// No of particle types
 #define MEM_ALIGNMENT 64L	// memory alignment
 #define MASTER 0L			// Global master MPI task for printing
 
-/*
- * Types
- */
+/* Types */
 
 #ifdef DOUBLE_PRECISION // your compiler must understand __uint128_t integers
 
@@ -41,20 +37,14 @@ typedef uint32_t shortKey;
 extern void Finish();
 extern void Print_Compile_Time_Settings();
 
-/* 
- * Workaround
- */
-
 double erand48(unsigned short xsubi[3]);
 
-/*
- * Global variables
- */
+/* Global variables */
 
 extern int Master;				// Global Rank Master (for printing)
 extern int NRank;				// Number of MPI tasks
 extern int NThreads;			// Number of OpenMP threads
-extern int NTask;				// NRank * NThreads
+extern int NTask;				// == NRank * NThreads
 
 extern struct Local_Task_Properties {
 	int ID;						// unique ID of thread
@@ -73,8 +63,8 @@ extern struct Local_Task_Properties {
 #pragma omp threadprivate(Task) // modifications only in parallel env. !!
 
 extern struct Global_Simulation_Properties {
-	uint64_t Npart_Total;		// total global number of particles
 	uint64_t Npart[NPARTYPE];	// global number of particles
+	uint64_t Npart_Total;		// total global number of particles
 	double Mpart[NPARTYPE];		// Global Masses from header
 	double Boxsize[3];			// Now in 3D !
 } Sim;

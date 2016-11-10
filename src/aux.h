@@ -1,9 +1,7 @@
 #ifndef AUX_H
 #define AUX_H
 
-/*
- * Helper monkeys
- */
+/* Helper monkeys */
 
 #include "includes.h"
 

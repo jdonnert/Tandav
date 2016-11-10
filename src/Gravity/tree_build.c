@@ -30,8 +30,7 @@ static omp_lock_t Tree_Lock; // lock global *Tree, NNodes, Max_Nodes
 static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *tree
 #pragma omp threadprivate(tree)
 
-/*
- * This builds the tree in parallel, particles are assumed PH ordered. 
+/* This builds the tree in parallel, particles are assumed PH ordered. 
  * We build the tree corresponding to a top node either in the openmp buffer, 
  * or directly inside the *Tree memory. Every access to  NNodes, 
  * Max_Nodes has to be protected by the openmp Tree_Lock.
@@ -41,8 +40,7 @@ static struct Tree_Node * restrict tree = NULL; //  build in *Tree or *tree
  * If the number of particles in that top node is <= VECTOR_SIZE, the subtree 
  * is discarded and the topnode target points directly to the particles and 
  * the tree walk will use particles directly from the topnode. 
- * At last the top nodes are broadcasted.
- */
+ * At last the top nodes are broadcasted. */
 
 void Gravity_Tree_Build()
 {

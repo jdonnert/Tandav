@@ -24,11 +24,9 @@ void Init_Units()
 	return ;
 }
 
-/* 
- * Mostly for reference purposes, these functions convert internal units 
+/* Mostly for reference purposes, these functions convert internal units 
  * to physical cgsm units. In case of comoving coordinates, they also 
- * remove the a factors. 
- */
+ * remove the a factors. */
 
 double Position_Cgs(const float x)
 {

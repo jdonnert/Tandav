@@ -1,8 +1,5 @@
 #include "domain.h"
 
-#define MIN_LEVEL 0 // decompose at least 8^MIN_LEVEL domains downward
-#define DEBUG_DOMAIN
-
 static void set_computational_domain();
 static void find_domain_center(double Center_Out[3]);
 static void find_largest_particle_distance(double *);
@@ -27,12 +24,12 @@ static void communicate_particles();
 static void communicate_bunches();
 static void communicate_top_nodes();
 
-#ifdef DEBUG_DOMAIN
 static void print_domain_decomposition(const int);
-#else
-static inline void print_domain_decomposition(const int a) {};
-#endif // DEBUG_DOMAIN
 
+
+
+#define MIN_LEVEL 0 // decompose at least 8^MIN_LEVEL domains downward
+#define DEBUG_DOMAIN
 
 union Domain_Node_List * restrict D = NULL;
 
@@ -48,8 +45,7 @@ static double Mean_Cost = 0, Mean_Npart = 0;
 
 static int NBunches = 0;
 
-/*
- * Distribute particles in bunches, which are continuous on the Peano curve,
+/* Distribute particles in bunches, which are continuous on the Peano curve,
  * but at different levels in the tree. The bunches correspond to nodes of
  * the tree. Bunches also give the top nodes in the tree, with some info
  * added.
@@ -62,8 +58,7 @@ static int NBunches = 0;
  * MPI ranks. This way particle communication is minimised and we avoid the
  * big particle shuffle.
  * Upon reentry we start off with one top node only, as this is a log(n)
- * algorithm.
- */
+ * algorithm. */
 
 void Domain_Decomposition()
 {
@@ -143,9 +138,7 @@ break;
 	return ;
 }
 
-/*
- * Make room for some bunches
- */
+/* Make room for some bunches */
 
 void Domain_Decomposition_Setup()
 {
@@ -203,11 +196,9 @@ static void communicate_top_nodes()
 
 
 
-/*
- * Set the "TNode" part of the "D"omain unions. From here onwards the members 
+/* Set the "TNode" part of the Domain unions. From here onwards the members 
  * are to be understood as a Top Node, not a bunch. Also returns the first
- * particle in "ipart" and the "level" 
- */
+ * particle in "ipart" and the "level" */
 
 static void transform_bunches_into_top_nodes()
 {
@@ -266,9 +257,7 @@ static void reallocate_topnodes()
 }
 
 
-/*
- * Clear bunchlist. Also deallocates the Tree
- */
+/* Clear bunchlist. Also deallocates the Tree */
 
 static void reset_bunchlist()
 {
@@ -307,10 +296,8 @@ static int find_min_level()
 
 }
 
-/*
- * Find bunches to merge, because they are on the same Rank & level 
- * and are complete. We do this until there is nothing left to merge. 
- */
+/* Find bunches to merge, because they are on the same Rank & level 
+ * and are complete. We do this until there is nothing left to merge. */
 
 /*static void remove_excess_bunches()
 {
@@ -396,11 +383,9 @@ static void make_new_bunchlist()
 	return ; 
 }
 
-/*
- * We split a bunch into 8 sub-bunches/nodes, adding the largest peano key 
+/* We split a bunch into 8 sub-bunches/nodes, adding the largest peano key 
  * contained in the bunch. The position is later reconstructed from the first 
- * particle contained in the bunch, when we transform into top nodes.
- */
+ * particle contained in the bunch, when we transform into top nodes. */
 
 static void split_bunch(const int parent, const int first)
 {
@@ -460,11 +445,9 @@ static int remove_empty_bunches()
 	return max_lvl;
 }
 
-/*
- * Update particle distribution over NBunches, starting from first_bunch. 
+/* Update particle distribution over NBunches, starting from first_bunch. 
  * This is performance critical. Every thread works inside its omp buffer, 
- * which are later reduced. The reduction is overlapped with the filling.
- */
+ * which are later reduced. The reduction is overlapped with the filling. */
 
 static void fill_new_bunches(const int first_bunch, const int nBunches,
 		 const int first_part, const int nPart)
@@ -561,11 +544,9 @@ static void zero_particle_cost()
 	return ;
 }
 
-/*
- * Assign tasks to bunches, top to bottom and measure cost.
+/* Assign tasks to bunches, top to bottom and measure cost.
  * We use the standard Gadget way of distributing, which is: order the bunches
- * by cost and then assign CPUs.
- */
+ * by cost and then assign CPUs. */
 
 static void distribute()
 {
@@ -646,9 +627,7 @@ static void find_global_imbalances()
 	return ;
 }
 
-/*
- * This function decides if a bunch can be refined into eight sub-bunches. 
- */
+/* This function decides if a bunch can be refined into eight sub-bunches. */
 
 static void mark_bunches_to_split()
 {
@@ -690,9 +669,7 @@ static int compare_bunches_by_cost(const void *a, const void *b)
 
 
 
-/*
- * Reduce the Bunch list over all MPI ranks 
- */
+/* Reduce the Bunch list over all MPI ranks */
 
 static void communicate_bunches()
 {
@@ -717,12 +694,10 @@ static void communicate_particles()
 	return ;
 }
 
-/*
- * Find the global domain origin and the maximum extent. We center the domain 
+/* Find the global domain origin and the maximum extent. We center the domain 
  * on the center of mass to make the decomposition effectively Lagrangian if
- * the simulation is not PERIODIC. Actually the median would be much better !
- * For PERIODIC simulations there is little to do.
- */
+ * the simulation is not PERIODIC. 
+ * For PERIODIC simulations there is little to do. */
 
 #ifdef PERIODIC
 
@@ -759,10 +734,8 @@ static void set_computational_domain()
 }
 
 
-/*
- * Domain Center is not the center of mass but the median of mass, which is
- * less sensitive to outliers.
- */
+/* Domain Center is not the center of mass but the median of mass, which is
+ * less sensitive to outliers. */
 
 static Float * restrict buffer = NULL;
 
@@ -908,6 +881,11 @@ static void print_domain_decomposition (const int max_level)
 
 	return ;
 }
+
+#else
+
+static void print_domain_decomposition (const int max_level) {}
+
 #endif // DEBUG_DOMAIN
 
 // Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)

@@ -1,13 +1,11 @@
 #include "drift.h"
 
-/* 
- * This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 
+/* This is the drift part of the KDK scheme (Dehnen & Read 2012, Springel 05). 
  * As a snapshot time may not fall onto an sync time, we have to 
  * drift to the snapshot time, write the snapshot and then drift the 
  * remaining time to the next integertime. Hence we set the next integer time
  * not from the time bin (that might be too large), but from the smallest 
- * time bin via Int_Time.Next. This handles out of sync time lines.
- */
+ * time bin via Int_Time.Next. This handles out of sync time lines. */
 
 void Drift_To_Sync_Point()
 {
@@ -63,10 +61,8 @@ void Drift_To_Sync_Point()
 	return;
 }
 
-/* 
- * Drift the system forward to the integer time closest to the snap time.
- * The system is then out of sync with the integer timeline
- */
+/* Drift the system forward to the integer time closest to the snap time.
+ * The system is then out of sync with the integer timeline */
 
 void Drift_To_Snaptime()
 {
@@ -104,11 +100,9 @@ void Drift_To_Snaptime()
 	return ;
 }
 
-/*
- * Return the amount of real time between two points on the integer timeline.
+/* Return the amount of real time between two points on the integer timeline.
  * This is a 2^X of the smallest increment representable on the integer time-
- * line, when we are not in comoving coordinates. 
- */
+ * line, when we are not in comoving coordinates. */
 
 #ifndef COMOVING 
 

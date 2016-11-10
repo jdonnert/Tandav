@@ -2,10 +2,8 @@
 
 #define PARALLEL_THRES 100000
 
-/*
- * Select the kth element out of an array *data with length ndata.
- * Press et al. 1992
- */
+/* Select the kth element out of an array *data with length ndata.
+ * Press et al. 1992 */
 
 static inline void swap(Float * restrict a, Float * restrict b)
 {
@@ -79,9 +77,7 @@ Float Select(const int k, const int ndata, Float * restrict data)
 	return data[k];
 }
 
-/*
- * Find an approximation of the median of *data with length ndata in OpenMP.
- */
+/* Find an approximation of the median of *data with length ndata in OpenMP. */
 
 static int compare_floats(const void * a, const void *b)
 {

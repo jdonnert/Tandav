@@ -1,10 +1,8 @@
 #include "kick.h"
 
-/*
- * This is the Kick part of the KDK scheme. We update velocities from
+/* This is the Kick part of the KDK scheme. We update velocities from
  * accelerations, but kick only for half a timebin. If we use the tree, the
- * nodes are kicked as well.
- */
+ * nodes are kicked as well. */
 
 void Kick_First_Halfstep()
 {

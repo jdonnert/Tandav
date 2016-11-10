@@ -16,16 +16,14 @@ static struct Walk_Data_Particle Send = { 0 };
 static struct Walk_Data_Result Recv = { 0 };
 #pragma omp threadprivate(Send,Recv)
 
-/*
- * We do not walk referencing particles, but copy the required particle data
+/* We do not walk referencing particles, but copy the required particle data
  * into a Send buffer "Send". The results are written into a sink buffer 
  * "Recv". 
  * These buffers interact with all local topnodes, either with the node 
  * directly, or with the particles it contains (small top node). Or, walk 
  * the tree and estimate gravitational acceleration using two different
  * opening criteria. Also open all nodes containing ipart to avoid large 
- * maximum errors. Barnes & Hut 1984, Springel 2006, Dehnen & Read 2012.
- */
+ * maximum errors. Barnes & Hut 1984, Springel 2006, Dehnen & Read 2012. */
 
 void Gravity_Tree_Walk(const bool Use_BH_Criterion)
 {
@@ -120,11 +118,9 @@ static void add_recv_to(const int ipart)
 	return ;
 }
 
-/*
- * For top nodes far away, we don't have to do a tree walk or Send the particle
+/* For top nodes far away, we don't have to do a tree walk or Send the particle
  * around. Similar to the normal tree walk we first check if the top node 
- * contains the particle and then check the two criteria.
- */
+ * contains the particle and then check the two criteria. */
 
 static bool interact_with_topnode(const int j, const bool Use_BH_Criterion)
 {
@@ -167,10 +163,8 @@ static bool interact_with_topnode(const int j, const bool Use_BH_Criterion)
 	return true;
 }
 
-/*
- * Top nodes with less than 8 particles point not to the tree but to P as 
- * targets
- */
+/* Top nodes with less than 8 particles point not to the tree but to P as 
+ * targets */
 
 static void interact_with_topnode_particles(const int j)
 {
@@ -194,11 +188,9 @@ static void interact_with_topnode_particles(const int j)
 	return ;
 }
 
-/*
- * This function walks the local tree and computes the gravitational 
+/* This function walks the local tree and computes the gravitational 
  * acceleration using the relative opening criterion (Springel 2005).
- * If we encounter a particle bundle we interact with all of them.
- */
+ * If we encounter a particle bundle we interact with all of them. */
 
 static void gravity_tree_walk(const int tree_start)
 {
@@ -281,10 +273,8 @@ static void gravity_tree_walk(const int tree_start)
 	return ;
 }
 
-/*
- * Walk tree and use the B&H opening criterion, which does not require a prior
- * particle acceleration.
- */
+/* Walk tree and use the B&H opening criterion, which does not require a prior
+ * particle acceleration. */
 
 static void gravity_tree_walk_BH(const int tree_start)
 {
@@ -345,11 +335,9 @@ static void gravity_tree_walk_BH(const int tree_start)
 }
 
 
-/*
- * Gravitational force law using Dehnens K1 softening kernel with central 
+/* Gravitational force law using Dehnens K1 softening kernel with central 
  * value corresponding to Plummer softening of potential : 
- * h_K1 = -41.0/32.0 * eps_plummer;
- */
+ * h_K1 = -41.0/32.0 * eps_plummer; */
 
 static void interact(const Float mass, const Float dr[3], const Float r2)
 {
@@ -385,9 +373,7 @@ static void interact(const Float mass, const Float dr[3], const Float r2)
 	return ;
 }
 
-/*
- * Bitfield functions on global Tree
- */
+/* Bitfield functions on global Tree */
 
 Float Node_Size(const int node)
 {

@@ -31,6 +31,7 @@ void Gravity_FMM_M2L()
 
 	push(0,0);
 
+	#pragma omp single
 	while (N > 0) { // Yokata 2012 Alg 3
 		
 		int src = 0, dst = 0;
@@ -45,10 +46,22 @@ void Gravity_FMM_M2L()
 		int run = parent + 1; // leaf is never pushed
 		int sibling = parent + FMM.DNext[dst];
 			
-		while (run < sibling) { // loop over children
-	
-			#pragma omp task
-			interact_FMM(src, run);
+		while (run < sibling) { // loop over children, Yokata 2012, Alg 4
+		
+			if ((FMM.DNext[a] < 0) && (FMM.DNext[b] < 0)) {
+				
+				#pragma omp task
+				p2p_kernel(a,b);
+
+			} else if (MAC(a,b)) {
+				
+				#pragma omp task
+				m2l_kernel(a,b);
+
+			} else {
+				
+				push(a,b);
+			}
 
 			run += imax(1, FMM.DNext[run]);
 		}
@@ -110,20 +123,6 @@ static void pop(int *src, int *dst)
 	omp_unset_lock(&wstack_lock);
 
 	return ;
-}
-
-/* Yokata 2012, Alg 4 */
-
-static void interact_FMM(const int a, const int b)
-{
-	if ((FMM.DNext[a] < 0) && (FMM.DNext[b] < 0))
-		p2p_kernel(a,b);
-	else if (MAC(a,b)) 
-		m2l_kernel(a,b);
-	else
-		push(a,b);
-
-	return;
 }
 
 /* Multipole Acceptance Criterion (Dehnen 2001) */

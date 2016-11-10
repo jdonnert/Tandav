@@ -4,9 +4,7 @@
 #include <gsl/gsl_heapsort.h>
 #include "includes.h"
 
-/* 
- * OpenMP sorting functions 
- */
+/* OpenMP sorting functions */
 
 void Qsort(void *data, size_t ndata, size_t size, 
 		   int (*cmp) (const void *, const void *));

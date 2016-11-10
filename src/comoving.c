@@ -19,13 +19,11 @@ static gsl_spline *Kick_Spline = NULL, *Drift_Spline = NULL;
 static gsl_interp_accel *Acc[4] = { NULL };
 #pragma omp threadprivate(Kick_Spline,Drift_Spline,Acc)
 
-/*
- * These functions get the kick & drift factors of the symplectic integrator
+/* These functions get the kick & drift factors of the symplectic integrator
  * in comoving coordinates from a spline interpolation of the integral in
  * Appendix of Quinn+ 1997. This allows us to use a short table resulting in
  * relative errors < 1e-4, which is the same as what the numerical integrator 
- * gives. These functions are thread safe.
- */
+ * gives. These functions are thread safe. */
 
 double Particle_Kick_Step(const intime_t it_curr, const intime_t it_next)
 {
@@ -49,14 +47,12 @@ double Particle_Drift_Step(const intime_t it_curr, const intime_t it_next)
 	return drift_factor_end - drift_factor_beg;
 }
 
-/*
- * Integrate in s = \int^{t_i}_{t_0} dt/a^2 so we are conserving 
+/* Integrate in s = \int^{t_i}_{t_0} dt/a^2 so we are conserving 
  * canonical momentum m * a^2 * \dot{x}.
  * See Quinn, Katz, Stadel & Lake 1997, Peebles 1980, Bertschinger 1999. 
  * Note that in code units "dt = da" so the integrals from Quinns paper 
  * have to be transformed from dt -> da, which gives the additional factor of 
- * 1/\dot{a} = 1/H(a)/a. Time stepping is done in dln(a) = 1+z.
- */
+ * 1/\dot{a} = 1/H(a)/a. Time stepping is done in dln(a) = 1+z. */
 
 static double comoving_symplectic_drift_integrant(double a, void *param)
 {
@@ -100,11 +96,9 @@ void Finish_Comoving()
 	return ;
 }
 
-/*
- * This sets up the comoving kick & drift factors using a table and cspline
+/* This sets up the comoving kick & drift factors using a table and cspline
  * interpolation. For an EdS universe the solution is:
- * drift(a) = -2/H0/sqrt(a) ; kick(a) = 2/H0 * sqrt(a)
- */
+ * drift(a) = -2/H0/sqrt(a) ; kick(a) = 2/H0 * sqrt(a) */
 
 static void setup_kick_drift_factors()
 {
@@ -152,13 +146,11 @@ static void setup_kick_drift_factors()
 	return;
 }
 
-/*
- * This converts the particle velocities from the initial conditions to the 
- * internal velocity variable u = v*a^1.5. This is legacy Gadget-1. We use a 
+/* This converts the particle velocities from the initial conditions to the 
+ * internal velocity variable u = v*a^1.5. This is legacy Gadget-1. We use  
  * the  comoving potential from Quinn+ 1997 to construct the symplectic 
  * integrator, which requires "p  = m*v*a^2" in the comoving potential 
- * (Peebles 1980, Mo, v.d.Bosch, White 4.1.8, Springel 2001)
- */
+ * (Peebles 1980, Mo, v.d.Bosch, White 4.1.8, Springel 2001) */
 
 #ifdef GADGET_COMOVING_VEL_UNIT
 static void convert_velocities_to_comoving()
@@ -182,12 +174,10 @@ static void convert_velocities_to_comoving()
 }
 #endif
 
-/* 
- * In cosmological simulations the timestep has to be bound by the maximum 
+/* In cosmological simulations the timestep has to be bound by the maximum 
  * displacement given the rms velocity of all particles. The maximum 
  * displacement is set relative to the mean particle separation.
- * (Knebe et al. 2009, Lukic et al. 2007, Crocce et al. 2006)
- */
+ * (Knebe et al. 2009, Lukic et al. 2007, Crocce et al. 2006) */
 
 static double vel2[NPARTYPE] = { 0 }, min_mpart[NPARTYPE] = { 0 };
 static long long npart[NPARTYPE] = { 0 };

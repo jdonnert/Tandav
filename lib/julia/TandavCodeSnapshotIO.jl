@@ -77,12 +77,18 @@ function ReadSnap(fname::AbstractString, label::String; pType=0x7, debug=false)
 
 	blocksize = FindBlock(fd, label; debug=debug) # seek fd to block
 
-	@assert(blocksize > 0, 
-		 "\n\n    Block <$label> not found in file '$fname' \n")
+	if blocksize == 0 && label == "MASS"
+	
+		data = MakeMassesFromHeader(head)
 
-	data = ReadBlock(fd, label, blocksize)
+	else
+		@assert(blocksize > 0, 
+		  		"\n\n    Block <$label> not found in file '$fname' \n")
 
-	data = constrain!(data, head.npart, pType; debug=debug)
+		data = ReadBlock(fd, label, blocksize)
+
+		data = constrain!(data, head.npart, pType; debug=debug)
+	end
 
 	return data
 end
@@ -257,6 +263,29 @@ function GetNFiles(fname::String)
 	end
 
 	return 0
+end
+
+function MakeMassesFromHeader(head::Header)
+
+	nPart = sum(head.npart)
+
+	data = Array{Float32}(nPart)
+
+	run = 1
+
+	for i=1:6
+
+		for j=1:head.npart[i]
+			
+			data[run] = head.masses[i] 
+	
+			run += 1
+
+		end
+
+	end
+
+	return data
 end
 
 function WriteHead(fname::AbstractString, head::Header)

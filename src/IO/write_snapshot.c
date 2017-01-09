@@ -271,10 +271,7 @@ static void fill_data_buffer(const int iB, char *dataBuf)
 	return ;
 }
 
-/*
- * This writes the extra block that defines the gadget format2 file format as
- * proposed by Klaus.
- */
+/* This writes the extra block that defines the gadget format2 file format. */
 
 static void write_block_header(const char *name, uint32_t blocksize, FILE *fp)
 {

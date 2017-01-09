@@ -48,39 +48,39 @@ end
 
 # here start the function wrappers for all subtype methods
 
-function Density(t::TandavCodeObject, rho)
+function Density(t::TandavCodeObject, rho::Array)
 
 	return Density(t.Unit, rho; h=t.Par.h, z=t.z)
 end
 
 
-function NumberDensity(t::TandavCodeObject, rho)
+function NumberDensity(t::TandavCodeObject, rho::Array)
 
 	return NumberDensity(t.Unit, rho; h=t.Par.h, z=t.z, xH=t.Par.xH)
 end
 
-function Pressure(t::TandavCodeObject, rho, u)
+function Pressure(t::TandavCodeObject, rho::Array, u::Array)
 
 	return Pressure(t.Unit, rho, u; h=t.Par.h, z=t.z, xH=t.Par.xH, gam=t.Par.Gamma)
 end
 
-function U2T(t::TandavCodeObject, u)
+function U2T(t::TandavCodeObject, u::Array)
 
 	return U2T(t.Unit, u; xH=t.Par.xH, gam=t.Par.gamma, rad=t.Par.fCool )
 end
 
-function T2U(t::TandavCodeObject, temp)
+function T2U(t::TandavCodeObject, temp::Array)
   
 	return T2U(t.Unit, temp; xH=t.Par.xH, gam=t.Par.gamma, rad=t.Par.fCool)
 end
 
-function ThermalEnergyDensity(t::TandavCodeObject, rho, u)
+function ThermalEnergyDensity(t::TandavCodeObject, rho::Array, u::Array)
 
 	return ThermalEnergyDensity(t.Unit, rho, u; h=t.Par.h, z=t.h, xH=t.Par.xH,
 							 	gam=t.Par.gamma, radiative=t.Par.fCool)
 end
 
-function SoundSpeed(t::TandavCodeObject, u)
+function SoundSpeed(t::TandavCodeObject, u::Array)
 
 	return SoundSpeed(t.Unit, u; gam=t.Par.gamma)
 end

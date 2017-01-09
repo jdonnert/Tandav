@@ -4,9 +4,7 @@
 #include "../includes.h"
 #include "../particles.h" 
 
-/* 
- * Parameter File definition 
- */
+/* Parameter File definition */
 
 extern struct Parameters_From_File {
 	char File[CHARBUFSIZE];		// parameter file name

@@ -174,6 +174,7 @@ static void prepare_fmm()
 			D[i].TNode.First_Part = Leaf2Part[first_leaf];
 
 		}
+
 		memset(Leaf2Part, 0, Task.Npart_Total * sizeof(*Leaf2Part));
 		memset(Leaf2Node, 0, Task.Npart_Total * sizeof(*Leaf2Node));
 	}
@@ -501,7 +502,7 @@ static void fmm_p2m (const int beg, const int node, const int npart,
  * We save it in fmm.Rcrit and reconstruct theta later */
 
 static Float find_leaf_rmax(const int leaf, const int beg, const int end, 
-															struct FMM_Node fmm)
+							struct FMM_Node fmm)
 {
 	Float leaf_rmax2 = 0;
 

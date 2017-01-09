@@ -11,9 +11,7 @@ int cmp_peanoKeys(const void * a, const void *b)
 	return (int) (*x > *y) - (*x < *y);
 }
 
-/* 
- * Here we compute peano Keys and reorder particles
- */
+/* We compute peano Keys and reorder particles */
 
 static size_t *idx = NULL;
 
@@ -53,12 +51,12 @@ static void check_peano_keys()
 #ifdef DEBUG
 
 	#pragma omp single 
-	fail = 0;
+	fail = false;
 
-	#pragma omp for reduction(min:fail)
+	#pragma omp for reduction(max:fail)
 	for (int ipart = 1; ipart < Task.Npart_Total; ipart++) 
 		if (P.Key[ipart-1] == P.Key[ipart])
-			fail = 1;
+			fail = true;
 
 	Assert(fail == 0, "Found two particles with the same peano key." 
 					  "Tree build _will_ fail ...");
@@ -101,10 +99,8 @@ static void reorder_collisionless_particles(const size_t *idx_in)
 	return ;
 }
 
-/*
- * Construct a Reversed peano key from a std key. We are missing a fast
- * implementation at the moment, we recompute ...
- */
+/* Construct a Reversed peano key from a std key. We are lacking a faster
+ * implementation at the moment, we recompute ... */
 
 void Reverse_Peano_Keys()
 {
@@ -122,8 +118,7 @@ void Reverse_Peano_Keys()
 }
 
 
-/* 
- * Construct a N_PEANO_BITS bit Peano-Hilbert distance in 3D. 
+/* Construct a N_PEANO_BITS bit Peano-Hilbert distance in 3D. 
  * Input coordinates have to be normalized as 0 <= x < 1. Unfortunately a 
  * 128bit type is not portable beyond gcc & icc, though all modern CPUs have 
  * 128 bit registers. Hence, DOUBLE_PRECISION might not work on your compiler.
@@ -141,8 +136,7 @@ void Reverse_Peano_Keys()
  *
  * Skilling 2004, AIP 707, 381: "Programming the Hilbert Curve"
  * Note: There is a bug in the code of the paper. See also:
- * Campbell+03 'Dynamic Octree Load Balancing Using Space-Filling Curves' 
- */
+ * Campbell+03 'Dynamic Octree Load Balancing Using Space-Filling Curves' */
 
 peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 {
@@ -219,8 +213,7 @@ peanoKey Peano_Key(const Float px, const Float py, const Float pz)
 	return key;
 }
 
-/*
- * This constructs the peano key with reversed triplet order. The order in 
+/* This constructs the peano key with reversed triplet order. The order in 
  * the triplets however is the same ! Also level zero is carried explicitely
  * to ease tree construction. The most significant (left) bits are undefined.
  */

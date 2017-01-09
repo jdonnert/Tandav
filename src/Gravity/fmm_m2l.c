@@ -48,19 +48,19 @@ void Gravity_FMM_M2L()
 			
 		while (run < sibling) { // loop over children, Yokata 2012, Alg 4
 		
-			if ((FMM.DNext[a] < 0) && (FMM.DNext[b] < 0)) {
+			if ((FMM.DNext[src] < 0) && (FMM.DNext[run] < 0)) {
 				
 				#pragma omp task
-				p2p_kernel(a,b);
+				p2p_kernel(src,run);
 
-			} else if (MAC(a,b)) {
+			} else if (MAC(src,run)) {
 				
 				#pragma omp task
-				m2l_kernel(a,b);
+				m2l_kernel(src,run);
 
 			} else {
 				
-				push(a,b);
+				push(src,run);
 			}
 
 			run += imax(1, FMM.DNext[run]);

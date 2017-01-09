@@ -38,7 +38,7 @@ end # CodeUnits
 
 type CodeConstants
 	
-	G :: Float64	# Newtons constans
+	G :: Float64	# Newtons constant
 
 	function CodeConstants(unit::CodeUnits; show=false)
 	
@@ -57,43 +57,44 @@ end
 
 # conversions Code -> physical
 
-function Density(unit::CodeUnits, rho; h=1, z=0)
+function Density(unit::CodeUnits, rho::Array; h=1, z=0)
 
-	return float(rho) * (1+z)^3 * unit.mass/unit.length^3 * h^2
+	return float(rho) .* (1+z)^3 .* unit.mass/unit.length^3 .* h^2
 end
 
-function NumberDensity(unit::CodeUnits, rho; h=1, z=0, xH=0.76)
+function NumberDensity(unit::CodeUnits, rho::Array; h=1, z=0, xH=0.76)
 
 	n2ne = (xH+0.5*(1-xH))/(2*xH+0.75*(1-xH))
 	umu = 4./(5.*xH+3.)
 
-	return Density(unit, rho; h=h, z=z) * n2ne/(umu*mp)
+	return Density(unit, rho; h=h, z=z) .* n2ne/(umu*mp)
 end
 
-function Pressure(unit::CodeUnits, rho, U; h=1, z=0, xH=0.76, gam=5/3)
+function Pressure(unit::CodeUnits, rho::Array, U::Array; 
+				  					h=1, z=0, xH=0.76, gam=5/3)
 
 	rho_cgs = Density(unit, rho, h=h, z=z)
 
-	return rho_cgs .* U * (gam-1) * unit.vel^2
+	return rho_cgs .* U .* (gam-1) .* unit.vel^2
 
 end
 
-function U2T(unit::CodeUnits, U; xH=0.76, gam=5/3, rad=false)
+function U2T(unit::CodeUnits, U::Array; xH=0.76, gam=5/3, rad=false)
 
 	yhelium = (1-xH)/(4*xH)
 
 	mean_mol_weight = (1+4*yhelium)/(1+3*yhelium+1)
 
-	return U * (gam-1) * unit.vel^2 * mp * mean_mol_weight / k_boltz
+	return U .* (gam-1) .* unit.vel^2 .* mp .* mean_mol_weight ./ k_boltz
 end
 
-function T2U(unit::CodeUnits, T; xH=0.76, gam=5/3, rad=false)
+function T2U(unit::CodeUnits, T::Array; xH=0.76, gam=5/3, rad=false)
 
-	return T / U2T(unit, 1, xH=xH, gam=gam, rad=rad)
+	return T ./ U2T(unit, [1], xH=xH, gam=gam, rad=rad)
 end
 
-function ThermalEnergyDensity(unit::CodeUnits, rho, u; h=1, z=0, xH=0.76, gam=5/3, 
-							  radiative=false)
+function ThermalEnergyDensity(unit::CodeUnits, rho::Array, u::Array; 
+							  				h=1, z=0, xH=0.76, gam=5/3, radiative=false)
 
 	rho_cgs = Density(unit, rho, h=h, z=z)
 	
@@ -101,12 +102,12 @@ function ThermalEnergyDensity(unit::CodeUnits, rho, u; h=1, z=0, xH=0.76, gam=5/
 
     umol = 4./(5.*xH+3.)
 	
-	return rho_cgs .* T *k_boltz/(mp*umol) 
+	return rho_cgs .* T .* k_boltz/(mp*umol) 
 end
 
-function SoundSpeed(unit::CodeUnits, U; gam=5/3)
+function SoundSpeed(unit::CodeUnits, U::Array; gam=5/3)
 
-	return sqrt(U * gam * (gam-1))
+	return sqrt(U .* gam*(gam-1) )
 end
 
 end # module

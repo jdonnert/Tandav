@@ -122,10 +122,8 @@ void IO_Read_Snapshot(char *input_name)
 	return ;
 }
 
-/* 
- * reads file on master and distributes it to an MPI communicator 
- * spanning groupSize with local rank groupRank 
- */
+/* reads file on master and distributes it to an MPI communicator 
+ * spanning groupSize with local rank groupRank */
 
 static void read_file (char *filename, const bool swap_Endian, 
 		const int groupRank, const int groupSize, MPI_Comm mpi_comm_read)
@@ -266,16 +264,15 @@ static void read_file (char *filename, const bool swap_Endian,
 	return ;
 }
 
-/* 
- * This moves data from the comm buffer to P. Here we should be limited 
+/* This moves data from the comm buffer to P. Here we should be limited 
  * by the I/O of the drive. We find the destination of the block by counting
  * the number of pointers (nPtr) starting from &P.Type. nPtr is 
  * just the offset in Bytes over the size of a pointer in bytes on this 
- * system.
- */
+ * system. */
 
 static void empty_comm_buffer(char * restrict DataBuf, const int iB, 
-		const int nPartTotal, const int *nPart, const size_t *offsets)
+						 	const int nPartTotal, const int *nPart, 
+							const size_t *offsets)
 {
 	const int nComp = Block[iB].Ncomp;
 	const size_t nBytes = Block[iB].Nbytes;
@@ -437,8 +434,7 @@ static void generate_masses_from_header()
 	return;
 }
 
-/*
- * We recover the particle types from the IDs which are assumed strictly 
+/* We recover the particle types from the IDs which are assumed strictly 
  * ordered in the range [1, Npart]
  */
 
@@ -577,13 +573,11 @@ static int find_files(char *filename)
 	return nFiles;
 }
 
-/* 
- * this fread wrapper checks for eof, corruption and swaps endianess 
- * if swap_Endian == true 
- */
+/* this fread wrapper checks for eof, corruption and swaps endianess 
+ * if swap_Endian == true */
 
 static int safe_fread(void * restrict data, size_t size, size_t nWanted, 
-		FILE *stream, bool swap_Endian)
+						FILE *stream, bool swap_Endian)
 {
 	size_t nRead = fread(data, size, nWanted, stream);
 

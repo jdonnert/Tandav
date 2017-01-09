@@ -1,5 +1,4 @@
-/*
- *	Tandav - A astrophysical simulation code with background cosmology
+/*	Tandav - Astrophysical simulation code with background cosmology
  *
  *  Copyright (C) 2013 Julius Donnert (donnert@ira.inaf.it)
  *
@@ -15,9 +14,7 @@
  *
  *  You should have received a copy of the GNU General Public License along
  *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
- *
- */
+ *  51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA. */
 
 #include "includes.h"
 #include "init.h"
@@ -33,8 +30,8 @@
 
 static void preamble(int argc, char *argv[]);
 
-/* This exposes the time integration, as well as the snapshot and restart I/O
- * of the code. We use the HOLD integrator from Pelupessy+ 2012. */
+/* This exposes the time integration and I/O of the code. 
+ * We use the HOLD integrator from Pelupessy+ 2012. */
 
 int main(int argc, char *argv[])
 {
@@ -125,8 +122,7 @@ static void preamble(int argc, char *argv[])
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 
 	Assert(provided == MPI_THREAD_MULTIPLE,
-		   "MPI thread multiple not supported by this MPI implementation. "
-		   "Use a different one (e.g. MVAPICH)");
+		   "MPI thread multiple not supported by this MPI implementation.");
 
 	MPI_Comm_rank(MPI_COMM_WORLD, &Task.Rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &NRank);
@@ -161,13 +157,14 @@ static void preamble(int argc, char *argv[])
 	if (Task.Is_Master) {
 
 		printf("#### Tandav ####\n\n"
-				"%d MPI tasks, %d OpenMP threads \n\n", NRank, NThreads);
+				"%d MPI ranks * %d OpenMP threads = %d tasks \n\n", 
+				NRank, NThreads, NTask);
 
 		Print_Compile_Time_Settings();
 
-		Assert( (argc >= 2),
-			"Wrong number of arguments, let me help you: \n\n"
-			"	USAGE: ./Tandav ParameterFile <StartFlag> <SnapNum>\n\n"
+		Assert( argc >= 2,
+			"Wrong number of arguments. \n"
+			"	USAGE: ./Tandav ParameterFile <StartFlag> <SnapNum>\n"
 			"	  0  : Read IC file and start simulation (default) \n"
 			"	  1  : Read restart files and resume  \n"
 			"	  2  : Read snapshot file <SnapNum> and continue \n"

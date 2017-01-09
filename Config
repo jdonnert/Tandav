@@ -1,6 +1,6 @@
 #### BASIC CODE PARAMETERS ####
 
-#DEBUG                       // verbose (!) output
+DEBUG                       // verbose (!) output
 #DEBUG_DOMAIN                // print topnodes and distribution
 #DEBUG_TREE                  // print node distribution 
 

@@ -16,9 +16,7 @@ void IO_Read_and_Init();
 void IO_Write_Snapshot();
 void IO_Write_Restart_File();
 
-/* 
- * Snapshot I/O 
- */
+/* Snapshot I/O */
 
 unsigned int Largest_Block_Member_Nbytes();
 unsigned int Npart_In_Block(const int, const int *);
@@ -43,10 +41,8 @@ struct gadget_header { // standard gadget header, filled to 256 byte
 	char fill_bytes[59];
 };
 
-/*
- * Block provides a description of all output blocks that can be written.
- * This way we only have to edit one place to add a block.
- */
+/* Block provides a description of all output blocks that can be written.
+ * This way we only have to edit one place to add a block. */
 
 struct io_block_def {  // everything we need to define a Block in Format 2
 	char Label[5];

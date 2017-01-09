@@ -27,8 +27,6 @@ void Gravity_Tree_Acceleration()
 	Gravity_Tree_Periodic(false); // PERIODIC
 
 	check_total_momentum(true);
-
-	return ;
 }
 
 /* Compute total momentum to check the gravity interaction. */
@@ -37,10 +35,8 @@ static double Px = 0, Py = 0, Pz = 0, Last = 0;
 
 static void check_total_momentum(const bool show_change)
 {
-	const int last_DM_part = Task.Npart[0]+Task.Npart[1];
-
 	#pragma omp for reduction(+: Px, Py, Pz)
-	for (int ipart = Task.Npart[0]; ipart < last_DM_part; ipart++) {
+	for (int ipart = 0; ipart < Task.Npart_Total; ipart++) {
 	
 		Px += P.Mass[ipart] * P.Vel[0][ipart];
 		Py += P.Mass[ipart] * P.Vel[1][ipart];
@@ -60,8 +56,6 @@ static void check_total_momentum(const bool show_change)
 
 	#pragma omp single nowait
 	Last = ptotal;
-
-	return ;
 }
 #endif
 

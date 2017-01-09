@@ -63,9 +63,7 @@ unsigned int Largest_Block_Member_Nbytes()
 	return Block[imax].Ncomp * Block[imax].Nbytes;
 }
 
-/* 
- * Finds the number of particles for block i 
- */
+/* Finds the number of particles for block i */
 
 unsigned int Npart_In_Block(const int i, const int *nPart)
 {

@@ -37,6 +37,12 @@ This is the Style Guide for Tandav:
   optimised away by modern compilers. Across files, -flto or -ipo switches do
   the same.
 
+* Avoid non-standard and while loops. If you can write it as 
+ 	
+		for (int i = 0; i < N; i++)
+
+  then do so ! 
+
 * Write short functions, whose name is a description of what you are doing.
   No comment necessary to explain how something is happening, only what.
   

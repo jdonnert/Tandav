@@ -1,4 +1,5 @@
-# 
+# Tandav Makefile
+#
 # Code parameters (#define) are in 'Config' file.
 # 
 # The Makefile uses all .c and .h files in ./src and its subdirs 
@@ -10,15 +11,17 @@
 # The way to set your compilation parameters is to set environment variables 
 # in ~/.bashrc :
 #
-#	TANDAV_CC is the compiler, usually mpicc
+#	TANDAV_CC : the compiler, usually mpicc
 #
-# 	TANDAV_CFLAGS are the compilation flags, including optimization. Make sure 
+# 	TANDAV_CFLAGS : the compilation flags, including optimization. Make sure 
 # 		to enable c99, openmp, all warnings and debugging symbols. With this
 # 		code you REALLY want inter-file-optimization & vectorization.
 # 	
-# 	TANDAV_LDFLAGS are the libraries to link in (-lX) and their dirs 
+# 	TANDAV_CFLAGS_DEBUG : same as above but for the debug target
+#
+# 	TANDAV_LDFLAGS : the libraries to link in (-lgsl) and their directories 
 # 		(-L/home/jdonnert/Libs/lib). Most notably here is MPI. 
-# 		GSL libraries are linked atomatically.
+# 		GSL libraries are linked automatically.
 # 	
 # 	TANDAV_CPPFLAGS are the include directories (-I/home/username/include)
 #
@@ -51,8 +54,8 @@
 # 	export TANDAV_CC="cc"
 # 	export TANDAV_CFLAGS="-O3 -h msglevel_2 -h msgs"
 #	export TANDAV_CFLAGS_DEBUG="-Wall -hmsgs -eF -O thread1"
-# 	export TANDAV_LDFLAGS="-L/home/users/n17421/Libs/lib"
-# 	export TANDAV_CPPFLAGS="-I/home/users/n17421/Libs/include"
+# 	export TANDAV_LDFLAGS="-L/home/users/n17422/Libs/lib"
+# 	export TANDAV_CPPFLAGS="-I/home/users/n17422/Libs/include"
 
 SHELL = /bin/bash 	# This should always be present in a Makefile
 

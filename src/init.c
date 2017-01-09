@@ -8,9 +8,7 @@ struct Local_Task_Properties Task = { 0 };
 
 int Master = 0, NRank = 0, NThreads = 0, NTask = 0;
 
-/*
- * Initialization before IC reading
- */
+/* Module initialization before IC reading */
 
 void Init(int argc, char *argv[])
 {

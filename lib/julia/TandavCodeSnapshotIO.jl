@@ -25,6 +25,7 @@ const IOBlocks = [	IOBlock("POS ", "Positions      ", 3, 0x7, Float32),
 				 	IOBlock("U   ", "Internal Energy", 1, 0x1, Float32), 
 				 	IOBlock("BFLD", "Magnetic Field ", 3, 0x1, Float32), 
 				 	IOBlock("MACH", "Mach Number    ", 1, 0x1, Float32), 
+				 	IOBlock("SHSP", "Shock Speed    ", 1, 0x1, Float32), 
 				 	IOBlock("LAST", "Unknown Block  ", 1, 0x1, Float32) 
 			   	]
 

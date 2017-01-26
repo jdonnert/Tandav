@@ -6,7 +6,7 @@
 module TandavCodeSnapshotIO
 
 export Header 
-export ReadHead, ReadSnap
+export ReadHead, ReadSnap, WriteHead, AddBlock
 
 type IOBlock
 	label::String		# 4 Chars exactly !
@@ -16,27 +16,32 @@ type IOBlock
 	elType::DataType	#
 end
 
-const IOBlocks = [	IOBlock("POS ", "Positions      ", 3, 0x7, Float32),
-			 		IOBlock("VEL ", "Velocities     ", 3, 0x7, Float32),
-				 	IOBlock("ID  ", "Identifiers    ", 1, 0x7, UInt32 ), 
-				 	IOBlock("MASS", "Masses         ", 1, 0x7, Float32),
+const IOBlocks = [	
+				# All particles
+				IOBlock("POS ", "Positions      ", 3, 0x7, Float32),
+				IOBlock("VEL ", "Velocities     ", 3, 0x7, Float32),
+			 	IOBlock("ID  ", "Identifiers    ", 1, 0x7, UInt32 ), 
+				IOBlock("MASS", "Masses         ", 1, 0x7, Float32),
 	 	
-					IOBlock("RHO ", "Density        ", 1, 0x1, Float32),
-				 	IOBlock("U   ", "Internal Energy", 1, 0x1, Float32), 
-				 	IOBlock("BFLD", "Magnetic Field ", 3, 0x1, Float32), 
-				 	IOBlock("MACH", "Mach Number    ", 1, 0x1, Float32), 
-				 	IOBlock("SHSP", "Shock Speed    ", 1, 0x1, Float32), 
-				 	IOBlock("LAST", "Unknown Block  ", 1, 0x1, Float32) 
+				# SPH only 
+				IOBlock("RHO ", "Density        ", 1, 0x1, Float32),
+				IOBlock("U   ", "Internal Energy", 1, 0x1, Float32), 
+				IOBlock("BFLD", "Magnetic Field ", 3, 0x1, Float32), 
+				IOBlock("MACH", "Mach Number    ", 1, 0x1, Float32), 
+				IOBlock("SHSP", "Shock Speed    ", 1, 0x1, Float32), 
+
+				# Add above
+				IOBlock("LAST", "Unknown Block  ", 1, 0x1, Float32) 
 			   	]
 
 type Header 
-	npart::Vector{UInt32}
-	masses::Vector{Float64}
+	npart::Array{UInt32}
+	masses::Array{Float64}
 	time::Float64
 	redshift::Float64
 	flag_sfr::Int32
 	flag_feedback::Int32
-	npartTotal::Vector{UInt32}
+	npartTotal::Array{UInt32}
 	flag_cooling::Int32
 	nFiles::UInt32
 	boxsize::Float64
@@ -46,7 +51,7 @@ type Header
 	flag_comoving::Int32
 	flag_double::Int32
 	flag_periodic::Int32
-	la::Vector{UInt8} # == 256 Bytes
+	la::Array{UInt8} # == 256 Bytes
 
 	function Header()
 
@@ -57,7 +62,6 @@ type Header
 		return new(npart, masses, 0,0,0,0, npart, 0,0,0,0,0,0,0,0,0, fill256)
 	end
 end
-
 
 function ReadSnap(fname::AbstractString, label::String; pType=0x7, debug=false)
 	
@@ -86,7 +90,7 @@ function ReadSnap(fname::AbstractString, label::String; pType=0x7, debug=false)
 		@assert(blocksize > 0, 
 		  		"\n\n    Block <$label> not found in file '$fname' \n")
 
-		data = ReadBlock(fd, label, blocksize)
+		data = ReadBlock(fd, label, blocksize; debug=debug)
 
 		data = constrain!(data, head.npart, pType; debug=debug)
 	end
@@ -129,7 +133,7 @@ function ReadHeader(fd)
 
 	label, nBytes = ReadFormat2Head(fd)
 
-	@assert(label=="HEAD", "File does not begin with HEAD")
+	@assert(label=="HEAD", "File does not begin with HEAD but $label")
 
 	f77Record = read(fd, UInt32)
 
@@ -172,13 +176,13 @@ function FindBlock(fd, label::String; debug=false)
 
 		blocklabel, skipsize = ReadFormat2Head(fd)
 
+		blocksize = skipsize - 8 # account for F77 record
+
 		if debug == true
-			println("$label <=> $blocklabel, $skipsize")
+			println("$label <=> $blocklabel, $(blocksize)")
 		end
 
 		if blocklabel == label
-
-			blocksize = skipsize - 8 # account for F77 record
 
 			break
 		end
@@ -189,13 +193,14 @@ function FindBlock(fd, label::String; debug=false)
 	return blocksize
 end
 
-function ReadBlock(fd::IO, label::String, blocksize)
+function ReadBlock(fd::IO, label::String, blocksize;debug=debug)
 	
 	f77Record = read(fd, UInt32)
 
-	@assert(f77Record == blocksize, "Fmt2 head size does not match F77 record")
+	@assert(f77Record == blocksize, 
+		 "Fmt2 head size $blocksize does not match F77 record $f77Record")
 
-	block = FindIOBlockFromLabel(label)
+	block = FindIOBlockFromLabel(label, debug=debug)
 
 	npart = UInt64(blocksize / block.rank / sizeof(block.elType))
 
@@ -212,22 +217,27 @@ function ReadBlock(fd::IO, label::String, blocksize)
 	return data
 end
 
-function FindIOBlockFromLabel(label::String)
+function FindIOBlockFromLabel(label::String; debug=false)
 	
 	block = IOBlocks[1]
 
 	for block in IOBlocks
 
 		if label == block.label
-
 			break
 		end
 
 	end
 
-	if block.label == "LAST"
-		println("Block $label not known. Assuming 1D SPH only.")
-	end 
+	if (debug == true) || (block.label == "LAST")
+
+		println("Assuming '$(block.name)':")
+		println("   label - $(block.label)")  
+	 	println("   rank  - $(block.rank)")
+		println("   ptype - $(block.pType)")
+		println("   dtype - $(block.elType) ")
+	end
+
 
 	return block
 end
@@ -244,6 +254,21 @@ function ReadFormat2Head(fd::IO)
 	f77Record = read(fd, UInt32)
 	
 	return label, nBytes
+end
+
+function WriteFormat2Head(fd::IO, label::String, blocksize::UInt32)
+
+	@assert(length(label) == 4, "Label not 4 bytes long: $label")
+
+	skipsize = UInt32(blocksize+8) 	# add F77 header size (2*4bytes)
+
+	eight = UInt32(8)
+
+	write(fd, eight)
+	write(fd, label) 				# 4*char = 32 bits = 4 bytes
+	write(fd, skipsize)				# 1*UInt32 = 32 bits = 4 bytes
+	write(fd, eight)
+
 end
 
 function GetNFiles(fname::String)
@@ -289,12 +314,94 @@ function MakeMassesFromHeader(head::Header)
 	return data
 end
 
-function WriteHead(fname::AbstractString, head::Header)
+function WriteHead(fname::AbstractString, head::Header; debug=false)
+
+	if debug == true
+		print("Writing HEAD to file '$fname' ")
+	end
+
+	fd = open(fname, "a+")
+
+	seekstart(fd)
+
+	WriteFormat2Head(fd, "HEAD", UInt32(256))
+
+	f77record = UInt32(256)
+
+	write(fd, f77record)
+
+	write(fd, head.npart)
+	write(fd, head.masses)
+	write(fd, head.time)
+	write(fd, head.redshift)
+	write(fd, head.flag_sfr)
+	write(fd, head.flag_feedback)
+	write(fd, head.npartTotal)
+	write(fd, head.flag_cooling)
+	write(fd, head.nFiles)
+	write(fd, head.boxsize)
+	write(fd, head.omega0)
+	write(fd, head.omegaL)
+	write(fd, head.hbpar)
+	write(fd, head.flag_comoving)
+	write(fd, head.flag_double)
+	write(fd, head.flag_periodic)
+	write(fd, head.la) # == 256 bytes
+
+	write(fd, f77record)
+
+	close(fd)
+	
+	if debug == true
+		println("done")
+	end
+end
+
+function AddBlock(fname::AbstractString, label::String, data; debug=false)
+
+	dType = typeof(data)
+	blocksize = UInt32(sizeof(data))
+
+	label *= "    "
+	label = label[1:4]
+
+	if debug == true
+		println("Adding block $label to file $fname")
+		println("   type = $dataType")
+	end
+
+	fd = open(fname, "a+")
+
+	seekstart(fd)
+
+	while !eof(fd) # skip manually to avoid double blocks
+
+		fLabel, skipsize = ReadFormat2Head(fd)
+
+		@assert(fLabel != label, "Label $label already exists in file $fname")
+
+		if debug == true
+			println("   Skipping block $fLabel <-> $skipsize")
+		end
+
+		skip(fd, skipsize)
+	end
+
+	# hopefully at the end now
+
+	WriteFormat2Head(fd, label, blocksize)
+
+	f77record = UInt32(blocksize)
+
+	write(fd, f77record)
+
+	write(fd, data)
+	
+	write(fd, f77record)
+
+	close(fd)
 
 end
 
-function AddBlock(fname::AbstractString, label::String)
 
-
-end
 end # module

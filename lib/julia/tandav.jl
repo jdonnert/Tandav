@@ -12,6 +12,7 @@ importall TandavCodeSnapshotIO
 export TandavCodeObject
 export Density, NumberDensity, U2T, T2U, ThermalEnergyDensity, SoundSpeed
 export ReadHead, ReadSnap
+export WriteHead, AddBlock
 
 type TandavCodeObject # super type, glues all submodules
 	
@@ -85,7 +86,6 @@ function SoundSpeed(t::TandavCodeObject, u::Array)
 	return SoundSpeed(t.Unit, u; gam=t.Par.gamma)
 end
 
-
 function ReadSnap(t::TandavCodeObject, fname::AbstractString, label::String; 
 				  pType=0x07, debug=false)
 	
@@ -94,6 +94,16 @@ function ReadSnap(t::TandavCodeObject, fname::AbstractString, label::String;
 	data = ReadSnap(fname, label; pType=pType, debug=debug)
 
 	return data
+end
+
+function WriteHead(t::TandavCodeObject, fname::AbstractString, head::Header; debug=false)
+
+	WriteHead(fname, head; debug=debug)
+end
+
+function AddBlock(t::TandavCodeObject, fname::AbstractString, data, label::String; debug=false)
+
+	AddBlock(fname, label, data; debug=debug)
 end
 
 function ReadHead(t::TandavCodeObject, fname::AbstractString; debug=false)

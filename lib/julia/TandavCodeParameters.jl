@@ -1,8 +1,4 @@
 
-module TandavCodeParameters
-
-export CodeParameters
-
 type CodeParameters
 	
 	gamma	:: Float64	# adiabatic index
@@ -40,5 +36,3 @@ type CodeParameters
 	  		fCool, fFeedB, fComov, fPeriod)
 	end
 end
-
-end # module

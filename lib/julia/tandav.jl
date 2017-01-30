@@ -5,9 +5,10 @@
 module Tandav
 
 importall CGSUnits
-importall TandavCodeUnits
-importall TandavCodeParameters
-importall TandavCodeSnapshotIO
+
+include("TandavCodeUnits.jl")
+include("TandavCodeParameters.jl")
+include("TandavCodeSnapshotIO.jl")
 
 export TandavCodeObject
 export Density, NumberDensity, U2T, T2U, ThermalEnergyDensity, SoundSpeed
@@ -96,9 +97,10 @@ function ReadSnap(t::TandavCodeObject, fname::AbstractString, label::String;
 	return data
 end
 
-function WriteHead(t::TandavCodeObject, fname::AbstractString, head::Header; debug=false)
+function WriteHead(t::TandavCodeObject, fname::AbstractString, head::Header; 
+					replace=false, debug=false)
 
-	WriteHead(fname, head; debug=debug)
+	WriteHead(fname, head; replace=replace, debug=debug)
 end
 
 function AddBlock(t::TandavCodeObject, fname::AbstractString, data, label::String; debug=false)
@@ -125,9 +127,7 @@ function ReadHead(t::TandavCodeObject, fname::AbstractString; debug=false)
 		Update!(t.Par.fCool, head.flag_cooling, "fCool")
 		Update!(t.Par.fFeedB, head.flag_feedback, "fFeedB")
 		Update!(t.Par.fComov, head.flag_comoving, "fComov")
-		Update!(t.Par.fPeriod, head.flag_periodic, "fPeriod")
-	
-		println()
+		Update!(t.Par.fPeriod, head.flag_periodic, "fPeriod \n")
 	end
 
 	return head

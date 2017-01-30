@@ -3,11 +3,6 @@
 # define the I/O blocks for the gadget format 2 file format
 # and all known blocks with their data metrics
 
-module TandavCodeSnapshotIO
-
-export Header 
-export ReadHead, ReadSnap, WriteHead, AddBlock
-
 type IOBlock
 	label::String		# 4 Chars exactly !
 	name::String		#
@@ -18,20 +13,21 @@ end
 
 const IOBlocks = [	
 				# All particles
-				IOBlock("POS ", "Positions      ", 3, 0x7, Float32),
-				IOBlock("VEL ", "Velocities     ", 3, 0x7, Float32),
-			 	IOBlock("ID  ", "Identifiers    ", 1, 0x7, UInt32 ), 
-				IOBlock("MASS", "Masses         ", 1, 0x7, Float32),
+				IOBlock("POS ", "Positions       ", 3, 0x7, Float32),
+				IOBlock("VEL ", "Velocities      ", 3, 0x7, Float32),
+			 	IOBlock("ID  ", "Identifiers     ", 1, 0x7, UInt32 ), 
+				IOBlock("MASS", "Masses          ", 1, 0x7, Float32),
 	 	
 				# SPH only 
-				IOBlock("RHO ", "Density        ", 1, 0x1, Float32),
-				IOBlock("U   ", "Internal Energy", 1, 0x1, Float32), 
-				IOBlock("BFLD", "Magnetic Field ", 3, 0x1, Float32), 
-				IOBlock("MACH", "Mach Number    ", 1, 0x1, Float32), 
-				IOBlock("SHSP", "Shock Speed    ", 1, 0x1, Float32), 
+				IOBlock("RHO ", "Density         ", 1, 0x1, Float32),
+				IOBlock("HSML", "Smoothing Length", 1, 0x1, Float32),
+				IOBlock("U   ", "Internal Energy ", 1, 0x1, Float32), 
+				IOBlock("BFLD", "Magnetic Field  ", 3, 0x1, Float32), 
+				IOBlock("MACH", "Mach Number     ", 1, 0x1, Float32), 
+				IOBlock("SHSP", "Shock Speed     ", 1, 0x1, Float32), 
 
 				# Add above
-				IOBlock("LAST", "Unknown Block  ", 1, 0x1, Float32) 
+				IOBlock("LAST", "Unknown Block   ", 1, 0x1, Float32) 
 			   	]
 
 type Header 
@@ -93,6 +89,7 @@ function ReadSnap(fname::AbstractString, label::String; pType=0x7, debug=false)
 		data = ReadBlock(fd, label, blocksize; debug=debug)
 
 		data = constrain!(data, head.npart, pType; debug=debug)
+
 	end
 
 	return data
@@ -113,10 +110,10 @@ function constrain!(data, npart, pType=0x07; debug=false)
 		println("Constraining block to $first : $last ")
 	end
 
-	if ndims(data) == 1
-		data[first:last]
+	if (size(data))[1] == 1
+		return data[first:last]
 	else
-		data[:, first:last]
+		return data[:, first:last]
 	end
 
 end
@@ -213,7 +210,7 @@ function ReadBlock(fd::IO, label::String, blocksize;debug=debug)
 	read!(fd, data)
 
 	f77Record = read(fd, UInt32)
-
+		
 	return data
 end
 
@@ -314,11 +311,18 @@ function MakeMassesFromHeader(head::Header)
 	return data
 end
 
-function WriteHead(fname::AbstractString, head::Header; debug=false)
+function WriteHead(fname::AbstractString, head::Header; replace=false, debug=false)
 
 	if debug == true
 		print("Writing HEAD to file '$fname' ")
 	end
+
+	if (replace==true) && isfile(fname)
+		rm(fname)
+	end
+	
+	@assert(!isfile(fname) || (replace==true), 
+		 	"\n   File '$fname' exists already and replace==false !\n\n" ) 
 
 	fd = open(fname, "a+")
 
@@ -361,13 +365,17 @@ function AddBlock(fname::AbstractString, label::String, data; debug=false)
 
 	dType = typeof(data)
 	blocksize = UInt32(sizeof(data))
+	rank = (size(data))[1]
+	npart = (size(data))[2]
 
 	label *= "    "
 	label = label[1:4]
 
 	if debug == true
 		println("Adding block $label to file $fname")
-		println("   type = $dataType")
+		println("   rank  = $rank")
+		println("   npart = $npart")
+		println("   type  = $dType")
 	end
 
 	fd = open(fname, "a+")
@@ -381,7 +389,7 @@ function AddBlock(fname::AbstractString, label::String, data; debug=false)
 		@assert(fLabel != label, "Label $label already exists in file $fname")
 
 		if debug == true
-			println("   Skipping block $fLabel <-> $skipsize")
+			println("   Skipping fwd: block $fLabel <-> $skipsize")
 		end
 
 		skip(fd, skipsize)
@@ -402,6 +410,3 @@ function AddBlock(fname::AbstractString, label::String, data; debug=false)
 	close(fd)
 
 end
-
-
-end # module

@@ -1,13 +1,5 @@
 # provide code unit definition and conversion
 
-module TandavCodeUnits
-
-importall CGSUnits
-
-export CodeUnits, CodeConstants
-export Density, NumberDensity, Pressure, U2T, T2U, ThermalEnergyDensity, 
-	   SoundSpeed
-
 type CodeUnits
 
 	unitName::AbstractString
@@ -109,5 +101,3 @@ function SoundSpeed(unit::CodeUnits, U::Array; gam=5/3)
 
 	return sqrt(U .* gam*(gam-1) )
 end
-
-end # module

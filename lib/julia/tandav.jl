@@ -6,9 +6,9 @@ module Tandav
 
 importall CGSUnits
 
-include("TandavCodeUnits.jl")
-include("TandavCodeParameters.jl")
-include("TandavCodeSnapshotIO.jl")
+include("TandavUnits.jl")
+include("TandavParameters.jl")
+include("TandavSnapshotIO.jl")
 
 export TandavCodeObject
 export Density, NumberDensity, U2T, T2U, ThermalEnergyDensity, SoundSpeed

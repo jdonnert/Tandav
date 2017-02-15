@@ -66,7 +66,7 @@ function ReadSnap(fname::AbstractString, label::String; pType=0x7, debug=false)
 	nFiles = GetNFiles(fname)
 
 	@assert(nFiles > 0, "\n\n    File not found $fname, $(fname).0\n")
-	@assert(nFiles==1, "\n\n    Multiple file reading not implemented yet !\n")
+	@assert(nFiles == 1, "\n\n    Multiple file reading not implemented yet !\n")
 
 	fd = open(fname, "r")
 	
@@ -180,9 +180,10 @@ function FindBlock(fd, label::String; debug=false)
 		end
 
 		if blocklabel == label
-
 			break
 		end
+
+		blocksize = 0
 
 		skip(fd, skipsize)
 	end

@@ -15,7 +15,7 @@ export Density, NumberDensity, U2T, T2U, ThermalEnergyDensity, SoundSpeed
 export ReadHead, ReadSnap
 export WriteHead, AddBlock
 
-type TandavCodeObject # super type, glues all submodules
+type TandavCodeObject
 	
 	z		:: Float64 			# Current Redshift
 	
@@ -31,8 +31,7 @@ type TandavCodeObject # super type, glues all submodules
 					unitName="kpc, 1e10 Msol, km/s", length=kpc2cm,
 					mass=1e10*Msol, vel=1e5) 
 	
-		println("\nSetting CodeObject with \n"*
-		  		  "    z=$z\n")
+		println("\nSetting CodeObject with \n    z=$z\n")
 
 		Par = CodeParameters(;gamma=gamma, xH=xH, boxsize=boxsize, h=h, 
 					   		omega0=omega0, omegaL=omegaL,  

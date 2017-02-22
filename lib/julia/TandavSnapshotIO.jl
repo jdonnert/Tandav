@@ -92,6 +92,10 @@ function ReadSnap(fname::AbstractString, label::String; pType=0x7, debug=false)
 
 	end
 
+	if size(data,1) == 1
+		data = data[:]
+	end
+
 	return data
 end
 

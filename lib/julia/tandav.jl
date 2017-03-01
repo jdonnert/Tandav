@@ -6,14 +6,14 @@ module Tandav
 
 importall CGSUnits
 
-include("TandavUnits.jl")
-include("TandavParameters.jl")
-include("TandavSnapshotIO.jl")
-
 export TandavCodeObject
 export Density, NumberDensity, U2T, T2U, ThermalEnergyDensity, SoundSpeed
 export ReadHead, ReadSnap
 export WriteHead, AddBlock
+
+include("TandavUnits.jl")
+include("TandavParameters.jl")
+include("TandavSnapshotIO.jl")
 
 type TandavCodeObject
 	

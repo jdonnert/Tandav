@@ -370,8 +370,8 @@ function AddBlock(fname::AbstractString, label::String, data; debug=false)
 
 	dType = typeof(data)
 	blocksize = UInt32(sizeof(data))
-	rank = (size(data))[1]
-	npart = (size(data))[2]
+	rank = ndims(data)
+	npart = (size(data))[rank]
 
 	label *= "    "
 	label = label[1:4]
